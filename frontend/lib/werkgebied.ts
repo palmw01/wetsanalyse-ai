@@ -127,7 +127,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // import; de api toetst de grondslag.
   if (deel === "regels") {
     if (pad.length <= 3) return true;
-    if (pad.length === 4) return ["accorderen", "heropenen", "afwijzen", "revisies", "dragers", "poort"].includes(b);
+    if (pad.length === 4) return ["accorderen", "heropenen", "afwijzen", "revisies", "dragers", "poort", "voorbeelden"].includes(b);
     if (pad.length === 6) {
       return (b === "voorbeelden" && !!c && pad[5] === "oordeel") || (b === "dragers" && !!c && pad[5] === "verversen");
     }

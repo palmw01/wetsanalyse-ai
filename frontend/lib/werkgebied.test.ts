@@ -153,7 +153,7 @@ describe("isWerkgebiedRoute", async () => {
     // Afleidingsregels (ADR-018).
     [["w", "regels"]], [["w", "regels", "hierarchie"]], [["w", "regels", "r4"]], [["w", "regels", "r4", "accorderen"]],
     [["w", "regels", "r4", "heropenen"]], [["w", "regels", "r4", "afwijzen"]], [["w", "regels", "r4", "revisies"]],
-    [["w", "regels", "r4", "dragers"]], [["w", "regels", "r4", "dragers", "d1"]], [["w", "regels", "r4", "poort"]],
+    [["w", "regels", "r4", "dragers"]], [["w", "regels", "r4", "dragers", "d1"]], [["w", "regels", "r4", "poort"]], [["w", "regels", "r4", "voorbeelden"]],
     [["w", "regels", "r4", "voorbeelden", "2", "oordeel"]], [["w", "regels", "r4", "dragers", "d1", "verversen"]],
     [["w", "parameterwaarden"]], [["w", "parameterwaarden", "p1"]],
     // Open punten (lessenbundel 4, R3).

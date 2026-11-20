@@ -179,10 +179,18 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
                                  "{n} open keuzes hangen nog aan de regel die deze vervangt: ")
                        + "; ".join(p["vraag"].rstrip(".?") for p in oud) + ". Hang ze om naar deze regel.")
     voorbeelden = inhoud.get("voorbeelden", [])
-    nog_open = sum(v.get("oordeel", "open") == "open" for v in voorbeelden)
+    # De nummers (vanaf 1, de route `…/voorbeelden/{nr}/oordeel`), zodat niemand de hele regel hoeft te lezen om te
+    # weten welk voorbeeld het is (vervolgronde 20 nov 2026).
+    nog_open = voorbeeldnummers(voorbeelden, "open")
     if nog_open:
-        redenen.append(_meervoud(nog_open, "1 voorbeeld is nog niet beoordeeld.",
-                                 "{n} voorbeelden zijn nog niet beoordeeld."))
+        redenen.append(_meervoud(len(nog_open), "Voorbeeld <nrs> is nog niet beoordeeld.",
+                                 "De voorbeelden <nrs> zijn nog niet beoordeeld.").replace("<nrs>", _nrs(nog_open)))
+    # Een onjuist voorbeeld zegt dat de regel een uitkomst geeft die niet klopt: zo'n regel accordeer je niet.
+    onjuist = voorbeeldnummers(voorbeelden, "onjuist")
+    if onjuist:
+        redenen.append(_meervoud(len(onjuist), "Voorbeeld <nrs> geeft een onjuiste uitkomst: pas de regel of het "
+                                 "voorbeeld aan.", "De voorbeelden <nrs> geven een onjuiste uitkomst: pas de regel of de "
+                                 "voorbeelden aan.").replace("<nrs>", _nrs(onjuist)))
     beoordeeld = {(v.get("geval") or "") for v in voorbeelden if v.get("oordeel", "open") != "open"}
     if len(labels) == 1:
         if not beoordeeld:
@@ -191,7 +199,23 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         zonder = [l for l in labels if l not in beoordeeld]
         if zonder:
             redenen.append("Nog geen beoordeeld voorbeeld bij geval " + ", ".join(zonder) + ".")
-    return {"mag": not redenen, "redenen": redenen}
+    # Accorderen vraagt daarna nog een reden (veld `reden`); dat zegt de poort vooraf, zodat `mag` geen verrassing geeft.
+    return {"mag": not redenen, "redenen": redenen, "vraagt": ["reden"]}
+
+
+def voorbeeldnummers(voorbeelden: list[dict], oordeel: str) -> list[int]:
+    return [i for i, v in enumerate(voorbeelden, start=1) if v.get("oordeel", "open") == oordeel]
+
+
+def _nrs(nrs: list[int]) -> str:
+    return ", ".join(map(str, nrs[:-1])) + f" en {nrs[-1]}" if len(nrs) > 1 else str(nrs[0])
+
+
+def smalle_voorbeelden(regel: dict) -> list[dict]:
+    """De voorbeelden met hun nummer, zonder de rest van de regel (`GET …/regels/{id}/voorbeelden`)."""
+    return [{"nr": i, **{k: v.get(k, "") for k in ("geval", "invoer", "uitkomst", "oordeel", "toelichting", "door",
+                                                      "beoordeeld_door", "beoordeeld_op")}}
+            for i, v in enumerate(regel["inhoud"].get("voorbeelden", []), start=1)]
 
 
 def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None,
@@ -221,10 +245,6 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
             uit.append("Geval " + ", ".join(alleen_regel) + " rust alleen op een grondslag voor de hele regel: toets "
                        "of die grondslag dit geval ook draagt.")
     voorbeelden = inhoud.get("voorbeelden", [])
-    onjuist = sum(v.get("oordeel") == "onjuist" for v in voorbeelden)
-    if onjuist:
-        uit.append(_meervoud(onjuist, "1 voorbeeld geeft een onjuiste uitkomst.",
-                             "{n} voorbeelden geven een onjuiste uitkomst."))
     zelf = sum(bool(v.get("door")) and v.get("beoordeeld_door") == v.get("door") for v in voorbeelden
                if v.get("oordeel", "open") != "open")
     if zelf:

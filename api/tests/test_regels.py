@@ -136,9 +136,9 @@ async def test_van_aanmaken_tot_accorderen(client):
     regel = (await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
                                                              "inhoud": met_vb})).json()
     assert regel["inhoud"]["voorbeelden"][0]["oordeel"] == "open"
-    assert "1 voorbeeld is nog niet beoordeeld." in regel["accorderen"]["redenen"]
+    assert "Voorbeeld 1 is nog niet beoordeeld." in regel["accorderen"]["redenen"]
     regel = await _beoordeel(client, wg, regel)
-    assert regel["accorderen"] == {"mag": True, "redenen": []}
+    assert regel["accorderen"] == {"mag": True, "redenen": [], "vraagt": ["reden"]}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": ""})
     assert r.status_code == 409, "zonder reden geen akkoord"
     r = await client.post(_url(wg, regel["id"], "accorderen"),
@@ -202,7 +202,7 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
         "te_toetsen": [{"bronsoort": "beleid", "omschrijving": "Leidraad Invordering"}]}})).json()
 
     regel = (await client.get(_url(wg, regel["id"]))).json()
-    assert regel["accorderen"] == {"mag": False,
+    assert regel["accorderen"] == {"mag": False, "vraagt": ["reden"],
                                    "redenen": ["1 keuze is nog niet genomen: Telt een gedeeltelijke betaling als termijn."]}
     assert "1 onderzoekspunt of gat in de annotatie staat nog open." in regel["signalen"]
     assert regel["open_punten"] == {"open": 2, "totaal": 2, "bij_voorganger": 0}
@@ -217,7 +217,7 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
                                                                    "motivering": "Volgt uit lid 2.", "methode": "grammaticaal"})
     assert r.status_code == 200, r.text
     regel = (await client.get(_url(wg, regel["id"]))).json()
-    assert regel["accorderen"] == {"mag": True, "redenen": []}
+    assert regel["accorderen"] == {"mag": True, "redenen": [], "vraagt": ["reden"]}
     assert regel["open_punten"] == {"open": 1, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "Getoetst"})
     assert r.status_code == 200 and r.json()["status"] == "geaccordeerd"
@@ -560,3 +560,31 @@ async def test_open_punten_per_regel_en_een_te_lang_tekstdeel(client):
     assert r.status_code == 422 and "hoogstens 500 tekens (dit deel heeft er 501)" in r.text
     from app.regel_contracts import Term
     assert Term.model_json_schema()["properties"]["tekst"]["maxLength"] == 500
+
+
+async def test_een_onjuist_voorbeeld_houdt_tegen_met_nummers(client):
+    """Vervolgronde 20 nov 2026: een onjuist voorbeeld was een signaal; de redenen noemden geen nummer, en er was geen
+    smalle route op de voorbeelden. `motivering` bij accorderen gaf een 422."""
+    wg, ids, b = await _opzet(client)
+    regel = await _klaar_voor_accorderen(client, wg, ids, b)
+    voorbeelden = [{"invoer": "1200 en 12", "uitkomst": "100"}, {"invoer": "0 en 12", "uitkomst": "0"},
+                   {"invoer": "1200 en 0", "uitkomst": "deling door nul"}]
+    regel = (await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                             "inhoud": _inhoud(b, voorbeelden=voorbeelden)})).json()
+    assert "De voorbeelden 2 en 3 zijn nog niet beoordeeld." in regel["accorderen"]["redenen"]
+    smal = (await client.get(_url(wg, regel["id"], "voorbeelden"))).json()
+    assert [(v["nr"], v["oordeel"]) for v in smal["voorbeelden"]] == [(1, "juist"), (2, "open"), (3, "open")]
+    assert smal["revisie"] == regel["revisie"] and "inhoud" not in smal
+    for nr, oordeel in ((2, "juist"), (3, "onjuist")):
+        regel = (await client.post(_url(wg, regel["id"], "voorbeelden", str(nr), "oordeel"),
+                                   json={"verwachte_revisie": regel["revisie"], "oordeel": oordeel})).json()
+    assert regel["accorderen"]["mag"] is False
+    assert regel["accorderen"]["redenen"] == [
+        "Voorbeeld 3 geeft een onjuiste uitkomst: pas de regel of het voorbeeld aan."]
+    regel = (await client.post(_url(wg, regel["id"], "voorbeelden", "3", "oordeel"),
+                               json={"verwachte_revisie": regel["revisie"], "oordeel": "kan_niet"})).json()
+    assert regel["accorderen"] == {"mag": True, "redenen": [], "vraagt": ["reden"]}
+    # `motivering` is hetzelfde veld als `reden`.
+    r = await client.post(_url(wg, regel["id"], "accorderen"),
+                          json={"verwachte_revisie": regel["revisie"], "motivering": "Getoetst aan lid 1."})
+    assert r.status_code == 200 and r.json()["status"] == "geaccordeerd", r.text

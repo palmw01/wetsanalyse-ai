@@ -65,7 +65,8 @@ export interface Regel {
   regeltekst: { tekst: string; markdown: string; gevallen: { label: string; tekst: string }[] };
   begrippen: Record<string, { id: string; naam: string; status: string }>;
   dragers: RegelDrager[];
-  accorderen: { mag: boolean; redenen: string[] };
+  /** De poort. `vraagt`: wat accorderen daarna nog vraagt (de reden); een oudere api stuurt het niet. */
+  accorderen: { mag: boolean; redenen: string[]; vraagt?: string[] };
   signalen: string[];
   /** Hoeveel open punten aan de regel of een geval hangen, en hoeveel daarvan nog open zijn (R3). Een oudere api stuurt
    *  het niet. */

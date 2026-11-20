@@ -68,6 +68,14 @@ async def get_poort(werkgebied_id: str, regel_id: str, actor: str = Depends(acti
     return {**store.stand(regel), "gaten": regel["gaten"]}
 
 
+@router.get("/regels/{regel_id}/voorbeelden")
+async def get_voorbeelden(werkgebied_id: str, regel_id: str, actor: str = Depends(actieve_userid)):
+    """De voorbeelden smal, met hun nummer voor `…/voorbeelden/{nr}/oordeel` (vervolgronde 20 nov 2026)."""
+    regel = await store.haal(werkgebied_id, regel_id)
+    return {"id": regel["id"], "revisie": regel["revisie"], "status": regel["status"],
+            "voorbeelden": store.smalle_voorbeelden(regel)}
+
+
 @router.get("/regels/{regel_id}/dragers")
 async def get_dragers(werkgebied_id: str, regel_id: str, actor: str = Depends(actieve_userid)):
     """De dragers smal (B1): per drager rol, geval, oordeel, actualiteit, klasse, tekst en vindplaats, zonder ankers."""
