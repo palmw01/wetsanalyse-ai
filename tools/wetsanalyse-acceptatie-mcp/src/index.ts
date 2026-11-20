@@ -149,7 +149,9 @@ const TOOLS: ToolDef[] = [
       "trace_id; elke status komt terug, dus ook een 403 die een test juist verwacht. Inloggen, tokens " +
       "maken en wachtwoord of 2FA wijzigen kan hier niet. Verwijderen gaat langs een vangrail: alleen een gesprek of " +
       "werkgebied van een testrun (naam begint met `lex-bench-keten · `, `acc-test-` of `Bench `, werkgebied door dit account gemaakt); " +
-      "een bulkroute en alles wat gedeeld is, weigert hij. Ruim een run op met `opruimen`.",
+      "een bulkroute en alles wat gedeeld is, weigert hij. Ruim een run op met `opruimen`. De routes die het team het " +
+      "meest gebruikt, met voorbeeldbody's, staan in tools/wetsanalyse-acceptatie-mcp/README.md §Routes voor `bff`; " +
+      "een schrijfroute kent meestal `?vorm=stand` of `kort`.",
     input: S({
       methode: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
       pad: z.string(),

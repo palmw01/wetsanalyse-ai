@@ -260,6 +260,18 @@ async def test_een_afgewezen_duiding_houdt_het_element_niet_vast(client):
     assert primair[ids["lid1"]]["begrip_id"] == b["id"]
 
 
+async def test_een_begrip_met_een_uniek_voorvoegsel_van_zijn_id(client):
+    """Termijnen e2e (20 nov 2026): `begrip_lezen` weigerde een kort id; dezelfde regel als bij elementen."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    pad = f"/v1/werkgebieden/{wg['id']}/begrippen"
+    assert (await client.get(f"{pad}/{b['id'][:8]}")).json()["id"] == b["id"]
+    assert (await client.get(f"{pad}/{b['id'][:8]}/revisies")).status_code == 200
+    assert (await client.get(f"{pad}/{b['id'][:3]}")).status_code == 404
+    assert (await client.get(f"{pad}/ffffffff")).status_code == 404
+
+
 async def test_een_element_duidt_hooguit_een_begrip_aan(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)

@@ -206,7 +206,7 @@ async def maak(werkgebied_id: str, inv: RelatieInvoer, actor: str) -> dict:
             stand_van=stand(begrippen[van].inhoud), stand_naar=stand(begrippen[naar].inhoud), door=actor, op=db.utcnow()))
         await werkgebied_audit(conn, werkgebied_id, actor, "relatie-vastgelegd",
                                {"relatie_id": rid, "type": type_, "van": van, "naar": naar, "herkomst": herkomst})
-    return await lijst(werkgebied_id)
+    return {**await lijst(werkgebied_id), "relatie_id": rid}
 
 
 async def wijs_af(werkgebied_id: str, vid: str, reden: str, actor: str) -> dict:
@@ -225,7 +225,7 @@ async def wijs_af(werkgebied_id: str, vid: str, reden: str, actor: str) -> dict:
             door=actor, op=db.utcnow()))
         await werkgebied_audit(conn, werkgebied_id, actor, "relatie-afgewezen",
                                {"relatie_id": rid, "type": voorstel["type"], "reden": reden})
-    return await lijst(werkgebied_id)
+    return {**await lijst(werkgebied_id), "relatie_id": rid}
 
 
 async def _rij(conn, werkgebied_id: str, rid: str):

@@ -872,6 +872,11 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   `R<hash(van, naar, type)>`. Lezen schrijft niets; `POST …/relaties {voorstel_id}` legt vast (herkomst
   `lex`), `POST …/relaties/voorstellen/{id}/afwijzen {reden}` schrijft een afgewezen rij, en die sleutel
   komt niet terug. Een voorstel dat er niet meer is: 409 `voorstel_weg`.
+- **Zelf vastleggen is het oordeel**: een relatie heeft alleen `akkoord` of `afgewezen`, en wie haar vastlegt
+  (zelf, of door een voorstel van Lex over te nemen) beoordeelt haar daarmee. Dat is zo ontworpen in fase F2, naar het
+  voorbeeld van een eigen relatie tussen markeringen (ADR-011: meteen vastgesteld). Een open stand voor een relatie van
+  een ander, met vier ogen, is een keuze die nog niet gemaakt is. Een verkeerde relatie wijs je af met een reden
+  (`POST …/relaties/{id}/afwijzen`).
 - **Zelf vastleggen**: `{van_begrip, naar_begrip, type}`; `verwant` vraagt een toelichting (422);
   `opvolging` kan niet (422); naar zichzelf 422 `zelfde_begrip`; dezelfde actieve relatie 409
   `al_vastgelegd`; een vervangen begrip 409 `vervangen`. `DELETE …/relaties/{id}` (opvolging niet: 409).
@@ -1028,6 +1033,12 @@ werkgebieden. Een verwijderd begrip of werkgebied is gewist en bestaat hier dus 
   met `bewijs.afwijzing` (reden, door, op, wie haar vastlegde). Ze blijft staan in plaats van te verdwijnen, en ze gaat
   uit de projectie. Een opvolging wijs je niet af.
 - **Open contextkoppelingen zijn een signaal** in `aandachtspunten` (`_context_open`), geen reden van de poort.
+- **Relatieroutes met `?vorm=stand`**: vastleggen, een voorstel afwijzen, een vastgelegde relatie afwijzen, bevestigen
+  en weghalen geven de tellingen plus de ene relatie die geraakt werd (`relatie`, `null` als ze weg is) in plaats van
+  ~85k tekens. `?vorm=kort` geeft alleen de tellingen.
+- **Een begrip met een uniek voorvoegsel** van zijn id (`GET …/begrippen/{id}` en `…/revisies`,
+  `begrip_store.volledig_begrip_id`). Dezelfde regel als bij elementen: minstens 6 tekens, alleen onder de begrippen
+  van dit werkgebied, en meer kandidaten geeft 409.
 - **Een element met een uniek voorvoegsel** van zijn id (minstens 6 tekens; `GET /v1/annotatie/elementen/{id}` en
   `…/graaf`, `store.volledig_element_id`): meer kandidaten is 409 `voorvoegsel_niet_uniek`, nooit een gok.
 

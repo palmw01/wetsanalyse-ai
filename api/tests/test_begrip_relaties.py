@@ -143,6 +143,21 @@ async def test_een_hierarchie_die_een_kring_sluit_weigert_de_api(client):
     assert r.status_code == 409 and r.json()["detail"]["fout"] == "hierarchie_kring"
 
 
+async def test_de_schrijfroutes_van_relaties_kennen_vorm_stand(client):
+    """Termijnen e2e (20 nov 2026): vastleggen en afwijzen gaven elk ~85k tekens terug, en `vorm=stand` gaf 422."""
+    _, wg, a, b = await _twee(client)
+    r = await client.post(_rel(wg) + "?vorm=stand", json={"van_begrip": b["id"], "naar_begrip": a["id"],
+                                                           "type": "hierarchie", "toelichting": "Soort."})
+    assert r.status_code == 201, r.text
+    uit = r.json()
+    assert uit["vorm"] == "stand" and uit["relatie"]["id"] == uit["relatie_id"] and uit["relaties"] == 1
+    rid = uit["relatie_id"]
+    uit = (await client.post(_rel(wg, rid, "afwijzen") + "?vorm=stand", json={"reden": "Omgekeerd."})).json()
+    assert uit["relatie"]["beoordeling"] == "afgewezen" and uit["afgewezen"] == 1
+    uit = (await client.delete(_rel(wg, rid) + "?vorm=stand")).json()
+    assert uit["relatie"] is None and uit["relatie_id"] == rid
+
+
 async def test_een_veranderde_kant_staat_bij_het_andere_begrip_in_de_herbeoordeling(client):
     ids, wg, a, b = await _twee(client)
     await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "inclusie"})
