@@ -70,6 +70,8 @@ KEUZES: tuple[Modelkeuze, ...] = (
     _agent("duiding", "Duiding", "Legt uit wat een bepaling betekent en hoe bepalingen samenhangen."),
     _agent("annotaties_lezen", "Annotaties lezen", "Beantwoordt vragen over bestaande annotaties; wijzigt niets."),
     _agent("begrippen_lezen", "Begrippen lezen", "Beantwoordt vragen over de vastgelegde begrippen; wijzigt niets."),
+    _agent("regels_lezen", "Afleidingsregels lezen",
+           "Beantwoordt vragen over de vastgelegde afleidingsregels; wijzigt niets."),
     _agent("retrieval", "Bepaling ophalen", "Zoekt met tools de bepaling op die geannoteerd wordt.", _OPHALEN),
     _stap("subagent", "Subagents",
           "Een subagent van de centrale agent, als zijn agentprofiel geen eigen keuze heeft."),

@@ -11,6 +11,7 @@ Alleen lezen: Lex stelt geen regel voor en accordeert niets (R5+ van het bouwpla
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from .annotatie_tools import _d, schema
@@ -129,3 +130,35 @@ def dispatch_regel(name: str, args: dict[str, Any], port) -> str:
         antwoord = port.regel(args["werkgebied_id"], args["regel_id"])
         result = compact_regel(antwoord["regel"]) if antwoord.get("status") == "ok" else antwoord
     return json.dumps({"bewijssoort": "regel", **result}, ensure_ascii=False)
+
+
+# --- herkennen (ADR-010: routering in code) -------------------------------------------------------------------------
+# Een vraag over de vastgelegde afleidingsregels gaat zonder model naar de leesroute (`nodes/regels_lezen.py`): de code
+# zoekt eerst, en een klein profiel formuleert (lichte meting #1792, 20 nov 2026: "Welke afleidingsregels bepalen de
+# vervaldag van een termijn, en op welke artikelen rusten ze?" ging naar de centrale agent, die de regeltools achter
+# `meer_tools` niet gebruikte en uit de wettekst antwoordde).
+#
+# "Afleidingsregel" is ook een JAS-klasse: een vraag naar markeringen of annotaties van die klasse is een leesvraag over
+# annotaties, geen vraag over het regelobject. Een opdracht (opstellen, accorderen) is ook geen leesvraag.
+_REGEL = re.compile(r"\b(afleidingsregels?|rekenregels?|beslisregels?|regelkaarten?|afleidingshi[eë]rarchie)\b")
+_ANNOTATIE = re.compile(r"\b(markering\w*|gemarkeerd\w*|annota\w*|geannoteerd\w*|klasse|jas)\b")
+_REGEL_SCHRIJVEN = re.compile(r"\b(stel\w*|maak|maken|formuleer\w*|accordeer\w*|wijzig\w*|verwijder\w*|wijs\b|afwijzen"
+                              r"|keur\w*|beoordeel\w*|annoteer\w*|markeer\w*)\b")
+# Het onderwerp van de regel ("bepalen de vervaldag", "voor het termijnbedrag", "over de verrekening").
+_ONDERWERP = re.compile(r"\b(?:bepal\w*|voor|over|van|berekenen|berekent)\s+(?:de|het|een)\s+([a-zà-ÿ\- ]+?)"
+                        r"(?=\s+(?:van|in|bij|en|op|uit|met|dat|die)\b|\s*[?.!,;:]|\s*$)")
+
+
+def is_regel_leesvraag(vraag: str) -> bool:
+    q = (vraag or "").casefold()
+    return bool(_REGEL.search(q) and not _ANNOTATIE.search(q) and not _REGEL_SCHRIJVEN.search(q))
+
+
+def zoekterm_regel(vraag: str) -> str:
+    """Het onderwerp van de regel als zoekterm ("vervaldag"), of leeg: dan zoekt de route alle regels van het werkgebied.
+    Een verkeerd geraden term levert stil te weinig op, dus alleen na een vast patroon; het model verfijnt daarna zelf."""
+    q = (vraag or "").casefold()
+    if m := _ONDERWERP.search(q[_REGEL.search(q).end():] if _REGEL.search(q) else q):
+        woorden = [w for w in m.group(1).split() if w not in {"regel", "regels", "afleidingsregel", "afleidingsregels"}]
+        return " ".join(woorden[:3])
+    return ""

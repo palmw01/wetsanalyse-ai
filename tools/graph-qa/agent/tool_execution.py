@@ -33,6 +33,13 @@ def begrip_port(b, state):
         b.settings, state.get("user_id", "") or b.settings.annotatie_read_user_id, state.get("werkgebied_id", "") or "")
 
 
+def regel_port(b, state):
+    """De leespoort voor afleidingsregels: de rungebruiker als actor, het werkgebied van het gesprek vooraf gekozen."""
+    from .regel_read import RegelReadApi
+    return getattr(b, "regels", None) or RegelReadApi(
+        b.settings, state.get("user_id", "") or b.settings.annotatie_read_user_id, state.get("werkgebied_id", "") or "")
+
+
 #: De argumenten die het spoor als filter toont. Naast die van de annotatie- en begriptools de filters van elke
 #: bronconnector uit haar beschrijving (`MetadataVeld.filters`): eerst stonden alleen `tekst` en `offset` erin, en was niet
 #: te zien op welk blad, soort of jaar er gezocht was (meting bekendmakingen, bevinding 6).
@@ -47,7 +54,8 @@ def execute_tool(b, state, writer, tool, *, operation=None, van_model=False):
     """Voer één aanroep uit, met de events eromheen. `van_model`: de aanroep komt van het model (`tools_node`), en dan moet
     elk id erin uit het gesprek komen (`id_herkomst.toets`); code die zelf een tool aanroept, leidt haar ids zelf af."""
     name, args = tool["name"], tool.get("input") or {}
-    leesroute = "annotaties_lezen" if state.get("annotaties_lezen") else "begrippen_lezen" if state.get("begrippen_lezen") else ""
+    leesroute = ("annotaties_lezen" if state.get("annotaties_lezen") else "begrippen_lezen" if state.get("begrippen_lezen")
+                 else "regels_lezen" if state.get("regels_lezen") else "")
     if leesroute and not operation:
         from .specialists import SPECIALISTS
         if name not in SPECIALISTS[leesroute].tools:
@@ -79,7 +87,8 @@ def execute_tool(b, state, writer, tool, *, operation=None, van_model=False):
             raw = operation()
         else:
             raw = dispatch(name, b.graph, args, b.settings, annotaties=read_port(b, state),
-                           begrippen=begrip_port(b, state), bronnen=state.get("bronnen"))
+                           begrippen=begrip_port(b, state),
+                           regels=regel_port(b, state) if name in REGEL_TOOL_NAMEN else None, bronnen=state.get("bronnen"))
         if not isinstance(raw, str):
             raw = json.dumps(raw, ensure_ascii=False)
         try:

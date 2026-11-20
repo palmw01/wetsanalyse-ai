@@ -686,6 +686,47 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                      'sjablonen': (),
                                      'skills': (),
                                      'tools': ('get_artikel', 'search_wetgeving')},
+               'regels_lezen': {'beschrijving': 'Beantwoordt vragen over de vastgelegde '
+                                                'afleidingsregels van de werkgebieden; zoekt en '
+                                                'leest, wijzigt niets.',
+                                'budget': None,
+                                'connectors': (),
+                                'instructie': 'Je raadpleegt de afleidingsregels die juristen in '
+                                              'werkgebieden vastlegden (activiteit 3b). De '
+                                              'zoekopdracht, en bij weinig treffers ook het lezen '
+                                              'van elke regel, is al voor je uitgevoerd en staat '
+                                              'als toolresultaat in dit gesprek; bouw je antwoord '
+                                              'daarop. Gebruik get_regel voor een regel die nog '
+                                              'niet gelezen is, of search_regels met een ándere '
+                                              'zoekterm – herhaal niet dezelfde aanroep. Maak, '
+                                              'wijzig of accordeer nooit een regel. Noem per regel '
+                                              'de naam, de status (een concept is nog niet '
+                                              'beoordeeld) en waarop ze rust: de dragers met hun '
+                                              'rol en vindplaats. Een regel is een '
+                                              'analyse-uitkomst, geen wettekst: zet de regeltekst '
+                                              'niet tussen aanhalingstekens. Wil je zeggen wat de '
+                                              'wet zegt, haal dan de bepaling van een drager op '
+                                              'met get_artikel, get_lid of get_bepaling en wijs '
+                                              'daar een passage uit aan. Een toolfout of '
+                                              'onvolledig resultaat betekent niet dat een regel '
+                                              'niet bestaat.\n'
+                                              'AFRONDEN: rust je antwoord op de wettekst van de '
+                                              'dragers, rond dan af met antwoord_duiding en wijs '
+                                              'de passages aan uit de bepalingen die je ophaalde. '
+                                              'Gaat de vraag alleen over welke regels er liggen of '
+                                              'wat hun stand is, dan antwoord je in tekst.',
+                                'kiesbaar': False,
+                                'max_rondes': None,
+                                'mcp': (),
+                                'methoderol': 'algemeen',
+                                'naam': 'regels_lezen',
+                                'sjablonen': ('antwoord_duiding',),
+                                'skills': (),
+                                'tools': ('get_artikel',
+                                          'get_bepaling',
+                                          'get_lid',
+                                          'get_regel',
+                                          'search_regels')},
                'retrieval': {'beschrijving': 'Vindt de exacte bepaling die geannoteerd moet worden '
                                              'en haalt die op; beantwoordt en annoteert zelf niet.',
                              'budget': None,
@@ -837,4 +878,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': '77ba1acb35101bafd350e3b07f72c7607eedd1bcfec33b2c994807f2fb899028'}
+ 'sha256': 'b1f29ef96a622bbf221c0d61467c278e4fb3758dac93e77522001b8caabee742'}

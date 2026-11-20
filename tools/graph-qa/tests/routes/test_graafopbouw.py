@@ -40,7 +40,8 @@ def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
         "ingang", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken", "bron_lezen",
-        "bron_lijst", "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "annoteer", "emit", "advance", "afwijzen",
+        "bron_lijst", "begrippen_zoeken", "regels_zoeken", "overzicht_bouwen", "bepaling_lezen", "annoteer", "emit", "advance",
+        "afwijzen",
         "werkgebied_intake", "bronselectie", "agent_taak",
         # De centrale agent (ADR-016): de overdracht en de nodes van de delegatie.
         "overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route",
@@ -85,6 +86,9 @@ def test_planning_is_de_standaardvorm():
         # Idem voor vastgelegde begrippen (nodes/begrippen_lezen.py, fase F4).
         ("ingang", "begrippen_zoeken", "", True),
         ("begrippen_zoeken", "agent", "", False),
+        # Idem voor vastgelegde afleidingsregels (nodes/regels_lezen.py, ADR-010).
+        ("ingang", "regels_zoeken", "", True),
+        ("regels_zoeken", "agent", "", False),
         # Een overzichtsvraag: het overzicht en zijn tekst komen uit de graaf, zonder model; alleen als
         # het bouwen faalt neemt de agent het over (nodes/overzicht.py).
         ("ingang", "overzicht_bouwen", "", True),
@@ -123,6 +127,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "bron_lezen", "", True),
         ("advance", "bron_lijst", "", True),
         ("advance", "begrippen_zoeken", "", True),
+        ("advance", "regels_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "bepaling_lezen", "", True),
         ("advance", "afwijzen", "", True),
@@ -152,6 +157,6 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "ingang", "agent", "tools", "sjabloon", "correct",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken", "bron_lezen", "bron_lijst",
-        "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "werkgebied_intake", "bronselectie", "agent_taak",
-        "overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route",
+        "begrippen_zoeken", "regels_zoeken", "overzicht_bouwen", "bepaling_lezen", "werkgebied_intake", "bronselectie",
+        "agent_taak", "overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route",
     }

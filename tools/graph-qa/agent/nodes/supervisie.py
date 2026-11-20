@@ -40,6 +40,7 @@ from ..verduidelijken import doorvraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
+from ..tools.regel_tools import is_regel_leesvraag
 from ..werkgebied_intake import is_open, is_werkgebiedvraag
 from . import subagent_route
 from ..overdracht import _start_kind
@@ -92,6 +93,15 @@ def _begrippen_lees(writer, vraag: str) -> dict[str, Any]:
     return {"specialist": "begrippen_lezen", "worker_plan": ["begrippen_lezen"],
             "worker_idx": 0, "plan": "vastgelegde begrippen raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": False, "begrippen_lezen": True}
+
+
+def _regels_lees(writer, vraag: str) -> dict[str, Any]:
+    """Een vraag over de vastgelegde afleidingsregels (ADR-010): de code zoekt eerst (`nodes/regels_lezen.py`), het
+    profiel `regels_lezen` formuleert."""
+    _stap(writer, "Lex", "raadpleegt vastgelegde afleidingsregels", route="regels_lezen")
+    return {"specialist": "regels_lezen", "worker_plan": ["regels_lezen"],
+            "worker_idx": 0, "plan": "vastgelegde afleidingsregels raadplegen" + _herschreven(vraag),
+            "afwijzen": False, "annotaties_lezen": False, "begrippen_lezen": False, "regels_lezen": True}
 
 
 def _overzicht(writer, vraag: str) -> dict[str, Any]:
@@ -589,6 +599,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     begripvraag = modus == "auto" and is_begrip_leesvraag(state.get("question", ""))
     if begripvraag and not gesprek:
         return _begrippen_lees(writer, "")
+    regelvraag = modus == "auto" and is_regel_leesvraag(state.get("question", ""))
+    if regelvraag and not gesprek:
+        return _regels_lees(writer, "")
     leesvraag = is_leesvraag(state.get("question", ""), modus)
     if leesvraag and (not gesprek or _heeft_opgegeven_doel(state)):
         # Een leesvraag kan topologisch geen annotatie worden – ook niet met een doel erbij: dan is
@@ -707,6 +720,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     # stelde, gaat ook hier voor: de code zoekt eerst.
     if begripvraag:
         return _begrippen_lees(writer, "")
+    if regelvraag:
+        return _regels_lees(writer, "")
     if leesvraag:
         return _lees(writer, "")
     if is_standvraag(state.get("question", "")) and isinstance(stand := _delegatie_stand(b, state, {}), tuple):
@@ -826,6 +841,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "overzicht_bouwen"
     if state.get("begrippen_lezen"):
         return "begrippen_zoeken"
+    if state.get("regels_lezen"):
+        return "regels_zoeken"
     if state.get("annotaties_lezen"):
         # Eerst zoeken, dan formuleren.
         return "annotaties_zoeken"
