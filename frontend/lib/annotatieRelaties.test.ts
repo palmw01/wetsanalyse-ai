@@ -108,6 +108,7 @@ describe("de routes van de opslag", () => {
       volgorde: 2, toelichting: "", ...r });
     await apiOpslag.beslisRelatie!("R/1", { type: "reject", comment: "past niet", ...r });
     await apiOpslag.wisRelatie!("R1", r);
+    await apiOpslag.bevestigRelatie!("R1", r);
     await apiOpslag.maakImpliciet!({ doel: { bron_iri: "urn:L1" }, snapshot_id: "s", label: "x", toelichting: "y", ...r });
     await apiOpslag.wisImpliciet!("I1", r);
     const calls = fetch.mock.calls as unknown as [string, RequestInit][];
@@ -115,6 +116,7 @@ describe("de routes van de opslag", () => {
       ["/api/annotatie/v2/relaties", "POST"],
       ["/api/annotatie/v2/relaties/R%2F1/beslissing", "POST"],
       ["/api/annotatie/v2/relaties/R1/wis", "POST"],
+      ["/api/annotatie/v2/relaties/R1/bevestig", "POST"],
       ["/api/annotatie/v2/impliciet", "POST"],
       ["/api/annotatie/v2/impliciet/I1/wis", "POST"],
     ]);

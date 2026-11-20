@@ -1699,6 +1699,11 @@ export async function wijsRelatieAf(id: string, voorstelId: string, reden: strin
     jsonInit("POST", { reden })));
 }
 
+/** Een vastgelegde relatie afwijzen met een reden: ze blijft in de historie staan, in plaats van te verdwijnen. */
+export async function wijsVastgelegdeRelatieAf(id: string, relatieId: string, reden: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId, "afwijzen"), jsonInit("POST", { reden })));
+}
+
 export async function bevestigRelatie(id: string, relatieId: string): Promise<RelatiesAntwoord> {
   return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId, "bevestigen"), { method: "POST" }));
 }

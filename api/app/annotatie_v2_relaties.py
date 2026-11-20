@@ -30,7 +30,8 @@ from . import jas_relaties
 from .annotatie_v2_contracts import (AFGEHANDELD, NIET_ACTUEEL, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing,
                                      Relatiebesluiten,
                                       RelatieInvoer, RelatieVoorstel, is_vervangen)
-from .annotatie_v2_store import _audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie, zonder_meting
+from .annotatie_v2_store import (_audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie,
+                                 verwacht_per_bron, zonder_meting)
 from .begrip_store import element_hash
 
 
@@ -347,6 +348,51 @@ async def beslis(relatie_id_: str, req: RelatieBeslissing, actor: str) -> dict:
             db.annotatie_v2_relaties.c.id == relatie_id_).values(inhoud=relatie))
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "relatie-beoordeeld", {"type": req.type, "comment": req.comment}, None, layer["id"])
+        return {"relatie": compact(beschrijf(relatie, elementen, impliciet)), "laag": publiek_laag(layer)}
+
+
+async def bevestig(relatie_id_: str, verwachte_revisies: dict, actor: str) -> dict:
+    """Een vastgestelde relatie klopt nog na een wijziging aan een kant (een verlengd anker): de stand van nu wordt de
+    nieuwe basis, zoals bij begripsrelaties (`begrip_relatie_store.bevestig`). Dezelfde toetsen als goedkeuren – beide
+    kanten actueel, de klassen passen nog –, maar de laag hoeft niet heropend te worden en de relatie blijft vastgesteld:
+    er verandert geen oordeel, alleen de bewaarde stand (Termijnen e2e, 20 nov 2026: verversen kostte vier mutaties op
+    een geaccordeerde laag). De revisie van de dragerlaag geldt (412); een relatie die niet veranderd is, laat alles
+    staan."""
+    async with schrijftransactie() as conn:
+        row = (await conn.execute(select(db.annotatie_v2_relaties).where(
+            db.annotatie_v2_relaties.c.id == relatie_id_))).mappings().first()
+        if row is None:
+            raise HTTPException(404, "Relatie niet gevonden.")
+        relatie = dict(row["inhoud"])
+        if relatie["lifecycle"] not in (Lifecycle.human_approved.value, Lifecycle.edited.value):
+            raise HTTPException(409, {"fout": "niet_te_bevestigen",
+                                      "melding": "Alleen een vastgestelde relatie bevestig je; beoordeel een voorstel."})
+        layers = await _lagen(conn)
+        layer = _layers_per_id(layers).get(row["laag_id"])
+        if layer is None:
+            raise HTTPException(404, "De laag van de drager bestaat niet meer.")
+        if verwacht_per_bron(verwachte_revisies, layers).get(layer["bron_iri"], 0) != layer["revisie"]:
+            raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": layer["bron_iri"], "revisie": layer["revisie"],
+                                      "melding": f"De laag van de drager staat op revisie {layer['revisie']}."})
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        info_van, info_naar = _info(relatie["van"], elementen, impliciet), _info(relatie["naar"], elementen, impliciet)
+        if not (info_van and info_naar and info_van["actueel"] and info_naar["actueel"]):
+            raise HTTPException(422, {"fout": "eindpunt_niet_actueel",
+                                      "melding": "Een eindpunt is verworpen, verouderd of weg; bevestigen kan niet."})
+        if not jas_relaties.toegestaan(relatie["type"], info_van["klasse"], info_naar["klasse"],
+                                       info_van["subtype"], info_naar["subtype"]):
+            raise HTTPException(422, {"fout": "klassen_passen_niet", "melding":
+                                      "Een eindpunt wisselde van klasse; deze relatie past daar niet meer bij."})
+        if (info_van["stand"], info_naar["stand"]) != (relatie.get("stand_van"), relatie.get("stand_naar")):
+            voor = {"stand_van": relatie.get("stand_van"), "stand_naar": relatie.get("stand_naar")}
+            relatie.update(stand_van=info_van["stand"], stand_naar=info_naar["stand"])
+            relatie["beslissingen"] = [*relatie.get("beslissingen", []),
+                                       _beslissing("bevestig", actor, "De relatie klopt nog na een wijziging aan een kant.")]
+            await conn.execute(update(db.annotatie_v2_relaties).where(
+                db.annotatie_v2_relaties.c.id == relatie_id_).values(inhoud=relatie))
+            await _raak(conn, layer, layer["snapshot_id"])
+            await _audit(conn, actor, "relatie-bevestigd", {"relatie": relatie_id_, "voor": voor}, None, layer["id"])
         return {"relatie": compact(beschrijf(relatie, elementen, impliciet)), "laag": publiek_laag(layer)}
 
 

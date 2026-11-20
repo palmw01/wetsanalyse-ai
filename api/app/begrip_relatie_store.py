@@ -237,6 +237,30 @@ async def _rij(conn, werkgebied_id: str, rid: str):
     return x
 
 
+async def wijs_vastgelegd_af(werkgebied_id: str, rid: str, reden: str, actor: str) -> dict:
+    """Een vastgelegde relatie afwijzen in plaats van haar te verwijderen (Termijnen e2e, 20 nov 2026): in een gedeeld
+    werkgebied blijft zo staan dat ze er was, wie haar afwees en waarom. Ze gaat uit de projectie (alleen `akkoord`
+    telt) en blokkeert niets meer; een nieuwe relatie tussen hetzelfde paar vervangt haar zoals elk afgewezen voorstel.
+    Een opvolging wijs je niet af: die volgt uit het vervangen begrip."""
+    r = db.begrip_relaties
+    async with db.get_engine().begin() as conn:
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
+        x = await _rij(conn, werkgebied_id, rid)
+        if x.type == "opvolging":
+            raise HTTPException(409, {"fout": "opvolging", "melding": "Een opvolging haal je weg door de opvolger "
+                                      "te verwijderen; dan krijgt het oude begrip zijn status terug."})
+        if x.beoordeling != "akkoord":
+            raise HTTPException(409, {"fout": "niet_vastgelegd", "melding": "Deze relatie is al afgewezen."})
+        nu = db.utcnow()
+        afwijzing = {"reden": reden, "door": actor, "op": nu.isoformat(), "was_door": x.door,
+                     "was_op": db.aware(x.op).isoformat()}
+        await conn.execute(update(r).where(r.c.id == rid).values(
+            beoordeling="afgewezen", bewijs={**(x.bewijs or {}), "afwijzing": afwijzing}, door=actor, op=nu))
+        await werkgebied_audit(conn, werkgebied_id, actor, "relatie-afgewezen",
+                               {"relatie_id": rid, "type": x.type, "reden": reden, "was": "akkoord"})
+    return await lijst(werkgebied_id)
+
+
 async def verwijder(werkgebied_id: str, rid: str, actor: str) -> dict:
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:

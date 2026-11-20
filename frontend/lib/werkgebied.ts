@@ -97,10 +97,10 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (deel === "export" || deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad"
       || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden")
     return pad.length === 2;
-  // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
+  // Relaties (fase F2): lezen en vastleggen, één relatie weghalen, bevestigen of afwijzen, een voorstel afwijzen.
   if (deel === "relaties") {
     if (pad.length <= 3) return true;
-    if (pad.length === 4) return b === "bevestigen";
+    if (pad.length === 4) return b === "bevestigen" || (b === "afwijzen" && a !== "voorstellen");
     return pad.length === 5 && a === "voorstellen" && !!b && c === "afwijzen";
   }
   // Dekking (fase F1): lezen, en een element buiten behandeling zetten of terughalen.

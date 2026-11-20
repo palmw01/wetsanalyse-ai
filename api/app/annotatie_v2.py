@@ -210,6 +210,8 @@ async def post_batch(req: Batch, actor: str = Depends(actieve_userid)):
 
 @router.get("/elementen/{element_id}")
 async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
+    """Eén element; een uniek voorvoegsel van het id (minstens 6 tekens) mag ook (`store.volledig_element_id`)."""
+    element_id = await store.volledig_element_id(element_id)
     result = await store.detail(element_id)
     # De meting van de ronde hoort bij de weergave (`runs`), niet bij elk element apart.
     result["element"] = {**result["element"], "geproduceerd_door": store.zonder_meting(
@@ -241,6 +243,7 @@ async def get_element_graaf(element_id: str, actor: str = Depends(actieve_userid
     from .graafcontrole import controleer_laag
     from .graaf_projectie_v2 import bouw_graaf
 
+    element_id = await store.volledig_element_id(element_id)
     result = await store.detail(element_id)
     element = result["element"]
     laag = await store.laag_detail(element["laag_id"])
@@ -322,6 +325,13 @@ async def post_relatie(req: RelatieInvoer, actor: str = Depends(actieve_userid))
 @router.post("/relaties/{relatie_id}/beslissing")
 async def post_relatie_beslissing(relatie_id: str, req: RelatieBeslissing, actor: str = Depends(actieve_userid)):
     return await relaties.beslis(relatie_id, req, actor)
+
+
+@router.post("/relaties/{relatie_id}/bevestig")
+async def post_relatie_bevestig(relatie_id: str, req: Revisies, actor: str = Depends(actieve_userid)):
+    """Een vastgestelde relatie klopt nog na een wijziging aan een kant: ververst haar stand, ook in een geaccordeerde
+    laag, zonder het oordeel te raken (`relaties.bevestig`)."""
+    return await relaties.bevestig(relatie_id, req.verwachte_revisies, actor)
 
 
 @router.post("/lagen/{laag_id}/relatiebesluiten")

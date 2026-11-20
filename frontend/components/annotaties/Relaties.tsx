@@ -22,6 +22,8 @@ export interface RelatieBediening {
   leg(invoer: RelatieInvoer): Promise<void>;
   beslis(relatie: NodeRelatie, type: "approve" | "reject" | "heropen", comment?: string): Promise<void>;
   wis(relatie: NodeRelatie): Promise<void>;
+  /** *Klopt nog* bij een veranderde, vastgestelde relatie: de stand verversen zonder het oordeel of de laag te raken. */
+  bevestig(relatie: NodeRelatie): Promise<void>;
 }
 
 /** Wat de andere kant is, in één regel: de tekst van de markering, het label van een impliciete partij, of de
@@ -132,7 +134,7 @@ function RelatieRij({ regel, gebruiker, bediening, doe }: {
       {!afgewezen && (!afgehandeld || r.veranderd) && (
         r.veranderd && afgehandeld ? (
           <Button size="xs" variant="secondary" disabled={bezig} aria-label={`Klopt nog: ${naam}`}
-            onClick={() => void stuur(() => bediening.beslis(r, "approve"))}>Klopt nog</Button>
+            onClick={() => void stuur(() => bediening.bevestig(r))}>Klopt nog</Button>
         ) : (
           <IcoonBevestig soort="akkoord" label={`Akkoord: ${naam}`} disabled={bezig}
             onBevestig={async () => { await stuur(() => bediening.beslis(r, "approve")); }} />
