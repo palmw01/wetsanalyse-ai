@@ -30,16 +30,14 @@ from sqlalchemy import delete, insert, select, update
 
 from . import begrip_store, db
 from .begrip_store import Resolver
-from .regel_contracts import (
-    DragerInvoer, DragersToevoegen, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak, RegelWijziging,
+from .regel_contracts import (  # noqa: F401  (GRONDSLAG_KLASSEN: ook hier te lezen)
+    GRONDSLAG_KLASSEN, Afwijzing, DragerInvoer, DragerRol, DragersToevoegen, DragerVerversing, DragerWijziging,
+    ParameterWaardeInvoer, RegelAanmaak, RegelWijziging, VoorbeeldBeoordeling,
 )
 from .jas_regelgaten import gat
 from .regeltekst import genoemde_begrippen, regeltekst
 from .werkgebied_store import _audit as werkgebied_audit, toets_revisie, werkgebied_rij
 
-#: De klassen die zelf een grondslag zijn (ADR-018 §2). Een andere klasse mag alleen als de passage het uitvoerbegrip
-#: aanduidt: dan is het de formulering van het afgeleide begrip.
-GRONDSLAG_KLASSEN = ("Afleidingsregel", "Rechtsbetrekking", "Tijdsaanduiding")
 GEACCORDEERD = ("geaccordeerd", "geaccordeerd_als_beleidsregel")
 
 
@@ -56,7 +54,7 @@ def _iso(t) -> str | None:
 def _drager(row) -> dict:
     return {"id": row.id, "element_id": row.element_id, "rol": row.rol, "geval": row.geval, "bewijs": row.bewijs,
             "beoordeling": row.beoordeling, "beoordeeld_door": row.beoordeeld_door,
-            "beoordeeld_op": _iso(row.beoordeeld_op), "toegevoegd_door": row.toegevoegd_door,
+            "beoordeeld_op": _iso(row.beoordeeld_op), "motivering": row.motivering or "", "toegevoegd_door": row.toegevoegd_door,
             "toegevoegd": _iso(row.toegevoegd), "bevestigingen": []}
 
 
@@ -87,11 +85,48 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
 #: De soorten open punt die een keuze vragen vóór de regel geaccordeerd wordt (ADR-018 besluit 2 en 7.13): een
 #: interpretatiekeuze en ontbrekend uitvoeringsbeleid. Een onderzoekspunt of een gat in de annotatie is een signaal.
 KEUZE_SOORTEN = ("interpretatiekeuze", "ontbrekend_uitvoeringsbeleid")
+#: De rollen waarmee een drager de regel draagt. Een contextdrager draagt niets en vraagt dus geen oordeel, zoals een
+#: begripskoppeling met een rol die niet dragend is.
+DRAGEND = ("grondslag", "voorwaarde", "invoer", "uitvoer", "tijd")
 
 
-def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None) -> dict:
+def voorwaarde_bladen(inhoud: dict) -> list[tuple[str, dict]]:
+    """Elke voorwaarde (een blad van de boom) met het label van haar geval."""
+    uit: list[tuple[str, dict]] = []
+
+    def loop(label: str, knoop: dict | None) -> None:
+        if not knoop:
+            return
+        if "delen" in knoop:
+            for d in knoop["delen"]:
+                loop(label, d)
+        else:
+            uit.append((label, knoop))
+    for g in inhoud.get("gevallen", []):
+        loop(g.get("label", ""), g.get("voorwaarden"))
+    return uit
+
+
+def _rust_op(inhoud: dict, dragers: list[dict]) -> tuple[list[str], list[str]]:
+    """De markeringen in een voorwaarde waarvan elke drager is afgewezen, en die waarvoor er geen drager is (B2, B3)."""
+    per: dict[str, list[str]] = {}
+    for d in dragers:
+        per.setdefault(d["element_id"], []).append(d["beoordeling"])
+    genoemd = list(dict.fromkeys(e for _, blad in voorwaarde_bladen(inhoud) for e in blad.get("element_ids") or []))
+    afgewezen = [e for e in genoemd if e in per and all(b == "afgewezen" for b in per[e])]
+    zonder = [e for e in genoemd if e not in per]
+    return afgewezen, zonder
+
+
+def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None,
+          geerfd: list[dict] | None = None) -> dict:
     """Mag deze regel geaccordeerd worden (besluit gebruiker 19 nov 2026, ADR-018 besluit 2), en wat er nog openstaat.
-    `open_punten`: de punten die aan de regel of een van zijn gevallen hangen (lessenbundel 4, R3)."""
+    `open_punten`: de punten die aan de regel of een van zijn gevallen hangen (lessenbundel 4, R3). `geerfd`: de punten
+    die nog aan een regel hangen die door deze is vervangen (A2): die horen hier, en een open keuze houdt ook hier tegen.
+
+    Na de e2e-run van 20 nov 2026 (B2) vraagt de poort per geval een beoordeelde grondslag (een grondslag zonder geval
+    geldt voor de hele regel), elke dragende drager beoordeeld (zoals de dragende koppelingen van een begrip), geen
+    voorwaarde op een afgewezen markering of op een markering die geen drager is, en geen voorbeeld dat nog open is."""
     redenen: list[str] = []
     ontbreekt = [i for i in genoemde_begrippen(inhoud) if i not in begrippen]
     if ontbreekt:
@@ -101,50 +136,123 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
                   if i in begrippen and begrippen[i]["status"] != "geaccordeerd"]
     if niet_geacc:
         redenen.append("Nog niet geaccordeerd: " + ", ".join(niet_geacc) + ".")
-    grondslag = [d for d in dragers if d["rol"] == "grondslag" and d["beoordeling"] != "afgewezen"]
+    actief = [d for d in dragers if d["beoordeling"] != "afgewezen"]
+    grondslag = [d for d in actief if d["rol"] == "grondslag"]
+    goed = [d for d in grondslag if d["beoordeling"] == "akkoord" and d["actualiteit"] == "actueel"]
+    labels = [g.get("label", "") for g in inhoud["gevallen"]]
     if not grondslag:
         redenen.append("Er is geen grondslag meer: geen dragende formulering die niet is afgewezen.")
-    elif not any(d["beoordeling"] == "akkoord" and d["actualiteit"] == "actueel" for d in grondslag):
-        redenen.append("De grondslag is nog niet beoordeeld, of de passage is gewijzigd, verworpen of verdwenen.")
+    elif len(labels) == 1:
+        if not goed:
+            redenen.append("De grondslag is nog niet beoordeeld, of de passage is gewijzigd, verworpen of verdwenen.")
+    else:
+        zonder = [l for l in labels if not any(d["geval"] in ("", l) for d in goed)]
+        if zonder:
+            redenen.append(f"Geval {zonder[0]} heeft nog geen beoordeelde, actuele grondslag." if len(zonder) == 1
+                           else f"De gevallen {', '.join(zonder)} hebben nog geen beoordeelde, actuele grondslag.")
+    weg = [d for d in actief if d["rol"] in DRAGEND and d.get("actualiteit", "actueel") != "actueel"]
+    if weg:
+        redenen.append(_meervoud(len(weg), "1 dragende passage is gewijzigd, verworpen of verdwenen: ververs de drager "
+                                 "op de stand van nu, of haal hem weg.", "{n} dragende passages zijn gewijzigd, verworpen "
+                                 "of verdwenen: ververs de dragers op de stand van nu, of haal ze weg."))
+    open_ = sum(d["beoordeling"] == "open" and d["rol"] in DRAGEND for d in actief)
+    if open_:
+        redenen.append(_meervoud(open_, "1 dragende formulering is nog niet beoordeeld.",
+                                 "{n} dragende formuleringen zijn nog niet beoordeeld."))
+    afgewezen, geen_drager = _rust_op(inhoud, dragers)
+    if afgewezen:
+        redenen.append(_meervoud(len(afgewezen), "1 voorwaarde rust op een afgewezen drager: laat haar op een andere "
+                                 "markering rusten, of haal de markering weg.",
+                                 "{n} voorwaarden rusten op een afgewezen drager: laat ze op een andere markering "
+                                 "rusten, of haal de markering weg."))
+    if geen_drager:
+        redenen.append(_meervoud(len(geen_drager), "1 markering in een voorwaarde is geen drager van de regel, en valt "
+                                 "zo buiten de beoordeling.", "{n} markeringen in een voorwaarde zijn geen drager van de "
+                                 "regel, en vallen zo buiten de beoordeling."))
     keuzes = [p for p in open_punten or [] if p["status"] == "open" and p["soort"] in KEUZE_SOORTEN]
     if keuzes:
         redenen.append(_meervoud(len(keuzes), "1 keuze is nog niet genomen: ", "{n} keuzes zijn nog niet genomen: ")
                        + "; ".join(p["vraag"].rstrip(".?") for p in keuzes) + ".")
-    beoordeeld = {(v.get("geval") or "") for v in inhoud.get("voorbeelden", []) if v.get("oordeel", "open") != "open"}
-    if len(inhoud["gevallen"]) == 1:
+    oud = [p for p in geerfd or [] if p["status"] == "open" and p["soort"] in KEUZE_SOORTEN]
+    if oud:
+        redenen.append(_meervoud(len(oud), "1 open keuze hangt nog aan de regel die deze vervangt: ",
+                                 "{n} open keuzes hangen nog aan de regel die deze vervangt: ")
+                       + "; ".join(p["vraag"].rstrip(".?") for p in oud) + ". Hang ze om naar deze regel.")
+    voorbeelden = inhoud.get("voorbeelden", [])
+    nog_open = sum(v.get("oordeel", "open") == "open" for v in voorbeelden)
+    if nog_open:
+        redenen.append(_meervoud(nog_open, "1 voorbeeld is nog niet beoordeeld.",
+                                 "{n} voorbeelden zijn nog niet beoordeeld."))
+    beoordeeld = {(v.get("geval") or "") for v in voorbeelden if v.get("oordeel", "open") != "open"}
+    if len(labels) == 1:
         if not beoordeeld:
             redenen.append("Er is nog geen beoordeeld voorbeeld.")
     else:
-        zonder = [g["label"] for g in inhoud["gevallen"] if g["label"] not in beoordeeld]
+        zonder = [l for l in labels if l not in beoordeeld]
         if zonder:
             redenen.append("Nog geen beoordeeld voorbeeld bij geval " + ", ".join(zonder) + ".")
     return {"mag": not redenen, "redenen": redenen}
 
 
-def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None) -> list[str]:
+def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None,
+             geerfd: list[dict] | None = None) -> list[str]:
     """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
     uit: list[str] = []
-    rest = [p for p in open_punten or [] if p["status"] == "open" and p["soort"] not in KEUZE_SOORTEN]
+    rest = [p for p in [*(open_punten or []), *(geerfd or [])]
+            if p["status"] == "open" and p["soort"] not in KEUZE_SOORTEN]
     if rest:
         uit.append(_meervoud(len(rest), "1 onderzoekspunt of gat in de annotatie staat nog open.",
                              "{n} onderzoekspunten of gaten in de annotatie staan nog open."))
-    open_ = sum(d["beoordeling"] == "open" and d["rol"] != "grondslag" for d in dragers)
-    if open_:
-        uit.append(_meervoud(open_, "1 andere dragende formulering is nog niet beoordeeld.",
-                             "{n} andere dragende formuleringen zijn nog niet beoordeeld."))
-    weg = sum(d["actualiteit"] != "actueel" and d["beoordeling"] != "afgewezen" for d in dragers)
+    gesignaleerd = sum(p["status"] == "gesignaleerd" for p in open_punten or [])
+    if gesignaleerd:
+        uit.append(_meervoud(gesignaleerd, "1 punt van ontbrekend uitvoeringsbeleid is gesignaleerd: het beleid "
+                             "ontbreekt.", "{n} punten van ontbrekend uitvoeringsbeleid zijn gesignaleerd: het beleid "
+                             "ontbreekt."))
+    weg = sum(d["actualiteit"] != "actueel" and d["beoordeling"] != "afgewezen" and d["rol"] not in DRAGEND
+              for d in dragers)
     if weg:
-        uit.append(_meervoud(weg, "1 dragende passage is gewijzigd, verworpen of verdwenen.",
-                             "{n} dragende passages zijn gewijzigd, verworpen of verdwenen."))
-    onjuist = sum(v.get("oordeel") in ("onjuist",) for v in inhoud.get("voorbeelden", []))
+        uit.append(_meervoud(weg, "1 contextpassage is gewijzigd, verworpen of verdwenen.",
+                             "{n} contextpassages zijn gewijzigd, verworpen of verdwenen."))
+    labels = [g.get("label", "") for g in inhoud["gevallen"]]
+    grond = [d for d in dragers if d["rol"] == "grondslag" and d["beoordeling"] != "afgewezen"]
+    if len(labels) > 1 and grond:
+        alleen_regel = [l for l in labels if not any(d["geval"] == l for d in grond)]
+        if alleen_regel:
+            uit.append("Geval " + ", ".join(alleen_regel) + " rust alleen op een grondslag voor de hele regel: toets "
+                       "of die grondslag dit geval ook draagt.")
+    voorbeelden = inhoud.get("voorbeelden", [])
+    onjuist = sum(v.get("oordeel") == "onjuist" for v in voorbeelden)
     if onjuist:
         uit.append(_meervoud(onjuist, "1 voorbeeld geeft een onjuiste uitkomst.",
                              "{n} voorbeelden geven een onjuiste uitkomst."))
+    zelf = sum(bool(v.get("door")) and v.get("beoordeeld_door") == v.get("door") for v in voorbeelden
+               if v.get("oordeel", "open") != "open")
+    if zelf:
+        uit.append(_meervoud(zelf, "1 voorbeeld is beoordeeld door wie het maakte.",
+                             "{n} voorbeelden zijn beoordeeld door wie ze maakte."))
     return uit
 
 
-#: Een waarde in een definitie: een getal, een bedrag of een percentage (M04 H2 *Parameter*: de waarde is een eigen begrip).
-_WAARDE = re.compile(r"\d|€|%|\bprocent\b", re.IGNORECASE)
+#: Een waarde in een definitie (M04 H2 *Parameter*: de waarde is een eigen begrip): een bedrag, een percentage, of een
+#: getal of telwoord met een eenheid ("6 weken", "zes weken", "2 maanden"). Een kaal getal is geen waarde: "art. 9 lid 1"
+#: is een vindplaats (e2e-run 20 nov 2026, C). Een bekende parameterwaarde telt ook (`_noemt_waarde`).
+_TELWOORD = (r"(?:\d+(?:[.,]\d+)?|een|één|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|dertien|veertien|"
+             r"vijftien|twintig|dertig|veertig|vijftig|zestig|honderd|duizend)")
+_EENHEID = r"(?:dag|dagen|werkdagen|weken|week|maand|maanden|kwartaal|kwartalen|jaar|jaren|uur|uren|procent|euro)"
+_WAARDE = re.compile(rf"€\s*\d|\d\s*%|\b{_TELWOORD}\s+{_EENHEID}\b", re.IGNORECASE)
+
+
+def _noemt_waarde(definitie: str, waarden: list[dict]) -> bool:
+    """Noemt de definitie een waarde: in de vorm van `_WAARDE`, of een parameterwaarde die voor dit begrip is
+    vastgelegd ("zes weken" bij de wettelijke betalingstermijn)."""
+    if _WAARDE.search(definitie):
+        return True
+    tekst = f" {definitie.lower()} "
+    for w in waarden:
+        waarde = " ".join(x for x in (w.get("waarde") or "", w.get("eenheid") or "") if x).strip().lower()
+        if waarde and re.search(rf"(?<![\w]){re.escape(waarde)}(?![\w])", tekst):
+            return True
+    return False
 #: Het regelbegrip heet "bepalen <uitvoer>" (M01 h.3 stap 3b; skill, *Eén regel per uitvoer*).
 _BEPALEN = re.compile(r"^\s*(?:het\s+)?bepalen\b", re.IGNORECASE)
 #: De rollen waarmee een begrip op een formulering rust (niet `afgeleid` en niet `context`).
@@ -167,7 +275,7 @@ def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g
         if i.get("rol") == "parameter":
             if not any(w.get("geldig_vanaf") for w in g["waarden"].get(i["begrip_id"], [])):
                 uit.append(gat("parameter_zonder_tijdvak", naam=b.get("naam") or i["begrip_id"]))
-            if _WAARDE.search(b.get("definitie") or ""):
+            if _noemt_waarde(b.get("definitie") or "", g["waarden"].get(i["begrip_id"], [])):
                 uit.append(gat("parameterwaarde_in_definitie", naam=b.get("naam") or i["begrip_id"]))
         elif (i["begrip_id"] not in g["uitvoeren"]
               and not g["rollen"].get(i["begrip_id"], set()) & set(_OP_FORMULERING)):
@@ -215,9 +323,10 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
         rollen.setdefault(x.begrip_id, set()).add(x.rol)
     w = db.parameter_waarden
     waarden: dict[str, list[dict]] = {}
-    for x in (await conn.execute(select(w.c.parameter_begrip_id, w.c.geldig_vanaf).where(
+    for x in (await conn.execute(select(w.c.parameter_begrip_id, w.c.geldig_vanaf, w.c.waarde, w.c.eenheid).where(
             w.c.werkgebied_id == werkgebied_id, w.c.verwijderd.is_(None)))).all():
-        waarden.setdefault(x.parameter_begrip_id, []).append({"geldig_vanaf": x.geldig_vanaf})
+        waarden.setdefault(x.parameter_begrip_id, []).append(
+            {"geldig_vanaf": x.geldig_vanaf, "waarde": x.waarde, "eenheid": x.eenheid})
     s = db.werkgebied_bronselecties
     ctx = (await conn.execute(select(s.c.bron_iri, s.c.label).where(
         s.c.werkgebied_id == werkgebied_id, s.c.rol == "context"))).all()
@@ -230,17 +339,19 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
 
 
 def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None,
-           gaten: list[dict] | None = None) -> dict:
+           gaten: list[dict] | None = None, geerfd: list[dict] | None = None) -> dict:
     namen = {i: b["naam"] for i, b in begrippen.items()}
     inhoud = row.inhoud
     return {"id": row.id, "werkgebied_id": row.werkgebied_id, "status": row.status, "revisie": row.revisie,
-            "herkomst": row.herkomst, "opvolger_van": row.opvolger_van, "inhoud": inhoud,
+            "herkomst": row.herkomst, "opvolger_van": row.opvolger_van, "vervangen_door": row.vervangen_door,
+            "inhoud": inhoud,
             "naam": namen.get(inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(inhoud["uitvoer_begrip_id"], ""),
             "regeltekst": regeltekst(inhoud, namen),
             "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
-            "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten),
-            "signalen": signalen(inhoud, dragers, open_punten), "gaten": gaten or [],
-            "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or [])},
+            "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten, geerfd),
+            "signalen": signalen(inhoud, dragers, open_punten, geerfd), "gaten": gaten or [],
+            "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or []),
+                            "bij_voorganger": len(geerfd or [])},
             "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
             "geaccordeerd_door": row.geaccordeerd_door, "geaccordeerd_op": _iso(row.geaccordeerd_op),
             "geaccordeerd_revisie": row.geaccordeerd_revisie}
@@ -263,14 +374,53 @@ async def _open_punten_van(conn, werkgebied_id: str, regel_ids: list[str]) -> di
     return uit
 
 
+async def _voorgangers(conn, werkgebied_id: str, regel_ids: list[str]) -> dict[str, list[str]]:
+    """Per regel de regels die door hem zijn vervangen (`vervangen_door`), A2."""
+    if not regel_ids:
+        return {}
+    r = db.regels
+    uit: dict[str, list[str]] = {}
+    for x in (await conn.execute(select(r.c.id, r.c.vervangen_door).where(
+            r.c.werkgebied_id == werkgebied_id, r.c.vervangen_door.in_(regel_ids)).order_by(r.c.aangemaakt, r.c.id))).all():
+        uit.setdefault(x.vervangen_door, []).append(x.id)
+    return uit
+
+
 async def _lees(conn, werkgebied_id: str, rows) -> list[dict]:
     dragers = await _dragers_van(conn, werkgebied_id, [r.id for r in rows])
     ids = {i for r in rows for i in genoemde_begrippen(r.inhoud)}
     begrippen = await _begrippen(conn, werkgebied_id, ids)
-    punten = await _open_punten_van(conn, werkgebied_id, [r.id for r in rows])
+    voor = await _voorgangers(conn, werkgebied_id, [r.id for r in rows])
+    punten = await _open_punten_van(conn, werkgebied_id, [r.id for r in rows] + [v for vs in voor.values() for v in vs])
     g = await _gatgegevens(conn, werkgebied_id, rows, dragers)
     return [_regel(r, dragers.get(r.id, []), begrippen, punten.get(r.id, []),
-                   regel_gaten(r.inhoud, dragers.get(r.id, []), begrippen, g)) for r in rows]
+                   regel_gaten(r.inhoud, dragers.get(r.id, []), begrippen, g),
+                   [p for v in voor.get(r.id, []) for p in punten.get(v, [])]) for r in rows]
+
+
+def smalle_drager(d: dict) -> dict:
+    """Een drager zonder ankers en bewijsstand: wat een beoordelaar per drager nodig heeft (B1)."""
+    b = d.get("bewijs") or {}
+    return {"id": d["id"], "element_id": d["element_id"], "rol": d["rol"], "geval": d["geval"],
+            "beoordeling": d["beoordeling"], "motivering": d.get("motivering", ""), "actualiteit": d.get("actualiteit"),
+            "beoordeeld_door": d.get("beoordeeld_door"), "klasse": b.get("klasse", ""), "tekst": b.get("tekst", ""),
+            "vindplaats": b.get("vindplaats", "")}
+
+
+def stand(regel: dict) -> dict:
+    """De stand van een regel zonder inhoud, dragers en begrippen (`?vorm=kort`, B1 van de e2e-run van 20 nov 2026):
+    een drager-PATCH gaf de hele regel terug (13k–53k tekens), en wie veel dragers na elkaar beoordeelt, liep daarop
+    vast. Het patroon is dat van `begrip_store.begripkort`."""
+    return {"id": regel["id"], "revisie": regel["revisie"], "status": regel["status"],
+            "vervangen_door": regel.get("vervangen_door"), "accorderen": regel["accorderen"],
+            "signalen": regel["signalen"], "open_punten": regel["open_punten"]}
+
+
+def kort(regel: dict, drager_id: str | None = None) -> dict:
+    uit = stand(regel)
+    if drager_id:
+        uit["drager"] = next((smalle_drager(d) for d in regel["dragers"] if d["id"] == drager_id), None)
+    return uit
 
 
 def _niet_gevonden() -> HTTPException:
@@ -475,19 +625,55 @@ async def _voeg_dragers_toe(conn, werkgebied_id: str, regel_id: str, dragers: li
     return nieuw
 
 
+def voorwaarde_dragers(inhoud: dict, al: set[str]) -> list[DragerInvoer]:
+    """De markeringen in de voorwaarden die nog geen drager van de regel zijn, als drager met de rol voorwaarde bij hun
+    geval (B3 van de e2e-run van 20 nov 2026): zo valt geen markering waarop de regel rust buiten de beoordeling.
+    `al`: de element-id's die al een drager zijn (in welke rol ook)."""
+    uit: list[DragerInvoer] = []
+    for label, blad in voorwaarde_bladen(inhoud):
+        for e in blad.get("element_ids") or []:
+            if e not in al:
+                al.add(e)
+                uit.append(DragerInvoer(element_id=e, rol=DragerRol.voorwaarde, geval=label))
+    return uit
+
+
+def voorbeelden_na(oud: list[dict], nieuw: list[dict], actor: str) -> list[dict]:
+    """De voorbeelden na een schrijfactie (B4: maker en beoordelaar). Een voorbeeld dat er al was (zelfde geval, invoer
+    en uitkomst), houdt zijn oordeel en wie het maakte en beoordeelde. Een nieuw of gewijzigd voorbeeld is van de actor
+    en `open`: een oordeel komt alleen via `beoordeel_voorbeeld`, zodat maken en beoordelen twee handelingen zijn."""
+    def sleutel(v: dict) -> tuple[str, str, str]:
+        return ((v.get("geval") or "").strip(), " ".join((v.get("invoer") or "").split()),
+                " ".join((v.get("uitkomst") or "").split()))
+    over: dict[tuple, list[dict]] = {}
+    for v in oud:
+        over.setdefault(sleutel(v), []).append(v)
+    uit = []
+    for v in nieuw:
+        bestaand = (over.get(sleutel(v)) or [None]).pop(0) if over.get(sleutel(v)) else None
+        if bestaand:
+            uit.append({**v, **{k: bestaand.get(k, d) for k, d in
+                                (("oordeel", "open"), ("door", ""), ("beoordeeld_door", ""), ("beoordeeld_op", ""))}})
+        else:
+            uit.append({**v, "oordeel": "open", "door": actor, "beoordeeld_door": "", "beoordeeld_op": ""})
+    return uit
+
+
 async def maak(werkgebied: dict, invoer: RegelAanmaak, actor: str, resolve: Resolver) -> dict:
     inhoud = invoer.inhoud.model_dump(mode="json")
-    _toets_gevallen(inhoud, invoer.dragers)
-    bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in invoer.dragers], resolve)
+    inhoud["voorbeelden"] = voorbeelden_na([], inhoud.get("voorbeelden", []), actor)
+    dragers = [*invoer.dragers, *voorwaarde_dragers(inhoud, {d.element_id for d in invoer.dragers})]
+    _toets_gevallen(inhoud, dragers)
+    bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in dragers], resolve)
     wid, rid, nu = werkgebied["id"], str(uuid.uuid4()), db.utcnow()
     async with db.get_engine().begin() as conn:
         await werkgebied_rij(conn, wid, slot=True)
         await _toets_begrippen(conn, wid, inhoud)
-        await _toets_grondslag(conn, wid, inhoud, invoer.dragers, bewijs)
+        await _toets_grondslag(conn, wid, inhoud, dragers, bewijs)
         await conn.execute(insert(db.regels).values(
             id=rid, werkgebied_id=wid, status="concept", revisie=1, inhoud=inhoud, herkomst=invoer.herkomst,
             aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
-        nieuw = await _voeg_dragers_toe(conn, wid, rid, invoer.dragers, bewijs, actor)
+        nieuw = await _voeg_dragers_toe(conn, wid, rid, dragers, bewijs, actor)
         detail = {"regelbegrip_id": inhoud["regelbegrip_id"], "uitvoer_begrip_id": inhoud["uitvoer_begrip_id"],
                   "element_ids": nieuw, "herkomst": invoer.herkomst}
         await _revisieregel(conn, rid, 1, "regel-aangemaakt", detail, "concept", inhoud, actor, nu)
@@ -524,12 +710,25 @@ async def _huidige_dragers(conn, werkgebied_id: str, regel_id: str) -> list[dict
     return (await _dragers_van(conn, werkgebied_id, [regel_id])).get(regel_id, [])
 
 
-async def wijzig(werkgebied_id: str, regel_id: str, w: RegelWijziging, actor: str) -> dict:
+async def _element_ids_van(werkgebied_id: str, regel_id: str) -> set[str]:
+    d = db.regel_dragers
+    async with db.get_engine().connect() as conn:
+        return set((await conn.execute(select(d.c.element_id).where(
+            d.c.werkgebied_id == werkgebied_id, d.c.regel_id == regel_id, d.c.verwijderd.is_(None)))).scalars().all())
+
+
+async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str, resolve: Resolver) -> dict:
+    werkgebied_id = werkgebied["id"]
     nieuw = w.inhoud.model_dump(mode="json")
+    # Een nieuwe markering in een voorwaarde wordt een drager (B3). Het bewijs vraagt de graaf, dus vóór de transactie;
+    # in de transactie telt alleen wat er dan nog geen drager is.
+    extra = voorwaarde_dragers(nieuw, await _element_ids_van(werkgebied_id, regel_id))
+    bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in extra], resolve) if extra else {}
     detail: dict = {}
     async with db.get_engine().begin() as conn:
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "regel-gewijzigd",
                                  detail) as (row, stand):
+            nieuw["voorbeelden"] = voorbeelden_na(row.inhoud.get("voorbeelden", []), nieuw.get("voorbeelden", []), actor)
             if nieuw == row.inhoud:
                 stand["geen_wijziging"] = True
             else:
@@ -539,9 +738,37 @@ async def wijzig(werkgebied_id: str, regel_id: str, w: RegelWijziging, actor: st
                 if any(d["geval"] and d["geval"] not in labels for d in dragers):
                     raise HTTPException(422, {"fout": "geval_onbekend", "melding": "Een drager hoort bij een geval dat "
                                               "niet meer bestaat. Haal die drager eerst weg."})
-                _toets_gevallen(nieuw, [])
+                extra = [x for x in extra if x.element_id not in {d["element_id"] for d in dragers}]
+                _toets_gevallen(nieuw, extra)
                 detail["velden"] = sorted(k for k in nieuw if nieuw.get(k) != row.inhoud.get(k))
+                if extra:
+                    detail["element_ids"] = await _voeg_dragers_toe(conn, werkgebied_id, regel_id, extra, bewijs, actor)
                 stand["inhoud"] = nieuw
+    return await haal(werkgebied_id, regel_id)
+
+
+async def beoordeel_voorbeeld(werkgebied_id: str, regel_id: str, nr: int, w: VoorbeeldBeoordeling, actor: str) -> dict:
+    """Het oordeel over één voorbeeld (`nr` telt vanaf 1, in de volgorde van de kaart), B4. `verwachte_revisie` borgt
+    dat het voorbeeld op die plek het voorbeeld is dat de beoordelaar zag. Wie het oordeel gaf, staat bij het voorbeeld;
+    is dat de maker, dan noemt de regel dat als signaal."""
+    detail: dict = {"nr": nr, "oordeel": w.oordeel.value}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "voorbeeld-beoordeeld",
+                                 detail) as (row, stand):
+            voorbeelden = [dict(v) for v in row.inhoud.get("voorbeelden", [])]
+            if not 1 <= nr <= len(voorbeelden):
+                raise HTTPException(404, {"fout": "niet_gevonden", "melding": f"Deze regel heeft geen voorbeeld {nr}."})
+            v = voorbeelden[nr - 1]
+            toelichting = v.get("toelichting", "") if w.toelichting is None else w.toelichting.strip()
+            if v.get("oordeel", "open") == w.oordeel.value and v.get("toelichting", "") == toelichting:
+                stand["geen_wijziging"] = True
+            else:
+                beoordeeld = w.oordeel.value != "open"
+                v.update(oordeel=w.oordeel.value, toelichting=toelichting,
+                         beoordeeld_door=actor if beoordeeld else "",
+                         beoordeeld_op=db.utcnow().isoformat() if beoordeeld else "")
+                detail["door_maker"] = beoordeeld and bool(v.get("door")) and v.get("door") == actor
+                stand["inhoud"] = {**row.inhoud, "voorbeelden": voorbeelden}
     return await haal(werkgebied_id, regel_id)
 
 
@@ -565,7 +792,8 @@ async def voeg_dragers_toe(werkgebied: dict, regel_id: str, w: DragersToevoegen,
 
 async def wijzig_drager(werkgebied_id: str, regel_id: str, drager_id: str, w: DragerWijziging, actor: str) -> dict:
     d = db.regel_dragers
-    detail: dict = {"drager_id": drager_id, "beoordeling": w.beoordeling.value}
+    motivering = w.motivering.strip()
+    detail: dict = {"drager_id": drager_id, "beoordeling": w.beoordeling.value, **({"motivering": motivering} if motivering else {})}
     async with db.get_engine().begin() as conn:
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "drager-beoordeeld",
                                  detail) as (_, stand):
@@ -573,11 +801,44 @@ async def wijzig_drager(werkgebied_id: str, regel_id: str, drager_id: str, w: Dr
                                                       d.c.verwijderd.is_(None)))).first()
             if rij is None:
                 raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
-            if rij.beoordeling == w.beoordeling.value:
+            if rij.beoordeling == w.beoordeling.value and (not motivering or motivering == (rij.motivering or "")):
                 stand["geen_wijziging"] = True
             else:
                 await conn.execute(update(d).where(d.c.id == drager_id).values(
-                    beoordeling=w.beoordeling.value, beoordeeld_door=actor, beoordeeld_op=db.utcnow()))
+                    beoordeling=w.beoordeling.value, beoordeeld_door=actor, beoordeeld_op=db.utcnow(),
+                    motivering=motivering))
+    return await haal(werkgebied_id, regel_id)
+
+
+async def ververs_drager(werkgebied: dict, regel_id: str, drager_id: str, w: DragerVerversing, actor: str,
+                         resolve: Resolver) -> dict:
+    """Een drager op de stand van nu (e2e-run 20 nov 2026): de markering veranderde (verlengd, andere klasse), en
+    opnieuw toevoegen werd overgeslagen omdat element, rol en geval gelijk zijn. Het bewijs wordt de markering van nu,
+    dus de actualiteit is weer `actueel`, en het oordeel volgt de verversing (`open`, of `akkoord` met motivering). Een
+    markering die verworpen of verdwenen is, ververs je niet: 422 van `bewijzen`."""
+    werkgebied_id, d = werkgebied["id"], db.regel_dragers
+    async with db.get_engine().connect() as conn:
+        rij = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.regel_id == regel_id,
+                                                  d.c.werkgebied_id == werkgebied_id, d.c.verwijderd.is_(None)))).first()
+    if rij is None:
+        raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+    bewijs = (await begrip_store.bewijzen(werkgebied, [rij.element_id], resolve))[rij.element_id]
+    motivering = w.motivering.strip()
+    detail: dict = {"drager_id": drager_id, "element_id": rij.element_id, "beoordeling": w.beoordeling,
+                    **({"motivering": motivering} if motivering else {})}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "drager-ververst",
+                                 detail) as (_, stand):
+            nu = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.verwijderd.is_(None)))).first()
+            if nu is None:
+                raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+            if nu.bewijs == bewijs and nu.beoordeling == w.beoordeling:
+                stand["geen_wijziging"] = True
+            else:
+                beoordeeld = w.beoordeling == "akkoord"
+                await conn.execute(update(d).where(d.c.id == drager_id).values(
+                    bewijs=bewijs, beoordeling=w.beoordeling, motivering=motivering,
+                    beoordeeld_door=actor if beoordeeld else None, beoordeeld_op=db.utcnow() if beoordeeld else None))
     return await haal(werkgebied_id, regel_id)
 
 
@@ -607,10 +868,8 @@ async def accordeer(werkgebied_id: str, regel_id: str, verwacht: int, reden: str
     async with db.get_engine().begin() as conn:
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-geaccordeerd",
                                  detail) as (row, stand):
-            dragers = await _huidige_dragers(conn, werkgebied_id, regel_id)
-            punten = (await _open_punten_van(conn, werkgebied_id, [regel_id])).get(regel_id, [])
-            p = poort(row.inhoud, dragers, await _begrippen(conn, werkgebied_id, set(genoemde_begrippen(row.inhoud))),
-                      punten)
+            # Dezelfde lezing als een GET, in deze transactie: ook de punten die nog aan een voorganger hangen.
+            p = (await _lees(conn, werkgebied_id, [row]))[0]["accorderen"]
             if not reden:
                 p = {"mag": False, "redenen": [*p["redenen"], "De reden van het accorderen ontbreekt."]}
             if not p["mag"]:
@@ -635,16 +894,35 @@ async def heropen(werkgebied_id: str, regel_id: str, verwacht: int, actor: str) 
     return await haal(werkgebied_id, regel_id)
 
 
-async def wijs_af(werkgebied_id: str, regel_id: str, verwacht: int, reden: str, actor: str) -> dict:
-    """Een regel afwijzen bewaart hem met de reden (ADR-018 §8); hij doet niet meer mee in de keten."""
-    if not reden.strip():
+async def wijs_af(werkgebied_id: str, regel_id: str, w: Afwijzing, actor: str) -> dict:
+    """Een regel afwijzen bewaart hem met de reden (ADR-018 §8); hij doet niet meer mee in de keten. Met `opvolger_id`
+    is hij vervangen (A2): de status wordt `vervangen` met `vervangen_door`, de opvolger draagt `opvolger_van`, en de
+    open punten die hier nog hangen, tellen in de poort van de opvolger tot ze zijn omgehangen."""
+    reden, opvolger = w.reden.strip(), w.opvolger_id.strip()
+    if not reden:
         raise HTTPException(422, {"fout": "reden", "melding": "Geef de reden van het afwijzen."})
+    if opvolger == regel_id:
+        raise HTTPException(422, {"fout": "opvolger", "melding": "Een regel vervangt zichzelf niet."})
+    r = db.regels
+    detail = {"reden": reden, **({"opvolger_id": opvolger} if opvolger else {})}
     async with db.get_engine().begin() as conn:
-        async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-afgewezen",
-                                 {"reden": reden.strip()}) as (row, stand):
-            if row.status == "afgewezen":
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor,
+                                 "regel-vervangen" if opvolger else "regel-afgewezen", detail) as (row, stand):
+            if opvolger:
+                nieuw = (await conn.execute(select(r.c.status, r.c.opvolger_van).where(
+                    r.c.id == opvolger, r.c.werkgebied_id == werkgebied_id).with_for_update())).first()
+                if nieuw is None or nieuw.status in ("afgewezen", "vervangen"):
+                    raise HTTPException(422, {"fout": "opvolger", "melding": "De opvolger is geen geldende regel in "
+                                              "dit werkgebied."})
+                stand["status"] = "vervangen"
+                stand["waarden"] = {"vervangen_door": opvolger}
+                # De eerste voorganger blijft de `opvolger_van` van de opvolger; de rest staat in `vervangen_door`.
+                if not nieuw.opvolger_van:
+                    await conn.execute(update(r).where(r.c.id == opvolger).values(opvolger_van=regel_id))
+            elif row.status == "afgewezen":
                 stand["geen_wijziging"] = True
-            stand["status"] = "afgewezen"
+            else:
+                stand["status"] = "afgewezen"
     return await haal(werkgebied_id, regel_id)
 
 

@@ -122,16 +122,22 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
   if (deel === "kandidaten") return pad.length === 2;
-  // Afleidingsregels (ADR-018, R2): de lijst, de keten (`hierarchie`), één regel, zijn revisies en besluiten, en zijn
-  // dragers. Een regel maken doen Lex en de import; de api toetst de grondslag.
+  // Afleidingsregels (ADR-018, R2): de lijst, de keten (`hierarchie`), één regel, zijn revisies en besluiten, zijn
+  // dragers en zijn poort, en het oordeel over een voorbeeld (e2e-run 20 nov 2026). Een regel maken doen Lex en de
+  // import; de api toetst de grondslag.
   if (deel === "regels") {
     if (pad.length <= 3) return true;
-    if (pad.length === 4) return ["accorderen", "heropenen", "afwijzen", "revisies", "dragers"].includes(b);
+    if (pad.length === 4) return ["accorderen", "heropenen", "afwijzen", "revisies", "dragers", "poort"].includes(b);
+    if (pad.length === 6) {
+      return (b === "voorbeelden" && !!c && pad[5] === "oordeel") || (b === "dragers" && !!c && pad[5] === "verversen");
+    }
     return pad.length === 5 && b === "dragers" && !!c;
   }
   if (deel === "parameterwaarden") return pad.length <= 3;
-  // Open punten (lessenbundel 4): lezen, en het besluit van de jurist. Een punt maken of wijzigen doen Lex en de import.
-  if (deel === "open-punten") return pad.length <= 3 || (pad.length === 4 && (b === "besluit" || b === "revisies"));
+  // Open punten (lessenbundel 4): lezen, een punt vastleggen, het besluit van de jurist en omhangen (na een vervanging).
+  if (deel === "open-punten") {
+    return pad.length <= 3 || (pad.length === 4 && ["besluit", "revisies", "omhangen"].includes(b));
+  }
   if (deel === "groepen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return a === "akkoord";

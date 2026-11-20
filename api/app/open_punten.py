@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from . import open_punt_store as store
 from .auth import require_client
-from .open_punt_contracts import Besluit, OpenPuntAanmaak, OpenPuntWijziging, Soort, Status
+from .open_punt_contracts import Besluit, Omhangen, OpenPuntAanmaak, OpenPuntWijziging, Soort, Status
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["open punten"],
@@ -26,7 +26,13 @@ Aanhaking = Literal["regel", "geval", "markering", "begrip", "deelvraag", "werkg
 @router.get("/open-punten")
 async def get_lijst(werkgebied_id: str, status: Status | None = None, soort: Soort | None = None,
                     aan: Aanhaking | None = Query(None, description="waar het aan hangt: soort, met `aan_id`"),
-                    aan_id: str | None = None, actor: str = Depends(actieve_userid)):
+                    aan_id: str | None = None,
+                    regel_id: str | None = Query(None, description="kort voor `aan=regel&aan_id=…`"),
+                    actor: str = Depends(actieve_userid)):
+    if regel_id:
+        if aan and (aan, aan_id) != ("regel", regel_id):
+            raise HTTPException(422, {"fout": "aanhaking", "melding": "Geef `regel_id`, of `aan` met `aan_id`."})
+        aan, aan_id = "regel", regel_id
     if bool(aan) != bool(aan_id):
         raise HTTPException(422, {"fout": "aanhaking", "melding": "Geef `aan` en `aan_id` samen."})
     hangt_aan = ("regel" if aan == "geval" else aan, aan_id) if aan and aan_id else None
@@ -52,6 +58,12 @@ async def patch_punt(werkgebied_id: str, punt_id: str, req: OpenPuntWijziging, a
 @router.post("/open-punten/{punt_id}/besluit")
 async def post_besluit(werkgebied_id: str, punt_id: str, req: Besluit, actor: str = Depends(actieve_userid)):
     return await store.besluit(werkgebied_id, punt_id, req, actor)
+
+
+@router.post("/open-punten/{punt_id}/omhangen")
+async def post_omhangen(werkgebied_id: str, punt_id: str, req: Omhangen, actor: str = Depends(actieve_userid)):
+    """Alleen waar het punt aan hangt (A2): na een vervanging naar de opvolger, zonder de rest van de inhoud."""
+    return await store.omhang(werkgebied_id, punt_id, req, actor)
 
 
 @router.delete("/open-punten/{punt_id}")

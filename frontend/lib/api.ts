@@ -116,9 +116,9 @@ import { parseCatalogus, parseOnderdeel, type Catalogus, type OnderdeelDetail } 
 import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
-import type { DragerBeoordeling, Regel, RegelKeten, RegelRevisie } from "./regels";
+import type { DragerBeoordeling, Regel, RegelKeten, RegelRevisie, VoorbeeldOordeel as RegelOordeel } from "./regels";
 import type { RegelsOverzicht } from "./regelsOverzicht";
-import type { BesluitInvoer, OpenPunt } from "./openPunten";
+import type { Aanhaking, BesluitInvoer, OpenPunt } from "./openPunten";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
 import { parseVervolg } from "./vraagLex";
 import { parseVraagkaart } from "./vraagkaart";
@@ -1982,9 +1982,26 @@ export async function heropenRegel(id: string, regelId: string, verwachteRevisie
     jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
 }
 
-export async function wijsRegelAf(id: string, regelId: string, verwachteRevisie: number, reden: string): Promise<Regel> {
+/** Een drager op de stand van nu: de markering veranderde, en de drager droeg het bewijs van toen. */
+export async function verversRegelDrager(id: string, regelId: string, dragerId: string, verwachteRevisie: number,
+  beoordeling: "open" | "akkoord" = "open"): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "dragers", dragerId, "verversen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, beoordeling })));
+}
+
+/** Afwijzen; met `opvolgerId` is de regel vervangen door die regel (status `vervangen`, e2e-run 20 nov 2026). */
+export async function wijsRegelAf(id: string, regelId: string, verwachteRevisie: number, reden: string,
+  opvolgerId = ""): Promise<Regel> {
   return json<Regel>(await fetch(wg(id, "regels", regelId, "afwijzen"),
-    jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden })));
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden, ...(opvolgerId ? { opvolger_id: opvolgerId } : {}) })));
+}
+
+/** Het oordeel over voorbeeld `nr` (vanaf 1). Maken en beoordelen zijn twee handelingen: de wijziging van een regel zet
+ *  geen oordeel. */
+export async function beoordeelVoorbeeld(id: string, regelId: string, nr: number, verwachteRevisie: number,
+  oordeel: RegelOordeel): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "voorbeelden", String(nr), "oordeel"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, oordeel })));
 }
 
 export async function verwijderRegel(id: string, regelId: string, verwachteRevisie: number): Promise<void> {
@@ -2011,8 +2028,22 @@ export async function lijstOpenPunten(id: string, aan?: { soort: "regel" | "begr
   return uit.open_punten;
 }
 
-/** Het besluit van de jurist over één open punt: de gekozen lezing (of hoe het verder gaat), de motivering en de methode. */
+/** Het besluit van de jurist over één open punt: de gekozen lezing (of hoe het verder gaat), de motivering en de methode;
+ *  bij ontbrekend beleid ook of het beleid er is (`uitkomst`). */
 export async function besluitOpenPunt(id: string, puntId: string, verwachteRevisie: number, besluit: BesluitInvoer): Promise<OpenPunt> {
+  const { uitkomst, ...rest } = besluit;
   return json<OpenPunt>(await fetch(wg(id, "open-punten", puntId, "besluit"),
-    jsonInit("POST", { verwachte_revisie: verwachteRevisie, ...besluit })));
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, ...rest, ...(uitkomst ? { uitkomst } : {}) })));
+}
+
+/** Een open punt vastleggen (de jurist, op de regelkaart). */
+export async function maakOpenPunt(id: string, inhoud: unknown): Promise<OpenPunt> {
+  return json<OpenPunt>(await fetch(wg(id, "open-punten"), jsonInit("POST", { inhoud })));
+}
+
+/** Waar een open punt aan hangt, en verder niets: na een vervanging naar de opvolger. */
+export async function omhangOpenPunt(id: string, puntId: string, verwachteRevisie: number, hangtAan: Aanhaking[]): Promise<OpenPunt> {
+  return json<OpenPunt>(await fetch(wg(id, "open-punten", puntId, "omhangen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, hangt_aan: hangtAan.map(({ soort, id: i, geval }) =>
+      (soort === "geval" ? { soort, id: i, geval } : { soort, id: i })) })));
 }

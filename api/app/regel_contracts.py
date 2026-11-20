@@ -14,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 _ID = r"^[A-Za-z0-9._:-]{1,64}$"
 
+#: De klassen die zelf een grondslag van een regel zijn (ADR-018 §2). Een andere klasse mag alleen als de passage het
+#: uitvoerbegrip aanduidt. Een begrip dat een regel afleidt zonder eigen formulering (een tussenresultaat, of het
+#: regelbegrip van een beslisregel op een Rechtsbetrekking) rust met de rol `afgeleid` op een markering van deze klassen
+#: (`begrip_store.toets_afgeleid`, A3 van de e2e-run van 20 nov 2026).
+GRONDSLAG_KLASSEN = ("Afleidingsregel", "Rechtsbetrekking", "Tijdsaanduiding")
+
 
 class RegelSoort(str, Enum):
     rekenregel = "rekenregel"          # een hoogte, aantal, duur of datum
@@ -48,14 +54,29 @@ class VoorbeeldOordeel(str, Enum):
     kan_niet = "kan_niet"              # deze invoer mag zich niet voordoen
 
 
+#: Zoveel tekens mag één tekstdeel van een uitkomst hebben. Een langer deel is meestal een voorwaarde of een tweede
+#: geval dat in de uitkomst terechtkwam; de melding zegt dat (e2e-run 20 nov 2026: een kale 422 zei het niet).
+MAX_TEKSTDEEL = 500
+
+
 class Term(BaseModel):
     """Eén stuk van een uitkomst. `begrip` en `operator` verwijzen naar een begrip (een operatorbegrip ontstaat op een
-    gemarkeerde formulering, #1766); `tekst` is vaste taal van het patroon of een tijdsaanduiding ("een maand na")."""
+    gemarkeerde formulering, #1766); `tekst` is vaste taal van het patroon of een tijdsaanduiding ("een maand na"),
+    hoogstens `MAX_TEKSTDEEL` tekens."""
     model_config = ConfigDict(extra="ignore")
 
     soort: Literal["begrip", "operator", "tekst"]
     begrip_id: str = Field(default="", max_length=64)
-    tekst: str = Field(default="", max_length=500)
+    tekst: str = Field(default="", json_schema_extra={"maxLength": MAX_TEKSTDEEL},
+                       description=f"Vaste taal van het taalpatroon, hoogstens {MAX_TEKSTDEEL} tekens.")
+
+    @field_validator("tekst")
+    @classmethod
+    def _lengte(cls, v: str) -> str:
+        if len(v) > MAX_TEKSTDEEL:
+            raise ValueError(f"een tekstdeel van een uitkomst is hoogstens {MAX_TEKSTDEEL} tekens (dit deel heeft er "
+                             f"{len(v)}): splits het in meer delen, of zet een voorwaarde bij de voorwaarden van het geval")
+        return v
 
     @model_validator(mode="after")
     def _vorm(self) -> "Term":
@@ -100,6 +121,9 @@ class Invoer(BaseModel):
 
 
 class RegelVoorbeeld(BaseModel):
+    """Een voorbeeld met invoer en uitkomst (methode 8). Het oordeel, wie het voorbeeld maakte en wie het beoordeelde,
+    zet de server (`regel_store.voorbeelden_na`): een nieuw of gewijzigd voorbeeld is altijd `open`, en een oordeel komt
+    alleen via `…/voorbeelden/{nr}/oordeel` (B4: maken en beoordelen zijn twee handelingen)."""
     model_config = ConfigDict(extra="ignore")
 
     geval: str = Field(default="", max_length=80)         # het label; leeg bij een regel met één geval
@@ -107,6 +131,9 @@ class RegelVoorbeeld(BaseModel):
     uitkomst: str = Field(min_length=1, max_length=2000)
     oordeel: VoorbeeldOordeel = VoorbeeldOordeel.open
     toelichting: str = Field(default="", max_length=2000)
+    door: str = Field(default="", max_length=64)
+    beoordeeld_door: str = Field(default="", max_length=64)
+    beoordeeld_op: str = Field(default="", max_length=40)
 
 
 class RegelInhoud(BaseModel):
@@ -149,14 +176,26 @@ class DragerInvoer(BaseModel):
     geval: str = Field(default="", max_length=80)
 
 
+#: Wie een regel of open punt maakte: Lex, de import, of de discipline van de mens die het vastlegde (methode 10: de
+#: multidisciplinaire review). `jurist` blijft de standaard; een regelspecialist heette anders ook "jurist". De kolom
+#: is 16 tekens: een langere naam past er op Postgres niet in.
+Herkomst = Literal["lex", "import", "jurist", "regelspecialist"]
+
+
 class RegelAanmaak(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     inhoud: RegelInhoud
     # De grondslag is verplicht: een regel zonder grondslag in de tekst bestaat niet (ADR-018 §2, #1760).
     dragers: list[DragerInvoer] = Field(min_length=1, max_length=60)
-    herkomst: Literal["lex", "jurist", "import"] = "jurist"
+    herkomst: Herkomst = "jurist"
 
 
 class Revisie(BaseModel):
+    """De basis van elke schrijfroute op een regel. Een onbekend veld is een 422: een besluit dat stil niets doet,
+    bestaat niet (B5)."""
+    model_config = ConfigDict(extra="forbid")
+
     verwachte_revisie: int = Field(ge=1)
 
 
@@ -170,6 +209,29 @@ class DragersToevoegen(Revisie):
 
 class DragerWijziging(Revisie):
     beoordeling: Beoordeling
+    # De grond van het oordeel ("letterlijk op de plek van het anker, getoetst aan de toestand van 1 okt 2026").
+    motivering: str = Field(default="", max_length=2000)
+
+
+class DragerVerversing(Revisie):
+    """Een drager op de stand van nu zetten (de markering is gewijzigd, bijvoorbeeld verlengd): het bewijs wordt de
+    markering van nu, en het oordeel wordt opnieuw gegeven. `akkoord` met een motivering als de beoordelaar de nieuwe
+    stand gezien heeft; anders staat hij weer open."""
+    beoordeling: Literal["open", "akkoord"] = "open"
+    motivering: str = Field(default="", max_length=2000)
+
+
+class VoorbeeldBeoordeling(Revisie):
+    """Het oordeel over één voorbeeld. `open` zet het oordeel terug."""
+    oordeel: VoorbeeldOordeel
+    toelichting: str | None = Field(default=None, max_length=2000)
+
+
+class Afwijzing(Revisie):
+    reden: str = Field(default="", max_length=2000)
+    # De regel die deze vervangt (bijvoorbeeld drie regels samengevoegd tot één beslistabel): de status wordt dan
+    # `vervangen`, met `vervangen_door`, en de opvolger draagt `opvolger_van` (A2).
+    opvolger_id: str = Field(default="", max_length=64)
 
 
 class Accordering(Revisie):
