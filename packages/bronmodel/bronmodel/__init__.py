@@ -332,7 +332,9 @@ def _kop(n: dict) -> str:
 # de node, maar tellen niet mee in de snapshot-id.
 # Wat een node draagt zonder dat het zijn identiteit is. De bron schrijft de status op artikel en divisie, en een
 # wijziging ervan (een artikel treedt in werking) verandert de tekst niet.
-PLEK = ("vindplaats", "bepaling", "status")
+# Het opschrift (`bwb:titel`, "Definities") hoort hier ook: het kwam er pas later bij, en een node die het krijgt mag zijn
+# snapshot niet veranderen (L-2-6). De keten leest het als kop van de ouder.
+PLEK = ("vindplaats", "bepaling", "status", "titel")
 
 #: `bwb:status` van een bepaling die al in de regeling staat maar nog niet geldt. `vervallen` hoeft geen eigen stand:
 #: daar zegt de tekst het zelf.

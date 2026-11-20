@@ -114,7 +114,8 @@ def _classificeer_batches(alle_batches: list[list[Candidate]], llm: Any, model: 
 
 
 def _bronteksten(segmenten: list[dict[str, Any]], nodes: list[dict[str, Any]], taal: str) -> list[BronTekst]:
-    """Per niet-leeg segment een BronTekst, met de tekst van de ouder als context (aanhef)."""
+    """Per niet-leeg segment een BronTekst, met de ouder als context: zijn opschrift (`titel`, "Definities") en zijn tekst
+    (de aanhef). Het opschrift staat vooraan, zodat "eindigt de aanhef op een dubbele punt" hetzelfde blijft (L-2-6)."""
     per_iri = {n["bron_iri"]: n for n in nodes}
     provider = _provider(taal)
     uit = []
@@ -123,7 +124,7 @@ def _bronteksten(segmenten: list[dict[str, Any]], nodes: list[dict[str, Any]], t
             continue
         ouder = per_iri.get(s.get("parent_iri", ""), {})
         uit.append(BronTekst(s["bron_iri"], s["tekst"], s["bron_hash"], analyse=provider.analyseer(s["tekst"]),
-                             context=ouder.get("tekst", "")))
+                             context="\n".join(t for t in (ouder.get("titel", ""), ouder.get("tekst", "")) if t)))
     return uit
 
 
