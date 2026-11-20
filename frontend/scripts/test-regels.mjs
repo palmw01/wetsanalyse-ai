@@ -16,6 +16,8 @@
  *  - een drager akkoord geven, accorderen met een reden en heropenen, elk tegen de revisie in beeld;
  *  - een open interpretatiekeuze op een geval (R3, lessenbundel 4) houdt de poort tegen; de jurist besluit op de kaart
  *    (lezing, methode, motivering) via de ene besluitroute, en dan opent de poort;
+ *  - een voorbeeld beoordeel je apart, via de eigen route (e2e-run 20 nov 2026, B4), en een open punt hang je om met de
+ *    route `omhangen`, die alleen `hangt_aan` meestuurt (A2);
  *  - een 412 laadt de nieuwste stand en zegt dat;
  *  - op 390 px schuift de pagina niet zijwaarts.
  */
@@ -60,9 +62,9 @@ function poort(r) {
     const zonder = r.inhoud.gevallen.map((g) => g.label).filter((l) => !beoordeeld.has(l));
     if (zonder.length) redenen.push(`Nog geen beoordeeld voorbeeld bij geval ${zonder.join(", ")}.`);
   }
-  const keuzes = openPunten.filter((p) => p.status === "open" && p.inhoud.hangt_aan.some((a) => a.id === r.id)
-    && ["interpretatiekeuze", "ontbrekend_uitvoeringsbeleid"].includes(p.soort));
-  if (keuzes.length) redenen.push(`${keuzes.length} keuze is nog niet genomen: ${keuzes.map((p) => p.inhoud.vraag.replace(/[.?]$/, "")).join("; ")}.`);
+  // Elk open punt van elke soort houdt tegen (besluit gebruiker 20 nov 2026), zoals `regel_store.poort`.
+  const keuzes = openPunten.filter((p) => p.status === "open" && p.inhoud.hangt_aan.some((a) => a.id === r.id));
+  if (keuzes.length) redenen.push(`${keuzes.length} open punt is nog niet besloten: ${keuzes.map((p) => p.inhoud.vraag.replace(/[.?]$/, "")).join("; ")}.`);
   return { mag: !redenen.length, redenen };
 }
 
@@ -93,7 +95,8 @@ const regel = (id, regelbegrip, uitvoer, invoer, gevallen, voorbeelden, markdown
 const regels = {
   r4: regel("r4", "rb4", "tb", ["ab", "at"],
     [{ label: "1", voorwaarden: null, uitkomst: [{ soort: "begrip", begrip_id: "ab" }], voorrang: 0 }],
-    [{ geval: "", invoer: "€ 1.200, 12 termijnen", uitkomst: "€ 100", oordeel: "juist", toelichting: "" }],
+    [{ geval: "", invoer: "€ 1.200, 12 termijnen", uitkomst: "€ 100", oordeel: "juist", toelichting: "" },
+     { geval: "", invoer: "€ 0, 12 termijnen", uitkomst: "€ 0", oordeel: "open", toelichting: "", door: "regelspecialist" }],
     "_Het termijnbedrag_ moet berekend worden als _bedrag van de aanslag_ **gedeeld door** _aantal termijnen_."),
   r2: regel("r2", "rb2", "at", [],
     [{ label: "1", voorwaarden: null, uitkomst: [{ soort: "tekst", tekst: "twaalf" }], voorrang: 0 }], [],
@@ -147,6 +150,15 @@ await page.route("**/api/**", async (route) => {
     punt.revisie += 1;
     return route.fulfill({ json: punt });
   }
+  const omhang = p.match(/^\/api\/werkgebieden\/wg1\/open-punten\/(\w+)\/omhangen$/);
+  if (omhang && m === "POST") {
+    const body = req.postDataJSON();
+    mutaties.push({ m, rest: `open-punten/${omhang[1]}/omhangen`, body });
+    const punt = openPunten.find((x) => x.id === omhang[1]);
+    punt.inhoud.hangt_aan = body.hangt_aan.map((a) => ({ geval: "", ...a, bestaat: true }));
+    punt.revisie += 1;
+    return route.fulfill({ json: punt });
+  }
   if (p === "/api/werkgebieden/wg1/regels" && m === "GET") return route.fulfill({ json: { regels: Object.values(regels).map(uit) } });
   if (p === "/api/werkgebieden/wg1/regels/hierarchie") return route.fulfill({ json: keten() });
   const een = p.match(/^\/api\/werkgebieden\/wg1\/regels\/(r\d)(?:\/(.+))?$/);
@@ -164,7 +176,9 @@ await page.route("**/api/**", async (route) => {
     }
     if (body.verwachte_revisie !== r.revisie) return route.fulfill({ status: 412, json: { detail: { fout: "revisie_conflict" } } });
     const drager = rest.match(/^dragers\/(.+)$/);
+    const vb = rest.match(/^voorbeelden\/(\d+)\/oordeel$/);
     if (drager && m === "PATCH") r.dragers.find((d) => d.id === drager[1]).beoordeling = body.beoordeling;
+    else if (vb && m === "POST") r.inhoud.voorbeelden[Number(vb[1]) - 1].oordeel = body.oordeel;
     else if (rest === "accorderen") {
       const pt = poort(r);
       if (!pt.mag || !body.reden) return route.fulfill({ status: 409, json: { detail: { fout: "poort", melding: pt.redenen.join(" ") } } });
@@ -241,10 +255,17 @@ try {
   assert.equal(await r4.locator("[data-regel-keten] a").count(), 2, "volgt op R2 en R3");
   assert.equal(await r4.locator("[data-regel-accorderen]").isDisabled(), true, "de poort is dicht");
 
+  // Een voorbeeld beoordeel je apart (B4): de maker staat erbij, en het oordeel gaat via de eigen route.
+  const vb2 = r4.locator('[data-voorbeeld-nr="2"]');
+  await vb2.getByText("Gemaakt door regelspecialist").waitFor();
+  await vb2.getByRole("button", { name: "Voorbeeld 2: juist" }).click();
+  await r4.locator('[data-voorbeeld-nr="2"][data-regel-voorbeeld="juist"]').waitFor();
+  assert.deepEqual(mutaties.at(-1), { m: "POST", rest: "voorbeelden/2/oordeel", body: { verwachte_revisie: 1, oordeel: "juist" } });
+
   // Een drager akkoord geven: de grondslag staat, maar de open keuze houdt de poort nog dicht (R3).
   await r4.getByRole("button", { name: "Akkoord met grondslag el-r4" }).click();
-  await r4.locator("[data-regel-poort]").getByText("keuze is nog niet genomen", { exact: false }).waitFor();
-  assert.deepEqual(mutaties.at(-1), { m: "PATCH", rest: "dragers/r4-d1", body: { verwachte_revisie: 1, beoordeling: "akkoord" } });
+  await r4.locator("[data-regel-poort]").getByText("open punt is nog niet besloten", { exact: false }).waitFor();
+  assert.deepEqual(mutaties.at(-1), { m: "PATCH", rest: "dragers/r4-d1", body: { verwachte_revisie: 2, beoordeling: "akkoord" } });
 
   // Het open punt staat op de kaart als voorstel van Lex, met de lezingen, de grondslag en wat nog getoetst moet worden.
   const punt = r4.locator("[data-open-punt=op1]");
@@ -271,7 +292,16 @@ try {
   if (process.env.REGELS_SCREENSHOT) await page.screenshot({ path: `${process.env.REGELS_SCREENSHOT}/regelkaart.png`, fullPage: true });
   await r4.locator("[data-regel-accorderen]").click();
   await page.locator('[data-regel-inhoud=r4][data-regel-status="geaccordeerd"]').waitFor();
-  assert.deepEqual(mutaties.at(-1).body, { verwachte_revisie: 2, reden: "Volgt letterlijk uit art. 9 lid 1." });
+  assert.deepEqual(mutaties.at(-1).body, { verwachte_revisie: 3, reden: "Volgt letterlijk uit art. 9 lid 1." });
+
+  // Omhangen (A2): van geval 1 naar de hele regel; alleen `hangt_aan` gaat mee.
+  const om = r4.locator("[data-omhangen=op1]");
+  await om.getByText("Omhangen", { exact: true }).first().click();
+  await om.getByRole("combobox", { name: "Naar geval" }).getByRole("option", { name: "Geval 1" }).waitFor({ state: "attached" });
+  await om.locator("[data-omhangen-vastleggen]").click();
+  for (let i = 0; i < 50 && mutaties.at(-1).rest !== "open-punten/op1/omhangen"; i++) await page.waitForTimeout(100);
+  assert.deepEqual(mutaties.at(-1), { m: "POST", rest: "open-punten/op1/omhangen",
+    body: { verwachte_revisie: 2, hangt_aan: [{ soort: "regel", id: "r4" }] } });
 
   // Een 412 laadt de nieuwste stand en zegt het; de handeling gaat niet stil opnieuw.
   botsing = true;
@@ -292,7 +322,7 @@ try {
 
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: open punt op een geval houdt de poort tegen, besluit op de kaart via de ene route; Afleidingsregels in de zijbalk en het overzicht met tellers, filter in de URL en doorklikken; kaart Afleidingsregels, de keten van onder naar boven met basisgegevens en signaal, de regelkaart met regeltekst, voorbeelden, grondslag, poort en keten; drager akkoord, accorderen met reden, 412 en heropenen; smal scherm.");
+  console.log("Browser OK: open punt op een geval houdt de poort tegen, besluit op de kaart via de ene route; Afleidingsregels in de zijbalk en het overzicht met tellers, filter in de URL en doorklikken; kaart Afleidingsregels, de keten van onder naar boven met basisgegevens en signaal, de regelkaart met regeltekst, voorbeelden, grondslag, poort en keten; voorbeeld apart beoordeeld; drager akkoord, accorderen met reden, omhangen, 412 en heropenen; smal scherm.");
 } finally {
   await browser.close();
 }

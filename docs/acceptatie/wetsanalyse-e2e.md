@@ -23,7 +23,8 @@ ook niet uit een kluis: ontbreekt er iets, dan vraagt de coördinator het de geb
    eigen gesprekken en metingen: maak alleen objecten met het voorvoegsel van de run en ruim alleen die op
    ([`testaccount.md`](testaccount.md)). Noteer account en rol in het logboek. Is de rol `beheerder`, dan zijn de
    rechten van een analist niet getoetst: dat hoort als beperking in het rapport. Een apart analistaccount maakt alleen
-   de gebruiker aan.
+   de gebruiker aan. `wie_ben_ik` noemt ook de `checkout` waaruit de MCP draait; staat daar een waarschuwing (achter
+   master), dan draait het team met verouderde tools en agenttypes: vraag de gebruiker eerst bij te werken.
 2. Noteer het tokenverbruik: `bff` GET `/api/account/verbruik`.
 3. Probeer de tools die stap 8 en 9 dragen: `logs_zoek` zonder argumenten, `graaf_lezen` met een `ASK`, en `bron_lezen`
    op een bepaling uit het dossier. Weigert `logs_zoek` of `graaf_lezen` omdat de toegang ontbreekt, leg dat dan voor
@@ -102,9 +103,10 @@ rijen die elkaar uitsluiten), een tussenresultaat met een eigen begrip op de mar
 rekent hij hem door met een voorbeeldreeks: het normale geval, een voorwaarde die niet vervuld is, de uitzondering, de precieze
 grens, nul, negatief en onbekend.
 
-Lex kent nog geen regel als eigen object (`docs/architectuur/plan-afleidingsregels.md`): de regels staan in het
-logboek en het rapport, en dat de werkplek er niets voor heeft is een bevinding. Geen RegelSpraak: die hoort niet bij
-het platform.
+Een regel is een eigen object in Lex (ADR-018): de regelspecialist legt hem vast onder
+`/api/werkgebieden/<id>/regels`, met gevallen, dragers, voorbeelden, parameterwaarden en open punten, en de poort zegt
+wat er nog openstaat. Wat de regelkaart nog niet kan en alleen via de routes gaat, staat als `omweg` in het logboek en
+is een bevinding. Geen RegelSpraak: die hoort niet bij het platform.
 
 Bewijs: per regel een logregel met de vindplaats en het oordeel uitvoerbaar, deels of niet; elk gat met het antwoord
 van de eigenaar; de relaties die de jurist naar aanleiding daarvan legde of beoordeelde, in `weergave_lezen` en de

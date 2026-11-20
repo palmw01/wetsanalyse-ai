@@ -660,14 +660,18 @@ LAATSTE_PASSAGE = ("Dit is de laatste passage van het begrip, en een begrip rust
                    "passage. Koppel eerst een andere passage, of verwijder het begrip.")
 
 
-AFGELEID_GEEN_REGEL = ("De rol 'afgeleid' hoort bij de afleidingsregel die het begrip afleidt. Deze passage is geen "
-                       "afleidingsregel: kies een andere rol, of de markering van de regel.")
+AFGELEID_GEEN_REGEL = ("De rol 'afgeleid' hoort bij de markering waarop de regel rust die het begrip afleidt: een "
+                       "Afleidingsregel, Rechtsbetrekking of Tijdsaanduiding. Deze passage is dat niet: kies een andere "
+                       "rol, of de markering van de regel.")
 
 
 def toets_afgeleid(bewijzen: Iterable[dict]) -> None:
     """Een tussenresultaat rust op de afleidingsregel die het afleidt (M01 §2.2.2): de rol `afgeleid` alleen op een
-    element van die klasse, anders 422 `geen_afleidingsregel`."""
-    if any((b or {}).get("klasse") != AFLEIDINGSREGEL for b in bewijzen):
+    element van een grondslagklasse van een regel (ADR-018 §2: Afleidingsregel, Rechtsbetrekking, Tijdsaanduiding),
+    anders 422 `geen_afleidingsregel`. Zo kan ook het regelbegrip van een beslisregel op een Rechtsbetrekking ("bepalen
+    van de bevoegdheid tot …") een grondslag krijgen (A3 van de e2e-run van 20 nov 2026)."""
+    from .regel_contracts import GRONDSLAG_KLASSEN
+    if any((b or {}).get("klasse") not in GRONDSLAG_KLASSEN for b in bewijzen):
         raise HTTPException(422, {"fout": "geen_afleidingsregel", "melding": AFGELEID_GEEN_REGEL})
 
 

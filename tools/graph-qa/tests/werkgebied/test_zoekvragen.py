@@ -316,6 +316,25 @@ def test_de_woordenkloof_en_het_voorwerp_in_de_graaf():
     assert zv.is_voorwerp(Omgeving(faal=True), "bankrekening", [UR]) is False
 
 
+class AlleWoorden(Omgeving):
+    """Zoals de graaf: een kop telt alleen als hij álle woorden van de zoekvraag draagt (`opbouw_lucene`: AND)."""
+
+    def _antwoord(self, q: str) -> str:
+        if "?aantal" in q:
+            lucene = q.split("luc:query", 1)[1].split("\n", 1)[0].casefold()
+            if " and " in lucene:
+                return _tsv(["node", "score", "soort", "label", "bwbId"], [])
+        return super()._antwoord(q)
+
+
+def test_een_lange_omschrijving_van_een_handeling_is_geen_voorwerp():
+    """Termijnen e2e (20 nov 2026): de jurist koos "verrekening van een negatieve voorlopige aanslag met een positieve";
+    de bronselectie noemde dat een voorwerp, want geen kop draagt alle woorden. Het kernwoord staat wel in een kop."""
+    assert zv.is_voorwerp(AlleWoorden(), "kwijtschelding van een belastingschuld van de belastingschuldige", [UR]) is False
+    assert zv.is_voorwerp(AlleWoorden(), "kwijtschelding van een belastingschuld", []) is False
+    assert zv.is_voorwerp(AlleWoorden(), "bankrekening van de belastingschuldige", [UR]) is True
+
+
 def test_bij_een_voorwerp_gaan_de_handelingen_erboven_voor():
     """De gekozen gebeurtenis "belastingschuldige" (een voorwerp, geen handeling) staat in geen kop; de bepalingen
     waarin het woord staat, vallen onder koppen met "kwijtschelding": die handeling komt eerst, met het voorwerp erbij."""

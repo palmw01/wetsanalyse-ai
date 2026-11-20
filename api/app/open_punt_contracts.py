@@ -43,6 +43,15 @@ class Status(str, Enum):
     open = "open"                  # nog geen keuze
     gekozen = "gekozen"            # de jurist koos een lezing (of: legde vast hoe het verder gaat)
     getoetst = "getoetst"          # gekozen, en alles wat getoetst moest worden is getoetst
+    # Alleen bij ontbrekend uitvoeringsbeleid: de jurist stelde vast dat het beleid ontbreekt, en het punt gaat naar de
+    # beleidsverantwoordelijken (M01 stap 5). Dat is geen keuze, dus ook niet *gekozen* (e2e-run 20 nov 2026, B5).
+    gesignaleerd = "gesignaleerd"
+
+
+class Uitkomst(str, Enum):
+    """Wat het besluit is. `gesignaleerd` kan alleen bij ontbrekend uitvoeringsbeleid."""
+    gekozen = "gekozen"
+    gesignaleerd = "gesignaleerd"
 
 
 class Methode(str, Enum):
@@ -142,10 +151,14 @@ class OpenPuntInhoud(BaseModel):
 
 class OpenPuntAanmaak(BaseModel):
     inhoud: OpenPuntInhoud
-    herkomst: Literal["lex", "jurist", "import"] = "jurist"
+    herkomst: Literal["lex", "import", "jurist", "regelspecialist"] = "jurist"
 
 
 class Revisie(BaseModel):
+    """De basis van elke wijziging. Een onbekend veld is een 422: een besluit met `besluit` en `reden` in plaats van
+    `gekozen` en `motivering` deed anders stil niets (e2e-run 20 nov 2026, B5)."""
+    model_config = ConfigDict(extra="forbid")
+
     verwachte_revisie: int = Field(ge=1)
 
 
@@ -155,7 +168,16 @@ class OpenPuntWijziging(Revisie):
 
 class Besluit(Revisie):
     """De keuze van de jurist. Bij een punt met lezingen is `gekozen` het label van een lezing; zonder lezingen (een
-    onderzoekspunt, een gat) is de `motivering` hoe het verder gaat. `gekozen` leeg en `motivering` leeg heropent."""
+    onderzoekspunt, een gat) is de `motivering` hoe het verder gaat. `gekozen` leeg en `motivering` leeg heropent een
+    besloten punt; op een punt dat open is, is dat een 422. Bij ontbrekend uitvoeringsbeleid zegt `uitkomst` of het
+    beleid gevonden is (`gekozen`) of ontbreekt (`gesignaleerd`)."""
     gekozen: str = Field(default="", max_length=20)
     motivering: str = Field(default="", max_length=4000)
     methode: Methode | None = None
+    uitkomst: Uitkomst | None = None
+
+
+class Omhangen(Revisie):
+    """Waar het punt aan hangt, en verder niets (A2): na een vervanging naar de opvolger, per geval. De rest van de
+    inhoud en de keuze blijven staan."""
+    hangt_aan: list[Aanhaking] = Field(min_length=1, max_length=40)

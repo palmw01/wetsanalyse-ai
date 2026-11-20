@@ -108,13 +108,32 @@ async def test_de_vorm_uit_de_skill_wordt_getoetst(client):
     # Ontbrekend uitvoeringsbeleid zonder lezingen: besluiten is vastleggen hoe het verder gaat.
     beleid = {"soort": "ontbrekend_uitvoeringsbeleid", "vraag": "Afronding van het termijnbedrag?", "hangt_aan": aan}
     p = (await client.post(_url(wg), json={"inhoud": beleid})).json()
+    # Een leeg besluit op een open punt doet niets, en is dus een 422 (e2e-run 20 nov 2026, B5); een onbekend veld ook.
     r = await client.post(_url(wg, p["id"], "besluit"), json={"verwachte_revisie": 1})
-    assert r.status_code == 200 and r.json()["revisie"] == 1          # niets te heropenen: geen revisie
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "leeg_besluit"
+    r = await client.post(_url(wg, p["id"], "besluit"), json={"verwachte_revisie": 1, "besluit": "x", "reden": "y"})
+    assert r.status_code == 422
     r = await client.post(_url(wg, p["id"], "besluit"), json={"verwachte_revisie": 1, "gekozen": "A"})
     assert r.status_code == 422 and r.json()["detail"]["fout"] == "geen_lezingen"
+    # Bij ontbrekend beleid zegt het besluit of het beleid er is: "signaleren" is niet *gekozen*.
     r = await client.post(_url(wg, p["id"], "besluit"),
                           json={"verwachte_revisie": 1, "motivering": "Signaleren aan de uitvoering (activiteit 5)."})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "uitkomst"
+    r = await client.post(_url(wg, p["id"], "besluit"), json={"verwachte_revisie": 1, "uitkomst": "gesignaleerd"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "motivering"
+    r = await client.post(_url(wg, p["id"], "besluit"), json={
+        "verwachte_revisie": 1, "uitkomst": "gesignaleerd", "motivering": "De Leidraad zegt niets over de afronding."})
+    assert r.status_code == 200 and r.json()["status"] == "gesignaleerd", r.text
+    assert r.json()["keuze"]["uitkomst"] == "gesignaleerd"
+    p = r.json()
+    r = await client.post(_url(wg, p["id"], "besluit"), json={
+        "verwachte_revisie": p["revisie"], "uitkomst": "gekozen", "motivering": "LI 9.5 regelt het."})
     assert r.status_code == 200 and r.json()["status"] == "gekozen"
+    # Gesignaleerd hoort alleen bij ontbrekend beleid.
+    k = (await client.post(_url(wg), json={"inhoud": _keuze(aan)})).json()
+    r = await client.post(_url(wg, k["id"], "besluit"), json={"verwachte_revisie": 1, "uitkomst": "gesignaleerd",
+                                                              "motivering": "x"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "uitkomst"
 
 
 async def test_een_keuze_vervalt_als_haar_lezing_verdwijnt(client):
@@ -145,7 +164,7 @@ async def test_lijst_filters_en_een_verdwenen_aanhaking(client):
 
     # Lex leest mee in het werkgebied: kort, de open eerst.
     w = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
-    assert w["open_punten"]["telling"] == {"open": 2, "gekozen": 0, "getoetst": 0}
+    assert w["open_punten"]["telling"] == {"open": 2, "gesignaleerd": 0, "gekozen": 0, "getoetst": 0}
     assert {p["soort"] for p in w["open_punten"]["punten"]} == {"onderzoekspunt", "interpretatiekeuze"}
     assert w["open_punten"]["punten"][0]["nog_te_toetsen"] in ([], ["wetsgeschiedenis"])
 

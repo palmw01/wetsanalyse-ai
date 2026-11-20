@@ -1223,7 +1223,8 @@ def open_begrippen_regels(d: Begrippen) -> list[Regel]:
     return uit
 
 
-_OPEN_PUNT_STATUS = {"open": "open, nog geen keuze", "gekozen": "gekozen", "getoetst": "gekozen en getoetst"}
+_OPEN_PUNT_STATUS = {"open": "open, nog geen keuze", "gekozen": "gekozen", "getoetst": "gekozen en getoetst",
+                     "gesignaleerd": "gesignaleerd: het beleid ontbreekt"}
 _BRONSOORT = {"wettekst": "de wettekst", "wetsgeschiedenis": "de wetsgeschiedenis (memorie van toelichting)",
               "jurisprudentie": "de jurisprudentie", "beleid": "het beleid", "kennisgroepstandpunt": "een kennisgroepstandpunt",
               "uitvoeringspraktijk": "de uitvoeringspraktijk", "literatuur": "de literatuur"}

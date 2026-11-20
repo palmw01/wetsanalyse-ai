@@ -1021,13 +1021,49 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Eén schrijfpad** (`regel_store._gewijzigd_in`): werkgebiedslot, dan het regelslot, `verwachte_revisie` → 412,
   revisie +1, revisiekopie en audit (`regel-*`, `drager-*`). Elke mutatie behalve accorderen maakt een geaccordeerde regel
   weer een concept; een vervangen regel is alleen-lezen (409).
-- **De poort** (`accorderen: {mag, redenen}`, besluit gebruiker 19 nov 2026): elk genoemd begrip geaccordeerd, een
-  grondslag die akkoord en actueel is, een beoordeeld voorbeeld per geval, en geen open keuze; plus een reden. Wat niet
-  blokkeert, staat in `signalen`.
+- **De poort** (`accorderen: {mag, redenen}`, besluit gebruiker 19 nov 2026, aangescherpt na de e2e-run van 20 nov 2026):
+  elk genoemd begrip geaccordeerd; per geval een grondslag die akkoord en actueel is (een grondslag zonder geval geldt
+  voor de hele regel, en dan noemt `signalen` de gevallen die alleen daarop rusten); elke dragende drager beoordeeld
+  (`DRAGEND`, alles behalve `context`, zoals de dragende koppelingen van een begrip); geen voorwaarde op een afgewezen
+  drager of op een markering die geen drager is; geen voorbeeld op `open` of `onjuist` (de redenen noemen hun nummers)
+  en een beoordeeld voorbeeld per geval; geen open punt, ook niet op een regel die deze vervangt; plus een reden, die
+  de poort vooraf noemt (`vraagt: ["reden"]`). Wat niet blokkeert, staat in `signalen`.
+- **De grond van accorderen en afwijzen heet `reden`**, zoals bij een begrip; `motivering` (de naam bij een drager en
+  een open punt) is hetzelfde veld (`AliasChoices`). `GET …/regels/{id}/voorbeelden` geeft de voorbeelden smal met hun
+  `nr` voor `…/voorbeelden/{nr}/oordeel`.
+- **Een markering in een voorwaarde is een drager** (`voorwaarde_dragers`): aanmaken en wijzigen voegen haar toe met de
+  rol `voorwaarde` bij haar geval, zodat ze beoordeeld wordt. Het bewijs vraagt de graaf, dus `wijzig` krijgt het
+  werkgebied en de resolver, zoals `maak`.
+- **Maken en beoordelen van een voorbeeld zijn twee handelingen** (`voorbeelden_na`): de POST en de PATCH zetten nooit een
+  oordeel. Een nieuw of gewijzigd voorbeeld (geval, invoer en uitkomst) is `open` en draagt `door`; een gelijk voorbeeld
+  houdt zijn oordeel. Het oordeel gaat via `POST …/regels/{id}/voorbeelden/{nr}/oordeel` (`nr` vanaf 1, met
+  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet.
+  Het moment en de persoon schuiven alleen op als het oordeel verandert; met `reden_aanvullen: true` komt de reden achter
+  de bestaande (met wie), en de vorige tekst staat in de revisie (`reden_voor`). Beoordeelt de maker zijn eigen voorbeeld, dan is dat
+  een signaal, geen weigering: op acceptatie werkt het team onder één account.
+- **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
+  revisiedetail en de audit).
+- **Een drager verversen** (`POST …/regels/{id}/dragers/{d}/verversen {verwachte_revisie, beoordeling: open|akkoord,
+  motivering}`, `ververs_drager`): veranderde de markering (verlengd, een andere klasse), dan wordt het bewijs de
+  markering van nu (`begrip_store.bewijzen`, dus 422 als ze verworpen of verdwenen is) en het oordeel opnieuw gegeven.
+  Opnieuw toevoegen kon niet: element, rol en geval zijn gelijk. Een dragende passage die niet actueel is, houdt de poort
+  tegen; een contextpassage is een signaal.
+- **Een tekstdeel van een uitkomst is hoogstens `MAX_TEKSTDEEL` (500) tekens**: in het schema (`maxLength`) en in een
+  melding die zegt hoe lang het deel is en wat je doet.
+- **Een genomen keuze op een geval moet dat geval dragen** (een signaal): rust de gekozen lezing op markeringen en is geen
+  daarvan een drager van dat geval (of van de hele regel), dan noemt `signalen` het. Of de keuze in de regeltekst is
+  verwerkt, toetst de api niet: dat is niet zuiver af te leiden.
+- **Compact lezen en schrijven** (B1, het patroon van `begrip_store.begripkort`): `?vorm=kort` (of `stand`) op elke schrijfroute, op
+  `GET …/regels/{id}` en op de lijst geeft `regel_store.kort` (id, revisie, status, `vervangen_door`, poort, signalen,
+  de telling van de open punten; bij een drager ook die drager smal). `GET …/regels/{id}/dragers` geeft de dragers
+  smal (`smalle_drager`, zonder ankers) en `GET …/regels/{id}/poort` de stand met de gaten. De standaard blijft de kaart.
+- **Een onbekend veld is een 422** op elke schrijfroute van een regel (`Revisie`, `RegelAanmaak`: `extra="forbid"`).
 - **Open punten op de regel** (R3, ADR-018 besluit 7.13): het object en zijn besluitroute zijn van `open_punt_store`
   (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval
-  ervan hangen. Een open punt van een soort in `KEUZE_SOORTEN` (interpretatiekeuze, ontbrekend uitvoeringsbeleid) houdt
-  het accorderen tegen; een onderzoekspunt of gat is een signaal. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
+  ervan hangen. **Elk open punt van elke soort houdt het accorderen tegen** (`BLOKKERENDE_STANDEN`: `open`), dus ook
+  een onderzoekspunt of een gat in de annotatie. Dat is het besluit van de gebruiker van 20 nov 2026: "Ja, blokkeren"
+  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het korte id (acht tekens), het geval en de vraag. Een punt
+  dat gekozen, getoetst of gesignaleerd is, of is omgehangen, houdt niet meer tegen. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
   van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel.
@@ -1050,6 +1086,11 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   in `aandachtspunten` een alternatieve term die de naam van een ander begrip in het werkgebied is (een homoniem), en een
   waarde in de definitie van een begrip dat op een parameter rust. Een signaal, geen poort.
 - **Afwijzen bewaart** (`POST …/afwijzen`, reden verplicht); **verwijderen is echt wissen**, met een auditregel.
+- **Vervangen** (`POST …/afwijzen` met `opvolger_id`, A2): de regel krijgt de status `vervangen` en `vervangen_door`, de
+  opvolger `opvolger_van` (de eerste voorganger), en de auditregel heet `regel-vervangen`. De open punten die nog aan de
+  voorganger hangen, tellen in de poort van de opvolger (`open_punten.bij_voorganger`) tot ze zijn omgehangen. Ook een
+  afgewezen regel kan zo alsnog vervangen worden.
+- **De herkomst** (`regel_contracts.Herkomst`): `lex`, `import`, `jurist` of `regelspecialist`. De kolom is 16 tekens.
 - **Het overzicht over werkgebieden heen** (`GET /v1/regels`, `regels.overzicht_router`, `regel_store.overzicht`): de
   zijbalk van de webapp, in de vorm van `GET /v1/begrippen`. Zoeken in naam, uitvoer en regeltekst (zonder hoofdletters of
   diakrieten), filteren op status en werkgebied, `mijn` (een revisie van jou), en `per_status` zonder het statusfilter.
@@ -1078,12 +1119,21 @@ komt uit de skill (`references/afleidingsregels.md`, *Wat open blijft*):
   er ten minste twee.
 - **Wat nog getoetst moet worden** (`te_toetsen`), elk met een bronsoort (`wetsgeschiedenis`, `jurisprudentie`,
   `beleid`, …). Een getoetst punt zegt wat de toets opleverde.
-- **De keuze** (`keuze`: gekozen lezing, motivering, methode, door, op). Die zet alleen `POST …/{punt}/besluit`. Het is
-  één route voor elke plek waar de jurist kiest: de regelkaart, de begripskaart, een markering of de keuzekaart in het
-  gesprek. Ze staat niet in `agent_toegang.TOEGESTAAN`, en `tests/poort/test_agent_toegang.py` noemt haar bij de
-  beslissingen. Zonder lezingen is de motivering het besluit. Een leeg besluit heropent.
-- **De status volgt uit keuze en toetsen** (`status_van`): `open`, `gekozen`, of `getoetst` als ook elke toets is
-  afgevinkt. De client zet hem nooit. Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze.
+- **De keuze** (`keuze`: gekozen lezing, motivering, methode, uitkomst, door, op). Die zet alleen `POST …/{punt}/besluit`.
+  Het is één route voor elke plek waar de jurist kiest: de regelkaart, de begripskaart, een markering of de keuzekaart in
+  het gesprek. Ze staat niet in `agent_toegang.TOEGESTAAN`, en `tests/poort/test_agent_toegang.py` noemt haar bij de
+  beslissingen. Zonder lezingen is de motivering het besluit. Een leeg besluit heropent een besloten punt; op een open
+  punt is het een 422 `leeg_besluit`, en een onbekend veld ook (`Revisie`: `extra="forbid"`; e2e-run 20 nov 2026, B5).
+- **Ontbrekend uitvoeringsbeleid zegt wat het besluit is** (`uitkomst`): `gekozen` (het beleid is er, of een lezing is
+  gekozen) of `gesignaleerd` (het beleid ontbreekt; de motivering zegt welk, M01 stap 5). Zonder lezing en zonder
+  uitkomst is het een 422 `uitkomst`; `gesignaleerd` bij een andere soort ook.
+- **De status volgt uit keuze en toetsen** (`status_van`): `open`, `gesignaleerd`, `gekozen`, of `getoetst` als ook elke
+  toets is afgevinkt. De client zet hem nooit. Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze. Alleen
+  `open` houdt een regel tegen; een gesignaleerd punt staat in de signalen van de regel.
+- **`GET …/open-punten?regel_id=`** is kort voor `aan=regel&aan_id=…` (ook de punten op een geval van die regel).
+- **Omhangen** (`POST …/{punt}/omhangen {verwachte_revisie, hangt_aan}`, A2): alleen waar het punt aan hangt, met een
+  revisie en de auditregel `open-punt-omgehangen` (`toen`, `nu`). De rest van de inhoud en de keuze blijven staan. Een
+  geval moet een label van zijn regel zijn (422 `geval_onbekend`). Het is een besluit van de jurist, niet van Lex.
 - **Revisies en audit** zoals bij een regel: `verwachte_revisie` → 412, een kopie per revisie in `open_punt_revisies`
   (met het werkgebied, zodat wissen haar meeneemt) en de acties `open-punt-*` in de audit. Het besluitenlog van het
   rapport noemt `open-punt-besloten` en `open-punt-heropend`.
