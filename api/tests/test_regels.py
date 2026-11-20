@@ -203,8 +203,8 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
 
     regel = (await client.get(_url(wg, regel["id"]))).json()
     assert regel["accorderen"] == {"mag": False, "vraagt": ["reden"], "redenen": [
-        "2 open punten zijn nog niet besloten: interpretatiekeuze (geval 1): Telt een gedeeltelijke betaling als "
-        "termijn; onderzoekspunt: Wat zegt de Leidraad."]}
+        f"2 open punten zijn nog niet besloten: interpretatiekeuze {keuze['id'][:8]} (geval 1): Telt een gedeeltelijke "
+        f"betaling als termijn; onderzoekspunt {onderzoek['id'][:8]}: Wat zegt de Leidraad."]}
     assert regel["open_punten"] == {"open": 2, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "x"})
     assert r.status_code == 409 and "open punten zijn nog niet besloten" in r.json()["detail"]["melding"]
@@ -217,7 +217,8 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
                                                                    "motivering": "Volgt uit lid 2.", "methode": "grammaticaal"})
     assert r.status_code == 200, r.text
     regel = (await client.get(_url(wg, regel["id"]))).json()
-    assert regel["accorderen"]["redenen"] == ["1 open punt is nog niet besloten: onderzoekspunt: Wat zegt de Leidraad."]
+    assert regel["accorderen"]["redenen"] == [
+        f"1 open punt is nog niet besloten: onderzoekspunt {onderzoek['id'][:8]}: Wat zegt de Leidraad."]
     assert regel["open_punten"] == {"open": 1, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(f"{punten}/{onderzoek['id']}/besluit",
                           json={"verwachte_revisie": onderzoek["revisie"], "motivering": "De Leidraad zegt niets anders."})
@@ -488,8 +489,8 @@ async def test_vervangen_en_open_punten_omhangen(client):
     assert rev["detail"]["toen"][0]["id"] == oud["id"] and rev["detail"]["nu"][0]["geval"] == "a"
     nieuw = (await client.get(_url(wg, nieuw["id"]))).json()
     assert nieuw["open_punten"]["bij_voorganger"] == 0
-    assert "1 open punt is nog niet besloten: interpretatiekeuze (geval a): Geldt de termijn per termijn." \
-        in nieuw["accorderen"]["redenen"]
+    assert f"1 open punt is nog niet besloten: interpretatiekeuze {keuze['id'][:8]} (geval a): Geldt de termijn per " \
+        "termijn." in nieuw["accorderen"]["redenen"]
 
 
 def test_een_waarde_in_een_definitie():
@@ -631,3 +632,24 @@ async def test_het_oordeel_draagt_een_reden_en_een_keuze_moet_haar_geval_dragen(
     regel = (await client.post(_url(wg, regel["id"], "dragers"), json={
         "verwachte_revisie": regel["revisie"], "dragers": [{"element_id": ids["var"], "rol": "invoer"}]})).json()
     assert not any("Keuze A is genomen" in s for s in regel["signalen"])
+
+
+async def test_een_reden_aanvullen_houdt_het_moment_van_het_oordeel(client):
+    """Laatste ronde, 20 nov 2026: wie een reden aanvulde, postte het oordeel opnieuw en `beoordeeld_op` schoof op."""
+    wg, ids, b = await _opzet(client)
+    regel = (await client.post(_url(wg), json={"inhoud": _inhoud(b, voorbeelden=[{"invoer": "1200", "uitkomst": "100"}]),
+                                              "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
+    url = _url(wg, regel["id"], "voorbeelden", "1", "oordeel")
+    regel = (await client.post(url, json={"verwachte_revisie": regel["revisie"], "oordeel": "juist",
+                                          "reden": "Nagerekend."})).json()
+    [v] = regel["inhoud"]["voorbeelden"]
+    regel = (await client.post(url, json={"verwachte_revisie": regel["revisie"], "oordeel": "juist",
+                                          "reden": "Ook getoetst aan lid 5.", "reden_aanvullen": True})).json()
+    [na] = regel["inhoud"]["voorbeelden"]
+    assert na["reden"] == "Nagerekend.\njurist-a: Ook getoetst aan lid 5."
+    assert (na["beoordeeld_op"], na["beoordeeld_door"]) == (v["beoordeeld_op"], v["beoordeeld_door"])
+    [rev] = [x for x in (await client.get(_url(wg, regel["id"], "revisies"))).json()["revisies"]][:1]
+    assert rev["detail"]["reden_voor"] == "Nagerekend."
+    # Een ander oordeel is een nieuw moment.
+    regel = (await client.post(url, json={"verwachte_revisie": regel["revisie"], "oordeel": "onjuist", "reden": "x"})).json()
+    assert regel["inhoud"]["voorbeelden"][0]["beoordeeld_op"] != v["beoordeeld_op"]
