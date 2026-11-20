@@ -139,6 +139,38 @@ def _niet_vervangen(begrippen: dict, *ids: str) -> None:
                                       "vervangen; leg de relatie bij de opvolger."})
 
 
+def _geen_verwant_naast_hierarchie(rijen, van: str, naar: str, type_: str, begrippen: dict) -> None:
+    """NL-SBB: twee begrippen zijn verwant (`skos:related`) óf het ene is een soort van het andere (`skos:broader`),
+    niet allebei (Termijnen e2e, 20 nov 2026: jaar ↔ tijdvak stond er als hiërarchie én verwant). In beide richtingen."""
+    tegen = {"verwant": "hierarchie", "hierarchie": "verwant"}.get(type_)
+    if tegen and any({x.van_begrip, x.naar_begrip} == {van, naar} and x.type == tegen and x.beoordeling != "afgewezen"
+                     for x in rijen):
+        namen = " en ".join(f"“{begrippen[i].inhoud.get('naam', '')}”" for i in (van, naar))
+        raise HTTPException(409, {"fout": "verwant_en_hierarchie",
+                                  "melding": f"Tussen {namen} ligt al een {'hiërarchie' if tegen == 'hierarchie' else 'verwant-relatie'}"
+                                             ". NL-SBB kent niet allebei: haal die eerst weg, of laat deze."})
+
+
+def _geen_kring(rijen, van: str, naar: str, begrippen: dict) -> None:
+    """Een hiërarchie van `van` (breder) naar `naar` mag geen kring sluiten: is `van` al een soort van `naar` (langs
+    vastgelegde hiërarchieën, ook via tussenstappen), dan staat de richting verkeerd om (Termijnen e2e, 20 nov 2026)."""
+    soorten: dict[str, set[str]] = {}
+    for x in rijen:
+        if x.type == "hierarchie" and x.beoordeling != "afgewezen":
+            soorten.setdefault(x.van_begrip, set()).add(x.naar_begrip)
+    gezien, rand = set(), [naar]
+    while rand:
+        b = rand.pop()
+        if b == van:
+            namen = [begrippen[i].inhoud.get("naam", "") for i in (van, naar)]
+            raise HTTPException(409, {"fout": "hierarchie_kring",
+                                      "melding": f"“{namen[0]}” is al een soort van “{namen[1]}”: deze hiërarchie sluit "
+                                                 "een kring. Bij een hiërarchie is ‘van’ het bredere begrip."})
+        if b not in gezien:
+            gezien.add(b)
+            rand.extend(soorten.get(b, ()))
+
+
 async def maak(werkgebied_id: str, inv: RelatieInvoer, actor: str) -> dict:
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
@@ -160,6 +192,9 @@ async def maak(werkgebied_id: str, inv: RelatieInvoer, actor: str) -> dict:
         _niet_vervangen(begrippen, van, naar)
         if any((x.van_begrip, x.naar_begrip, x.type) == (van, naar, type_) and x.beoordeling == "akkoord" for x in rijen):
             raise HTTPException(409, {"fout": "al_vastgelegd", "melding": "Deze relatie is al vastgelegd."})
+        _geen_verwant_naast_hierarchie(rijen, van, naar, type_, begrippen)
+        if type_ == "hierarchie":
+            _geen_kring(rijen, van, naar, begrippen)
         # Een eerder afwijzen wordt door een eigen besluit van de analist vervangen, niet naast gezet.
         for x in rijen:
             if (x.van_begrip, x.naar_begrip, x.type) == (van, naar, type_):

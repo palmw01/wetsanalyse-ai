@@ -467,7 +467,8 @@ spoor D (*Werkgebied als node*).
   Per selectie is `bron_gewijzigd` een signaal, geen ongeldigverklaring. Een onbereikbare bron geeft
   `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
 - **De annotatie-werkvoorraad** (`GET {id}/annotatie-werkvoorraad`, `werkgebied_werkvoorraad.py`,
-  fase B) zegt wat Lex nog moet annoteren. Alleen selecties met rol *analyseren*; contextbronnen
+  fase B) zegt wat Lex nog moet annoteren. Alleen selecties met rol *analyseren* – van de selectie, of als een actieve
+  deelvraag haar met *analyseren* koppelt (`met_deelvraagrol`, Termijnen e2e 20 nov 2026); contextbronnen
   worden geteld. De eenheden volgen `bronmodel.annotatie_eenheden` – de regel van de keuzekaart, dus
   een artikel met leden per lid – en staan elk één keer. De stand per eenheid komt uit Postgres
   (lagen, elementen, dekking): `afgerond`, `te_beoordelen`, `beoordeeld`, `zonder_markeringen`
@@ -596,9 +597,25 @@ spoor D (*Werkgebied als node*).
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
-- **`?vorm=stand`** (B-1) op PATCH, `accorderen`, `heropenen` en `voorstellen/{id}/overnemen`
-  (`begrip_store.begripstand`): de stand en de inhoud, zonder koppelingen en bewijs. De standaard blijft de kaart.
-  **`?vorm=kort`** (`begripkort`) geeft alleen id, status, revisies en de poort, voor wie veel begrippen na elkaar wijzigt.
+- **`?vorm=stand`** (B-1) op POST, PATCH, `accorderen`, `heropenen`, `voorstellen/{id}/overnemen`, `combineren` en
+  `nieuwe-betekenis` (`begrip_store.begripstand`): de stand en de inhoud, zonder koppelingen en bewijs. De standaard
+  blijft de kaart. **`?vorm=kort`** (`begripkort`) geeft alleen id, status, revisies en de poort, voor wie veel begrippen
+  na elkaar wijzigt. De relatieroutes (vastleggen, afwijzen, bevestigen, weghalen) kennen `?vorm=kort`: de tellingen.
+- **Een PATCH noemt wat verandert** (`BegripInhoudDeel`, Termijnen e2e 20 nov 2026): wat de inhoud niet noemt, blijft
+  staan; leegmaken is het veld met `""` of `[]`. Het geheel wordt onder het slot opnieuw getoetst. De werkplek stuurt
+  alles en merkt geen verschil.
+- **Lezen kan smal** (Termijnen e2e 20 nov 2026): `GET …/begrippen?vorm=kort` geeft per begrip naam, status, revisie,
+  definitie en tellingen (zonder `primair` en element-id's); `term` filtert op (een deel van) naam of alternatieve term,
+  `id` (vaker te geven) op begrip-id's. `GET …/begrippen/{id}?vorm=stand|kort` zoals bij een wijziging.
+- **Een afgewezen duiding houdt het element niet vast**: `_toets_primair` en `primaire_duidingen` tellen haar niet.
+- **Een koppeling-PATCH met `motivatie_aanvullen: true`** zet de motivatie achter de bestaande (met wie); vervangen
+  blijft de standaard, en de vorige tekst staat in de audit (`motivatie_voor`).
+- **Een hiërarchie gaat van breed naar smal** (`van` is het bredere begrip, de projectie zet `naar skos:broader van`); een
+  hiërarchie die een kring sluit, is 409 `hierarchie_kring`.
+- **Combineren neemt geen inhoud mee**: een onbekend veld is 422 (`extra="forbid"`), geen stille 200.
+- **Verwant óf hiërarchie** tussen twee begrippen, niet allebei (409 `verwant_en_hierarchie`, in beide richtingen). De
+  NL-SBB-melding "dezelfde voorkeursterm" telt een vervangen begrip niet mee (`_dubbel_alleen_met_vervangen`): de shape
+  zelf blijft het officiële profiel.
 - **Wijzigen met `akkoord: true`** (en een `reden`) houdt een geaccordeerd begrip geaccordeerd: wijzigen en opnieuw
   accorderen in één transactie, als de poort het toelaat (zoals koppelen met `akkoord`). Zonder blijft het een concept.
 - **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
@@ -1032,7 +1049,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Maken en beoordelen van een voorbeeld zijn twee handelingen** (`voorbeelden_na`): de POST en de PATCH zetten nooit een
   oordeel. Een nieuw of gewijzigd voorbeeld (geval, invoer en uitkomst) is `open` en draagt `door`; een gelijk voorbeeld
   houdt zijn oordeel. Het oordeel gaat via `POST …/regels/{id}/voorbeelden/{nr}/oordeel` (`nr` vanaf 1, met
-  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet. Beoordeelt de maker zijn eigen voorbeeld, dan is dat
+  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet.
+  Het moment en de persoon schuiven alleen op als het oordeel verandert; met `reden_aanvullen: true` komt de reden achter
+  de bestaande (met wie), en de vorige tekst staat in de revisie (`reden_voor`). Beoordeelt de maker zijn eigen voorbeeld, dan is dat
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een voorbeeld is narekenbaar** (regels herleidbaar, 20 nov 2026, stap 5): naast de tekst `waarden` (de invoer per
   invoerbegrip, `{begrip_id, waarde}`; een begrip dat geen invoer is, is 422 `waarde_geen_invoer`) en `van_geval` (welk
@@ -1077,7 +1096,7 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval
   ervan hangen. **Elk open punt van elke soort houdt het accorderen tegen** (`BLOKKERENDE_STANDEN`: `open`), dus ook
   een onderzoekspunt of een gat in de annotatie. Dat is het besluit van de gebruiker van 20 nov 2026: "Ja, blokkeren"
-  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het geval en de vraag. Een punt
+  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het korte id (acht tekens), het geval en de vraag. Een punt
   dat gekozen, getoetst of gesignaleerd is, of is omgehangen, houdt niet meer tegen. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
@@ -1220,7 +1239,10 @@ werkgebied zonder deelvragen werkt zoals altijd.
   `GET /v1/werkgebieden/{id}` draagt `deelvragen` (actief en voorgesteld, met hun geldige koppelingen).
 - **Een actieve deelvraag hoort bij de scope**: toevoegen en weghalen (`POST …/deelvragen/samen`, de bewerkstand in
   één revisie) en wijzigen (`PATCH …/deelvragen/{id}`: tekst, volgorde, overnemen met `status: actief`, afwijzen met
-  verplichte reden) lopen door `werkgebied_store._gewijzigd` (revisie, 412, audit `deelvraag-*`). Dezelfde vraag nog
+  verplichte reden) lopen door `werkgebied_store._gewijzigd` (revisie, 412, audit `deelvraag-*`). Een gewijzigde tekst
+  van een voorstel van Lex zet de herkomst op `lex_aangepast`; een reden bij overnemen of aanpassen blijft staan. Met
+  `?vorm=deelvraag` geeft de PATCH `{revisie, deelvraag}` (de deelvraag in elke stand, ook afgewezen met haar reden)
+  in plaats van het hele werkgebied. Elke deelvraag draagt `bron_rollen` (selectie-id → eigen rol, alleen waar die er is). Dezelfde vraag nog
   eens (genormaliseerd: hoofdletters, diakrieten, leestekens) geeft 409 `al_gesteld`. De koppelingen zet geen client
   zelf: ze ontstaan bij het opnemen van een kandidaat (`koppel_bron_in`) en gaan mee bij een vervanging.
 - **Voorstellen van Lex** (`POST …/deelvragen/voorstellen {vragen, model}`, graph-qa): geen revisie, alleen
@@ -1303,7 +1325,10 @@ na herladen, in een ander gesprek en bij een collega ook is.
     kandidaat met stand `opgenomen` en de bron in het overzicht dragen `reden` en `besloten_door` van de koppeling, en
     het rapport toont "Opgenomen door X, voorgesteld door Lex / zelf genoemd" (WA TRM H1, 8 nov 2026);
     **per lid**: `bron_iri` kiest de kandidaat zelf of een lid of onderdeel eronder (`bronselectie.onder`; anders 422
-    `niet_onder_kandidaat`), en de selectie komt op dat deel. Een lid onder een artikel dat bij deze deelvraag al staat
+    `niet_onder_kandidaat`), en de selectie komt op dat deel. Het pad van de IRI beslist, behalve als de vorm wisselt
+    binnen één regeling: de Leidraad draagt een topdivisie als `…:artikel:9` en haar onderdelen als `…:id:…divisie9.5`.
+    Dan beslist de bronboom (`voorouders_van`, de gecachete `graaf.lees_bron`), ook in het overzicht; kan de graaf het
+    niet zeggen, dan het pad (Termijnen e2e, 20 nov 2026). Een lid onder een artikel dat bij deze deelvraag al staat
     is 409 `valt_onder`; een artikel over opgenomen leden heen mag. De kandidaat heet dan `opgenomen` met
     `opgenomen_delen`; loskoppelen en uitsluiten gaan over alles van de kandidaat bij die deelvraag, en een weggehaalde
     lid-selectie maakt de kandidaat weer een voorstel als er geen deel meer staat;

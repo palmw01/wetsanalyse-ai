@@ -42,7 +42,7 @@ from . import annotatie_v2_store as annotaties, db
 from .annotatie_export import cel
 from .annotatie_v2_contracts import BEOORDEELD, is_vervangen
 from .begrip_contracts import (
-    BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
+    BegripInhoud, BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden, toets_revisie, werkgebied_rij
@@ -460,7 +460,7 @@ async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(k.c.element_id, b.c.id, b.c.inhoud).join_from(k, b, k.c.begrip_id == b.c.id)
                                    .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
-                                          k.c.verwijderd.is_(None),
+                                          k.c.verwijderd.is_(None), k.c.beoordeling != "afgewezen",
                                           b.c.status != "vervangen"))).all()
     return {r.element_id: {"begrip_id": r.id, "naam": r.inhoud.get("naam", "")} for r in rows}
 
@@ -722,7 +722,7 @@ async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict
 
 
 async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, actor: str) -> dict:
-    nieuw = w.inhoud.model_dump(mode="json")
+    deel = w.inhoud.model_dump(mode="json", exclude_unset=True)
     # `_gewijzigd` leest `detail` pas na het blok: de velden zijn pas onder het slot bekend.
     detail: dict = {}
     b = db.begrippen
@@ -730,6 +730,8 @@ async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, 
         voor = (await conn.execute(select(b.c.status).where(b.c.id == begrip_id))).scalar()
         async with _gewijzigd_in(conn, werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
                                  detail) as (_, row, stand):
+            # Wat de wijziging niet noemt, blijft: de inhoud onder het slot plus de genoemde velden, als geheel getoetst.
+            nieuw = BegripInhoud.model_validate({**slank(row.inhoud), **deel}).model_dump(mode="json")
             await _wijzig_inhoud(conn, werkgebied_id, begrip_id, row, stand, detail, nieuw)
         if w.akkoord and voor == "geaccordeerd":
             # Het begrip was geaccordeerd en de jurist is akkoord met de nieuwe inhoud: opnieuw accorderen als de poort
@@ -873,8 +875,13 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
                                                   k.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
+        if w.motivatie_aanvullen and gevraagd.get("motivatie") and row.motivatie:
+            # Aanvullen, niet vervangen: de motivatie van de vorige beoordelaar blijft staan (Termijnen e2e, 20 nov 2026).
+            gevraagd["motivatie"] = f"{row.motivatie}\n{actor}: {gevraagd['motivatie']}"[:4000]
         velden = {f: v for f, v in gevraagd.items() if getattr(row, f) != v}
         detail["velden"] = sorted(velden)
+        if "motivatie" in velden and row.motivatie:
+            detail["motivatie_voor"] = row.motivatie            # wat vervangen wordt, staat in de audit
         if "beoordeling" in velden:
             detail["beoordeling"] = velden["beoordeling"]
         if "rol" in velden:
@@ -928,6 +935,9 @@ async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: 
                                  .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
                                         k.c.verwijderd.is_(None), k.c.begrip_id != begrip_id,
                                         b.c.status != "vervangen",       # een vervangen begrip houdt niets vast
+                                        # Een afgewezen duiding ook niet (Termijnen e2e, 20 nov 2026: het element
+                                        # kwam pas vrij als je de rol op context zette).
+                                        k.c.beoordeling != "afgewezen",
                                         k.c.element_id.in_(element_ids)))).first()
     if elders is not None:
         naam = elders.inhoud.get("naam", "")

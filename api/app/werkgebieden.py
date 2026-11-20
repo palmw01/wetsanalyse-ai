@@ -26,7 +26,7 @@ from .werkgebied_contracts import (
     WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
-from .werkgebied_werkvoorraad import selecties_in_bereik, werkvoorraad
+from .werkgebied_werkvoorraad import met_deelvraagrol, selecties_in_bereik, werkvoorraad
 
 logger = logging.getLogger("wetsanalyse.werkgebieden")
 
@@ -263,8 +263,14 @@ async def get_deelvraag(werkgebied_id: str, deelvraag_id: str, actor: str = Depe
 
 @router.patch("/{werkgebied_id}/deelvragen/{deelvraag_id}")
 async def patch_deelvraag(werkgebied_id: str, deelvraag_id: str, req: DeelvraagWijziging,
-                          actor: str = Depends(actieve_userid)):
-    return await deelvragen.wijzig(werkgebied_id, deelvraag_id, req, actor)
+                          vorm: Literal["werkgebied", "deelvraag"] = "werkgebied", actor: str = Depends(actieve_userid)):
+    """Standaard het hele werkgebied (de werkplek ververst ermee). `?vorm=deelvraag` geeft alleen deze deelvraag, in elke
+    stand, met herkomst en reden – ook een afgewezen, die uit de lijst van het werkgebied verdwijnt (Termijnen e2e,
+    20 nov 2026: de reden van een afwijzing was nergens terug te zien), met de revisie van het werkgebied erbij."""
+    wg = await deelvragen.wijzig(werkgebied_id, deelvraag_id, req, actor)
+    if vorm == "deelvraag":
+        return {"revisie": wg["revisie"], "deelvraag": await deelvragen.haal(werkgebied_id, deelvraag_id)}
+    return wg
 
 
 @router.get("/{werkgebied_id}/elementen")
@@ -287,7 +293,8 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
     if deelvraag_id and bereik != "deelvragen":
         raise HTTPException(422, "deelvraag_id hoort bij bereik=deelvragen")
     wg = await store.haal(werkgebied_id)
-    selecties, extra = wg["bronnen"], {"bereik": bereik}
+    alle = met_deelvraagrol(wg["bronnen"], wg["deelvragen"])
+    selecties, extra = alle, {"bereik": bereik}
     if bereik == "deelvragen":
         if deelvraag_id:
             d = await deelvragen.haal(werkgebied_id, deelvraag_id)
@@ -299,7 +306,7 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
         selecties, meegenomen = selecties_in_bereik(wg["bronnen"], wg["deelvragen"], deelvraag_id)
         binnen = {s["id"] for s in selecties}
         extra |= {"deelvragen": meegenomen,
-                  "buiten_bereik": sum(1 for s in wg["bronnen"] if s["rol"] == "analyseren" and s["id"] not in binnen)}
+                  "buiten_bereik": sum(1 for s in alle if s["rol"] == "analyseren" and s["id"] not in binnen)}
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"], **extra,
             **await werkvoorraad(selecties, lees_bron, actor)}
 
