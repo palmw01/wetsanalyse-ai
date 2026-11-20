@@ -11,7 +11,8 @@ Het patroon is dat van de begrippen (`begrip_store`), met dezelfde bouwstenen in
   (`begrip_store.actualiteit`), zoals bij een begripskoppeling.
 - **De regeltekst rekent de server** (`regeltekst.py`); de client typt hem niet.
 - **De poort** (`poort`) staat bij elke GET: beoordeelde begrippen, een beoordeelde actuele grondslag en een beoordeeld
-  voorbeeld per geval (besluit gebruiker 19 nov 2026). Wat open blijft maar niet blokkeert, staat in `signalen`.
+  voorbeeld per geval (besluit gebruiker 19 nov 2026), en geen open punt van welke soort ook (20 nov 2026). Wat open
+  blijft maar niet blokkeert, staat in `signalen`.
 - **De hiërarchie wordt afgeleid**, niet opgeslagen: een regel volgt op een andere als zijn invoer de uitvoer daarvan is.
 - **De volledigheidstoets** (ADR-018 besluit 7.6): elke regel draagt `gaten`, met de code, plek en melding uit de skill
   (`regelgaten.json`, gegenereerd in `jas_regelgaten`). Het skelet rekent `regelskelet.gaten`; hier de gaten van het
@@ -82,9 +83,11 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
                    "definitie": (r.inhoud or {}).get("definitie", "")} for r in rows}
 
 
-#: De soorten open punt die een keuze vragen vóór de regel geaccordeerd wordt (ADR-018 besluit 2 en 7.13): een
-#: interpretatiekeuze en ontbrekend uitvoeringsbeleid. Een onderzoekspunt of een gat in de annotatie is een signaal.
-KEUZE_SOORTEN = ("interpretatiekeuze", "ontbrekend_uitvoeringsbeleid")
+#: De standen van een open punt die het accorderen tegenhouden (ADR-018 besluit 2, aangevuld 20 nov 2026: "Ja,
+#: blokkeren"). Elk punt van elke soort dat aan de regel of een geval hangt en nog `open` staat, houdt tegen, ook een
+#: onderzoekspunt of een gat in de annotatie. Wat gekozen, getoetst of gesignaleerd is (een besluit), of omgehangen naar
+#: iets anders, houdt niet meer tegen.
+BLOKKERENDE_STANDEN = ("open",)
 #: De rollen waarmee een drager de regel draagt. Een contextdrager draagt niets en vraagt dus geen oordeel, zoals een
 #: begripskoppeling met een rol die niet dragend is.
 DRAGEND = ("grondslag", "voorwaarde", "invoer", "uitvoer", "tijd")
@@ -169,15 +172,16 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         redenen.append(_meervoud(len(geen_drager), "1 markering in een voorwaarde is geen drager van de regel, en valt "
                                  "zo buiten de beoordeling.", "{n} markeringen in een voorwaarde zijn geen drager van de "
                                  "regel, en vallen zo buiten de beoordeling."))
-    keuzes = [p for p in open_punten or [] if p["status"] == "open" and p["soort"] in KEUZE_SOORTEN]
-    if keuzes:
-        redenen.append(_meervoud(len(keuzes), "1 keuze is nog niet genomen: ", "{n} keuzes zijn nog niet genomen: ")
-                       + "; ".join(p["vraag"].rstrip(".?") for p in keuzes) + ".")
-    oud = [p for p in geerfd or [] if p["status"] == "open" and p["soort"] in KEUZE_SOORTEN]
+    open_punten_ = [p for p in open_punten or [] if p["status"] in BLOKKERENDE_STANDEN]
+    if open_punten_:
+        redenen.append(_meervoud(len(open_punten_), "1 open punt is nog niet besloten: ",
+                                 "{n} open punten zijn nog niet besloten: ")
+                       + "; ".join(_punt_zin(p) for p in open_punten_) + ".")
+    oud = [p for p in geerfd or [] if p["status"] in BLOKKERENDE_STANDEN]
     if oud:
-        redenen.append(_meervoud(len(oud), "1 open keuze hangt nog aan de regel die deze vervangt: ",
-                                 "{n} open keuzes hangen nog aan de regel die deze vervangt: ")
-                       + "; ".join(p["vraag"].rstrip(".?") for p in oud) + ". Hang ze om naar deze regel.")
+        redenen.append(_meervoud(len(oud), "1 open punt hangt nog aan de regel die deze vervangt: ",
+                                 "{n} open punten hangen nog aan de regel die deze vervangt: ")
+                       + "; ".join(_punt_zin(p) for p in oud) + ". Hang ze om naar deze regel.")
     voorbeelden = inhoud.get("voorbeelden", [])
     # De nummers (vanaf 1, de route `…/voorbeelden/{nr}/oordeel`), zodat niemand de hele regel hoeft te lezen om te
     # weten welk voorbeeld het is (vervolgronde 20 nov 2026).
@@ -203,6 +207,13 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
     return {"mag": not redenen, "redenen": redenen, "vraagt": ["reden"]}
 
 
+def _punt_zin(p: dict) -> str:
+    """Een open punt in de reden van de poort: de soort, het geval en de vraag ("onderzoekspunt (geval lid 5): …")."""
+    soort = p["soort"].replace("_", " ")
+    gevallen = ", ".join(g for g in p.get("gevallen") or [] if g)
+    return f"{soort}{f' (geval {gevallen})' if gevallen else ''}: {p['vraag'].rstrip('.?')}"
+
+
 def voorbeeldnummers(voorbeelden: list[dict], oordeel: str) -> list[int]:
     return [i for i, v in enumerate(voorbeelden, start=1) if v.get("oordeel", "open") == oordeel]
 
@@ -222,11 +233,6 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
              geerfd: list[dict] | None = None) -> list[str]:
     """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
     uit: list[str] = []
-    rest = [p for p in [*(open_punten or []), *(geerfd or [])]
-            if p["status"] == "open" and p["soort"] not in KEUZE_SOORTEN]
-    if rest:
-        uit.append(_meervoud(len(rest), "1 onderzoekspunt of gat in de annotatie staat nog open.",
-                             "{n} onderzoekspunten of gaten in de annotatie staan nog open."))
     # Een genomen keuze op een geval, waarvan de lezing op markeringen rust die dat geval niet draagt (vervolgronde
     # 20 nov 2026: keuze op lid 1, drager van de lezing alleen bij lid 5). Of de keuze in de regeltekst is verwerkt,
     # is niet zuiver te toetsen; of haar markeringen het geval dragen wel. Een signaal, geen poort: een lezing kan ook op

@@ -62,9 +62,9 @@ function poort(r) {
     const zonder = r.inhoud.gevallen.map((g) => g.label).filter((l) => !beoordeeld.has(l));
     if (zonder.length) redenen.push(`Nog geen beoordeeld voorbeeld bij geval ${zonder.join(", ")}.`);
   }
-  const keuzes = openPunten.filter((p) => p.status === "open" && p.inhoud.hangt_aan.some((a) => a.id === r.id)
-    && ["interpretatiekeuze", "ontbrekend_uitvoeringsbeleid"].includes(p.soort));
-  if (keuzes.length) redenen.push(`${keuzes.length} keuze is nog niet genomen: ${keuzes.map((p) => p.inhoud.vraag.replace(/[.?]$/, "")).join("; ")}.`);
+  // Elk open punt van elke soort houdt tegen (besluit gebruiker 20 nov 2026), zoals `regel_store.poort`.
+  const keuzes = openPunten.filter((p) => p.status === "open" && p.inhoud.hangt_aan.some((a) => a.id === r.id));
+  if (keuzes.length) redenen.push(`${keuzes.length} open punt is nog niet besloten: ${keuzes.map((p) => p.inhoud.vraag.replace(/[.?]$/, "")).join("; ")}.`);
   return { mag: !redenen.length, redenen };
 }
 
@@ -264,7 +264,7 @@ try {
 
   // Een drager akkoord geven: de grondslag staat, maar de open keuze houdt de poort nog dicht (R3).
   await r4.getByRole("button", { name: "Akkoord met grondslag el-r4" }).click();
-  await r4.locator("[data-regel-poort]").getByText("keuze is nog niet genomen", { exact: false }).waitFor();
+  await r4.locator("[data-regel-poort]").getByText("open punt is nog niet besloten", { exact: false }).waitFor();
   assert.deepEqual(mutaties.at(-1), { m: "PATCH", rest: "dragers/r4-d1", body: { verwachte_revisie: 2, beoordeling: "akkoord" } });
 
   // Het open punt staat op de kaart als voorstel van Lex, met de lezingen, de grondslag en wat nog getoetst moet worden.

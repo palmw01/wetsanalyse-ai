@@ -33,8 +33,9 @@ export interface OpenPunt {
   herkomst: "lex" | "jurist" | "import" | "regelspecialist";
 }
 
-/** Wat een keuze vraagt vóór de regel geaccordeerd wordt (api `regel_store.KEUZE_SOORTEN`); de rest is een signaal. */
-export const KEUZE_SOORTEN: readonly OpenPuntSoort[] = ["interpretatiekeuze", "ontbrekend_uitvoeringsbeleid"];
+/** De standen die het accorderen van een regel tegenhouden (api `regel_store.BLOKKERENDE_STANDEN`): elk punt dat nog
+ *  open staat, van elke soort, ook een onderzoekspunt (besluit gebruiker 20 nov 2026, "Ja, blokkeren"). */
+export const BLOKKERENDE_STANDEN: readonly OpenPuntStatus[] = ["open"];
 
 export const OPEN_PUNT_STATUS_LABEL: Record<OpenPuntStatus, string> = {
   open: "Open", gesignaleerd: "Gesignaleerd", gekozen: "Gekozen", getoetst: "Getoetst",
@@ -62,9 +63,9 @@ export function soortLabel(p: Pick<OpenPunt, "soort_naam">): string {
   return p.soort_naam.charAt(0).toUpperCase() + p.soort_naam.slice(1);
 }
 
-/** Houdt dit punt het accorderen tegen? Alleen een open keuze of open beleidspunt (ADR-018 besluit 2). */
+/** Houdt dit punt het accorderen tegen? Elk punt dat nog open staat (ADR-018 besluit 2, aangevuld 20 nov 2026). */
 export function blokkeert(p: Pick<OpenPunt, "soort" | "status">): boolean {
-  return p.status === "open" && KEUZE_SOORTEN.includes(p.soort);
+  return BLOKKERENDE_STANDEN.includes(p.status);
 }
 
 /** De punten bij één geval van een regel; met `geval` leeg de punten op de regel zelf. */
@@ -75,7 +76,7 @@ export function puntenBij(punten: OpenPunt[], regelId: string, geval = ""): Open
 
 /** Eerst wat open is en tegenhoudt, dan de andere open punten, dan wat gesignaleerd, gekozen of getoetst is. */
 export function ordenPunten(punten: OpenPunt[]): OpenPunt[] {
-  const rang = (p: OpenPunt) => (blokkeert(p) ? 0 : p.status === "open" ? 1 : p.status === "gesignaleerd" ? 2 : 3);
+  const rang = (p: OpenPunt) => (blokkeert(p) ? 0 : p.status === "gesignaleerd" ? 1 : 2);
   return [...punten].sort((a, b) => rang(a) - rang(b));
 }
 

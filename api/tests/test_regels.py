@@ -188,7 +188,7 @@ async def _klaar_voor_accorderen(client, wg, ids, b) -> dict:
 
 async def test_de_poort_telt_de_genomen_keuzes(client):
     """R3 (ADR-018 besluit 2 en 7.13): een open interpretatiekeuze of ontbrekend beleid op de regel of een van zijn
-    gevallen houdt het accorderen tegen; een onderzoekspunt of gat is een signaal. Het besluit valt via de ene route van
+    gevallen houdt het accorderen tegen, en sinds 20 nov 2026 ook een open onderzoekspunt ("Ja, blokkeren"). Het besluit valt via de ene route van
     het open punt (lessenbundel 4), en dan mag het weer."""
     wg, ids, b = await _opzet(client)
     regel = await _klaar_voor_accorderen(client, wg, ids, b)
@@ -202,23 +202,29 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
         "te_toetsen": [{"bronsoort": "beleid", "omschrijving": "Leidraad Invordering"}]}})).json()
 
     regel = (await client.get(_url(wg, regel["id"]))).json()
-    assert regel["accorderen"] == {"mag": False, "vraagt": ["reden"],
-                                   "redenen": ["1 keuze is nog niet genomen: Telt een gedeeltelijke betaling als termijn."]}
-    assert "1 onderzoekspunt of gat in de annotatie staat nog open." in regel["signalen"]
+    assert regel["accorderen"] == {"mag": False, "vraagt": ["reden"], "redenen": [
+        "2 open punten zijn nog niet besloten: interpretatiekeuze (geval 1): Telt een gedeeltelijke betaling als "
+        "termijn; onderzoekspunt: Wat zegt de Leidraad."]}
     assert regel["open_punten"] == {"open": 2, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "x"})
-    assert r.status_code == 409 and "keuze is nog niet genomen" in r.json()["detail"]["melding"]
+    assert r.status_code == 409 and "open punten zijn nog niet besloten" in r.json()["detail"]["melding"]
     # De punten op deze regel, ook die op een geval ervan.
     lijst = (await client.get(punten, params={"aan": "regel", "aan_id": regel["id"]})).json()
     assert {p["id"] for p in (lijst["open_punten"] if isinstance(lijst, dict) else lijst)} == {keuze["id"], onderzoek["id"]}
 
-    # De jurist kiest; het onderzoekspunt blijft een signaal en houdt niets tegen.
+    # De jurist kiest; het onderzoekspunt houdt het accorderen nog tegen tot het ook besloten is (20 nov 2026).
     r = await client.post(f"{punten}/{keuze['id']}/besluit", json={"verwachte_revisie": keuze["revisie"], "gekozen": "B",
                                                                    "motivering": "Volgt uit lid 2.", "methode": "grammaticaal"})
     assert r.status_code == 200, r.text
     regel = (await client.get(_url(wg, regel["id"]))).json()
-    assert regel["accorderen"] == {"mag": True, "redenen": [], "vraagt": ["reden"]}
+    assert regel["accorderen"]["redenen"] == ["1 open punt is nog niet besloten: onderzoekspunt: Wat zegt de Leidraad."]
     assert regel["open_punten"] == {"open": 1, "totaal": 2, "bij_voorganger": 0}
+    r = await client.post(f"{punten}/{onderzoek['id']}/besluit",
+                          json={"verwachte_revisie": onderzoek["revisie"], "motivering": "De Leidraad zegt niets anders."})
+    assert r.status_code == 200, r.text
+    regel = (await client.get(_url(wg, regel["id"]))).json()
+    assert regel["accorderen"] == {"mag": True, "redenen": [], "vraagt": ["reden"]}
+    assert regel["open_punten"] == {"open": 0, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "Getoetst"})
     assert r.status_code == 200 and r.json()["status"] == "geaccordeerd"
 
@@ -482,7 +488,8 @@ async def test_vervangen_en_open_punten_omhangen(client):
     assert rev["detail"]["toen"][0]["id"] == oud["id"] and rev["detail"]["nu"][0]["geval"] == "a"
     nieuw = (await client.get(_url(wg, nieuw["id"]))).json()
     assert nieuw["open_punten"]["bij_voorganger"] == 0
-    assert "1 keuze is nog niet genomen: Geldt de termijn per termijn." in nieuw["accorderen"]["redenen"]
+    assert "1 open punt is nog niet besloten: interpretatiekeuze (geval a): Geldt de termijn per termijn." \
+        in nieuw["accorderen"]["redenen"]
 
 
 def test_een_waarde_in_een_definitie():

@@ -1009,7 +1009,7 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   voor de hele regel, en dan noemt `signalen` de gevallen die alleen daarop rusten); elke dragende drager beoordeeld
   (`DRAGEND`, alles behalve `context`, zoals de dragende koppelingen van een begrip); geen voorwaarde op een afgewezen
   drager of op een markering die geen drager is; geen voorbeeld op `open` of `onjuist` (de redenen noemen hun nummers)
-  en een beoordeeld voorbeeld per geval; geen open keuze, ook niet op een regel die deze vervangt; plus een reden, die
+  en een beoordeeld voorbeeld per geval; geen open punt, ook niet op een regel die deze vervangt; plus een reden, die
   de poort vooraf noemt (`vraagt: ["reden"]`). Wat niet blokkeert, staat in `signalen`.
 - **De grond van accorderen en afwijzen heet `reden`**, zoals bij een begrip; `motivering` (de naam bij een drager en
   een open punt) is hetzelfde veld (`AliasChoices`). `GET …/regels/{id}/voorbeelden` geeft de voorbeelden smal met hun
@@ -1041,8 +1041,10 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Een onbekend veld is een 422** op elke schrijfroute van een regel (`Revisie`, `RegelAanmaak`: `extra="forbid"`).
 - **Open punten op de regel** (R3, ADR-018 besluit 7.13): het object en zijn besluitroute zijn van `open_punt_store`
   (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval
-  ervan hangen. Een open punt van een soort in `KEUZE_SOORTEN` (interpretatiekeuze, ontbrekend uitvoeringsbeleid) houdt
-  het accorderen tegen; een onderzoekspunt of gat is een signaal. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
+  ervan hangen. **Elk open punt van elke soort houdt het accorderen tegen** (`BLOKKERENDE_STANDEN`: `open`), dus ook
+  een onderzoekspunt of een gat in de annotatie. Dat is het besluit van de gebruiker van 20 nov 2026: "Ja, blokkeren"
+  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het geval en de vraag. Een punt
+  dat gekozen, getoetst of gesignaleerd is, of is omgehangen, houdt niet meer tegen. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
   van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel.
