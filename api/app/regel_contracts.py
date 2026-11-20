@@ -10,7 +10,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _ID = r"^[A-Za-z0-9._:-]{1,64}$"
 
@@ -227,15 +227,20 @@ class VoorbeeldBeoordeling(Revisie):
     toelichting: str | None = Field(default=None, max_length=2000)
 
 
+#: De grond van een besluit over de hele regel (accorderen, afwijzen) heet `reden`, zoals bij een begrip. Wie
+#: `motivering` stuurt (de naam bij een drager en een open punt), krijgt geen 422 meer: het is hetzelfde veld.
+_REDEN = dict(default="", max_length=2000, validation_alias=AliasChoices("reden", "motivering"))
+
+
 class Afwijzing(Revisie):
-    reden: str = Field(default="", max_length=2000)
+    reden: str = Field(**_REDEN)
     # De regel die deze vervangt (bijvoorbeeld drie regels samengevoegd tot één beslistabel): de status wordt dan
     # `vervangen`, met `vervangen_door`, en de opvolger draagt `opvolger_van` (A2).
     opvolger_id: str = Field(default="", max_length=64)
 
 
 class Accordering(Revisie):
-    reden: str = Field(default="", max_length=2000)
+    reden: str = Field(**_REDEN)
 
 
 class ParameterWaardeInvoer(BaseModel):

@@ -1008,8 +1008,12 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   elk genoemd begrip geaccordeerd; per geval een grondslag die akkoord en actueel is (een grondslag zonder geval geldt
   voor de hele regel, en dan noemt `signalen` de gevallen die alleen daarop rusten); elke dragende drager beoordeeld
   (`DRAGEND`, alles behalve `context`, zoals de dragende koppelingen van een begrip); geen voorwaarde op een afgewezen
-  drager of op een markering die geen drager is; geen voorbeeld op `open` en een beoordeeld voorbeeld per geval; geen
-  open keuze, ook niet op een regel die deze vervangt; plus een reden. Wat niet blokkeert, staat in `signalen`.
+  drager of op een markering die geen drager is; geen voorbeeld op `open` of `onjuist` (de redenen noemen hun nummers)
+  en een beoordeeld voorbeeld per geval; geen open keuze, ook niet op een regel die deze vervangt; plus een reden, die
+  de poort vooraf noemt (`vraagt: ["reden"]`). Wat niet blokkeert, staat in `signalen`.
+- **De grond van accorderen en afwijzen heet `reden`**, zoals bij een begrip; `motivering` (de naam bij een drager en
+  een open punt) is hetzelfde veld (`AliasChoices`). `GET …/regels/{id}/voorbeelden` geeft de voorbeelden smal met hun
+  `nr` voor `…/voorbeelden/{nr}/oordeel`.
 - **Een markering in een voorwaarde is een drager** (`voorwaarde_dragers`): aanmaken en wijzigen voegen haar toe met de
   rol `voorwaarde` bij haar geval, zodat ze beoordeeld wordt. Het bewijs vraagt de graaf, dus `wijzig` krijgt het
   werkgebied en de resolver, zoals `maak`.
