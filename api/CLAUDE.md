@@ -1034,6 +1034,18 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   houdt zijn oordeel. Het oordeel gaat via `POST …/regels/{id}/voorbeelden/{nr}/oordeel` (`nr` vanaf 1, met
   `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet. Beoordeelt de maker zijn eigen voorbeeld, dan is dat
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
+- **Een voorbeeld is narekenbaar** (regels herleidbaar, 20 nov 2026, stap 5): naast de tekst `waarden` (de invoer per
+  invoerbegrip, `{begrip_id, waarde}`; een begrip dat geen invoer is, is 422 `waarde_geen_invoer`) en `van_geval` (welk
+  geval van een regel eronder geldt, getoetst als `geval_van`). `geval` is het gekozen geval, `uitkomst` de verwachte
+  uitkomst. De api rekent niet: `toets_voorbeeld` evalueert de voorwaardenboom driewaardig op `van_geval` (alleen een blad
+  met `geval_van` is te beslissen) en geeft `geval_past_niet` en `ander_geval_gaat_voor` (houden het accorderen tegen,
+  `TEGENSPRAAK`), `invoer_ontbreekt` en `niet_narekenbaar` (een signaal). Andere waarden of gevallen eronder maken een
+  nieuw voorbeeld: het oordeel vervalt. Lege lijsten worden niet bewaard (`inhoud_van`). `GET …/voorbeelden` draagt per
+  voorbeeld `toets`.
+- **Lex leest de regels** (stap 7): `GET /v1/werkgebieden/{id}` draagt `regels` (`regel_store.samenvatting`: een telling
+  per status en hoogstens `MAX_SAMENVATTING` regels in het kort, uit het lichte overzicht), en graph-qa leest met
+  `search_regels` (`GET /v1/regels`) en `get_regel` (`GET …/regels/{id}`), beide in `agent_toegang.TOEGESTAAN`. Schrijven
+  doet het agent-token op een regel niet.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
 - **De regels in de kennisgraaf**: zie §*Begrippen naar de kennisgraaf* (`regel_projectie.py`).

@@ -549,6 +549,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                             'get_bepaling',
                                             'get_context',
                                             'get_lid',
+                                            'get_regel',
                                             'get_regeling_info',
                                             'graph_schema',
                                             'grondslagen',
@@ -559,6 +560,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                             'referenced_by',
                                             'resolve_begrip',
                                             'search_begrippen',
+                                            'search_regels',
                                             'search_wetgeving',
                                             'semantic_search',
                                             'verwijst_naar_deze',
@@ -835,4 +837,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'c562ade57215f061b0b9b871fef3f5c4b5a78670a3abc5f835edde0d8d965cfb'}
+ 'sha256': '77ba1acb35101bafd350e3b07f72c7607eedd1bcfec33b2c994807f2fb899028'}

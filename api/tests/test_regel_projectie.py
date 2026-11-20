@@ -134,3 +134,16 @@ async def test_de_graafcontrole_volgt_een_regel_tot_de_wettekst(client, monkeypa
     bron.add((URIRef(ONE), bwb.jci, Literal("jci1.3:c:BWBR0004770&artikel=9&lid=1")))
     uit = (await controleer(shacl=False))["begrippen"]
     assert uit["regels_niet_herleidbaar"] == []
+
+
+async def test_een_voorbeeld_staat_met_zijn_waarden_in_de_graaf(client):
+    wg, ids, b = await _opzet(client)
+    vb = {"invoer": "12 termijnen", "uitkomst": "100", "waarden": [{"begrip_id": b["in"]["id"], "waarde": "12"}]}
+    r = await client.post(_url(wg), json={"inhoud": {**_inhoud(b), "voorbeelden": [vb]},
+                                          "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})
+    regel = r.json()
+    g = bp.bouw_graaf(await _invoer(wg["id"]))
+    [v] = list(g.objects(rp.regel_iri(regel["id"]), WA.voorbeeld))
+    assert (v, WA.inGeval, rp.geval_iri(regel["id"], 1)) in g and (v, WA.oordeel, Literal("open")) in g
+    [w] = list(g.objects(v, WA.waarde))
+    assert (w, WA.waarde, Literal("12")) in g and (w, WA.begrip, bp.begrip_iri(b["in"]["id"])) in g

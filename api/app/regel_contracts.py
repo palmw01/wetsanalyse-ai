@@ -132,6 +132,14 @@ class Invoer(BaseModel):
     rol: Literal["invoer", "parameter"] = "invoer"
 
 
+class VoorbeeldWaarde(BaseModel):
+    """De waarde van één invoerbegrip in een voorbeeld ("dagtekening van het aanslagbiljet: 10-05-2026")."""
+    model_config = ConfigDict(extra="forbid")
+
+    begrip_id: str = Field(pattern=_ID)
+    waarde: str = Field(min_length=1, max_length=200)
+
+
 class RegelVoorbeeld(BaseModel):
     """Een voorbeeld met invoer en uitkomst (methode 8). Het oordeel, wie het voorbeeld maakte en wie het beoordeelde,
     zet de server (`regel_store.voorbeelden_na`): een nieuw of gewijzigd voorbeeld is altijd `open`, en een oordeel komt
@@ -148,6 +156,11 @@ class RegelVoorbeeld(BaseModel):
     beoordeeld_op: str = Field(default="", max_length=40)
     # De grond van het oordeel ("nagerekend met lid 1"), bij het voorbeeld; zet de server, met `beoordeeld_door`.
     reden: str = Field(default="", max_length=2000)
+    # Narekenbaar (regels herleidbaar, 20 nov 2026): de invoer per invoerbegrip, en welk geval van een regel eronder
+    # geldt (bij een voorwaarde met `geval_van`). `geval` is het gekozen geval, `uitkomst` de verwachte uitkomst. De api
+    # rekent niet: hij toetst of het voorbeeld bij het gekozen geval past (`regel_store.toets_voorbeeld`).
+    waarden: list[VoorbeeldWaarde] = Field(default_factory=list, max_length=40)
+    van_geval: list[GevalVerwijzing] = Field(default_factory=list, max_length=20)
 
 
 class RegelInhoud(BaseModel):

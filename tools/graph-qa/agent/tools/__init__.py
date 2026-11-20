@@ -31,6 +31,7 @@ from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
+from .regel_tools import REGEL_TOOLS, REGEL_TOOL_NAMEN, dispatch_regel
 from .connectortools import MODULES as CONNECTORMODULES, module_van
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
@@ -953,6 +954,7 @@ TOOLS: list[dict[str, Any]] = [
 
 TOOLS += ANNOTATIE_TOOLS
 TOOLS += BEGRIP_TOOLS
+TOOLS += REGEL_TOOLS
 for _module in CONNECTORMODULES.values():  # de tools van elke connector, uit het register
     TOOLS += _module.tools
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
@@ -1050,6 +1052,18 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
                 begrippen = BegripReadApi(settings, getattr(settings, "annotatie_read_user_id", ""))
             try:
                 return dispatch_begrip(name, args or {}, graph, begrippen)
+            except (ValueError, TypeError, KeyError) as exc:
+                return json.dumps({"status": "invalid_request", "volledig": False,
+                                   "reden": "ongeldige_argumenten", "melding": str(exc)}, ensure_ascii=False)
+        if name in REGEL_TOOL_NAMEN:
+            # De regels leest Lex bij de api, met dezelfde actor en hetzelfde werkgebied als de begrippen.
+            from ..regel_read import RegelReadApi
+            regels = connectorbronnen.get("regels")
+            if regels is None and settings is not None:
+                regels = RegelReadApi(settings, getattr(begrippen, "user_id", "") or getattr(settings, "annotatie_read_user_id", ""),
+                                      getattr(begrippen, "werkgebied_id", "") or "")
+            try:
+                return dispatch_regel(name, args or {}, regels)
             except (ValueError, TypeError, KeyError) as exc:
                 return json.dumps({"status": "invalid_request", "volledig": False,
                                    "reden": "ongeldige_argumenten", "melding": str(exc)}, ensure_ascii=False)

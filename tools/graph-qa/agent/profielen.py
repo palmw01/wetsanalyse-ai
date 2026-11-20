@@ -21,13 +21,13 @@ from .agentprofielen import REGISTER
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN
 from .sjablonen.rapport import NAAM as RAPPORT
-from .tools import ANNOTATIE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN, CONNECTOR_TOOLS, JAS_TOOL_NAMEN, TOOLS
+from .tools import ANNOTATIE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN, CONNECTOR_TOOLS, JAS_TOOL_NAMEN, REGEL_TOOL_NAMEN, TOOLS
 
 
 #: De tools die alleen van wetsanalyse zijn: de annotatieleestools, de begrippenleestools en de JAS-tools. Een profiel
 #: waarvan de rol geen sectie van wetsanalyse draagt, krijgt ze niet (plan methodes scheiden, S3). Gelijk aan de tools
 #: die de catalogus van wetsanalyse noemt; `tests/test_methodegrenzen.py` bewaakt dat.
-TOOLS_VAN_WETSANALYSE: frozenset[str] = frozenset(ANNOTATIE_TOOL_NAMEN) | frozenset(BEGRIP_TOOL_NAMEN) | frozenset(JAS_TOOL_NAMEN)
+TOOLS_VAN_WETSANALYSE: frozenset[str] = frozenset(ANNOTATIE_TOOL_NAMEN) | frozenset(BEGRIP_TOOL_NAMEN) | frozenset(JAS_TOOL_NAMEN) | frozenset(REGEL_TOOL_NAMEN)
 
 
 def rol_methodes(pakket: dict = PAKKET) -> dict[str, frozenset[str]]:

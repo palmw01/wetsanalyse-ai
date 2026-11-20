@@ -114,6 +114,12 @@ BEGRIPPEN = Spoorbron(
     zoektools=frozenset({"search_begrippen"}), leestools=frozenset({"get_begrip"}),
 )
 
+REGELS = Spoorbron(
+    naam="regels", label="Afleidingsregels",
+    werkwoorden={"search_regels": ("zoekt in de vastgelegde afleidingsregels",), "get_regel": ("leest een afleidingsregel",)},
+    zoektools=frozenset({"search_regels"}), leestools=frozenset({"get_regel"}),
+)
+
 METHODE = Spoorbron(
     naam="methode", label="Methode",
     werkwoorden={"jas_klasse_opvragen": ("leest de omschrijving van de JAS-klasse {klasse}",
@@ -121,7 +127,7 @@ METHODE = Spoorbron(
     zoektools=frozenset(), leestools=frozenset({"jas_klasse_opvragen"}),
 )
 
-INTERN: tuple[Spoorbron, ...] = (WETGEVING, ANNOTATIES, BEGRIPPEN, METHODE)
+INTERN: tuple[Spoorbron, ...] = (WETGEVING, ANNOTATIES, BEGRIPPEN, REGELS, METHODE)
 
 
 def uit_connector(c: _connectors.ConnectorBeschrijving) -> Spoorbron:

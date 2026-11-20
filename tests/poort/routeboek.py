@@ -302,13 +302,13 @@ def _lees_pad(e: ast.AST) -> str:
 
 
 def agent_leesaanroepen() -> list[Aanroep]:
-    """De leesclients van graph-qa (`annotatie_read.py`, `begrip_read.py`): `self._request("GET", pad, …)` onder de
-    basis die `_request` zelf aan de url plakt."""
+    """De leesclients van graph-qa (`annotatie_read.py`, `begrip_read.py`, `regel_read.py`): `self._request("GET", pad,
+    …)` onder de basis die `_request` zelf aan de url plakt (`/v1/<domein>`, of `/v1` als de client meer domeinen leest)."""
     uit = []
-    for naam in ("annotatie_read.py", "begrip_read.py"):
+    for naam in ("annotatie_read.py", "begrip_read.py", "regel_read.py"):
         py = WORTEL / "tools" / "graph-qa" / "agent" / naam
         tekst = py.read_text(encoding="utf-8")
-        basis = re.search(r'\+ "(/v1/[a-z-]+)" \+ path', tekst).group(1)
+        basis = re.search(r'\+ "(/v1(?:/[a-z-]+)?)" \+ path', tekst).group(1)
         for c in ast.walk(ast.parse(tekst)):
             if (isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute) and c.func.attr == "_request"
                     and len(c.args) >= 2 and isinstance(c.args[0], ast.Constant)):

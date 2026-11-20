@@ -15,6 +15,7 @@ from .begrip_read import BegripReadApi
 from .tools import dispatch
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN
+from .tools.regel_tools import REGEL_TOOL_NAMEN
 from .narratie import _stap
 from .resultaat import BUDGET, fout, is_contract
 from .spoorbronnen import bron_van, uitkomstregel
@@ -55,7 +56,8 @@ def execute_tool(b, state, writer, tool, *, operation=None, van_model=False):
     event = {"type": "tool_execution", "run_id": state.get("run_id", ""),
              "call_id": tool.get("id") or uuid4().hex, "tool": name,
              "actie": ("annotaties_lezen" if name in ANNOTATIE_TOOL_NAMEN or name == "get_annotatieweergave" else
-                       "begrippen_lezen" if name in BEGRIP_TOOL_NAMEN else "bron_lezen"),
+                       "begrippen_lezen" if name in BEGRIP_TOOL_NAMEN else
+                       "regels_lezen" if name in REGEL_TOOL_NAMEN else "bron_lezen"),
              "filters": {k: v for k, v in args.items() if k in FILTERS},
              "doel": {k: v for k, v in args.items() if k in {"bron_iri", "bwb_id", "artikel", "lid", "id"}},
              # De modelronde die om deze aanroep vroeg (1 = de eerste van de beurt); 0 als de code hem zelf deed (een

@@ -15,6 +15,7 @@ tools:
   - get_bepaling
   - get_context
   - get_lid
+  - get_regel
   - get_regeling_info
   - graph_schema
   - grondslagen
@@ -25,6 +26,7 @@ tools:
   - referenced_by
   - resolve_begrip
   - search_begrippen
+  - search_regels
   - search_wetgeving
   - semantic_search
   - verwijst_naar_deze

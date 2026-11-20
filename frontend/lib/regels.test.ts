@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  DRAGER_ROL_LABEL, REGEL_SOORT_LABEL, VOORBEELD_OORDEEL_LABEL, bronLink, buren, dragerTekst, inKetenVolgorde, invoerVan, regelAlsMarkdown,
+  DRAGER_ROL_LABEL, REGEL_SOORT_LABEL, VOORBEELD_OORDEEL_LABEL, bronLink, buren, dragerTekst, voorbeeldWaarden, inKetenVolgorde, invoerVan, regelAlsMarkdown,
   regelsAlsMarkdown, regelsBijBegrip, voorbeeldenBij, type Regel, type RegelKeten,
 } from "./regels";
 
@@ -128,5 +128,15 @@ describe("de weg van een drager naar de wettekst", () => {
     const d = { id: "d", element_id: "e", rol: "grondslag" as const, geval: "", beoordeling: "open" as const,
       beoordeeld_door: null, bewijs: { tekst: "invorderbaar zes weken" }, bron };
     expect(dragerTekst(d)).toEqual({ tekst: "invorderbaar zes weken", vindplaats: "Lid 1" });
+  });
+});
+
+describe("een voorbeeld met waarden per invoerbegrip", () => {
+  it("noemt het begrip bij elke waarde", () => {
+    const r = r4();
+    r.begrippen = { bedrag: { id: "bedrag", naam: "bedrag van de belastingaanslag", status: "concept" } };
+    const v = { geval: "1", invoer: "x", uitkomst: "y", oordeel: "open" as const, toelichting: "",
+      waarden: [{ begrip_id: "bedrag", waarde: "1200" }, { begrip_id: "onbekend", waarde: "3" }] };
+    expect(voorbeeldWaarden(r, v)).toEqual(["bedrag van de belastingaanslag: 1200", "onbekend: 3"]);
   });
 });

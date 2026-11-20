@@ -696,6 +696,12 @@ bruikbaar is.
 
 ## Toollaag & queries
 
+- **De afleidingsregels** (`tools/regel_tools.py`, leesclient `agent/regel_read.py`; regels herleidbaar, 20 nov 2026):
+  `search_regels` en `get_regel` lezen alleen bij de api (Postgres is de waarheid; de poort, de gaten en de toets van de
+  voorbeelden rekent de api), met de actor en het werkgebied van de begrippenpoort. Afgeleide duiding
+  (`AFGELEIDE_TOOL_NAMEN`): nooit een bron, nooit grounding; per drager de vindplaats met jci of anker. Alleen in
+  `centraal_breed` (achter `meer_tools`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
+  regels is het byte-gelijk.
 - **`tools/__init__.py`** – `TOOLS` (33 declaraties: 21 graaftools, de vier annotatieleestools uit
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit
   `tools/kamerstuk_tools.py`, de twee bekendmakingtools uit `tools/bekendmaking_tools.py` en de twee Rechtspraaktools uit `tools/rechtspraak_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
