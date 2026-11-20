@@ -270,7 +270,9 @@ van de richting (§9). In alle richtingen:
 - Een klein eigen vocabulaire, geen RegelSpraak en geen feittype: `wa:Afleidingsregel` met `wa:regelbegrip`,
   `wa:uitvoer` en `wa:invoer` (met volgorde) naar de `skos:Concept`'s, `wa:geval` met `wa:voorwaarde`, `wa:rustOp` naar
   de W3C-annotaties van de JAS-lagen, en `prov:wasDerivedFrom` naar de jci-bronreferentie.
-- Alleen geaccordeerde regels gaan de graaf in; een vervangen regel krijgt `dct:isReplacedBy`.
+- Alleen geaccordeerde regels gaan de graaf in; een vervangen regel krijgt `dct:isReplacedBy`. *Herzien 20 nov 2026*:
+  alle regels gaan de graaf in met `wa:status` (het doel is dat elke regel naar de wettekst te herleiden is); de
+  Turtle-export neemt alleen de geaccordeerde. Gebouwd in `api/app/regel_projectie.py`.
 - Lex leest de regels via de api (bevestigd door Postgres), zoals `search_annotaties` doet; de graaf is de weg voor
   externe lezers en de controle (graafcontrole, diagnostisch).
 

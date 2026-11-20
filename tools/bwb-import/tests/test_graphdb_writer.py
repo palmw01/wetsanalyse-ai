@@ -1080,3 +1080,15 @@ def test_brondata_per_artikel_in_de_graaf() -> None:
     assert str(g.value(art9, V.ns.inwerkingtredingsbron)) == "Stb.2026-119"
     assert "overgangsrecht" in str(g.value(art9, V.ns.opmerking))
     assert str(g.value(art9, V.ns.labelId)) == "2910654"
+
+
+@pytest.mark.parametrize("wet", [_echte_wet, lambda: replace(_kleine_circulaire(), geldig_vanaf="2026-07-01")])
+def test_elke_citeerbare_node_heeft_een_weg_naar_de_wettekst(wet) -> None:
+    """Elke citeerbare node heeft een vindplaats-URL (`bwb:bronUrl`): de jci waar de bron er een toekent, anders het
+    anker op de toestandspagina. Daarop rust de herleidbaarheid van een markering, begrip of afleidingsregel naar de
+    wettekst (regels herleidbaar, 20 nov 2026); op acceptatie heeft elke citeerbare node er een."""
+    g, _ = _writer().build_graph(wet())
+    citeerbaar = set(g.subjects(RDF.type, V.klasse("Citeerbaar")))
+    assert citeerbaar
+    zonder = [s for s in citeerbaar if not list(g.objects(s, V.ns.bronUrl))]
+    assert zonder == []

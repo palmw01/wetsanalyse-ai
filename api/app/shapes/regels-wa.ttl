@@ -1,0 +1,58 @@
+# Eigen SHACL-shapes voor de afleidingsregels in de graph van een werkgebied (ADR-018 §7; regels herleidbaar,
+# 20 nov 2026). Diagnostisch: deze shapes draaien nooit in het schrijfpad (app/regel_projectie.conformiteit).
+#   vorm      – status, revisie, regelbegrip, uitvoer en ten minste één geval.
+#   herleid   – een geldende regel rust op een grondslag; elke drager wijst naar een markering met haar bewijsstand en
+#               haar bronnode; een voorwaarde rust op een markering of verwijst naar een geval (anders een waarschuwing).
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix wa:   <urn:wa-ns:> .
+@prefix wav:  <urn:wa-ns:validatie:> .
+
+wav:RegelShape a sh:NodeShape ;
+  sh:targetClass wa:Afleidingsregel ;
+  sh:property [ sh:path wa:status ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "concept" "geaccordeerd" "geaccordeerd_als_beleidsregel" "afgewezen" "vervangen" ) ;
+                sh:message "Een regel heeft precies één status." ] ;
+  sh:property [ sh:path wa:revisie ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 1 ;
+                sh:message "Een regel heeft precies één revisie (≥ 1)." ] ;
+  sh:property [ sh:path wa:regelbegrip ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "Een regel heeft één regelbegrip." ] ;
+  sh:property [ sh:path wa:uitvoer ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "Een regel leidt precies één begrip af." ] ;
+  sh:property [ sh:path wa:geval ; sh:minCount 1 ; sh:class wa:Geval ; sh:message "Een regel heeft ten minste één geval." ] ;
+  sh:property [ sh:path wa:drager ; sh:class wa:Regeldrager ] ;
+  # Een geldende regel rust op een formulering in de tekst (ADR-018 §2): een grondslag die niet is afgewezen.
+  sh:sparql [
+    sh:message "Een geldende regel rust op geen grondslag die niet is afgewezen." ;
+    sh:select """SELECT $this WHERE { $this <urn:wa-ns:status> ?s .
+                 FILTER(?s NOT IN ("afgewezen", "vervangen"))
+                 FILTER NOT EXISTS { $this <urn:wa-ns:drager> ?d . ?d <urn:wa-ns:rol> "grondslag" ;
+                                     <urn:wa-ns:beoordeling> ?b . FILTER(?b != "afgewezen") } }""" ] ;
+  # Geaccordeerd: wanneer, en op welke revisie.
+  sh:sparql [
+    sh:message "Een geaccordeerde regel mist het tijdstip of de revisie van het accorderen." ;
+    sh:select """SELECT $this WHERE { $this <urn:wa-ns:status> ?s . FILTER(STRSTARTS(?s, "geaccordeerd"))
+                 FILTER NOT EXISTS { $this <urn:wa-ns:geaccordeerdOp> ?op ; <urn:wa-ns:geaccordeerdRevisie> ?r } }""" ] .
+
+wav:RegeldragerShape a sh:NodeShape ;
+  sh:targetClass wa:Regeldrager ;
+  sh:property [ sh:path wa:rol ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "grondslag" "voorwaarde" "invoer" "uitvoer" "tijd" "context" ) ] ;
+  sh:property [ sh:path wa:beoordeling ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "open" "akkoord" "afgewezen" ) ] ;
+  sh:property [ sh:path wa:element ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "Een drager wijst naar precies één markering." ] ;
+  sh:property [ sh:path wa:elementHash ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:message "Een drager draagt de bewijsstand van haar markering." ] ;
+  sh:property [ sh:path wa:bron ; sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "Een drager noemt de bronnode van haar markering." ] .
+
+wav:VoorwaardeShape a sh:NodeShape ;
+  sh:targetClass wa:Voorwaarde ;
+  sh:property [ sh:path wa:tekst ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+# Een waarschuwing, geen fout: de ernst van een SPARQL-constraint is die van zijn shape.
+wav:VoorwaardeRustShape a sh:NodeShape ;
+  sh:targetClass wa:Voorwaarde ;
+  sh:severity sh:Warning ;
+  sh:sparql [
+    sh:message "Een voorwaarde rust op geen markering en verwijst naar geen geval van een andere regel." ;
+    sh:select """SELECT $this WHERE { FILTER NOT EXISTS { $this <urn:wa-ns:rustOp> ?e }
+                 FILTER NOT EXISTS { $this <urn:wa-ns:gevalVan> ?g } }""" ] .
