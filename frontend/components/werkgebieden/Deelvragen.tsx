@@ -14,7 +14,8 @@ import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { slaDeelvragenOp, wijzigDeelvraag } from "@/lib/api";
 import { bronnenZin, deelvraagStand, voortgangZin, type DeelvraagSelectie } from "@/lib/bronselectie";
 import {
-  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, type DeelvraagConcept,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, herkomstZin, overgenomenZin, splits, vervangtZin,
+  type DeelvraagConcept,
 } from "@/lib/deelvragen";
 import type { Deelvraag, Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
@@ -211,7 +212,7 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie }: {
   return (
     <LijstRij data-deelvraag={d.id} voor={`${nummer}.`}
       titel={<Link href={deelvraagPad(wg.id, d.id)} className="focus-ring rounded font-medium text-ink hover:text-lint hover:underline">{d.vraag}</Link>}
-      meta={<>{d.herkomst === "lex" ? "Voorgesteld door Lex" : `Door ${d.aangemaakt_door}`} · {omvang}</>}
+      meta={<>{herkomstZin(d, true)} · {omvang}</>}
       status={st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>} />
   );
 }

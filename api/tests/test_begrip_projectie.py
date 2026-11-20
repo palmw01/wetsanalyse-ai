@@ -299,3 +299,25 @@ def test_de_passage_is_de_laatst_bevestigde_stand():
     assert (nu["tekst"], nu["klasse"], nu["element_hash"], nu["ankers"], nu["vindplaats"]) == (
         "nieuw", "Rechtsfeit", "h3", [{"a": 2}], "Lid 1")
     assert bewijs["tekst"] == "oud"
+
+
+def _kaal(bid: str, naam: str, status: str) -> dict:
+    return {"id": bid, "status": status, "revisie": 1, "geaccordeerd_op": None, "geaccordeerd_revisie": None,
+            "gewijzigd": None, "koppelingen": [],
+            "inhoud": {"naam": naam, "definitie": "Een dag.", "definitie_herkomst": "geformuleerd"}}
+
+
+def test_een_vervangen_begrip_telt_niet_voor_dezelfde_voorkeursterm():
+    """Termijnen e2e (20 nov 2026): vervaldag en zijn opvolger gaven 'meerdere begrippen met dezelfde voorkeursterm'."""
+    dubbel = "Meerdere begrippen met dezelfde voorkeursterm binnen een begrippenkader"
+
+    def meldingen(*begrippen):
+        inv = {"schema": 1, "werkgebied": {"id": "w1", "naam": "W", "analysevraag": ""}, "relaties": [],
+               "begrippen": list(begrippen)}
+        c = bp.conformiteit(bp.bouw_graaf(inv))
+        return {b["id"]: {m["melding"] for m in c["begrippen"][str(begrip_iri(b["id"]))]["meldingen"]} for b in begrippen}
+
+    m = meldingen(_kaal("oud", "vervaldag", "vervangen"), _kaal("nieuw", "vervaldag", "concept"))
+    assert dubbel not in m["oud"] | m["nieuw"]
+    m = meldingen(_kaal("a", "vervaldag", "concept"), _kaal("b", "vervaldag", "concept"))
+    assert dubbel in m["a"] and dubbel in m["b"]                       # twee levende: wel een melding

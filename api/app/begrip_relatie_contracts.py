@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # De vier relaties van de keten (`begrippen_pipeline.model.Hypothese`, zonder zelfde betekenis) en
 # `verwant`, de enige zwakke: die vraagt een toelichting. `opvolging` maakt alleen de api zelf
@@ -13,7 +13,10 @@ TYPEN = ("kwalificatie", "inclusie", "uitsluiting", "hierarchie", "verwant", "op
 
 
 class RelatieInvoer(BaseModel):
-    """Een relatie vastleggen: zelf (van, naar, type) of als akkoord op een voorstel van Lex (`voorstel_id`)."""
+    """Een relatie vastleggen: zelf (van, naar, type) of als akkoord op een voorstel van Lex (`voorstel_id`).
+
+    Bij `hierarchie` is `van_begrip` het bredere begrip en `naar_begrip` de soort ervan ("termijn" → "voorlopige
+    teruggaaf"-termijn): de projectie zet `naar skos:broader van`. Een hiërarchie die een kring sluit, weigert de api."""
 
     voorstel_id: str | None = Field(default=None, max_length=64)
     van_begrip: str | None = Field(default=None, max_length=64)
@@ -56,7 +59,10 @@ class CombinerenGeneriek(Reden):
 
 
 class Combineren(Reden):
-    """Het begrip in de url blijft; `ander_begrip_id` wordt vervangen."""
+    """Het begrip in de url blijft; `ander_begrip_id` wordt vervangen. Een onbekend veld (een nieuwe inhoud, zoals in
+    Termijnen e2e, 20 nov 2026) is een fout: combineren neemt geen inhoud mee, die wijzig je daarna op het begrip."""
+
+    model_config = ConfigDict(extra="forbid")
 
     verwachte_revisie: int = Field(ge=1)
     ander_begrip_id: str = Field(min_length=1, max_length=64)

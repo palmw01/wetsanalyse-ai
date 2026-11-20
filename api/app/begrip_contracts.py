@@ -89,9 +89,29 @@ class BegripInvoer(BaseModel):
     rol: KoppelRol = KoppelRol.duiding
 
 
+class BegripInhoudDeel(BegripInhoud):
+    """De velden die een wijziging raakt: wat ontbreekt, blijft zoals het was (Termijnen e2e, 20 nov 2026: een PATCH
+    vroeg de hele inhoud, en wat een client wegliet viel weg). De werkplek stuurt alles en merkt geen verschil."""
+
+    naam: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @field_validator("naam")
+    @classmethod
+    def _naam(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("naam is verplicht")
+        return None if v is None else v.strip()
+
+
 class BegripWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
-    inhoud: BegripInhoud
+    inhoud: BegripInhoudDeel
+
+    @field_validator("inhoud", mode="before")
+    @classmethod
+    def _deel(cls, v):
+        """Een volledige `BegripInhoud` (code die de hele inhoud meegeeft) telt als de velden die erin gezet zijn."""
+        return v.model_dump(exclude_unset=True) if isinstance(v, BaseModel) else v
     #: De jurist is akkoord met de nieuwe inhoud: een geaccordeerd begrip wordt in dezelfde transactie opnieuw
     #: geaccordeerd als de poort het toelaat (zoals `KoppelInvoer.akkoord`). Eén aanroep in plaats van twee.
     akkoord: bool = False
@@ -113,6 +133,9 @@ class KoppelWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
     rol: KoppelRol | None = None
     motivatie: str | None = Field(default=None, max_length=4000)
+    #: Zet de motivatie achter de bestaande (met wie), in plaats van haar te vervangen. Vervangen blijft de standaard
+    #: (de werkplek bewerkt de tekst zelf); de vorige tekst staat dan in de audit (`motivatie_voor`).
+    motivatie_aanvullen: bool = False
     beoordeling: Beoordeling | None = None
 
 

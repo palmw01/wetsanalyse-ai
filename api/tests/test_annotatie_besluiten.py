@@ -50,6 +50,36 @@ async def test_een_laag_met_een_aangepast_element_rondt_af():
     assert klaar["status"] == "geaccordeerd"
 
 
+async def test_een_bewerking_met_klasse_naast_wijziging_is_een_fout_en_geen_stille_200():
+    """Termijnen e2e (20 nov 2026): `{"type": "edit", "klasse": …}` gaf 200, lifecycle edited en wijzigde niets."""
+    snap = snapshot(ONE)
+    laag, [el] = await voorstel(snap, element(snap))
+    with pytest.raises(ValueError):
+        besluit(snap, laag, "edit", klasse="Voorwaarde")
+    with pytest.raises(ValueError):
+        Laagbesluiten.model_validate({"verwachte_revisie": 1, "snapshot_id": "s",
+                                      "besluiten": [{"element_id": "e", "type": "edit", "klasse": "Voorwaarde"}]})
+    with pytest.raises(HTTPException) as fout:
+        await store.beslis(el["id"], besluit(snap, laag, "edit"), snap, "jurist")
+    assert fout.value.status_code == 422
+    async with db.get_engine().connect() as conn:
+        nu = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
+            db.annotatie_v2_elementen.c.id == el["id"]))).scalar_one()
+    assert nu["lifecycle"] != "edited"
+
+
+async def test_afgerond_is_de_laagstatus_geaccordeerd():
+    """De knop heet *Annotatie afronden*; `afgerond` gaf 422 'Onbekende laagstatus'."""
+    snap = snapshot(ONE)
+    laag, [el] = await voorstel(snap, element(snap))
+    uit = await store.beslis(el["id"], besluit(snap, laag, "approve"), snap, "jurist")
+    klaar = await store.zet_status(laag["id"], "afgerond", uit["lagen"][0]["revisie"], "jurist", snap)
+    assert klaar["status"] == "geaccordeerd"
+    with pytest.raises(HTTPException) as fout:
+        await store.zet_status(laag["id"], "klaar", klaar["revisie"], "jurist", snap)
+    assert "geaccordeerd" in str(fout.value.detail)
+
+
 async def test_het_overzicht_telt_een_aangepast_element_niet_als_open():
     snap = snapshot(ONE)
     laag, [el] = await voorstel(snap, element(snap))

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, wissel, zelfdeSet,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, herkomstZin, overgenomenZin, splits, vervangtZin, wissel,
+  zelfdeSet,
 } from "./deelvragen";
 import type { Deelvraag } from "./types";
 
@@ -11,6 +12,12 @@ const dv = (id: string, volgorde: number, status: Deelvraag["status"] = "actief"
 });
 
 describe("deelvragen", () => {
+  it("zegt wie de tekst schreef, ook als de analist een voorstel van Lex aanpaste", () => {
+    expect(herkomstZin({ herkomst: "lex", aangemaakt_door: "a" })).toBe("voorgesteld door Lex");
+    expect(herkomstZin({ herkomst: "lex_aangepast", aangemaakt_door: "a" }, true)).toBe("Voorgesteld door Lex, aangepast");
+    expect(herkomstZin({ herkomst: "analist", aangemaakt_door: "piet" })).toBe("door piet");
+  });
+
   it("splitst actieve deelvragen en voorstellen, in volgorde", () => {
     const { actief, voorgesteld } = splits([dv("b", 2), dv("x", 3, "voorgesteld"), dv("a", 0)]);
     expect(actief.map((d) => d.id)).toEqual(["a", "b"]);

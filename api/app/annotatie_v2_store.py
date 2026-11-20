@@ -770,6 +770,10 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
             wijziging = _grens_wijziging(old, req.wijziging, nodes)
         elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
             raise HTTPException(422, "Niet-toegestane correctievelden.")
+        elif not req.wijziging:
+            # Termijnen e2e (20 nov 2026): `klasse` naast `wijziging` in plaats van erin gaf 200, lifecycle edited en
+            # geen wijziging. Een bewerking zonder iets te wijzigen is geen oordeel.
+            raise HTTPException(422, "Een bewerking zonder wijziging: zet de velden in `wijziging`.")
         wijziging = {**wijziging, **_herzien_toelichting(old, wijziging)}
         candidate = Element.model_validate({**old, **wijziging})
         value.update(valideer(candidate, snapshot, set(nodes)))
@@ -867,8 +871,11 @@ async def laag_detail(laag_id: str) -> dict:
 
 
 async def zet_status(laag_id: str, status: str, expected: int, actor: str, snapshot: dict | None = None) -> dict:
+    # De knop heet *Annotatie afronden*, de status `geaccordeerd`: `afgerond` is dezelfde handeling (Termijnen e2e, 20 nov
+    # 2026: "afgerond" gaf 422 zonder te zeggen wat wel kan).
+    status = {"afgerond": "geaccordeerd"}.get(status, status)
     if status not in {"in_review", "geaccordeerd"}:
-        raise HTTPException(422, "Onbekende laagstatus.")
+        raise HTTPException(422, "Onbekende laagstatus: kies `geaccordeerd` (afronden) of `in_review` (heropenen).")
     async with schrijftransactie() as conn:
         layer = next((l for l in (await _lagen(conn)).values() if l["id"] == laag_id), None)
         if layer is None:

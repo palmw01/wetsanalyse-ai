@@ -241,6 +241,9 @@ class VoorbeeldBeoordeling(Revisie):
     toelichting: str | None = Field(default=None, max_length=2000)
     # De grond van het oordeel; `motivering` is hetzelfde veld, zoals bij accorderen.
     reden: str = Field(default="", max_length=2000, validation_alias=AliasChoices("reden", "motivering"))
+    # Zet de reden achter de bestaande (met wie), in plaats van haar te vervangen, zoals `motivatie_aanvullen` bij een
+    # begripskoppeling. Bij hetzelfde oordeel blijven `beoordeeld_door` en `beoordeeld_op` staan.
+    reden_aanvullen: bool = False
 
 
 #: De grond van een besluit over de hele regel (accorderen, afwijzen) heet `reden`, zoals bij een begrip. Wie
