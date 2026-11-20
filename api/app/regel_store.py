@@ -97,9 +97,8 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
 #: onderzoekspunt of een gat in de annotatie. Wat gekozen, getoetst of gesignaleerd is (een besluit), of omgehangen naar
 #: iets anders, houdt niet meer tegen.
 BLOKKERENDE_STANDEN = ("open",)
-#: De rollen waarmee een drager de regel draagt. Een contextdrager draagt niets en vraagt dus geen oordeel, zoals een
-#: begripskoppeling met een rol die niet dragend is.
-DRAGEND = ("grondslag", "voorwaarde", "invoer", "uitvoer", "tijd")
+#: De dragende rollen staan in `regel_contracts.DRAGEND` (één plek, ook voor de projectie).
+from .regel_contracts import DRAGEND  # noqa: E402
 
 
 def voorwaarde_bladen(inhoud: dict) -> list[tuple[str, dict]]:
@@ -120,10 +119,13 @@ def voorwaarde_bladen(inhoud: dict) -> list[tuple[str, dict]]:
 
 
 def _rust_op(inhoud: dict, dragers: list[dict]) -> tuple[list[str], list[str]]:
-    """De markeringen in een voorwaarde waarvan elke drager is afgewezen, en die waarvoor er geen drager is (B2, B3)."""
+    """De markeringen in een voorwaarde waarvan elke drager is afgewezen, en die waarvoor er geen dragende drager is
+    (B2, B3). Alleen een dragende rol telt: een contextdrager wordt niet beoordeeld, dus een voorwaarde die erop rust,
+    viel buiten de beoordeling (review regelstapel 20 nov 2026, bevinding 1)."""
     per: dict[str, list[str]] = {}
     for d in dragers:
-        per.setdefault(d["element_id"], []).append(d["beoordeling"])
+        if d["rol"] in DRAGEND:
+            per.setdefault(d["element_id"], []).append(d["beoordeling"])
     genoemd = list(dict.fromkeys(e for _, blad in voorwaarde_bladen(inhoud) for e in blad.get("element_ids") or []))
     afgewezen = [e for e in genoemd if e in per and all(b == "afgewezen" for b in per[e])]
     zonder = [e for e in genoemd if e not in per]
@@ -210,14 +212,17 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         redenen.append(_meervoud(len(tegen), "Voorbeeld <nrs> past niet bij zijn geval: pas het geval of de gevallen "
                                  "eronder aan.", "De voorbeelden <nrs> passen niet bij hun geval: pas het geval of de "
                                  "gevallen eronder aan.").replace("<nrs>", _nrs(tegen)))
-    beoordeeld = {(v.get("geval") or "") for v in voorbeelden if v.get("oordeel", "open") != "open"}
+    # Per geval telt alleen een voorbeeld met het oordeel `juist`: alleen dan is de uitkomst van dat geval nagelopen.
+    # Een `kan_niet` ("deze invoer doet zich niet voor") zegt niets over de uitkomst (besluit gebruiker 20 nov 2026,
+    # review regelstapel bevinding 7).
+    juist = {(v.get("geval") or "") for v in voorbeelden if v.get("oordeel") == "juist"}
     if len(labels) == 1:
-        if not beoordeeld:
-            redenen.append("Er is nog geen beoordeeld voorbeeld.")
+        if not juist:
+            redenen.append("Er is nog geen voorbeeld met een juridisch juiste uitkomst.")
     else:
-        zonder = [l for l in labels if l not in beoordeeld]
+        zonder = [l for l in labels if l not in juist]
         if zonder:
-            redenen.append("Nog geen beoordeeld voorbeeld bij geval " + ", ".join(zonder) + ".")
+            redenen.append("Nog geen voorbeeld met een juridisch juiste uitkomst bij geval " + ", ".join(zonder) + ".")
     # Accorderen vraagt daarna nog een reden (veld `reden`); dat zegt de poort vooraf, zodat `mag` geen verrassing geeft.
     return {"mag": not redenen, "redenen": redenen, "vraagt": ["reden"]}
 
@@ -885,7 +890,7 @@ async def _voeg_dragers_toe(conn, werkgebied_id: str, regel_id: str, dragers: li
 def voorwaarde_dragers(inhoud: dict, al: set[str]) -> list[DragerInvoer]:
     """De markeringen in de voorwaarden die nog geen drager van de regel zijn, als drager met de rol voorwaarde bij hun
     geval (B3 van de e2e-run van 20 nov 2026): zo valt geen markering waarop de regel rust buiten de beoordeling.
-    `al`: de element-id's die al een drager zijn (in welke rol ook)."""
+    `al`: de element-id's die al een *dragende* drager zijn; een contextdrager telt niet (bevinding 1)."""
     uit: list[DragerInvoer] = []
     for label, blad in voorwaarde_bladen(inhoud):
         for e in blad.get("element_ids") or []:
@@ -920,10 +925,38 @@ def voorbeelden_na(oud: list[dict], nieuw: list[dict], actor: str) -> list[dict]
     return uit
 
 
+#: De velden buiten de gevallen waarvan een wijziging elk oordeel raakt: een andere uitvoer, invoer of soort maakt van
+#: elk voorbeeld een ander voorbeeld. Toelichting, lidwoord en brontype doen dat niet.
+_INHOUD_VOOR_ALLE = ("soort", "regelbegrip_id", "uitvoer_begrip_id", "onderwerp_begrip_id", "invoer")
+
+
+def heropen_oordelen(oud: dict, nieuw: dict) -> list[int]:
+    """Zet het oordeel over een voorbeeld terug op `open` als het geval waarbij het hoort inhoudelijk veranderde
+    (voorwaarden, uitkomst of voorrang), of de regel zelf (`_INHOUD_VOOR_ALLE`). Een oordeel slaat op een versie van de
+    regel; zonder dit ging de poort meteen weer open zonder dat iemand het voorbeeld tegen de nieuwe regel nakeek
+    (review regelstapel 20 nov 2026, bevinding 6; ADR-018 besluit 2). Wijzigt `nieuw["voorbeelden"]` en geeft de
+    nummers (vanaf 1) van wat terug op open ging."""
+    def inhoud(g: dict) -> tuple:
+        return (g.get("voorwaarden"), g.get("uitkomst"), g.get("voorrang", 0))
+    alle = any(oud.get(k) != nieuw.get(k) for k in _INHOUD_VOOR_ALLE)
+    oude = {g.get("label", ""): inhoud(g) for g in oud.get("gevallen", [])}
+    enkel = len(nieuw.get("gevallen", [])) == 1
+    veranderd = {g.get("label", "") for g in nieuw.get("gevallen", []) if oude.get(g.get("label", "")) != inhoud(g)}
+    uit = []
+    for nr, v in enumerate(nieuw.get("voorbeelden", []), start=1):
+        geval = v.get("geval") or ""
+        raakt = alle or geval in veranderd or (enkel and not geval and veranderd)
+        if raakt and v.get("oordeel", "open") != "open":
+            v.update(oordeel="open", beoordeeld_door="", beoordeeld_op="", reden="")
+            uit.append(nr)
+    return uit
+
+
 async def maak(werkgebied: dict, invoer: RegelAanmaak, actor: str, resolve: Resolver) -> dict:
     inhoud = inhoud_van(invoer.inhoud)
     inhoud["voorbeelden"] = voorbeelden_na([], inhoud.get("voorbeelden", []), actor)
-    dragers = [*invoer.dragers, *voorwaarde_dragers(inhoud, {d.element_id for d in invoer.dragers})]
+    dragers = [*invoer.dragers, *voorwaarde_dragers(inhoud, {d.element_id for d in invoer.dragers
+                                                             if d.rol.value in DRAGEND})]
     _toets_gevallen(inhoud, dragers)
     bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in dragers], resolve)
     wid, rid, nu = werkgebied["id"], str(uuid.uuid4()), db.utcnow()
@@ -973,10 +1006,12 @@ async def _huidige_dragers(conn, werkgebied_id: str, regel_id: str) -> list[dict
 
 
 async def _element_ids_van(werkgebied_id: str, regel_id: str) -> set[str]:
+    """De element-id's met een dragende drager (bevinding 1: een contextdrager draagt een voorwaarde niet)."""
     d = db.regel_dragers
     async with db.get_engine().connect() as conn:
         return set((await conn.execute(select(d.c.element_id).where(
-            d.c.werkgebied_id == werkgebied_id, d.c.regel_id == regel_id, d.c.verwijderd.is_(None)))).scalars().all())
+            d.c.werkgebied_id == werkgebied_id, d.c.regel_id == regel_id, d.c.verwijderd.is_(None),
+            d.c.rol.in_(DRAGEND)))).scalars().all())
 
 
 async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str, resolve: Resolver) -> dict:
@@ -991,6 +1026,9 @@ async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str,
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "regel-gewijzigd",
                                  detail) as (row, stand):
             nieuw["voorbeelden"] = voorbeelden_na(row.inhoud.get("voorbeelden", []), nieuw.get("voorbeelden", []), actor)
+            heropend = heropen_oordelen(row.inhoud, nieuw)
+            if heropend:
+                detail["voorbeelden_heropend"] = heropend
             if nieuw == row.inhoud:
                 stand["geen_wijziging"] = True
             else:
@@ -1001,7 +1039,7 @@ async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str,
                 if any(d["geval"] and d["geval"] not in labels for d in dragers):
                     raise HTTPException(422, {"fout": "geval_onbekend", "melding": "Een drager hoort bij een geval dat "
                                               "niet meer bestaat. Haal die drager eerst weg."})
-                extra = [x for x in extra if x.element_id not in {d["element_id"] for d in dragers}]
+                extra = [x for x in extra if x.element_id not in {d["element_id"] for d in dragers if d["rol"] in DRAGEND}]
                 _toets_gevallen(nieuw, extra)
                 detail["velden"] = sorted(k for k in nieuw if nieuw.get(k) != row.inhoud.get(k))
                 if extra:
@@ -1081,9 +1119,10 @@ async def wijzig_drager(werkgebied_id: str, regel_id: str, drager_id: str, w: Dr
             if rij.beoordeling == w.beoordeling.value and (not motivering or motivering == (rij.motivering or "")):
                 stand["geen_wijziging"] = True
             else:
+                open_ = w.beoordeling.value == "open"
                 await conn.execute(update(d).where(d.c.id == drager_id).values(
-                    beoordeling=w.beoordeling.value, beoordeeld_door=actor, beoordeeld_op=db.utcnow(),
-                    motivering=motivering))
+                    beoordeling=w.beoordeling.value, beoordeeld_door=None if open_ else actor,
+                    beoordeeld_op=None if open_ else db.utcnow(), motivering=motivering))
     return await haal(werkgebied_id, regel_id)
 
 
@@ -1145,6 +1184,10 @@ async def accordeer(werkgebied_id: str, regel_id: str, verwacht: int, reden: str
     async with db.get_engine().begin() as conn:
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-geaccordeerd",
                                  detail) as (row, stand):
+            # De begrippen en de markeringen van de dragers onder een leesslot: een generiek begrip en een annotatie schrijven
+            # buiten het werkgebiedslot (review regelstapel 20 nov 2026, bevinding 8). Wat daarna verandert, zet de regel
+            # weer op concept via de open punten (bevinding 3) of de actualiteit bij het lezen.
+            await _leesslot(conn, werkgebied_id, row)
             # Dezelfde lezing als een GET, in deze transactie: ook de punten die nog aan een voorganger hangen.
             p = (await _lees(conn, werkgebied_id, [row]))[0]["accorderen"]
             if not reden:
@@ -1160,6 +1203,45 @@ async def accordeer(werkgebied_id: str, regel_id: str, verwacht: int, reden: str
         raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
                                   "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
     return await haal(werkgebied_id, regel_id)
+
+
+async def _leesslot(conn, werkgebied_id: str, row) -> None:
+    """`FOR SHARE` op de begrippen die de regel noemt en op de markeringen van zijn dragers (op SQLite een gewone
+    lezing)."""
+    ids = sorted(set(genoemde_begrippen(row.inhoud)))
+    if ids:
+        await conn.execute(select(db.begrippen.c.id).where(db.begrippen.c.id.in_(ids)).with_for_update(read=True))
+    d = db.regel_dragers
+    elementen = sorted(set((await conn.execute(select(d.c.element_id).where(
+        d.c.regel_id == row.id, d.c.verwijderd.is_(None)))).scalars().all()))
+    if elementen:
+        e = db.annotatie_v2_elementen
+        await conn.execute(select(e.c.id).where(e.c.id.in_(elementen)).with_for_update(read=True))
+
+
+async def naar_concept_door_open_punt(conn, werkgebied_id: str, regel_ids: set[str], actor: str, punt_id: str,
+                                      actie: str) -> list[str]:
+    """Een open punt dat blokkeert en aan een geaccordeerde regel komt te hangen (aanmaken, heropenen, omhangen naar de
+    regel), zet die regel in dezelfde transactie terug op `concept`, met een revisieregel en een auditregel (besluit
+    gebruiker 20 nov 2026 bij de review van de regelstapel, bevinding 3, optie a). Het werkgebiedslot heeft de aanroeper
+    al. Geeft de id's van de regels die teruggingen."""
+    if not regel_ids:
+        return []
+    r = db.regels
+    rows = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.id.in_(sorted(regel_ids)))
+                               .with_for_update())).all()
+    terug = []
+    for row in rows:
+        if row.status not in GEACCORDEERD:
+            continue
+        nieuw, nu = row.revisie + 1, db.utcnow()
+        await conn.execute(update(r).where(r.c.id == row.id).values(revisie=nieuw, gewijzigd=nu, status="concept"))
+        detail = {"open_punt_id": punt_id, "door": actie, "was": row.status}
+        await _revisieregel(conn, row.id, nieuw, "regel-heropend-door-open-punt", detail, "concept", row.inhoud, actor, nu)
+        await werkgebied_audit(conn, werkgebied_id, actor, "regel-heropend-door-open-punt",
+                               {**detail, "regel_id": row.id, "regel_revisie": nieuw})
+        terug.append(row.id)
+    return terug
 
 
 async def heropen(werkgebied_id: str, regel_id: str, verwacht: int, actor: str) -> dict:
@@ -1213,12 +1295,37 @@ async def verwijder(werkgebied_id: str, regel_id: str, verwacht: int, actor: str
         if row is None:
             raise _niet_gevonden()
         toets_revisie(row.revisie, verwacht, "deze regel")
+        hersteld = await _herstel_voorgangers(conn, werkgebied_id, regel_id, actor)
         await conn.execute(delete(db.regel_dragers).where(db.regel_dragers.c.regel_id == regel_id))
         await conn.execute(delete(db.regel_revisies).where(db.regel_revisies.c.regel_id == regel_id))
         await conn.execute(delete(r).where(r.c.id == regel_id))
         await werkgebied_audit(conn, werkgebied_id, actor, "regel-verwijderd",
-                               {"regel_id": regel_id, "regelbegrip_id": row.inhoud.get("regelbegrip_id", "")})
-    return {"verwijderd": regel_id}
+                               {"regel_id": regel_id, "regelbegrip_id": row.inhoud.get("regelbegrip_id", ""),
+                                **({"hersteld": hersteld} if hersteld else {})})
+    return {"verwijderd": regel_id, "hersteld": hersteld}
+
+
+async def _herstel_voorgangers(conn, werkgebied_id: str, regel_id: str, actor: str) -> list[str]:
+    """Wie de opvolger wist, zet de regels die hij verving terug op hun status van vóór de vervanging, zoals
+    `begrip_store._herstel_voorgangers` bij een begrip (review regelstapel 20 nov 2026, bevinding 4). Anders bleef de
+    voorganger voor altijd `vervangen` (alleen-lezen) en telden zijn open punten nergens meer."""
+    r, rev = db.regels, db.regel_revisies
+    rows = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.vervangen_door == regel_id)
+                               .with_for_update())).all()
+    uit = []
+    for row in rows:
+        vorige = (await conn.execute(select(rev.c.status).where(
+            rev.c.regel_id == row.id, rev.c.actie != "regel-vervangen", rev.c.revisie < row.revisie)
+            .order_by(rev.c.revisie.desc()).limit(1))).scalar_one_or_none() or "concept"
+        nieuw, nu = row.revisie + 1, db.utcnow()
+        await conn.execute(update(r).where(r.c.id == row.id).values(
+            revisie=nieuw, gewijzigd=nu, status=vorige, vervangen_door=None))
+        detail = {"opvolger_verwijderd": regel_id, "status": vorige}
+        await _revisieregel(conn, row.id, nieuw, "regel-hersteld", detail, vorige, row.inhoud, actor, nu)
+        await werkgebied_audit(conn, werkgebied_id, actor, "regel-hersteld",
+                               {**detail, "regel_id": row.id, "regel_revisie": nieuw})
+        uit.append(row.id)
+    return uit
 
 
 # --- parameterwaarden --------------------------------------------------------------------------------

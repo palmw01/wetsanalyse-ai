@@ -37,8 +37,7 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 SH = Namespace("http://www.w3.org/ns/shacl#")
 SHAPES = Path(__file__).parent / "shapes" / "regels-wa.ttl"
-#: De rollen waarmee een drager de regel draagt (gelijk aan `regel_store.DRAGEND`).
-DRAGEND = ("grondslag", "voorwaarde", "invoer", "uitvoer", "tijd")
+from .regel_contracts import DRAGEND  # noqa: E402  (één plek, bevinding 12)
 
 
 def regel_iri(regel_id: str) -> URIRef:
@@ -247,4 +246,7 @@ SELECT ?regel ?el WHERE {
     GRAPH ?j { ?el oa:hasTarget/oa:hasSource ?bron } FILTER(STRSTARTS(STR(?j), "urn:jas:graph:"))
     GRAPH ?b { ?bron bwb:tekst ?tekst . { ?bron bwb:jci ?jci } UNION { ?bron bwb:bronUrl ?url } }
     FILTER(STRSTARTS(STR(?b), "urn:bwb:graph:")) })
-} LIMIT 200"""
+} LIMIT 201"""
+#: Zoveel rijen toont de rooktest; de query vraagt er één meer, zodat `regels_niet_herleidbaar_volledig` kan zeggen of
+#: de lijst afgekapt is (review regelstapel 20 nov 2026, bevinding 11: tel nooit een begrensde lijst als totaal).
+MAX_NIET_HERLEIDBAAR = 200

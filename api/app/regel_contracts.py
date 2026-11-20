@@ -19,6 +19,10 @@ _ID = r"^[A-Za-z0-9._:-]{1,64}$"
 #: regelbegrip van een beslisregel op een Rechtsbetrekking) rust met de rol `afgeleid` op een markering van deze klassen
 #: (`begrip_store.toets_afgeleid`, A3 van de e2e-run van 20 nov 2026).
 GRONDSLAG_KLASSEN = ("Afleidingsregel", "Rechtsbetrekking", "Tijdsaanduiding")
+#: De rollen waarmee een drager de regel draagt. Een contextdrager draagt niets en vraagt dus geen oordeel, zoals een
+#: begripskoppeling met een rol die niet dragend is. Eén plek: de poort (`regel_store`) en de projectie
+#: (`regel_projectie`, `wa:rustOp`) lezen deze tuple (review regelstapel 20 nov 2026, bevinding 12).
+DRAGEND = ("grondslag", "voorwaarde", "invoer", "uitvoer", "tijd")
 
 
 class RegelSoort(str, Enum):
@@ -246,6 +250,13 @@ class DragerVerversing(Revisie):
     stand gezien heeft; anders staat hij weer open."""
     beoordeling: Literal["open", "akkoord"] = "open"
     motivering: str = Field(default="", max_length=2000)
+
+    @model_validator(mode="after")
+    def _akkoord_met_grond(self) -> "DragerVerversing":
+        # Een akkoord op de nieuwe stand zegt waarom (review regelstapel 20 nov 2026, bevinding 9).
+        if self.beoordeling == "akkoord" and not self.motivering.strip():
+            raise ValueError("een akkoord op de nieuwe stand vraagt een motivering: wat zag je aan de markering van nu")
+        return self
 
 
 class VoorbeeldBeoordeling(Revisie):

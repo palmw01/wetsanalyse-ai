@@ -209,11 +209,14 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
     # De rooktest op de herleidbaarheid (regels herleidbaar, 20 nov 2026): rust elke geprojecteerde regel op markeringen
     # met een bronnode die tekst en een jci of anker heeft? Diagnostisch, buiten `in_orde`: een regel kan op een
     # markering rusten waarvan de laag nog niet is geprojecteerd.
+    # De sleutels staan er altijd, ook zonder regels: een lege lijst, geen ontbrekende (bevinding 11).
+    uit["regels_niet_herleidbaar"], uit["regels_niet_herleidbaar_volledig"] = [], True
     if any(inv.get("regels") for inv in stand.values()):
         rijen = await sparql_select(client, rp.NIET_HERLEIDBAAR)
+        uit["regels_niet_herleidbaar_volledig"] = len(rijen) <= rp.MAX_NIET_HERLEIDBAAR
         uit["regels_niet_herleidbaar"] = [{"regel_id": r["regel"].removeprefix("urn:wa:regel:"),
                                            **({"element": r["el"]} if r.get("el") else {"reden": "geen_drager"})}
-                                          for r in rijen]
+                                          for r in rijen[:rp.MAX_NIET_HERLEIDBAAR]]
     prefix = str(bp.graph_iri(""))
     uit["verweesd"] = sorted({w for w in reg if w not in stand}
                              | {g[len(prefix):] for g in graphs if g[len(prefix):] not in stand})
