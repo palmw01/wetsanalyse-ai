@@ -153,14 +153,16 @@ describe("isWerkgebiedRoute", async () => {
     // Afleidingsregels (ADR-018).
     [["w", "regels"]], [["w", "regels", "hierarchie"]], [["w", "regels", "r4"]], [["w", "regels", "r4", "accorderen"]],
     [["w", "regels", "r4", "heropenen"]], [["w", "regels", "r4", "afwijzen"]], [["w", "regels", "r4", "revisies"]],
-    [["w", "regels", "r4", "dragers"]], [["w", "regels", "r4", "dragers", "d1"]],
+    [["w", "regels", "r4", "dragers"]], [["w", "regels", "r4", "dragers", "d1"]], [["w", "regels", "r4", "poort"]], [["w", "regels", "r4", "voorbeelden"]],
+    [["w", "regels", "r4", "voorbeelden", "2", "oordeel"]], [["w", "regels", "r4", "dragers", "d1", "verversen"]],
     [["w", "parameterwaarden"]], [["w", "parameterwaarden", "p1"]],
     // Open punten (lessenbundel 4, R3).
     [["w", "open-punten"]], [["w", "open-punten", "o1"]], [["w", "open-punten", "o1", "besluit"]],
-    [["w", "open-punten", "o1", "revisies"]],
+    [["w", "open-punten", "o1", "revisies"]], [["w", "open-punten", "o1", "omhangen"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "regels", "r4", "iets"]], [["w", "regels", "r4", "dragers", "d1", "x"]],
+    [["w", "regels", "r4", "voorbeelden", "1", "iets"]],
     [["w", "parameterwaarden", "p1", "x"]], [["w", "open-punten", "o1", "iets"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
     [["w", "begrippen", "export", "x"]], [["w", "begrippen", "b", "iets"]],
     [["w", "begrippen", "b", "accorderen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x"]],

@@ -650,8 +650,10 @@ regels = Table("regels", metadata,
     Column("status", String(32), nullable=False, default="concept"),
     Column("revisie", Integer, nullable=False, default=1),
     Column("inhoud", _JSON, nullable=False),
-    Column("herkomst", String(16), nullable=False, default="jurist"),      # lex | jurist | import
+    Column("herkomst", String(16), nullable=False, default="jurist"),      # regel_contracts.Herkomst (≤ 16 tekens)
     Column("opvolger_van", String(64), nullable=True),
+    # De regel die deze verving (status `vervangen`, A2 van de e2e-run van 20 nov 2026).
+    Column("vervangen_door", String(64), nullable=True),
     Column("aangemaakt_door", String(64), nullable=False),
     Column("aangemaakt", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),
@@ -678,6 +680,8 @@ regel_dragers = Table("regel_dragers", metadata,
     Column("beoordeling", String(16), nullable=False, default="open"),
     Column("beoordeeld_door", String(64), nullable=True),
     Column("beoordeeld_op", _DT, nullable=True),
+    # De grond van het oordeel; leeg bij een drager die nog open is of zonder grond beoordeeld werd.
+    Column("motivering", Text, nullable=False, server_default=""),
     Column("toegevoegd_door", String(64), nullable=False),
     Column("toegevoegd", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True))
@@ -707,11 +711,11 @@ parameter_waarden = Table("parameter_waarden", metadata,
 open_punten = Table("open_punten", metadata,
     Column("id", String(64), primary_key=True),
     Column("werkgebied_id", String(64), nullable=False, index=True),
-    Column("status", String(16), nullable=False, default="open"),          # open | gekozen | getoetst
+    Column("status", String(16), nullable=False, default="open"),          # open_punt_contracts.Status
     Column("revisie", Integer, nullable=False, default=1),
     Column("inhoud", _JSON, nullable=False),
     Column("keuze", _JSON, nullable=True),                                 # {gekozen, motivering, methode, door, op}
-    Column("herkomst", String(16), nullable=False, default="jurist"),      # lex | jurist | import
+    Column("herkomst", String(16), nullable=False, default="jurist"),      # regel_contracts.Herkomst
     Column("aangemaakt_door", String(64), nullable=False),
     Column("aangemaakt", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False))

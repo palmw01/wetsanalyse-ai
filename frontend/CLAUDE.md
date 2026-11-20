@@ -1609,6 +1609,16 @@ geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest,
   motivering, via de ene route van het open punt (`besluitOpenPunt`; het agent-token mag die niet). De keuzekaart die Lex
   later in het gesprek legt (R6), schrijft naar dezelfde route; er is geen eigen vraagkaartmodus. Na een besluit laadt de
   regel opnieuw, want de poort telt de genomen keuzes. De open punten gaan mee in de Markdown-export van een regel.
+  Bij ontbrekend uitvoeringsbeleid kiest de jurist eerst of het beleid er is of ontbreekt (`uitkomst`, status
+  *gesignaleerd*). Op de kaart leg je ook een open punt vast (`NieuwPunt`: soort, regel of geval, vraag, lezingen A, B, …)
+  en hang je een punt om (`Omhangen`, ingeklapt per punt; de gevallen van het doel laden pas bij openklappen; alleen
+  `hangt_aan` gaat mee). E2e-run Termijnen, 20 nov 2026.
+- **Voorbeelden beoordeel je apart** (B4): een open voorbeeld heeft *Juist* · *Niet juist* · *Kan niet*, een beoordeeld
+  *Terug naar open*, via `beoordeelVoorbeeld` (`…/voorbeelden/{nr}/oordeel`, `voorbeeldNr`); de maker en de beoordelaar
+  staan erbij. Een regel aanmaken of de inhoud wijzigen (gevallen, voorwaarden, een drager of parameterwaarde toevoegen)
+  heeft geen scherm: dat is maken, en dat gaat via Lex (bouwplan R5, wacht op een sein).
+- **Afwijzen met een opvolger** (A2): in *Afwijzen…* kies je eventueel de regel die deze vervangt; de regel wordt
+  `vervangen` en de kaart noemt *Vervangen door* en *Vervangt*. Een afgewezen regel kan zo alsnog vervangen worden.
 - **Op de begripskaart** (U4) staat *Afleidingsregels* met *Afgeleid door* en *Gebruikt in* (`BegripRegels`, faalt stil).
 - **Het overzicht in de zijbalk** (`/afleidingsregels`, `RegelsOverzichtClient` met `RegelOverzichtKaart`, verzoek
   gebruiker 19 nov 2026): de vorm van *Begrippen* (`OverzichtBalk`, `OverzichtKaart`, filters in de URL via

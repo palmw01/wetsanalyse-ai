@@ -237,6 +237,13 @@ De gebruiker nam de richting en de voorstellen bij alle open keuzes over:
    - minstens één beoordeeld voorbeeld per geval.
 
    Het skelet is een signaal en blokkeert niet.
+
+   **Aanvulling (besluit gebruiker 20 nov 2026).** Op de vraag of een open onderzoekspunt (zoals O1 in Termijnen) het
+   accorderen moet blokkeren, besliste de gebruiker: "Ja, blokkeren". Daarom houdt elk open punt dat aan de regel of
+   aan een van zijn gevallen hangt de poort tegen, welke soort het ook is: interpretatiekeuze, ontbrekend
+   uitvoeringsbeleid, onderzoekspunt of gat in de annotatie. De reden noemt het punt. Een punt telt niet meer mee als
+   het besloten is (*gekozen* of *getoetst*), als *gesignaleerd* (het beleid ontbreekt), of als het is omgehangen naar
+   iets buiten de regel. Tot die datum was alleen een keuze blokkerend en een onderzoekspunt of gat een signaal.
 3. **Interpretatiekeuzes** horen bij het werkgebied en worden gekoppeld aan regels, gevallen, markeringen en begrippen.
 4. **Beleidsregels** staan in dezelfde lijst, met het brontype zichtbaar en de status `geaccordeerd_als_beleidsregel`.
 5. **De soort van een begrip** (bedrag, aantal, datum, ja of nee) komt later, na een besluit over P15. De
