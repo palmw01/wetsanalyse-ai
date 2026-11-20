@@ -117,7 +117,7 @@ async def test_van_aanmaken_tot_accorderen(client):
     redenen = " ".join(regel["accorderen"]["redenen"])
     for stuk in ("Nog niet geaccordeerd: bepalen van het termijnbedrag, termijnbedrag, aantal termijnen",
                  "grondslag is nog niet beoordeeld", "2 dragende formuleringen zijn nog niet beoordeeld",
-                 "geen beoordeeld voorbeeld"):
+                 "geen voorbeeld met een juridisch juiste uitkomst"):
         assert stuk in redenen, redenen
     assert regel["signalen"] == []
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": 1, "reden": "Getoetst"})
@@ -195,7 +195,7 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
     punten = f"/v1/werkgebieden/{wg['id']}/open-punten"
     keuze = (await client.post(punten, json={"inhoud": {
         "soort": "interpretatiekeuze", "vraag": "Telt een gedeeltelijke betaling als termijn?",
-        "hangt_aan": [{"soort": "geval", "id": regel["id"], "geval": "1"}],
+        "hangt_aan": [{"soort": "regel", "id": regel["id"]}],
         "lezingen": [{"label": "A", "omschrijving": "Ja"}, {"label": "B", "omschrijving": "Nee"}]}})).json()
     onderzoek = (await client.post(punten, json={"inhoud": {
         "soort": "onderzoekspunt", "vraag": "Wat zegt de Leidraad?", "hangt_aan": [{"soort": "regel", "id": regel["id"]}],
@@ -203,7 +203,7 @@ async def test_de_poort_telt_de_genomen_keuzes(client):
 
     regel = (await client.get(_url(wg, regel["id"]))).json()
     assert regel["accorderen"] == {"mag": False, "vraagt": ["reden"], "redenen": [
-        f"2 open punten zijn nog niet besloten: interpretatiekeuze {keuze['id'][:8]} (geval 1): Telt een gedeeltelijke "
+        f"2 open punten zijn nog niet besloten: interpretatiekeuze {keuze['id'][:8]}: Telt een gedeeltelijke "
         f"betaling als termijn; onderzoekspunt {onderzoek['id'][:8]}: Wat zegt de Leidraad."]}
     assert regel["open_punten"] == {"open": 2, "totaal": 2, "bij_voorganger": 0}
     r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "x"})
@@ -547,6 +547,9 @@ async def test_een_gewijzigde_drager_houdt_tegen_en_ververs_je(client):
     # Nog eens hetzelfde verandert niets.
     r = await client.post(_url(wg, regel["id"], "dragers", d["id"], "verversen"),
                           json={"verwachte_revisie": kort["revisie"], "beoordeling": "akkoord"})
+    assert r.status_code == 422, "een akkoord op de nieuwe stand vraagt een motivering (review, bevinding 9)"
+    r = await client.post(_url(wg, regel["id"], "dragers", d["id"], "verversen"),
+                          json={"verwachte_revisie": kort["revisie"], "beoordeling": "akkoord", "motivering": "Gezien."})
     assert r.json()["revisie"] == kort["revisie"]
 
 

@@ -71,6 +71,10 @@ async def _bestaande(conn, werkgebied_id: str, aanhakingen: list[dict]) -> set[t
     return uit
 
 
+def _aanhaking_sleutels(inhoud: dict) -> list[tuple[str, str, str]]:
+    return sorted((a["soort"], a["id"], a.get("geval", "")) for a in inhoud.get("hangt_aan", []))
+
+
 def _sleutel(a: dict) -> tuple[str, str]:
     return ("regel" if a["soort"] == "geval" else a["soort"], a["id"])
 
@@ -178,6 +182,7 @@ async def maak(werkgebied_id: str, invoer: OpenPuntAanmaak, actor: str) -> dict:
     async with db.get_engine().begin() as conn:
         await werkgebied_rij(conn, werkgebied_id, slot=True)
         await _toets_aanhakingen(conn, werkgebied_id, inhoud)
+        await _toets_gevallen(conn, werkgebied_id, inhoud["hangt_aan"])
         await conn.execute(insert(db.open_punten).values(
             id=pid, werkgebied_id=werkgebied_id, status="open", revisie=1, inhoud=inhoud, keuze=None,
             herkomst=invoer.herkomst, aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
@@ -186,7 +191,21 @@ async def maak(werkgebied_id: str, invoer: OpenPuntAanmaak, actor: str) -> dict:
         await _revisieregel(conn, werkgebied_id, pid, 1, "open-punt-aangemaakt", detail, "open", inhoud, None, actor, nu)
         await werkgebied_audit(conn, werkgebied_id, actor, "open-punt-aangemaakt",
                                {**detail, "open_punt_id": pid, "open_punt_revisie": 1})
+        await _regels_naar_concept(conn, werkgebied_id, inhoud, "open", actor, pid, "open-punt-aangemaakt")
     return await haal(werkgebied_id, pid)
+
+
+def _regels_van(inhoud: dict) -> set[str]:
+    return {a["id"] for a in inhoud.get("hangt_aan", []) if a.get("soort") in ("regel", "geval")}
+
+
+async def _regels_naar_concept(conn, werkgebied_id: str, inhoud: dict, status: str, actor: str, punt_id: str,
+                               actie: str) -> None:
+    """Een punt dat (weer) blokkeert, zet de geaccordeerde regels waar het aan hangt terug op `concept`, in dezelfde
+    transactie (besluit gebruiker 20 nov 2026, review regelstapel bevinding 3, optie a)."""
+    from . import regel_store
+    if status in regel_store.BLOKKERENDE_STANDEN:
+        await regel_store.naar_concept_door_open_punt(conn, werkgebied_id, _regels_van(inhoud), actor, punt_id, actie)
 
 
 @asynccontextmanager
@@ -212,11 +231,14 @@ async def _gewijzigd_in(conn, werkgebied_id: str, punt_id: str, verwacht: int, a
                         actor, nu)
     await werkgebied_audit(conn, werkgebied_id, actor, actie,
                            {**detail, "status": status, "open_punt_id": punt_id, "open_punt_revisie": nieuw})
+    await _regels_naar_concept(conn, werkgebied_id, stand["inhoud"], status, actor, punt_id, actie)
 
 
 async def wijzig(werkgebied_id: str, punt_id: str, w: OpenPuntWijziging, actor: str) -> dict:
-    """De inhoud wijzigen: de vraag, waar het aan hangt, de lezingen, wat te toetsen is (ook: een toets afvinken).
-    Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze: wie de lezingen verandert, kiest opnieuw."""
+    """De inhoud wijzigen: de vraag, de lezingen, wat te toetsen is (ook: een toets afvinken). Waar het punt aan hangt,
+    wijzig je met `omhangen` (409 `omhangen`): dat toetst het geval en legt toen en nu vast (review regelstapel
+    20 nov 2026, bevinding 5). Verandert de soort of de verzameling lezingen, dan vervalt de keuze: die sloeg op een
+    ander punt, en anders telde een interpretatiekeuze zonder gekozen lezing als besloten (bevinding 2)."""
     nieuw = w.inhoud.model_dump(mode="json")
     detail: dict = {}
     async with db.get_engine().begin() as conn:
@@ -225,12 +247,17 @@ async def wijzig(werkgebied_id: str, punt_id: str, w: OpenPuntWijziging, actor: 
             if nieuw == row.inhoud:
                 stand["geen_wijziging"] = True
             else:
+                if _aanhaking_sleutels(nieuw) != _aanhaking_sleutels(row.inhoud):
+                    raise HTTPException(409, {"fout": "omhangen", "melding": "Waar het punt aan hangt, wijzig je met "
+                                              "omhangen (POST …/open-punten/{id}/omhangen); die legt toen en nu vast."})
                 await _toets_aanhakingen(conn, werkgebied_id, nieuw)
                 detail["velden"] = sorted(k for k in nieuw if nieuw.get(k) != row.inhoud.get(k))
                 keuze = row.keuze or {}
-                if keuze.get("gekozen") and keuze["gekozen"] not in {x["label"] for x in nieuw["lezingen"]}:
+                oude_labels = {x["label"] for x in row.inhoud.get("lezingen") or []}
+                nieuwe_labels = {x["label"] for x in nieuw["lezingen"]}
+                if keuze and (nieuw["soort"] != row.inhoud["soort"] or oude_labels != nieuwe_labels):
                     stand["keuze"] = None
-                    detail["keuze_vervallen"] = keuze["gekozen"]
+                    detail["keuze_vervallen"] = keuze.get("gekozen") or keuze.get("uitkomst") or "motivering"
                 stand["inhoud"] = nieuw
     return await haal(werkgebied_id, punt_id)
 
@@ -322,8 +349,11 @@ async def _toets_gevallen(conn, werkgebied_id: str, aanhakingen: list[dict]) -> 
                                              + ", ".join(f"{a['geval']} ({a['id']})" for a in fout) + "."})
 
 
-async def verwijder(werkgebied_id: str, punt_id: str, verwacht: int, actor: str) -> dict:
-    """Echt wissen, zoals een regel: het punt en zijn revisies. De audit blijft."""
+async def verwijder(werkgebied_id: str, punt_id: str, verwacht: int, actor: str, reden: str = "") -> dict:
+    """Echt wissen, zoals een regel: het punt en zijn revisies. De audit blijft, met de reden. Een punt dat nog
+    blokkeert, wis je alleen met een reden (422 `reden`): anders was de poort te omzeilen zonder besluit (review
+    regelstapel 20 nov 2026, bevinding 5)."""
+    reden = reden.strip()
     t = db.open_punten
     async with db.get_engine().begin() as conn:
         await werkgebied_rij(conn, werkgebied_id, slot=True)
@@ -332,8 +362,12 @@ async def verwijder(werkgebied_id: str, punt_id: str, verwacht: int, actor: str)
         if row is None:
             raise _niet_gevonden()
         toets_revisie(row.revisie, verwacht, "dit open punt")
+        if row.status == "open" and not reden:
+            raise HTTPException(422, {"fout": "reden", "melding": "Dit punt staat nog open. Besluit het, hang het om, of "
+                                      "geef een reden om het te verwijderen."})
         await conn.execute(delete(db.open_punt_revisies).where(db.open_punt_revisies.c.open_punt_id == punt_id))
         await conn.execute(delete(t).where(t.c.id == punt_id))
         await werkgebied_audit(conn, werkgebied_id, actor, "open-punt-verwijderd",
-                               {"open_punt_id": punt_id, "soort": row.inhoud["soort"], "vraag": row.inhoud["vraag"]})
+                               {"open_punt_id": punt_id, "soort": row.inhoud["soort"], "vraag": row.inhoud["vraag"],
+                                "status": row.status, **({"reden": reden} if reden else {})})
     return {"verwijderd": punt_id}

@@ -946,7 +946,8 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   voorwaardenboom (`wa:Voorwaardengroep`/`wa:Voorwaarde` met `wa:rustOp` en `wa:gevalVan`) en `dct:isReplacedBy`.
   Conformiteit per regel (`regel_projectie.conformiteit`, `shapes/regels-wa.ttl`) en de rooktest
   `regel_projectie.NIET_HERLEIDBAAR` staan in de graafcontrole als `regels_niet_conform` en `regels_niet_herleidbaar`,
-  diagnostisch en buiten `in_orde`.
+  diagnostisch en buiten `in_orde`. De rooktest toont hoogstens `MAX_NIET_HERLEIDBAAR` rijen en zegt met
+  `regels_niet_herleidbaar_volledig` of de lijst afgekapt is; beide sleutels staan er altijd.
 - **Een nieuwe NL-SBB-versie** is een bewuste overstap: nieuw shapesbestand, nieuwe hash in de test,
   `NL_SBB_VERSIE` en `NL_SBB` mee.
 - Tests: `tests/test_begrip_projectie.py` en het slot in `tests/test_begrippen_postgres.py`.
@@ -1044,7 +1045,8 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   een open punt) is hetzelfde veld (`AliasChoices`). `GET …/regels/{id}/voorbeelden` geeft de voorbeelden smal met hun
   `nr` voor `…/voorbeelden/{nr}/oordeel`.
 - **Een markering in een voorwaarde is een drager** (`voorwaarde_dragers`): aanmaken en wijzigen voegen haar toe met de
-  rol `voorwaarde` bij haar geval, zodat ze beoordeeld wordt. Het bewijs vraagt de graaf, dus `wijzig` krijgt het
+  rol `voorwaarde` bij haar geval, zodat ze beoordeeld wordt. Alleen een dragende drager telt (`regel_contracts.DRAGEND`,
+  één plek, ook voor de projectie): een contextdrager draagt geen voorwaarde (review regelstapel 20 nov 2026). Het bewijs vraagt de graaf, dus `wijzig` krijgt het
   werkgebied en de resolver, zoals `maak`.
 - **Maken en beoordelen van een voorbeeld zijn twee handelingen** (`voorbeelden_na`): de POST en de PATCH zetten nooit een
   oordeel. Een nieuw of gewijzigd voorbeeld (geval, invoer en uitkomst) is `open` en draagt `door`; een gelijk voorbeeld
@@ -1110,6 +1112,18 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   in `aandachtspunten` een alternatieve term die de naam van een ander begrip in het werkgebied is (een homoniem), en een
   waarde in de definitie van een begrip dat op een parameter rust. Een signaal, geen poort.
 - **Afwijzen bewaart** (`POST …/afwijzen`, reden verplicht); **verwijderen is echt wissen**, met een auditregel.
+- **Een geaccordeerde regel die een blokkerend open punt krijgt, is weer een concept** (besluit gebruiker 20 nov 2026,
+  review regelstapel bevinding 3, optie a): `open_punt_store` roept bij aanmaken, heropenen en omhangen naar de regel
+  `regel_store.naar_concept_door_open_punt` aan, in dezelfde transactie, met revisie en audit
+  `regel-heropend-door-open-punt`.
+- **Een oordeel slaat op een versie van de regel** (`heropen_oordelen`): verandert een geval (voorwaarden, uitkomst,
+  voorrang) of de regel zelf (soort, regelbegrip, uitvoer, onderwerp, invoer), dan gaan de oordelen over de voorbeelden
+  van dat geval terug op `open` (revisiedetail `voorbeelden_heropend`). Per geval telt alleen een voorbeeld op `juist`
+  (besluit gebruiker 20 nov 2026); `kan_niet` telt niet mee.
+- **Accorderen leest onder een leesslot** (`_leesslot`, `FOR SHARE`): de begrippen die de regel noemt en de markeringen
+  van zijn dragers, want een generiek begrip en een annotatie schrijven buiten het werkgebiedslot.
+- **De opvolger wissen herstelt de voorganger** (`_herstel_voorgangers`, zoals bij een begrip): de status van vóór de
+  vervanging, `vervangen_door` leeg, revisie `regel-hersteld`.
 - **Vervangen** (`POST …/afwijzen` met `opvolger_id`, A2): de regel krijgt de status `vervangen` en `vervangen_door`, de
   opvolger `opvolger_van` (de eerste voorganger), en de auditregel heet `regel-vervangen`. De open punten die nog aan de
   voorganger hangen, tellen in de poort van de opvolger (`open_punten.bij_voorganger`) tot ze zijn omgehangen. Ook een
@@ -1155,6 +1169,11 @@ komt uit de skill (`references/afleidingsregels.md`, *Wat open blijft*):
   toets is afgevinkt. De client zet hem nooit. Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze. Alleen
   `open` houdt een regel tegen; een gesignaleerd punt staat in de signalen van de regel.
 - **`GET …/open-punten?regel_id=`** is kort voor `aan=regel&aan_id=…` (ook de punten op een geval van die regel).
+- **Een keuze vervalt als het punt een ander punt wordt**: een PATCH die de soort of de verzameling lezingen verandert,
+  laat de keuze vallen (`keuze_vervallen`). Waar een punt aan hangt, wijzig je alleen met omhangen (de PATCH geeft 409
+  `omhangen`), en een geval moet al bij het aanmaken een label van zijn regel zijn (422 `geval_onbekend`). Een punt dat
+  nog open is, wis je alleen met een `reden` (query, 422 `reden`; de reden staat in de audit). Review regelstapel,
+  20 nov 2026.
 - **Omhangen** (`POST …/{punt}/omhangen {verwachte_revisie, hangt_aan}`, A2): alleen waar het punt aan hangt, met een
   revisie en de auditregel `open-punt-omgehangen` (`toen`, `nu`). De rest van de inhoud en de keuze blijven staan. Een
   geval moet een label van zijn regel zijn (422 `geval_onbekend`). Het is een besluit van de jurist, niet van Lex.
