@@ -244,6 +244,18 @@ De gebruiker nam de richting en de voorstellen bij alle open keuzes over:
    uitvoeringsbeleid, onderzoekspunt of gat in de annotatie. De reden noemt het punt. Een punt telt niet meer mee als
    het besloten is (*gekozen* of *getoetst*), als *gesignaleerd* (het beleid ontbreekt), of als het is omgehangen naar
    iets buiten de regel. Tot die datum was alleen een keuze blokkerend en een onderzoekspunt of gat een signaal.
+
+   **Aanvulling na de code review van de regelstapel (besluit gebruiker 20 nov 2026, "Ja, fix alle 13").**
+   - *Een geaccordeerde regel die een blokkerend punt krijgt, is weer een concept* (optie a): een open punt dat aan de
+     regel of een geval komt te hangen (aanmaken, heropenen, omhangen naar de regel) zet de regel in dezelfde
+     transactie terug op `concept`, met een revisieregel `regel-heropend-door-open-punt`.
+   - *Per geval telt alleen een voorbeeld met het oordeel `juist`*: alleen dan is de uitkomst van dat geval
+     nagelopen. Een voorbeeld op `kan_niet` ("deze invoer doet zich niet voor") telt niet mee, en de toets of een
+     voorbeeld bij zijn geval past slaat het over.
+   - Wat de poort verder vraagt, volgt uit de bestaande regel ("niets waarop de regel rust, blijft onbeoordeeld"): een
+     voorwaarde rust op een *dragende* drager (een contextdrager telt niet), een oordeel over een voorbeeld vervalt als
+     zijn geval of de regel zelf inhoudelijk verandert, en een keuze vervalt als de soort of de lezingen van het punt
+     veranderen. Een open punt wis je alleen met een reden, en waar het aan hangt wijzig je met omhangen.
 3. **Interpretatiekeuzes** horen bij het werkgebied en worden gekoppeld aan regels, gevallen, markeringen en begrippen.
 4. **Beleidsregels** staan in dezelfde lijst, met het brontype zichtbaar en de status `geaccordeerd_als_beleidsregel`.
 5. **De soort van een begrip** (bedrag, aantal, datum, ja of nee) komt later, na een besluit over P15. De

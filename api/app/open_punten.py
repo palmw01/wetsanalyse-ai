@@ -68,8 +68,9 @@ async def post_omhangen(werkgebied_id: str, punt_id: str, req: Omhangen, actor: 
 
 @router.delete("/open-punten/{punt_id}")
 async def delete_punt(werkgebied_id: str, punt_id: str, verwachte_revisie: int = Query(ge=1),
+                      reden: str = Query("", max_length=2000, description="verplicht bij een punt dat nog open is"),
                       actor: str = Depends(actieve_userid)):
-    return await store.verwijder(werkgebied_id, punt_id, verwachte_revisie, actor)
+    return await store.verwijder(werkgebied_id, punt_id, verwachte_revisie, actor, reden)
 
 
 @router.get("/open-punten/{punt_id}/revisies")
