@@ -205,6 +205,10 @@ def _aandacht_poort(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
         weg = [k for k in dragend if k["actualiteit"] != "actueel"]
         uit = [_meervoud(len(weg), "Herbeoordelen: 1 dragende passage veranderde na het accorderen.",
                          "Herbeoordelen: {n} dragende passages veranderden na het accorderen.")] if weg else []
+        if not any(k["rol"] in AANDUIDEND for k in dragend):
+            # Een afgewezen koppeling laat het begrip geaccordeerd (besluit 20 nov 2026), maar zonder aanduidende
+            # passage rust het nergens meer op.
+            uit.append("Geen grondslag meer: geen passage duidt dit begrip nog aan, en geen afleidingsregel leidt het af.")
         # Na herkoppelen (fase F1) kan een dragende passage op een nog niet beoordeelde annotatie rusten.
         open_ = sum(k["actualiteit"] == "actueel" and not k["annotatie_beoordeeld"] for k in dragend)
         if open_:
@@ -881,7 +885,7 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
     # `_gewijzigd` leest `detail` pas na het blok: wat er echt verandert is pas onder het slot bekend.
     detail: dict = {"koppeling": koppeling_id}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
-                          detail, passage=True) as (conn, _, stand):
+                          detail, passage=True) as (conn, begrip, stand):
         row = (await conn.execute(select(k).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
                                                   k.c.werkgebied_id == werkgebied_id,
                                                   k.c.verwijderd.is_(None)))).first()
@@ -907,10 +911,20 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
         if not velden:
             stand["geen_wijziging"] = True
         else:
+            if velden.get("beoordeling") == "afgewezen" and set(velden) <= {"beoordeling", "motivatie"}:
+                _blijft_geaccordeerd(begrip, stand)
             if "beoordeling" in velden:
                 velden.update(beoordeeld_door=actor, beoordeeld_op=db.utcnow())
             await conn.execute(update(k).where(k.c.id == koppeling_id).values(**velden))
     return koppelstand(await haal(werkgebied_id, begrip_id))
+
+
+def _blijft_geaccordeerd(begrip, stand: dict) -> None:
+    """Besluit gebruiker 20 nov 2026 ("Ja, blijft geaccordeerd"): een koppeling afwijzen verandert de definitie niet, dus
+    een geaccordeerd begrip blijft geaccordeerd. Valt daarmee de laatste aanduidende passage weg, dan noemen de
+    aandachtspunten dat (`_aandacht_poort`): het begrip heeft dan geen grondslag meer."""
+    if begrip.status == "geaccordeerd":
+        stand["status"] = "geaccordeerd"
 
 
 async def beoordeel_koppelingen(werkgebied_id: str, begrip_id: str, w: KoppelBeoordelingen, actor: str) -> dict:
@@ -919,7 +933,9 @@ async def beoordeel_koppelingen(werkgebied_id: str, begrip_id: str, w: KoppelBeo
     beoordeling = w.beoordeling.value
     detail: dict = {"velden": ["beoordeling"], "beoordeling": beoordeling}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
-                          detail, passage=True) as (conn, _, stand):
+                          detail, passage=True) as (conn, begrip, stand):
+        if beoordeling == "afgewezen":
+            _blijft_geaccordeerd(begrip, stand)
         rijen = {r.id: r for r in (await conn.execute(select(k).where(
             k.c.id.in_(w.koppeling_ids), k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
             k.c.verwijderd.is_(None)))).all()}
