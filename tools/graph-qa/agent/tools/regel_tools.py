@@ -103,9 +103,16 @@ def compact_regel(r: dict[str, Any]) -> dict[str, Any]:
         "accorderen": r.get("accorderen") or {}, "signalen": r.get("signalen") or [],
         "gaten": [g.get("tekst", "") for g in r.get("gaten") or []], "open_punten": r.get("open_punten") or {},
         "toelichting": TOELICHTING}
-    for k in ("vervangen_door", "opvolger_van"):
-        if r.get(k):
-            uit[k] = r[k]
+    # De opvolging met de namen (herhaalmeting na #1796): de namen van voorgangers en opvolger staan zo letterlijk in het
+    # toolresultaat, en het antwoord mag ze noemen. Een oudere api stuurt alleen de id's.
+    o = r.get("opvolging") or {}
+    if o.get("vervangen_door"):
+        uit["vervangen_door"] = o["vervangen_door"]
+    elif r.get("vervangen_door"):
+        uit["vervangen_door"] = {"id": r["vervangen_door"], "naam": ""}
+    vervangt = o.get("vervangt") or ([{"id": r["opvolger_van"], "naam": ""}] if r.get("opvolger_van") else [])
+    if vervangt:
+        uit["vervangt"] = vervangt
     return uit
 
 
@@ -149,16 +156,31 @@ _ONDERWERP = re.compile(r"\b(?:bepal\w*|voor|over|van|berekenen|berekent)\s+(?:d
                         r"(?=\s+(?:van|in|bij|en|op|uit|met|dat|die)\b|\s*[?.!,;:]|\s*$)")
 
 
+# "Regel(s)" alleen samen met de stand of de opvolging van een regelobject ("welke regels zijn vervangen, en door
+# welke regel?", herhaalmeting na #1796, run 9b6d4e23: 262k via de centrale agent). Een kale "regel" is meestal wettekst
+# ("welke regels gelden voor …"), en een vraag die een artikel, lid of regeling noemt ook ("welke regels van de
+# Invorderingswet zijn vervangen?").
+_REGELWOORD = re.compile(r"\bregels?\b")
+_STAND = re.compile(r"\b(vervangen|vervangt|opvolger\w*|voorganger\w*|afgewezen|geaccordeerd\w*|concept(en)?"
+                    r"|beleidsregel\w*|status|stand)\b")
+_WETTEKST = re.compile(r"\b(artikel\w*|art\.|lid|leden|\w*wet(?:ten|boek)?|\w*regeling\w*|bwbr\d+|leidraad|\w*besluit\w*)\b")
+
+
 def is_regel_leesvraag(vraag: str) -> bool:
     q = (vraag or "").casefold()
-    return bool(_REGEL.search(q) and not _ANNOTATIE.search(q) and not _REGEL_SCHRIJVEN.search(q))
+    if _ANNOTATIE.search(q) or _REGEL_SCHRIJVEN.search(q):
+        return False
+    if _REGEL.search(q):
+        return True
+    return bool(_REGELWOORD.search(q) and _STAND.search(q) and not _WETTEKST.search(q))
 
 
 def zoekterm_regel(vraag: str) -> str:
     """Het onderwerp van de regel als zoekterm ("vervaldag"), of leeg: dan zoekt de route alle regels van het werkgebied.
     Een verkeerd geraden term levert stil te weinig op, dus alleen na een vast patroon; het model verfijnt daarna zelf."""
     q = (vraag or "").casefold()
-    if m := _ONDERWERP.search(q[_REGEL.search(q).end():] if _REGEL.search(q) else q):
+    na = _REGEL.search(q) or _REGELWOORD.search(q)
+    if m := _ONDERWERP.search(q[na.end():] if na else q):
         woorden = [w for w in m.group(1).split() if w not in {"regel", "regels", "afleidingsregel", "afleidingsregels"}]
         return " ".join(woorden[:3])
     return ""

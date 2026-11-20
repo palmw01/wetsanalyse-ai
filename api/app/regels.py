@@ -152,8 +152,9 @@ async def post_afwijzen(werkgebied_id: str, regel_id: str, req: Afwijzing, vorm:
 
 @router.get("/regels/{regel_id}/revisies")
 async def get_revisies(werkgebied_id: str, regel_id: str, limit: int = Query(100, ge=1, le=500),
-                       actor: str = Depends(actieve_userid)):
-    return {"revisies": await store.revisies(werkgebied_id, regel_id, limit)}
+                       vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
+    """`?vorm=kort` (of `stand`): zonder de inhoud per revisie."""
+    return {"revisies": await store.revisies(werkgebied_id, regel_id, limit, kort=vorm in ("kort", "stand"))}
 
 
 @router.get("/parameterwaarden")

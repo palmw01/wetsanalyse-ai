@@ -710,11 +710,21 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'daar een passage uit aan. Een toolfout of '
                                               'onvolledig resultaat betekent niet dat een regel '
                                               'niet bestaat.\n'
-                                              'AFRONDEN: rust je antwoord op de wettekst van de '
-                                              'dragers, rond dan af met antwoord_duiding en wijs '
-                                              'de passages aan uit de bepalingen die je ophaalde. '
-                                              'Gaat de vraag alleen over welke regels er liggen of '
-                                              'wat hun stand is, dan antwoord je in tekst.',
+                                              'Bij een vervangen regel noem je de opvolger, en bij '
+                                              'een opvolger de regels die ze verving, met hun naam '
+                                              'uit het toolresultaat (`vervangen_door`, '
+                                              '`vervangt`).\n'
+                                              'AFRONDEN: vraagt de gebruiker waarop een regel '
+                                              'rust, welke artikelen of bepalingen eronder liggen '
+                                              'of wat de wet erover zegt, dan schrijf je geen '
+                                              'antwoord in tekst. Haal de bepalingen van de '
+                                              'grondslag op en rond als laatste stap af met '
+                                              'antwoord_duiding: noem in het korte antwoord de '
+                                              'regels met hun status, en wijs per bepaling een '
+                                              'passage aan. Gaat de vraag alleen over welke regels '
+                                              'er liggen, hun status of hun opvolging, dan '
+                                              'antwoord je in tekst. Kondig je antwoord niet aan '
+                                              "('Hieronder volgt …'): begin met het antwoord.",
                                 'kiesbaar': False,
                                 'max_rondes': None,
                                 'mcp': (),
@@ -878,4 +888,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'b1f29ef96a622bbf221c0d61467c278e4fb3758dac93e77522001b8caabee742'}
+ 'sha256': 'e1efe04ba32c42c2d344221fcc7ad928c4e96e699ed27a73e9c7330b0348524f'}

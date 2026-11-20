@@ -24,10 +24,23 @@ VRAAG = "Welke afleidingsregels bepalen de vervaldag van een termijn, en op welk
     ("Stel een afleidingsregel op voor het termijnbedrag", False, "termijnbedrag"),
     ("Accordeer de afleidingsregel voor de vervaldag", False, "vervaldag"),
     ("Wanneer vervalt een termijn?", False, ""),
+    # De stand en de opvolging van regels (herhaalmeting na #1796, run 9b6d4e23).
+    ("Welke regels zijn vervangen, en door welke regel?", True, ""),
+    ("Welke regels zijn al geaccordeerd?", True, ""),
+    ("Welke regels staan nog als concept?", True, ""),
+    ("Welke regels zijn afgewezen?", True, ""),
+    ("Wat is de opvolger van de regel voor de vervaldag?", True, "vervaldag"),
+    # Wettekst, of een opdracht: niet.
+    ("Welke regels gelden voor de invordering?", False, ""),
+    ("Welke regels van de Invorderingswet zijn vervangen?", False, ""),
+    ("Welke regels uit artikel 9 zijn vervangen?", False, ""),
+    ("Welke afleidingsregels zijn gemarkeerd en vervangen?", False, ""),
+    ("Wijs de regel af, hij is vervangen", False, ""),
 ])
 def test_herkennen(vraag, lees, term):
     assert is_regel_leesvraag(vraag) is lees
-    assert zoekterm_regel(vraag) == term
+    if lees:
+        assert zoekterm_regel(vraag) == term
 
 
 class _Port:
@@ -90,3 +103,37 @@ def test_het_duidingssjabloon_haalt_zo_n_artikel_op_in_plaats_van_het_onbekend_t
     trace = [("get_regel", '{"dragers": [{"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}]}')]
     fout = _genoemd_is_gelezen(["artikel 9"], {}, trace)
     assert fout.code == "genoemd_op_te_halen" and fout.ophalen == [{"bwb_id": "BWBR0004770", "artikel": "9"}]
+
+
+def test_de_dragers_van_een_gelezen_regel_staan_in_de_bronnen():
+    """Ook een Leidraad-divisie zonder jci (herhaalmeting na #1796: LI 9.1 en 9.5 geciteerd, niet in de bronnen)."""
+    import json
+    from agent.provenance import collect_sources
+    li = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+    raw = json.dumps({"dragers": [{"bron_iri": li, "vindplaats": "Leidraad Invordering 2008 – Artikel 9, 9.1"},
+                                  {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "jci": "jci1.3:c:BWBR0004770&artikel=9&lid=1",
+                                   "vindplaats": "Invorderingswet 1990 – Artikel 9, Lid 1"},
+                                  {"bron_iri": li, "vindplaats": "dubbel"}]})
+    bronnen = collect_sources([("get_regel", raw)])
+    assert [(b.uri, b.label) for b in bronnen] == [(li, "Leidraad Invordering 2008 – Artikel 9, 9.1"),
+        ("urn:bwb:BWBR0004770:artikel:9:lid:1", "Invorderingswet 1990 – Artikel 9, Lid 1")]
+    assert bronnen[1].jci and not bronnen[0].jci
+    # De zoektool en een fout zijn geen bron.
+    assert collect_sources([("search_regels", raw)]) == []
+    assert collect_sources([("get_regel", json.dumps({"status": "error", "reden": "x"}))]) == []
+
+
+def test_de_opvolging_staat_met_namen_in_het_resultaat():
+    from agent.tools.regel_tools import compact_regel
+    r = {**REGEL, "opvolging": {"vervangen_door": None, "vervangt": [{"id": "r2", "naam": "bepalen van de vervaldag bij betaling ineens"}]}}
+    assert compact_regel(r)["vervangt"] == [{"id": "r2", "naam": "bepalen van de vervaldag bij betaling ineens"}]
+    oud = compact_regel({**REGEL, "status": "vervangen", "vervangen_door": "r1"})
+    assert oud["vervangen_door"] == {"id": "r1", "naam": ""}
+
+
+def test_een_aankondiging_zonder_scheidingslijn_is_een_aanloop():
+    from agent.narratie import zonder_aanloop
+    antwoord, aanloop = zonder_aanloop("Hieronder volgt het volledige antwoord op basis van de opgehaalde regels.\n\nDe regel …")
+    assert antwoord == "De regel …" and aanloop.startswith("Hieronder volgt")
+    for tekst in ("Hier is de regeling die geldt: artikel 9.\n\nMeer.", "Hieronder staat per regel de stand.\n\n- a"):
+        assert zonder_aanloop(tekst) == (tekst, "")

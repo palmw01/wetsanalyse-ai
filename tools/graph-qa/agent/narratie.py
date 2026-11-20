@@ -246,9 +246,19 @@ _PROCES_RE = re.compile(r"\b(?:ik\s+(?:heb|kan|ga|zal|wil|moet)|nu\s+(?:heb|kan|
                         re.IGNORECASE)
 
 
+#: Een eerste alinea die alleen het antwoord aankondigt, zonder scheidingslijn ("Hieronder volgt het volledige antwoord
+#: op basis van de opgehaalde regels."; herhaalmeting na #1796). Kort, en alleen deze vaste vorm: een alinea met inhoud
+#: begint niet zo.
+_AANKONDIGING_RE = re.compile(r"\A\s*(?P<kop>(?:hieronder|hier)\s+(?:volgt|staat|vind\s+je|is|lees\s+je)\b[^\n]{0,160}?"
+                              r"\b(?:antwoord|overzicht|uitleg|samenvatting)\b[^\n]{0,80}?[.:])\s*\n\s*\n(?P<rest>.+)\Z",
+                              re.S | re.IGNORECASE)
+
+
 def zonder_aanloop(tekst: str) -> tuple[str, str]:
     """(het antwoord, de aanloop die eraf ging). De aanloop gaat naar het denkproces, niet naar de jurist; geen
     aanloop of een kop die geen procestaal is (een titel, een citaat): de tekst blijft zoals hij was."""
+    if (a := _AANKONDIGING_RE.match(tekst or "")) and not any(t in a.group("kop") for t in ('"', "„", "“", "#", "**")):
+        return a.group("rest").lstrip("\n"), a.group("kop").strip()
     m = _AANLOOP_RE.match(tekst or "")
     if not m or not _PROCES_RE.search(m.group("kop")) or any(t in m.group("kop") for t in ('"', "„", "“", "#", "**")):
         return tekst, ""

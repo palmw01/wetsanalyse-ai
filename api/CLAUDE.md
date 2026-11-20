@@ -1122,6 +1122,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   `GET …/regels/{id}` en op de lijst geeft `regel_store.kort` (id, revisie, status, `vervangen_door`, poort, signalen,
   de telling van de open punten; bij een drager ook die drager smal). `GET …/regels/{id}/dragers` geeft de dragers
   smal (`smalle_drager`, zonder ankers) en `GET …/regels/{id}/poort` de stand met de gaten. De standaard blijft de kaart.
+- **De opvolging met namen** (`opvolging: {vervangen_door: {id, naam} | null, vervangt: [{id, naam}]}`, ook in de korte
+  vorm, met `opvolger_van`): een lezer heeft zo de namen van voorganger en opvolger, niet alleen de id's.
+  `GET …/regels/{id}/revisies?vorm=kort` laat de inhoud per revisie weg.
 - **Een onbekend veld is een 422** op elke schrijfroute van een regel (`Revisie`, `RegelAanmaak`: `extra="forbid"`).
 - **Open punten op de regel** (R3, ADR-018 besluit 7.13): het object en zijn besluitroute zijn van `open_punt_store`
   (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval

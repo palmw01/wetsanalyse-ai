@@ -437,7 +437,7 @@ async def test_de_compacte_vorm_en_de_smalle_routes(client):
     r = await client.patch(_url(wg, regel["id"], "dragers", d["id"]), params={"vorm": "kort"},
                            json={"verwachte_revisie": regel["revisie"], "beoordeling": "akkoord"})
     kort = r.json()
-    assert set(kort) == {"id", "revisie", "status", "vervangen_door", "accorderen", "signalen", "open_punten", "drager"}
+    assert set(kort) == {"id", "revisie", "status", "vervangen_door", "opvolger_van", "opvolging", "accorderen", "signalen", "open_punten", "drager"}
     assert kort["drager"]["beoordeling"] == "akkoord" and "bewijs" not in kort["drager"]
     assert kort["drager"]["tekst"] == "Alfa"
     dragers = (await client.get(_url(wg, regel["id"], "dragers"))).json()

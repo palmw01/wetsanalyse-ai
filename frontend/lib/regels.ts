@@ -91,6 +91,8 @@ export interface Regel {
   opvolger_van: string | null;
   /** De regel die deze verving (status `vervangen`); een oudere api stuurt het niet. */
   vervangen_door?: string | null;
+  /** De opvolging met namen: wie deze regel verving en welke regels hij verving. Een oudere api stuurt het niet. */
+  opvolging?: { vervangen_door: { id: string; naam: string } | null; vervangt: { id: string; naam: string }[] };
   inhoud: RegelInhoud;
   /** De naam van het regelbegrip ("bepalen termijnbedrag") en van de uitvoer. */
   naam: string;
