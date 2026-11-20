@@ -402,7 +402,7 @@ async def test_een_voorbeeld_beoordeel_je_apart(client):
                           json={"verwachte_revisie": regel["revisie"], "oordeel": "juist"})
     assert r.status_code == 404
     r = await client.post(_url(wg, regel["id"], "voorbeelden", "1", "oordeel"),
-                          json={"verwachte_revisie": regel["revisie"], "oordeel": "juist", "reden": "x"})
+                          json={"verwachte_revisie": regel["revisie"], "oordeel": "juist", "besluit": "x"})
     assert r.status_code == 422, "een onbekend veld is een 422"
     r = await client.post(_url(wg, regel["id"], "voorbeelden", "1", "oordeel"),
                           json={"verwachte_revisie": regel["revisie"], "oordeel": "juist", "toelichting": "Klopt."})
@@ -588,3 +588,39 @@ async def test_een_onjuist_voorbeeld_houdt_tegen_met_nummers(client):
     r = await client.post(_url(wg, regel["id"], "accorderen"),
                           json={"verwachte_revisie": regel["revisie"], "motivering": "Getoetst aan lid 1."})
     assert r.status_code == 200 and r.json()["status"] == "geaccordeerd", r.text
+
+
+async def test_het_oordeel_draagt_een_reden_en_een_keuze_moet_haar_geval_dragen(client):
+    """Laatste ronde, 20 nov 2026: de oordeelroute nam geen grond aan, en een keuze op geval a waarvan de lezing op een
+    markering rust die alleen geval b draagt, ging stil door."""
+    wg, ids, b = await _opzet(client)
+    regel = (await client.post(_url(wg), json={"inhoud": _twee_gevallen(b, voorbeelden=[
+        {"geval": "a", "invoer": "1200", "uitkomst": "100"}]), "dragers": [
+        {"element_id": ids["ar"], "rol": "grondslag", "geval": "a"},
+        {"element_id": ids["var"], "rol": "grondslag", "geval": "b"}]})).json()
+    r = await client.post(_url(wg, regel["id"], "voorbeelden", "1", "oordeel"),
+                          json={"verwachte_revisie": regel["revisie"], "oordeel": "juist", "motivering": "Nagerekend."})
+    assert r.status_code == 200, r.text
+    regel = r.json()
+    v = regel["inhoud"]["voorbeelden"][0]
+    assert (v["reden"], v["beoordeeld_door"]) == ("Nagerekend.", "jurist-a")
+    assert (await client.get(_url(wg, regel["id"], "voorbeelden"))).json()["voorbeelden"][0]["reden"] == "Nagerekend."
+    # Terug naar open wist de grond.
+    regel = (await client.post(_url(wg, regel["id"], "voorbeelden", "1", "oordeel"),
+                               json={"verwachte_revisie": regel["revisie"], "oordeel": "open"})).json()
+    assert regel["inhoud"]["voorbeelden"][0]["reden"] == ""
+
+    punten = f"/v1/werkgebieden/{wg['id']}/open-punten"
+    p = (await client.post(punten, json={"inhoud": {
+        "soort": "interpretatiekeuze", "vraag": "Geldt dit ook bij a?", "hangt_aan": [{"soort": "geval", "id": regel["id"], "geval": "a"}],
+        "lezingen": [{"label": "A", "omschrijving": "Ja", "grondslag": [{"soort": "markering", "id": ids["var"]}]},
+                     {"label": "B", "omschrijving": "Nee"}]}})).json()
+    await client.post(f"{punten}/{p['id']}/besluit", json={"verwachte_revisie": 1, "gekozen": "A", "motivering": "x",
+                                                         "methode": "systematisch"})
+    regel = (await client.get(_url(wg, regel["id"]))).json()
+    assert any("Keuze A is genomen voor geval a" in s and "dragen geval a niet" in s for s in regel["signalen"]), \
+        regel["signalen"]
+    # Draagt de markering van de lezing het geval wel (een drager voor de hele regel), dan geen signaal.
+    regel = (await client.post(_url(wg, regel["id"], "dragers"), json={
+        "verwachte_revisie": regel["revisie"], "dragers": [{"element_id": ids["var"], "rol": "invoer"}]})).json()
+    assert not any("Keuze A is genomen" in s for s in regel["signalen"])

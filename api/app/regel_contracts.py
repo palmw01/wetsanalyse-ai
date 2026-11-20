@@ -134,6 +134,8 @@ class RegelVoorbeeld(BaseModel):
     door: str = Field(default="", max_length=64)
     beoordeeld_door: str = Field(default="", max_length=64)
     beoordeeld_op: str = Field(default="", max_length=40)
+    # De grond van het oordeel ("nagerekend met lid 1"), bij het voorbeeld; zet de server, met `beoordeeld_door`.
+    reden: str = Field(default="", max_length=2000)
 
 
 class RegelInhoud(BaseModel):
@@ -225,6 +227,8 @@ class VoorbeeldBeoordeling(Revisie):
     """Het oordeel over één voorbeeld. `open` zet het oordeel terug."""
     oordeel: VoorbeeldOordeel
     toelichting: str | None = Field(default=None, max_length=2000)
+    # De grond van het oordeel; `motivering` is hetzelfde veld, zoals bij accorderen.
+    reden: str = Field(default="", max_length=2000, validation_alias=AliasChoices("reden", "motivering"))
 
 
 #: De grond van een besluit over de hele regel (accorderen, afwijzen) heet `reden`, zoals bij een begrip. Wie

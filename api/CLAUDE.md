@@ -1020,7 +1020,7 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Maken en beoordelen van een voorbeeld zijn twee handelingen** (`voorbeelden_na`): de POST en de PATCH zetten nooit een
   oordeel. Een nieuw of gewijzigd voorbeeld (geval, invoer en uitkomst) is `open` en draagt `door`; een gelijk voorbeeld
   houdt zijn oordeel. Het oordeel gaat via `POST …/regels/{id}/voorbeelden/{nr}/oordeel` (`nr` vanaf 1, met
-  `verwachte_revisie`), dat `beoordeeld_door` en `beoordeeld_op` zet. Beoordeelt de maker zijn eigen voorbeeld, dan is dat
+  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet. Beoordeelt de maker zijn eigen voorbeeld, dan is dat
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
@@ -1031,6 +1031,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   tegen; een contextpassage is een signaal.
 - **Een tekstdeel van een uitkomst is hoogstens `MAX_TEKSTDEEL` (500) tekens**: in het schema (`maxLength`) en in een
   melding die zegt hoe lang het deel is en wat je doet.
+- **Een genomen keuze op een geval moet dat geval dragen** (een signaal): rust de gekozen lezing op markeringen en is geen
+  daarvan een drager van dat geval (of van de hele regel), dan noemt `signalen` het. Of de keuze in de regeltekst is
+  verwerkt, toetst de api niet: dat is niet zuiver af te leiden.
 - **Compact lezen en schrijven** (B1, het patroon van `begrip_store.begripkort`): `?vorm=kort` (of `stand`) op elke schrijfroute, op
   `GET …/regels/{id}` en op de lijst geeft `regel_store.kort` (id, revisie, status, `vervangen_door`, poort, signalen,
   de telling van de open punten; bij een drager ook die drager smal). `GET …/regels/{id}/dragers` geeft de dragers

@@ -214,7 +214,7 @@ def _nrs(nrs: list[int]) -> str:
 def smalle_voorbeelden(regel: dict) -> list[dict]:
     """De voorbeelden met hun nummer, zonder de rest van de regel (`GET …/regels/{id}/voorbeelden`)."""
     return [{"nr": i, **{k: v.get(k, "") for k in ("geval", "invoer", "uitkomst", "oordeel", "toelichting", "door",
-                                                      "beoordeeld_door", "beoordeeld_op")}}
+                                                      "beoordeeld_door", "beoordeeld_op", "reden")}}
             for i, v in enumerate(regel["inhoud"].get("voorbeelden", []), start=1)]
 
 
@@ -227,6 +227,19 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
     if rest:
         uit.append(_meervoud(len(rest), "1 onderzoekspunt of gat in de annotatie staat nog open.",
                              "{n} onderzoekspunten of gaten in de annotatie staan nog open."))
+    # Een genomen keuze op een geval, waarvan de lezing op markeringen rust die dat geval niet draagt (vervolgronde
+    # 20 nov 2026: keuze op lid 1, drager van de lezing alleen bij lid 5). Of de keuze in de regeltekst is verwerkt,
+    # is niet zuiver te toetsen; of haar markeringen het geval dragen wel. Een signaal, geen poort: een lezing kan ook op
+    # een bron of stuk rusten, of een voorwaarde uitsluiten.
+    for p in open_punten or []:
+        if not p.get("gekozen") or not p.get("lezing_markeringen"):
+            continue
+        for geval in p.get("gevallen") or []:
+            draagt = {d["element_id"] for d in dragers if d["beoordeling"] != "afgewezen" and d["geval"] in ("", geval)}
+            if not draagt & set(p["lezing_markeringen"]):
+                uit.append(f"Keuze {p['gekozen']} is genomen voor geval {geval} ({p['vraag'].rstrip('.?')}), maar de "
+                           f"markeringen van die lezing dragen geval {geval} niet: toets of de keuze in het geval is "
+                           "verwerkt.")
     gesignaleerd = sum(p["status"] == "gesignaleerd" for p in open_punten or [])
     if gesignaleerd:
         uit.append(_meervoud(gesignaleerd, "1 punt van ontbrekend uitvoeringsbeleid is gesignaleerd: het beleid "
@@ -383,14 +396,21 @@ async def _open_punten_van(conn, werkgebied_id: str, regel_ids: list[str]) -> di
     if not regel_ids:
         return {}
     t = db.open_punten
-    rows = (await conn.execute(select(t.c.id, t.c.status, t.c.inhoud).where(t.c.werkgebied_id == werkgebied_id)
+    rows = (await conn.execute(select(t.c.id, t.c.status, t.c.inhoud, t.c.keuze).where(t.c.werkgebied_id == werkgebied_id)
                                .order_by(t.c.aangemaakt, t.c.id))).all()
     uit: dict[str, list[dict]] = {}
     for x in rows:
         regels = {a["id"] for a in x.inhoud.get("hangt_aan", []) if a.get("soort") in ("regel", "geval")}
         for rid in regels & set(regel_ids):
-            uit.setdefault(rid, []).append({"id": x.id, "status": x.status, "soort": x.inhoud["soort"],
-                                            "vraag": x.inhoud.get("vraag", "")})
+            gekozen = (x.keuze or {}).get("gekozen", "")
+            lezing = next((l for l in x.inhoud.get("lezingen") or [] if l.get("label") == gekozen), None) if gekozen else None
+            uit.setdefault(rid, []).append({
+                "id": x.id, "status": x.status, "soort": x.inhoud["soort"], "vraag": x.inhoud.get("vraag", ""),
+                "gevallen": [a.get("geval", "") for a in x.inhoud.get("hangt_aan", [])
+                             if a.get("soort") == "geval" and a.get("id") == rid],
+                "gekozen": gekozen,
+                "lezing_markeringen": [g["id"] for g in (lezing or {}).get("grondslag") or [] if g.get("soort") == "markering"],
+            })
     return uit
 
 
@@ -673,9 +693,10 @@ def voorbeelden_na(oud: list[dict], nieuw: list[dict], actor: str) -> list[dict]
         bestaand = (over.get(sleutel(v)) or [None]).pop(0) if over.get(sleutel(v)) else None
         if bestaand:
             uit.append({**v, **{k: bestaand.get(k, d) for k, d in
-                                (("oordeel", "open"), ("door", ""), ("beoordeeld_door", ""), ("beoordeeld_op", ""))}})
+                                (("oordeel", "open"), ("door", ""), ("beoordeeld_door", ""), ("beoordeeld_op", ""),
+                                 ("reden", ""))}})
         else:
-            uit.append({**v, "oordeel": "open", "door": actor, "beoordeeld_door": "", "beoordeeld_op": ""})
+            uit.append({**v, "oordeel": "open", "door": actor, "beoordeeld_door": "", "beoordeeld_op": "", "reden": ""})
     return uit
 
 
@@ -780,13 +801,17 @@ async def beoordeel_voorbeeld(werkgebied_id: str, regel_id: str, nr: int, w: Voo
                 raise HTTPException(404, {"fout": "niet_gevonden", "melding": f"Deze regel heeft geen voorbeeld {nr}."})
             v = voorbeelden[nr - 1]
             toelichting = v.get("toelichting", "") if w.toelichting is None else w.toelichting.strip()
-            if v.get("oordeel", "open") == w.oordeel.value and v.get("toelichting", "") == toelichting:
+            beoordeeld = w.oordeel.value != "open"
+            reden = w.reden.strip() if beoordeeld else ""
+            if (v.get("oordeel", "open") == w.oordeel.value and v.get("toelichting", "") == toelichting
+                    and v.get("reden", "") == reden):
                 stand["geen_wijziging"] = True
             else:
-                beoordeeld = w.oordeel.value != "open"
-                v.update(oordeel=w.oordeel.value, toelichting=toelichting,
+                v.update(oordeel=w.oordeel.value, toelichting=toelichting, reden=reden,
                          beoordeeld_door=actor if beoordeeld else "",
                          beoordeeld_op=db.utcnow().isoformat() if beoordeeld else "")
+                if reden:
+                    detail["reden"] = reden
                 detail["door_maker"] = beoordeeld and bool(v.get("door")) and v.get("door") == actor
                 stand["inhoud"] = {**row.inhoud, "voorbeelden": voorbeelden}
     return await haal(werkgebied_id, regel_id)
