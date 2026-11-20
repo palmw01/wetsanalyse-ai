@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 import agent
-from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, zoekvragen
+from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, schakelbepalingen, zoekvragen
 from agent.graph import queries as q
 from agent.jas_pipeline import verwijzingen as jas_verwijzingen
 from agent import tools as _tools
@@ -131,6 +131,8 @@ GEVALLEN: list[tuple[str, str]] = [
     # M-1-1: de verwijzingen van een bepaling met hun doel, voor uitzondering_op en toepassing naar een hele bepaling.
     ("jas_pipeline.verwijzingen.q_verwijzingen", jas_verwijzingen.q_verwijzingen(
         [f"urn:bwb:{IW}:artikel:9:lid:5", f"urn:bwb:{IW}:artikel:9:lid:1", "geen-iri"])),
+    # L-1-1: de schakelbepalingen naar het zoekbereik (de AWR en de IW 1990), en een ongeldig BWB-id dat wegvalt.
+    ("schakelbepalingen.q_schakel", schakelbepalingen.q_schakel(["BWBR0002320", IW, "geen-bwb"])),
 ]
 
 

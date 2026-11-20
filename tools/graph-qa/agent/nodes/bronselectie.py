@@ -92,13 +92,18 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
                     "brug": {w: brugtermen(werkgebied, w, alleen_omschrijving=streng)[:5] for w in ontbrekend},
                     "elders": {w: r for w, r in elders.items() if r}}
 
+        def schakel(regelingen: list[str]) -> list[dict[str, Any]]:
+            """Regelingen buiten het zoekbereik die er een van toepassing verklaren (zonder model); zonder graaf geen."""
+            from ..schakelbepalingen import schakelregelingen
+            return schakelregelingen(b.graph, regelingen) if b.graph is not None else []
+
         try:
             if actie:
                 return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets, namen)
             if state.get("actie") == "bepaling_toevoegen":
                 return await bs.vraag_toevoegen(api, wid, aangewezen)
             return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
-                                  stel_voor=stel_voor, toets=toets)
+                                  stel_voor=stel_voor, toets=toets, schakel=schakel)
         except WetsanalyseApiFout as fout:
             if fout.status == 412:
                 uit = await bs.start(api, wid, None)
