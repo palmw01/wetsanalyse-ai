@@ -54,7 +54,22 @@ def _rij(r: dict[str, Any]) -> dict[str, Any]:
     return {"id": r.get("id", ""), "naam": r.get("naam", ""), "uitvoer": r.get("uitvoer", ""),
             "regel_status": r.get("status", ""), "soort": r.get("soort", ""), "brontype": r.get("brontype", ""),
             "werkgebied": r.get("werkgebied_naam", ""), "werkgebied_id": r.get("werkgebied_id", ""),
-            "gevallen": r.get("gevallen", 0), "regeltekst": _kort(r.get("regeltekst", ""), 600)}
+            "gevallen": r.get("gevallen", 0), "regeltekst": _kort(r.get("regeltekst", ""), 600),
+            # Dezelfde opvolging als `get_regel` (slotmeting na #1798): wie de regel verving en welke regels hij verving.
+            **_opvolging(r)}
+
+
+def _opvolging(r: dict[str, Any]) -> dict[str, Any]:
+    """`vervangen_door` en `vervangt` met namen, uit `opvolging` van de api; een oudere api stuurt alleen de id's."""
+    o, uit = r.get("opvolging") or {}, {}
+    if o.get("vervangen_door"):
+        uit["vervangen_door"] = o["vervangen_door"]
+    elif r.get("vervangen_door"):
+        uit["vervangen_door"] = {"id": r["vervangen_door"], "naam": ""}
+    vervangt = o.get("vervangt") or ([{"id": r["opvolger_van"], "naam": ""}] if r.get("opvolger_van") else [])
+    if vervangt:
+        uit["vervangt"] = vervangt
+    return uit
 
 
 def zoek(args: dict[str, Any], port) -> dict[str, Any]:
@@ -71,7 +86,8 @@ def zoek(args: dict[str, Any], port) -> dict[str, Any]:
 
 def _drager(d: dict[str, Any]) -> dict[str, Any]:
     b, bron = d.get("bewijs") or {}, d.get("bron") or {}
-    uit = {"rol": d.get("rol", ""), "geval": d.get("geval", ""), "beoordeling": d.get("beoordeling", ""),
+    uit = {"element_id": d.get("element_id", ""), "rol": d.get("rol", ""), "geval": d.get("geval", ""),
+           "beoordeling": d.get("beoordeling", ""),
            "actualiteit": d.get("actualiteit", ""), "klasse": b.get("klasse", ""), "passage": _kort(b.get("tekst", ""), 300),
            "vindplaats": b.get("vindplaats") or bron.get("vindplaats") or bron.get("label", "")}
     if bron.get("bron_iri") or b.get("eigenaar_iri"):
@@ -105,14 +121,7 @@ def compact_regel(r: dict[str, Any]) -> dict[str, Any]:
         "toelichting": TOELICHTING}
     # De opvolging met de namen (herhaalmeting na #1796): de namen van voorgangers en opvolger staan zo letterlijk in het
     # toolresultaat, en het antwoord mag ze noemen. Een oudere api stuurt alleen de id's.
-    o = r.get("opvolging") or {}
-    if o.get("vervangen_door"):
-        uit["vervangen_door"] = o["vervangen_door"]
-    elif r.get("vervangen_door"):
-        uit["vervangen_door"] = {"id": r["vervangen_door"], "naam": ""}
-    vervangt = o.get("vervangt") or ([{"id": r["opvolger_van"], "naam": ""}] if r.get("opvolger_van") else [])
-    if vervangt:
-        uit["vervangt"] = vervangt
+    uit.update(_opvolging(r))
     return uit
 
 

@@ -1134,7 +1134,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   dat gekozen, getoetst of gesignaleerd is, of is omgehangen, houdt niet meer tegen. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
-  van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel.
+  van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel. De tekst per geval draagt een lijst voorwaarden regel voor
+  regel (de kop, de voorwaarden, "dan: …"); de werkplek toont hem met regeleinden. Het overzicht (`GET /v1/regels`) draagt
+  per rij dezelfde `opvolging` als de kaart.
 - **De hiërarchie wordt afgeleid** (`GET …/regels/hierarchie`, `regel_store.keten`): pijlen van de regel die een begrip
   afleidt naar de regel die het gebruikt, de volgorde van onder naar boven, basisgegevens (invoer zonder regel) en
   signalen (`zelfde_uitvoer`, `kring`). Een afgewezen of vervangen regel doet niet mee.

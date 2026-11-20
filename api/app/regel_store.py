@@ -660,14 +660,25 @@ async def overzicht(q: str = "", status: list[str] | None = None, werkgebied_id:
         ids = {i for x in rows for i in genoemde_begrippen(x.inhoud)}
         namen = {x.id: (x.inhoud or {}).get("naam", "") for x in (await conn.execute(
             select(b.c.id, b.c.inhoud).where(b.c.id.in_(sorted(ids))))).all()} if ids else {}
+    # De opvolging met namen, in dezelfde vorm als de kaart (`opvolging`, slotmeting na #1798: `search_regels` gaf
+    # `vervangen_door` niet, `get_regel` wel). De namen uit de regels zelf; buiten het filter blijft alleen het id.
+    regelnaam = {x.id: namen.get(x.inhoud["regelbegrip_id"], "") for x in rows}
+    voorgangers: dict[str, list[str]] = {}
+    for x in rows:
+        if x.vervangen_door:
+            voorgangers.setdefault(x.vervangen_door, []).append(x.id)
+    kort_ = lambda rid: {"id": rid, "naam": regelnaam.get(rid, "")}  # noqa: E731
     rijen = []
     for x in rows:
         tekst = regeltekst(x.inhoud, namen)["tekst"]
+        vervangt = list(dict.fromkeys([*([x.opvolger_van] if x.opvolger_van else []), *voorgangers.get(x.id, [])]))
         rijen.append({"id": x.id, "werkgebied_id": x.werkgebied_id, "werkgebied_naam": x.wg_naam or "",
                       "naam": namen.get(x.inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(x.inhoud["uitvoer_begrip_id"], ""),
                       "status": x.status, "revisie": x.revisie, "soort": x.inhoud["soort"],
                       "brontype": x.inhoud.get("brontype", "wet"), "gevallen": len(x.inhoud["gevallen"]),
-                      "regeltekst": tekst, "herkomst": x.herkomst, "gewijzigd": _iso(x.gewijzigd)})
+                      "regeltekst": tekst, "herkomst": x.herkomst, "gewijzigd": _iso(x.gewijzigd),
+                      "opvolging": {"vervangen_door": kort_(x.vervangen_door) if x.vervangen_door else None,
+                                    "vervangt": [kort_(v) for v in vervangt]}})
     vraag = normaal(q)
     gevonden = [x for x in rijen if not vraag or all(
         woord in normaal(" ".join([x["naam"], x["uitvoer"], x["regeltekst"]])) for woord in vraag.split())]

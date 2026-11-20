@@ -717,7 +717,8 @@ bruikbaar is.
   `sjabloon.gemist` in beide runs, want het duidingssjabloon vraagt wettekstpassages): het model schrijft het korte
   antwoord en de id's, de code vult het blok `regels` (`bronmodel.antwoord.Regels`, niet getoetst) uit `search_regels` en
   `get_regel`: naam, status, open punten, gevallen, dragers met vindplaats en opvolging; de doelen zijn de bronnodes van de
-  grondslag. Een tekstantwoord in de route zet `agent_node` zelf om naar dit sjabloon (`regels.omzetting`, telling
+  dragers (elke rol behalve afgewezen, ook context). Dragers staan per geval één keer per element en rol; een zoekrij
+  draagt dezelfde opvolging als een gelezen regel. Een tekstantwoord in de route zet `agent_node` zelf om naar dit sjabloon (`regels.omzetting`, telling
   `omgezet`), zonder modelronde: zo hangt de vorm niet af van of het model het sjabloon kiest (`tool_choice` breekt de
   cache). Een regelnaam tussen aanhalingstekens is geen wetcitaat (`grounding.afgeleide_namen`: precies een `naam` of
   `uitvoer` uit de regel- en begrippentools); een citaat uit de wet blijft letterlijk getoetst. De regels zelf staan in de

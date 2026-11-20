@@ -105,12 +105,26 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
             {r.vervangen_door && <p className="text-xs text-muted">Vervangen door {r.vervangen_door.naam || r.vervangen_door.id}</p>}
             {r.vervangt.length > 0 && <p className="text-xs text-muted">Vervangt {r.vervangt.map((v) => v.naam || v.id).join(", ")}</p>}
             {r.gevallen.length > 0 && (
-              <ul className="list-disc space-y-0.5 pl-5">
-                {r.gevallen.map((g, i) => <li key={i}>{g.label && <span className="font-medium">{g.label}: </span>}{g.tekst}</li>)}
+              <ul className="list-disc space-y-1 pl-5">
+                {r.gevallen.map((g, i) => {
+                  // De dragers van dit geval (of van de hele regel bij één geval), één keer per vindplaats en rol.
+                  const bij = r.dragers.filter((d) => d.vindplaats && d.beoordeling !== "afgewezen" &&
+                    (d.geval === g.label || (!d.geval && r.gevallen.length === 1)));
+                  const regels = [...new Map(bij.map((d) => [`${d.rol}|${d.vindplaats}`, d])).values()];
+                  return (
+                    <li key={i} data-regel-geval={g.label}>
+                      {/* De tekst kan een lijst voorwaarden dragen, regel voor regel (`regeltekst.gevallen`). */}
+                      <span className="whitespace-pre-line">{g.label && <span className="font-medium">{g.label}: </span>}{g.tekst}</span>
+                      {regels.length > 0 && (
+                        <p className="text-xs text-muted">Rust op: {regels.map((d) => `${d.vindplaats} (${d.rol})`).join("; ")}</p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
-            {r.dragers.some((d) => d.vindplaats) && (
-              <p className="text-xs text-muted">Rust op: {[...new Set(r.dragers.filter((d) => d.vindplaats && d.beoordeling !== "afgewezen")
+            {r.dragers.some((d) => d.vindplaats && !d.geval) && r.gevallen.length !== 1 && (
+              <p className="text-xs text-muted">Rust op: {[...new Set(r.dragers.filter((d) => d.vindplaats && !d.geval && d.beoordeling !== "afgewezen")
                 .map((d) => d.vindplaats))].join("; ")}</p>
             )}
           </li>

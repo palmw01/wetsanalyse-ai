@@ -164,8 +164,8 @@ def test_het_sjabloon_vult_de_feiten_uit_de_api():
     assert r1.vervangt[0].naam == "bepalen van de vervaldag bij betaling ineens" and r1.dragers[0].jci
     assert r1.gevallen == [{"label": "lid 1", "tekst": "zes weken na …"}]
     assert (r2.status, r2.gelezen) == ("vervangen", False)
-    # De doelen zijn de bronnodes van de grondslag: daar rust het antwoord op.
-    assert [d.iri for d in a.doelen] == ["urn:bwb:BWBR0004770:artikel:9:lid:1"]
+    # De doelen zijn de bronnodes van elke drager die niet is afgewezen, ook context (slotmeting na #1798: LI 9.5).
+    assert [d.iri for d in a.doelen] == ["urn:bwb:BWBR0004770:artikel:9:lid:1", "urn:bwb:BWBR0024096:id:x"]
 
 
 def test_een_onbekende_regel_weigert_het_sjabloon():
@@ -200,3 +200,33 @@ def test_een_regelnaam_tussen_aanhalingstekens_is_geen_wetcitaat():
     assert goed.niet_letterlijk == []
     fout = check_grounding('De wet zegt "een aanslag is altijd na vier weken invorderbaar".', trace)
     assert fout.niet_letterlijk
+
+
+def test_een_zoekrij_draagt_dezelfde_opvolging_als_een_gelezen_regel():
+    import json
+    from agent.sjablonen.regels import regels_in_trace
+    from agent.tools.regel_tools import _rij
+    rij = _rij({"id": "r2", "naam": "oud", "status": "vervangen", "werkgebied_id": "w1",
+                "opvolging": {"vervangen_door": {"id": "r1", "naam": "bepalen van de vervaldag"}, "vervangt": []}})
+    assert rij["vervangen_door"] == {"id": "r1", "naam": "bepalen van de vervaldag"}
+    regel = regels_in_trace([("search_regels", json.dumps({"status": "ok", "resultaten": [rij]}))])["r2"]
+    assert regel.vervangen_door.naam == "bepalen van de vervaldag" and not regel.gelezen
+
+
+def test_een_drager_staat_per_geval_een_keer_per_element_en_rol():
+    import json
+    from agent.sjablonen.regels import regels_in_trace
+    d = {"element_id": "e1", "rol": "voorwaarde", "geval": "lid 5", "passage": "Indien de toepassing …",
+         "vindplaats": "Artikel 9, lid 5", "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5"}
+    r = {"status": "ok", "id": "r1", "naam": "x", "regel_status": "concept",
+         "dragers": [d, dict(d), {**d, "geval": "lid 1"}, {**d, "rol": "grondslag"}]}
+    regel = regels_in_trace([("get_regel", json.dumps(r))])["r1"]
+    assert [(x.geval, x.rol) for x in regel.dragers] == [("lid 5", "voorwaarde"), ("lid 1", "voorwaarde"), ("lid 5", "grondslag")]
+
+
+def test_de_regeltekst_als_lijst_houdt_de_voorwaarden_van_een_geval():
+    from bronmodel.antwoord import Regels, VastgelegdeRegel, antwoord_tekst, Antwoord
+    r = VastgelegdeRegel(id="r1", naam="bepalen van de vervaldag", status="concept",
+                         gevallen=[{"label": "lid 1", "tekst": "indien aan alle volgende voorwaarden is voldaan:\n• niet: a\ndan: zes weken."}])
+    tekst = antwoord_tekst(Antwoord(sjabloon="regels", blokken=[Regels(items=[r])]))
+    assert "lid 1: indien aan alle volgende voorwaarden is voldaan:" in tekst and "• niet: a" in tekst and "dan: zes weken." in tekst
