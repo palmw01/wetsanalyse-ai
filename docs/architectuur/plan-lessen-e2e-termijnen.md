@@ -829,6 +829,12 @@ sterk varieert.
        "Definities", zonder aanhef. Die kop bereikt de detector niet; `BronTekst.context` draagt alleen de tekst van
        de ouder.
      - Dat vraagt de kop in de snapshot en in de keten, en is een eigen stap.
+     - **Gebouwd (20 nov 2026)**: `bwb:titel` staat als `titel` op elke node, in `bronmodel.PLEK` en dus buiten de
+       `snapshot_id`; de `bron_hash` blijft de hash van de tekst, zodat geen bestaande laag een andere snapshot of hash
+       krijgt. `keten._bronteksten` zet het opschrift van de ouder vóór zijn tekst in `BronTekst.context`. De
+       definitiedetector (versie 4) neemt een lijst *term: omschrijving* zonder aanhef onder het opschrift
+       "Definities", "Begripsbepalingen", "Begripsomschrijvingen" of "Begrippen" als Brondefinitie, met de regel
+       `jas.definitie.onderdeel_onder_kop`. Een aanhef van de ouder gaat voor, en een kop in de eigen tekst telt niet.
    - **L-2-2**:
      - de invoer is de grootste waarde, met een `kenmerk` voor het rechtsobject erin;
      - de invoer staat op volgorde;

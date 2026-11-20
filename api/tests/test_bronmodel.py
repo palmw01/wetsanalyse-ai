@@ -246,6 +246,18 @@ def test_vindplaats_staat_op_de_node_maar_buiten_de_snapshot_id():
     assert a["bepaling"] == ROOT + ":id:lid-een"
 
 
+def test_het_opschrift_staat_op_de_node_maar_buiten_de_snapshot_id():
+    """`bwb:titel` ("Definities") is de kop die de keten leest (L-2-6). Hij verandert de snapshot van bestaande lagen
+    niet, en de `bron_hash` blijft de hash van de tekst."""
+    zonder = snapshot(artikel="9")
+    met = [{**r, "titel": "Definities"} if r["node"].endswith(":artikel:9") else r for r in fixture()]
+    s = bouw_snapshot(met, bwb_id=BWB, artikel="9")
+    assert s["snapshot_id"] == zonder["snapshot_id"]
+    assert [n["bron_hash"] for n in s["nodes"]] == [n["bron_hash"] for n in zonder["nodes"]]
+    assert next(n for n in s["nodes"] if n["bron_iri"].endswith(":artikel:9"))["titel"] == "Definities"
+    assert all(n["titel"] == "" for n in zonder["nodes"])
+
+
 def test_bron_query_leest_vindplaats_en_inbepaling():
     q = bron_query(BWB)
     assert "bwb:vindplaats ?vindplaats" in q and "bwb:inBepaling ?bepaling" in q

@@ -4,7 +4,9 @@
 onder:') en onderdelen 'term: omschrijving' (H2:136). Het onderdeel is dan een kandidaat-
 Brondefinitie; de dubbele punt alleen is dat níét ('Bij voetgangerslichten betekent: … groen
 licht: …' is een betekenisregel, geen definitie). De aanhef mag in de eigen tekst staan of – bij
-een onderdeel als eigen bronnode – in `BronTekst.context`.
+een onderdeel als eigen bronnode – in `BronTekst.context`. Zonder aanhef is een opschrift van de ouder dat de
+lijst zelf benoemt ("Definities", "Begripsbepalingen") dezelfde aanhef: een lijst "– term: omschrijving" eronder is een
+lijst definities (Leidraad Invordering 2008, 1.1.2; L-2-6). Het opschrift staat alleen in de context, nooit in de tekst.
 """
 from __future__ import annotations
 
@@ -15,6 +17,10 @@ from ..taal.structuur import herken_onderdelen
 from . import BronTekst, resultaat
 
 _AANHEF = re.compile(r"\bwordt\s+(?:in\s+[^:]{0,80}\s+)?verstaan\s+onder\s*:", re.IGNORECASE)
+# Het opschrift van de ouder als aanhef: een hele regel, niets erbij ('Definities', 'Begripsbepalingen',
+# 'Begripsomschrijvingen', 'Begrippen'). Een kop als 'Definitieve aanslag' of 'Begrippen en afkortingen' telt niet.
+_KOP = re.compile(r"^[ \t]*(?:definities?|begripsbepaling(?:en)?|begripsomschrijving(?:en)?|begrippen)[ \t]*$",
+                  re.IGNORECASE | re.MULTILINE)
 # Eén zin: 'Onder X wordt verstaan: Y.' / 'Onder X wordt verstaan Y.'
 _ZIN = re.compile(r"\b[Oo]nder\s+[^.;:]{1,120}?\s+wordt\s+verstaan\s*:?\s*[^.;]+[.;]?")
 # De benoemende formule ('Een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als voorlopige teruggaaf.',
@@ -26,24 +32,29 @@ _AANGEDUID = re.compile(r"(?:^|(?<=[.;:]\s)|(?<=\n))(?P<zin>[^.;:\n]{1,300}?(?<!
 
 class DefinitieDetector:
     naam = "definitie"
-    # 3: de benoemende formule 'wordt aangeduid als' (L-2-6)
-    versie = "3"
+    # 3: de benoemende formule 'wordt aangeduid als' (L-2-6); 4: een lijst onder het opschrift 'Definities' (L-2-6)
+    versie = "4"
     REGEL_ONDERDEEL = "jas.definitie.onderdeel_term_dubbelepunt"
+    REGEL_KOP = "jas.definitie.onderdeel_onder_kop"
     REGEL_ZIN = "jas.definitie.verstaan_onder"
     REGEL_AANGEDUID = "jas.definitie.aangeduid_als"
-    REGELS = (REGEL_ONDERDEEL, REGEL_ZIN, REGEL_AANGEDUID)
+    REGELS = (REGEL_ONDERDEEL, REGEL_ZIN, REGEL_AANGEDUID, REGEL_KOP)
     BEWIJS = {"DEFINITION_ITEM": ("sterk", "Brondefinitie"), "DEFINITION_SENTENCE": ("sterk", "Brondefinitie")}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
         kandidaten: list[Candidate] = []
-        for onderdeel in herken_onderdelen(tekst, bron.context, _AANHEF):
+        onderdelen = [(o, self.REGEL_ONDERDEEL) for o in herken_onderdelen(tekst, bron.context, _AANHEF)]
+        if not onderdelen and _KOP.search(bron.context):
+            onderdelen = [(o, self.REGEL_KOP) for o in herken_onderdelen(tekst, bron.context, _KOP)
+                          if o.aanhef.bron == "ouder"]
+        for onderdeel, regel in onderdelen:
             s, e = onderdeel.term.start, onderdeel.omschrijving.eind
             kern_eind = e - 1 if tekst[e - 1] in ";." else e
             opties = [SpanOption(soort="kern", span=BronSpan.van(bron.span(s, kern_eind)))] if kern_eind != e else []
             kandidaten.append(Candidate.maak(
                 bron.span(s, e), ["Brondefinitie"],
-                [Evidence(detector=self.naam, code="DEFINITION_ITEM", regel=self.REGEL_ONDERDEEL,
+                [Evidence(detector=self.naam, code="DEFINITION_ITEM", regel=regel,
                           detail=tekst[onderdeel.term.start:onderdeel.term.eind])], opties))
         for m in _ZIN.finditer(tekst):
             kandidaten.append(Candidate.maak(
