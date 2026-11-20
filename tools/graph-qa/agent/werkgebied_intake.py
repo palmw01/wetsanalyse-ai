@@ -750,6 +750,14 @@ def regeling_opties(graph: GraphPort, zoek: str, *, genoemd_in: str = "",
                                           "omschrijving": "genoemd in je vraag"}
         voorop.append(optie)
     lijst = (voorop + list(opties.values()))[:MAX_REGELINGEN]
+    # Een regeling die een gevonden regeling van toepassing verklaart (L-1-1: de Mijnbouwwet bij de AWR en de IW 1990),
+    # als eigen optie, niet voorgeselecteerd: de schakelbepaling is het bewijs, de jurist beslist.
+    from .schakelbepalingen import omschrijving, schakelregelingen
+    namen = {o["waarde"]: o["label"] for o in lijst}
+    for p in schakelregelingen(graph, [o["waarde"] for o in lijst]):
+        if p["bwb_id"] not in namen:
+            lijst.append({"label": p["titel"], "waarde": p["bwb_id"], "bron": {"bwb_id": p["bwb_id"]},
+                          "omschrijving": omschrijving(p, namen)})
     return lijst, [o["waarde"] for o in voorop if o in lijst], weggelaten
 
 

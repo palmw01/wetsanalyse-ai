@@ -52,6 +52,8 @@ Namen = Callable[[set[str]], dict[str, str]]
 #: De woordenkloof en het voorwerp toetsen (`zoekvragen.ontbrekende_woorden`, `is_voorwerp`, `brugtermen`): het
 #: werkgebied, zijn regelingen, de woorden en of het voorwerp getoetst moet worden → `{voorwerp, ontbrekend, brug}`.
 Toets = Callable[[dict[str, Any], list[str], list[str], bool], dict[str, Any]]
+#: De schakelregelingen bij een zoekbereik (`schakelbepalingen.schakelregelingen`, L-1-1); zonder graaf geen.
+Schakel = Callable[[list[str]], list[dict[str, Any]]]
 #: De toets van deze beurt: gezet door `start` en `verwerk`, gelezen waar Lex zegt dat hij niets vond.
 _TOETS: ContextVar[Toets | None] = ContextVar("bronselectie_toets", default=None)
 
@@ -516,8 +518,20 @@ async def _kloof(api, wid: str, ov: dict[str, Any], woorden: list[str]) -> str:
     return " ".join(zinnen)
 
 
+def schakel_zin(gevonden: list[dict[str, Any]], namen: dict[str, str]) -> str:
+    """"De Mijnbouwwet verklaart de AWR van toepassing (artikel 72). Hoort die regeling erbij, neem haar dan op in het
+    zoekbereik." Leeg zonder schakelregeling. Een voorstel uit de graaf; de jurist beslist (L-1-1)."""
+    from .schakelbepalingen import omschrijving
+    zinnen = [f"{p['titel']} {omschrijving(p, namen).removesuffix(': regeling erbij?')}." for p in gevonden]
+    if not zinnen:
+        return ""
+    return " ".join(zinnen) + (" Hoort die regeling erbij, neem haar dan op in het zoekbereik." if len(zinnen) == 1 else
+                               " Horen die regelingen erbij, neem ze dan op in het zoekbereik.")
+
+
 async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id: str = "",
-                stel_voor: StelVoor | None = None, toets: Toets | None = None) -> dict[str, Any]:
+                stel_voor: StelVoor | None = None, toets: Toets | None = None,
+                schakel: Schakel | None = None) -> dict[str, Any]:
     """Beginnen of hervatten: wat er ligt, en het kaartje waar de analist was. Een genoemde deelvraag
     ("deelvraag 4", of aangewezen in de werkplek) gaat voor.
 
@@ -558,6 +572,12 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
         termen_van_deelvraag(ov.get("analysevraag") or "") + _woorden(ov.get("naam") or "")
     if (kloof := await _kloof(api, wid, ov, eigen)):
         zinnen.append(kloof)
+    if schakel is not None:
+        wg = await api.haal_werkgebied(wid)
+        bereik = _regelingen(wg, ov)
+        namen = {r["bwb_id"]: r.get("label") or r["bwb_id"] for r in wg.get("regelingen") or [] if r.get("bwb_id")}
+        if (zin := schakel_zin([p for p in schakel(bereik) if p["bwb_id"] not in bereik], namen)):
+            zinnen.append(zin)
     if melding:
         zinnen.append(f"Opnieuw zoeken lukte niet: {melding}.")
     if deelvraag_id and _dq(ov, deelvraag_id):
