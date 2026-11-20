@@ -35,7 +35,7 @@ import { aanvullen, lezen, ROLLEN, SOORTEN, standaardMap } from "./logboek.js";
 import { zoekLogs } from "./logs.js";
 import { isVerwijderend, leesRuimte, opruimplan, toetsVerwijderen, voerUit } from "./runruimte.js";
 import { checkoutStand, gitIn } from "./checkout.js";
-import { auditStaart, begrippenOverzicht, inventarisOverzicht } from "./vorm.js";
+import { auditStaart, begrippenOverzicht, bepalingElementen, inventarisOverzicht } from "./vorm.js";
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
 const TOKEN_BEHEERDER = (process.env.WETSANALYSE_ACC_TOKEN_BEHEERDER ?? "").trim();
@@ -214,6 +214,8 @@ const TOOLS = [
             if (a.volledig)
                 return uit;
             const inv = uit.elementen;
+            if (a.bron_iri && inv && Array.isArray(inv.elementen))
+                return bepalingElementen(inv, String(a.bron_iri));
             return {
                 ...uit,
                 elementen: inv && Array.isArray(inv.elementen) ? inventarisOverzicht(inv, a.bron_iri) : inv,
@@ -245,16 +247,23 @@ const TOOLS = [
         name: "begrip_lezen",
         description: "Eén begrip: kaart met definitie en status, gekoppelde passages en revisies. Zonder begrip_id een overzicht van " +
             "alle begrippen van het werkgebied: per begrip naam, status, revisie, korte definitie, passages, aandachtspunten en " +
-            "NL-SBB-meldingen, en de relaties. `volledig: true` geeft alles zoals de api het levert (groot: honderdduizenden tekens).",
-        input: S({ werkgebied_id: z.string(), begrip_id: z.string().optional(), volledig: z.boolean().optional(), als: Als }),
+            "NL-SBB-meldingen, en de relaties; met `term` alleen de begrippen met die (deel)naam of alternatieve term. Met een " +
+            "begrip_id en `vorm: \"kort\"` alleen id, status, revisies en de poort. `volledig: true` geeft alles zoals de api het " +
+            "levert (groot: honderdduizenden tekens).",
+        input: S({ werkgebied_id: z.string(), begrip_id: z.string().optional(), term: z.string().optional(),
+            vorm: z.enum(["kaart", "kort"]).optional(), volledig: z.boolean().optional(), als: Als }),
         run: async (a) => {
             const pad = `/api/werkgebieden/${seg(a.werkgebied_id)}/begrippen`;
             if (!a.begrip_id) {
-                const uit = await samen(client(a.als), { begrippen: pad, conformiteit: `${pad}/conformiteit`, samenhang: `${pad}/samenhang` });
+                const filter = new URLSearchParams({ ...(a.volledig ? {} : { vorm: "kort" }), ...(a.term ? { term: String(a.term) } : {}) });
+                const lijst = filter.size ? `${pad}?${filter}` : pad;
+                const uit = await samen(client(a.als), { begrippen: lijst, conformiteit: `${pad}/conformiteit`, samenhang: `${pad}/samenhang` });
                 // Een fout van de api (geen lijst) gaat ongewijzigd terug: een leeg overzicht zou liegen.
                 const lijstOk = Array.isArray(uit.begrippen?.begrippen);
                 return a.volledig || !lijstOk ? uit : begrippenOverzicht(uit.begrippen, uit.conformiteit, uit.samenhang);
             }
+            if (a.vorm === "kort")
+                return client(a.als).bff("GET", `${pad}/${seg(a.begrip_id)}?vorm=kort`);
             return samen(client(a.als), {
                 begrip: `${pad}/${seg(a.begrip_id)}`,
                 revisies: `${pad}/${seg(a.begrip_id)}/revisies`,

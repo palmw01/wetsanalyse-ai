@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { auditStaart, begrippenOverzicht, DEFINITIE_KORT, inventarisOverzicht, kortElement, TEKST_KORT } from "./vorm.js";
+import { auditStaart, begrippenOverzicht, bepalingElementen, DEFINITIE_KORT, inventarisOverzicht, kortElement, TEKST_KORT } from "./vorm.js";
 
 const el = (id: string, eigenaar: string, klasse: string, lifecycle = "voorgesteld", tekst = "de belastingschuldige") =>
   ({ id, eigenaar_iri: eigenaar, klasse, lifecycle, tekst, ankers: [{ bron_iri: eigenaar, start: 0, eind: 5 }],
@@ -57,4 +57,24 @@ test("het begrippenoverzicht houdt per begrip wat je nodig hebt en laat het bewi
   assert.deepEqual(uit.begrippen[1].meldingen, ["fout: geen definitie"]);
   assert.deepEqual(uit.relaties, [{ van: "tijdvak", type: "hierarchie", naar: "jaar", id: "r1" }]);
   assert.equal(uit.voorstellen, 2);
+});
+
+test("het begrippenoverzicht leest ook de korte lijst, en houdt alleen de relaties van wat er staat", () => {
+  const lijst = { vorm: "kort", begrippen: [{ id: "a", naam: "jaar", status: "concept", revisie: 1, definitie: "Een jaar.",
+    alternatieve_termen: ["kalenderjaar"], aantal_koppelingen: 1 }] };
+  const samenhang = { relaties: [{ id: "r1", van_begrip: "b", naar_begrip: "a", type: "hierarchie" },
+    { id: "r2", van_begrip: "b", naar_begrip: "c", type: "verwant" }] };
+  const uit = begrippenOverzicht(lijst, {}, samenhang) as any;
+  assert.deepEqual([uit.begrippen[0].naam, uit.begrippen[0].definitie, uit.begrippen[0].alternatieve_termen],
+    ["jaar", "Een jaar.", ["kalenderjaar"]]);
+  assert.deepEqual(uit.relaties.map((r: any) => r.id), ["r1"]);
+});
+
+test("de elementen van één bepaling, met wat eronder valt, zonder de rest van het werkgebied", () => {
+  const inv = { selecties: [{ id: "s1" }], elementen: [el("1", "w:artikel:9:lid:1", "Rechtssubject"),
+    el("2", "w:artikel:9", "Voorwaarde"), el("3", "w:artikel:90", "Voorwaarde")] };
+  const uit = bepalingElementen(inv, "w:artikel:9") as any;
+  assert.deepEqual(uit.elementen.map((e: any) => e.id), ["1", "2"]);
+  assert.equal(uit.selecties, undefined);
+  assert.equal(uit.aantal, 2);
 });

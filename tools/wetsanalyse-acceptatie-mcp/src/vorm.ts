@@ -51,6 +51,19 @@ export function inventarisOverzicht(inv: Obj, bronIri?: string): Obj {
   return uit;
 }
 
+/**
+ * De elementen van één bepaling en wat eronder valt (een lid onder een artikel), zonder de selecties en tellingen van
+ * het hele werkgebied (Termijnen e2e, 20 nov 2026: `werkgebied_lezen` met `bron_iri` was nog ~70k tekens).
+ */
+export function bepalingElementen(inv: Obj, bronIri: string): Obj {
+  const elementen = (Array.isArray(inv.elementen) ? (inv.elementen as Obj[]) : []).filter((e) => {
+    const iri = String(e.eigenaar_iri ?? "");
+    return iri === bronIri || iri.startsWith(`${bronIri}:`) || iri.startsWith(`${bronIri}%2F`);
+  });
+  return { bron_iri: bronIri, aantal: elementen.length, per_klasse: tel(elementen, "klasse"),
+    per_lifecycle: tel(elementen, "lifecycle"), elementen: elementen.map(kortElement) };
+}
+
 /** De nieuwste regels van de audit (de api geeft ze nieuwste eerst, hoogstens 100), met hoeveel er gelezen zijn: de
  *  hele audit groeit met elke handeling. */
 export function auditStaart(audit: unknown, n = 15): Obj {
@@ -91,15 +104,17 @@ export function begrippenOverzicht(lijst: unknown, conformiteit: unknown, samenh
         naam: inhoud.naam ?? b.naam,
         status: b.status,
         revisie: b.revisie,
-        definitie: kort(inhoud.definitie, DEFINITIE_KORT),
-        alternatieve_termen: inhoud.alternatieve_termen ?? [],
+        // De lijst in `vorm=kort` draagt naam en definitie bovenaan, de volle lijst in `inhoud`.
+        definitie: kort(inhoud.definitie ?? b.definitie, DEFINITIE_KORT),
+        alternatieve_termen: inhoud.alternatieve_termen ?? b.alternatieve_termen ?? [],
         aantal_koppelingen: b.aantal_koppelingen,
         aandachtspunten: b.aandachtspunten ?? [],
         conform: c.conform ?? null,
         meldingen: [...new Set(meldingen.map((m) => `${m.ernst}: ${m.melding}`))],
       };
     }),
-    relaties: relaties.map((r) => ({
+    // Alleen de relaties die een begrip uit deze lijst raken (met `term` is de lijst gefilterd).
+    relaties: relaties.filter((r) => namen.has(String(r.van_begrip)) || namen.has(String(r.naar_begrip))).map((r) => ({
       van: namen.get(String(r.van_begrip)) ?? r.van_naam ?? r.van_begrip,
       type: r.type,
       naar: namen.get(String(r.naar_begrip)) ?? r.naar_naam ?? r.naar_begrip,

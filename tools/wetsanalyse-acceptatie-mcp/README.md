@@ -25,10 +25,10 @@ acceptatie samen een wetsanalyse uit te voeren, inclusief echte beslissingen; he
 | `bff` | één aanroep op een BFF-route; elke status komt terug, met een `trace_id`. Verwijderen gaat langs een vangrail: alleen in de ruimte van een testrun |
 | `opruimen` | wist wat een testrun maakte (voorvoegsel `lex-bench-keten · `, `acc-test-` of `Bench `); zonder `bevestig: true` alleen de lijst |
 | `lex_start`, `lex_wacht`, `lex_stop` | een beurt van Lex starten, volgen en stoppen; een klik is `intake_actie` of `actie`. `lex_start` bewaart eerst de vraag als user-bericht in het gesprek, zoals de werkplek, zodat wie meekijkt vraag én antwoord ziet (`vraag_bewaren: false` slaat dat over) |
-| `werkgebied_lezen` | dossier, dekking, een overzicht van de elementen (tellingen) en de nieuwste audit; met `bron_iri` de elementen van één bepaling, met `volledig` alles |
+| `werkgebied_lezen` | dossier, dekking, een overzicht van de elementen (tellingen) en de nieuwste audit; met `bron_iri` alleen de elementen van die bepaling en wat eronder valt, met `volledig` alles |
 | `weergave_lezen` | de annotatie van één bepaling als lijst (`?vorm=lijst`), om te beoordelen |
 | `annotatie_lezen` | één element met klasse, ankers, bron en graaf |
-| `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied met conformiteit en samenhang |
+| `begrip_lezen` | een begrip met revisies (`vorm: "kort"`: alleen de stand), of een overzicht van de begrippen van een werkgebied met meldingen en relaties (`term` filtert, `volledig` geeft alles) |
 | `logs_zoek` | de keten op `trace_id`, de logregels op `run_id`, of de fouten; alleen vaste queries |
 | `bron_lezen` | de officiële XML en tekst van één artikel of lid, met de toestand en de url |
 | `graaf_lezen` | alleen-lezen SPARQL op de kennisgraaf van acceptatie, om te vergelijken met de bron |
@@ -41,6 +41,43 @@ loopt de run door en vraag je opnieuw met de teruggegeven `vanaf`.
 
 Inloggen met een wachtwoord kan hier niet: de client blokkeert dat. Tokens maken en wachtwoord of 2FA wijzigen
 kan evenmin: dat weigert de server voor een sessie uit een accounttoken.
+
+## Routes voor `bff`
+
+De agents vonden de routes en hun body's door te proberen (Termijnen e2e, 20 nov 2026: 404's en vijf 422's). Hier de
+routes die het team het meest nodig heeft. Een onbekend `/api/`-pad geeft een 404 als JSON. Elke schrijfroute
+vraagt de revisie die je las: een 412 betekent opnieuw lezen. `<wg>` is `/api/werkgebieden/<werkgebied_id>`.
+
+**Annotaties** (`/api/annotatie/v2/…` → api `/v1/annotatie/…`):
+- `GET weergave?bron_iri=<iri>&vorm=lijst`: de lagen met hun revisie, de elementen en de relaties van één bepaling
+  (dat is `weergave_lezen`).
+- `POST elementen/<id>/beslissing`:
+  `{"type": "approve" | "reject" | "heropen" | "comment" | "edit", "snapshot_id": "…", "verwachte_revisies": {"<eigenaar_iri>": <laagrevisie>}, "wijziging": {"klasse": "Voorwaarde"}}`.
+  `verwachte_revisies` is een object per bronnode, en `klasse` hoort ín `wijziging`. Een onbekend veld is 422.
+- `POST lagen/<laag_id>/beslissingen`: `{"verwachte_revisie": n, "snapshot_id": "…", "besluiten": [{"element_id": "…", "type": "approve"}]}`.
+  Alles of niets, en één revisie.
+- `POST lagen/<laag_id>/status`: `{"status": "geaccordeerd", "verwachte_revisie": n}` (afronden; `afgerond` mag ook).
+- `POST relaties`:
+  `{"van": {"soort": "element", "id": "…"}, "naar": {"soort": "element", "id": "…"}, "type": "voorwaarde", "volgorde": 1, "verwachte_revisies": {"<eigenaar_iri>": n}}`.
+  `soort` is `element`, `impliciet` of `bron`.
+- `POST relaties/<id>/beslissing`: `{"type": "approve" | "reject" | "heropen" | "comment", "verwachte_revisies": {…}}`.
+
+**Begrippen** (`<wg>/begrippen…`):
+- `GET ?vorm=kort&term=<deel van de naam>` of `?id=<id>`: een smalle lijst.
+- `GET /<id>?vorm=kort`: alleen de stand en de poort.
+- `PATCH /<id>?vorm=stand`: `{"verwachte_revisie": n, "inhoud": {"definitie": "…"}}`. Alleen de velden die veranderen;
+  leegmaken is `""`.
+- `PATCH /<id>/koppelingen/<kid>`: `{"verwachte_revisie": n, "beoordeling": "akkoord", "motivatie": "…", "motivatie_aanvullen": true}`.
+- `POST <wg>/relaties?vorm=kort`: `{"van_begrip": "…", "naar_begrip": "…", "type": "hierarchie", "toelichting": "…"}`.
+  Bij een hiërarchie is `van` het bredere begrip.
+
+**Werkgebied en bronselectie**:
+- `PATCH <wg>/deelvragen/<id>?vorm=deelvraag`: `{"verwachte_revisie": n, "vraag": "…", "status": "actief" | "afgewezen", "reden": "…"}`.
+- `POST <wg>/bronselectie/<deelvraag_id>/kandidaten/<kid>?vorm=deelvraag`:
+  `{"besluit": "opnemen" | "loskoppelen" | "uitsluiten" | "heropenen", "verwachte_revisie": n, "rol": "analyseren", "bron_iri": "<lid of onderdeel>", "reden": "…"}`.
+- `GET <wg>/annotatie-werkvoorraad?bereik=deelvragen&deelvraag_id=<id>`: wat Lex nog moet annoteren.
+
+**Afleidingsregels**: `<wg>/regels…` (ADR-018); de vormen staan in `api/CLAUDE.md` §*Afleidingsregels*.
 
 ## Bron, graaf en logboek
 
