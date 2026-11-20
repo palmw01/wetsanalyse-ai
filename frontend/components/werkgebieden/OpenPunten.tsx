@@ -65,7 +65,7 @@ export function OpenPunten({ werkgebiedId, regelId, revisie, alleenLezen, onBesl
   return (
     <Kaart titel="Open punten" telling={punten.length} data-open-punten
       toelichting={open
-        ? `${aantal(open, "keuze houdt", "keuzes houden")} het accorderen tegen tot je besluit.`
+        ? `${aantal(open, "open punt houdt", "open punten houden")} het accorderen tegen tot je besluit.`
         : "Wat de tekst open laat, met de lezingen en de keuze."}>
       {punten.length > 0 && (
         <Lijst label="Open punten">
