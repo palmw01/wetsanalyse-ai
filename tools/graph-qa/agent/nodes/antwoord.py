@@ -35,7 +35,7 @@ from ..sjablonen import vul as sjabloon_vul
 from ..sjablonen.extern import MAX_LIJST, MAX_STUKKEN as MAX_EXTERN, VELD as EXTERN_VELD
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
-from ..provenance import alleen_genoemde_regelingen, collect_sources
+from ..provenance import alleen_genoemde_regelingen, collect_sources, regel_bronnen
 from ..beweringen import regelingen_genoemd
 from ..buiten_graaf import _graafnamen
 from ..regelingnamen import met_regelingnamen
@@ -287,6 +287,18 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                            {"role": "user", "content": sjabloon_gevraagd(sorted(gevonden), sorted(sjablonen), genoemd)}]
         upd.update(sjabloon_gevraagd=True, sjabloon_nu=True, **tel_sjabloon({**state, **upd}, "gevraagd"))
         return upd
+    if not tool_uses and state.get("regels_lezen") and "antwoord_regels" in sjablonen and not state.get("corrected"):
+        # De leesroute voor afleidingsregels (laatste meting na #1797: `sjabloon.gemist` in beide runs): de tekst wordt
+        # het korte antwoord van `antwoord_regels`, en de code zet de regels erbij uit de api. Geen modelronde.
+        from ..sjablonen.regels import omzetting as regel_omzetting
+        if (aanroep := regel_omzetting(zonder_aanloop(tekst)[0], controletrace(state))) is not None:
+            logger.info("regelantwoord omgezet", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                        "regels": len(aanroep["input"]["regels"])})
+            upd["messages"] = [{"role": "assistant", "content": [
+                {"type": "tool_use", "id": aanroep["id"], "name": aanroep["name"], "input": aanroep["input"]}]}]
+            upd["pending_tools"] = [aanroep]
+            upd.update(tel_sjabloon({**state, **upd}, "omgezet"))
+            return upd
     if not tool_uses:
         if gevonden and not (upd.get("sjabloon_telling") or {}).get("lijst_aangenomen"):
             logger.info("tekst zonder lijst aangenomen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
@@ -1491,6 +1503,12 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     if not state.get("overzicht"):
         # In de overzichtsroute zijn de vindplaatsen van het overzicht het antwoord zelf.
         sources = alleen_genoemde_regelingen(sources, state.get("answer", ""))
+        # De afleidingsregels waarop het antwoord rust (laatste meting na #1797: V2 had geen bronnen): de regelkaart.
+        getoond = [x["id"] for blok in (state.get("antwoord") or {}).get("blokken") or [] if blok.get("soort") == "regels"
+                   for x in blok.get("items") or []]
+        gezien = {s.uri for s in sources}
+        sources += [s for s in regel_bronnen(state.get("source_trace", []), state.get("answer", ""), getoond)
+                    if s.uri not in gezien]
     src_dicts = [s.model_dump() for s in sources]
     _stap(writer, "Klaar", f"{len(src_dicts)} bron" + ("nen" if len(src_dicts) != 1 else ""))
     writer({"type": "sources", "sources": src_dicts})

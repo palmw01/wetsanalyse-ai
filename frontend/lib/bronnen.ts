@@ -38,9 +38,16 @@ export interface Bronnenlijst {
 export const BRONTYPE_NAAM: Record<string, string> = {
   wettekst_live: "Wetgeving buiten de kennisgraaf", kamerstuk: "Parlementaire stukken",
   bekendmaking: "Staatsblad en Staatscourant", uitspraak: "Uitspraken", standpunt: "Kennisgroepstandpunten (beleid)",
-  eu: "EU-recht",
+  eu: "EU-recht", regel: "Afleidingsregels (analyse-uitkomst)",
 };
-const BRONTYPE_VOLGORDE = ["wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "standpunt", "eu"];
+const BRONTYPE_VOLGORDE = ["wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "standpunt", "eu", "regel"];
+
+/** De link van een bron: een externe vindplaats via `bronHref`; een afleidingsregel naar haar regelkaart in de werkplek
+ *  (alleen een eigen pad, nooit een andere host). */
+export function bronLinkVan(b: Pick<Bron, "brontype" | "link">): string | undefined {
+  if (b.brontype === "regel") return b.link && /^\/werkgebieden\/[A-Za-z0-9._:-]+\/regels\/[A-Za-z0-9._:-]+$/.test(b.link) ? b.link : undefined;
+  return bronHref(b.link);
+}
 
 const STRUCTUUR = ["hoofdstuk", "titeldeel", "afdeling", "paragraaf"];
 const nummers = new Intl.Collator("nl", { numeric: true, sensitivity: "base" });
@@ -114,7 +121,7 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
         groep = { bwb_id: `extern:${b.brontype}`, naam: BRONTYPE_NAAM[b.brontype] ?? b.brontype, items: [] };
         extern.set(b.brontype, groep);
       }
-      groep.items.push({ sleutel: b.uri, label: b.label || b.uri, soort: b.brontype, href: bronHref(b.link) });
+      groep.items.push({ sleutel: b.uri, label: b.label || b.uri, soort: b.brontype, href: bronLinkVan(b) });
       continue;
     }
     const vp = vindplaatsVan(b.bron_iri || b.uri) ?? vindplaatsVan(b.uri);

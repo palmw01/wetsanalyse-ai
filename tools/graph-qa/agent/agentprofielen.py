@@ -714,23 +714,20 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'een opvolger de regels die ze verving, met hun naam '
                                               'uit het toolresultaat (`vervangen_door`, '
                                               '`vervangt`).\n'
-                                              'AFRONDEN: vraagt de gebruiker waarop een regel '
-                                              'rust, welke artikelen of bepalingen eronder liggen '
-                                              'of wat de wet erover zegt, dan schrijf je geen '
-                                              'antwoord in tekst. Haal de bepalingen van de '
-                                              'grondslag op en rond als laatste stap af met '
-                                              'antwoord_duiding: noem in het korte antwoord de '
-                                              'regels met hun status, en wijs per bepaling een '
-                                              'passage aan. Gaat de vraag alleen over welke regels '
-                                              'er liggen, hun status of hun opvolging, dan '
-                                              'antwoord je in tekst. Kondig je antwoord niet aan '
-                                              "('Hieronder volgt …'): begin met het antwoord.",
+                                              'AFRONDEN: je schrijft geen antwoord in tekst. Rond '
+                                              'als laatste stap af met antwoord_regels: het korte '
+                                              "antwoord in eigen woorden en de id's van de regels "
+                                              'die je toont; naam, status, open punten, gevallen, '
+                                              'dragers en opvolging zet de werkplek er zelf bij. '
+                                              'Citeer je de wettekst van een drager (je haalde de '
+                                              'bepaling op), rond dan af met antwoord_duiding en '
+                                              'wijs de passages aan.',
                                 'kiesbaar': False,
                                 'max_rondes': None,
                                 'mcp': (),
                                 'methoderol': 'algemeen',
                                 'naam': 'regels_lezen',
-                                'sjablonen': ('antwoord_duiding',),
+                                'sjablonen': ('antwoord_duiding', 'antwoord_regels'),
                                 'skills': (),
                                 'tools': ('get_artikel',
                                           'get_bepaling',
@@ -888,4 +885,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'e1efe04ba32c42c2d344221fcc7ad928c4e96e699ed27a73e9c7330b0348524f'}
+ 'sha256': '77ebe12e41c9291c4af7617de87a5f88adedee23c204b6b7a3e8eb3b8bf0d262'}

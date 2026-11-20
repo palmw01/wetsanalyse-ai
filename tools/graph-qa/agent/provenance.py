@@ -238,6 +238,28 @@ def _regeldragers(text: str) -> list[dict[str, Any]]:
         if isinstance(data, dict) else []
 
 
+#: Het brontype van een afleidingsregel als bron: een analyse-uitkomst uit de api, geen wettekst.
+REGEL_BRONTYPE = "regel"
+
+
+def regel_bronnen(entries: Iterable[tuple[str, str]], answer_text: str, getoond: Iterable[str] = ()) -> list[Source]:
+    """De afleidingsregels waarop een antwoord rust, als bron (laatste meting na #1797: V2 had geen bronnen). Een regel
+    staat erin als het antwoord haar toont (het blok `regels`, `getoond`) of haar bij naam of id noemt. De bron is de
+    regelkaart (`link`, een pad in de werkplek); de wettekst waarop ze rust, staat er via haar dragers al bij
+    (`_regeldragers`)."""
+    from .sjablonen.regels import regels_in_trace
+    regels = regels_in_trace(list(entries))
+    laag, getoond = (answer_text or "").casefold(), set(getoond)
+    uit = []
+    for rid, r in regels.items():
+        if rid in getoond or rid in (answer_text or "") or (r.naam and r.naam.casefold() in laag):
+            pad = f"/werkgebieden/{r.werkgebied_id}/regels/{rid}" if r.werkgebied_id else None
+            uit.append(Source(label=f"{r.naam or r.uitvoer or rid} ({r.status})" if r.status else (r.naam or rid),
+                              uri=f"urn:wa:regel:{rid}", origin_tool="get_regel" if r.gelezen else "search_regels",
+                              brontype=REGEL_BRONTYPE, link=pad))
+    return uit
+
+
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren.
 

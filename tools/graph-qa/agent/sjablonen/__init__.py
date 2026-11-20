@@ -27,6 +27,7 @@ from .begrip import SCHEMA as _BEGRIP, vooraf as _vooraf_begrip, vul as _vul_beg
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
+from .regels import SCHEMA as _REGELS, vul as _vul_regels
 from . import duiding as _duiding
 from . import extern as _extern
 from . import rapport as _rapport
@@ -49,6 +50,7 @@ SJABLONEN: dict[str, Sjabloon] = {
     _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip, _vooraf_begrip),
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
     _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
+    _REGELS["name"]: Sjabloon(_REGELS, _vul_regels),
     # De uitgang van een subagent (ADR-016 §A4): geen profiel noemt hem, de agentvorm `Subagent` geeft hem.
     _RAPPORT["name"]: Sjabloon(_RAPPORT, _vul_rapport),
     _extern.SCHEMA["name"]: Sjabloon(_extern.SCHEMA, _extern.vul),

@@ -20,7 +20,7 @@ import { bronHref } from "@/lib/url";
 /** "19.523", zoals de statusregel van Lex en de Markdown van het antwoord (`bronmodel.antwoord.getal`). */
 const getal = (n: number) => new Intl.NumberFormat("nl-NL").format(n);
 import { BRONTYPE_NAAM } from "@/lib/bronnen";
-import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
+import { begripPad, generiekPad, regelPad } from "@/lib/werkgebiedPaden";
 import { datumTekst } from "@/lib/datum";
 import type { Bron } from "@/lib/types";
 
@@ -84,6 +84,35 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
             {b.generiek
               ? <p className="text-xs text-muted">Generiek begrip, voor alle werkgebieden</p>
               : b.werkgebied && <p className="text-xs text-muted">Werkgebied {b.werkgebied}</p>}
+          </li>
+        ))}
+      </ul>
+    </Sectie>
+  ),
+  regels: ({ blok }) => (
+    <Sectie kop={blok.items.length === 1 ? "Vastgelegde afleidingsregel" : "Vastgelegde afleidingsregels"}>
+      <p className="text-xs text-muted">Analyse-uitkomsten van juristen, geen wettekst. Ze rusten op de genoemde bepalingen.</p>
+      <ul className="space-y-3">
+        {blok.items.map((r) => (
+          <li key={r.id} className="space-y-1" data-antwoord-regel={r.id}>
+            <p className="flex flex-wrap items-center gap-2">
+              {r.werkgebied_id
+                ? <Link href={regelPad(r.werkgebied_id, r.id)} className="focus-ring rounded font-medium text-lint underline underline-offset-2">{r.naam || r.uitvoer || r.id}</Link>
+                : <span className="font-medium">{r.naam || r.uitvoer || r.id}</span>}
+              <StatusLabel toon={STATUS_TOON[r.status] ?? "neutraal"} klein>{r.status}</StatusLabel>
+              {r.open_punten > 0 && <StatusLabel toon="geel" klein>{r.open_punten} open {r.open_punten === 1 ? "punt" : "punten"}</StatusLabel>}
+            </p>
+            {r.vervangen_door && <p className="text-xs text-muted">Vervangen door {r.vervangen_door.naam || r.vervangen_door.id}</p>}
+            {r.vervangt.length > 0 && <p className="text-xs text-muted">Vervangt {r.vervangt.map((v) => v.naam || v.id).join(", ")}</p>}
+            {r.gevallen.length > 0 && (
+              <ul className="list-disc space-y-0.5 pl-5">
+                {r.gevallen.map((g, i) => <li key={i}>{g.label && <span className="font-medium">{g.label}: </span>}{g.tekst}</li>)}
+              </ul>
+            )}
+            {r.dragers.some((d) => d.vindplaats) && (
+              <p className="text-xs text-muted">Rust op: {[...new Set(r.dragers.filter((d) => d.vindplaats && d.beoordeling !== "afgewezen")
+                .map((d) => d.vindplaats))].join("; ")}</p>
+            )}
           </li>
         ))}
       </ul>

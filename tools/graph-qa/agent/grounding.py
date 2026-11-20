@@ -222,6 +222,40 @@ def _feitenbron(source_trace: list[tuple[str, str]], trace_text: str) -> str:
     return f"{trace_text}\n{ruw}\n{uit_tabellen(source_trace)}"
 
 
+#: De tools waarvan een naam (`naam`, `uitvoer`) een feit uit de api is: een regel of een vastgelegd begrip.
+_NAAMTOOLS = frozenset({"search_regels", "get_regel", "search_begrippen", "get_begrip"})
+
+
+def _normaal(tekst: str) -> str:
+    return " ".join(str(tekst or "").casefold().split()).strip(" .,;:")
+
+
+def afgeleide_namen(source_trace: list[tuple[str, str]]) -> set[str]:
+    """De namen van de regels en vastgelegde begrippen uit de api-resultaten van deze beurt (`naam`, `uitvoer`,
+    genormaliseerd). Een naam tussen aanhalingstekens is geen citaat uit de wet maar een feit uit de api (laatste meting
+    na #1797, run 27e2865d: twee regelnamen maakten het antwoord *ongegrond*). Een citaat uit de wet blijft letterlijk
+    getoetst: alleen een citaat dat precies zo'n naam is, valt erbuiten."""
+    uit: set[str] = set()
+
+    def loop(x: Any) -> None:
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if k in ("naam", "uitvoer") and isinstance(v, str) and v.strip():
+                    uit.add(_normaal(v))
+                else:
+                    loop(v)
+        elif isinstance(x, list):
+            for v in x:
+                loop(v)
+    for name, t in source_trace:
+        if name in _NAAMTOOLS and t:
+            try:
+                loop(json.loads(t))
+            except (TypeError, ValueError):
+                continue
+    return uit
+
+
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                     overzicht: dict | None = None, *, bekend: str = "",
                     regelingen: set[str] | None = None, steun: dict[str, str] | None = None,
@@ -261,9 +295,10 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     # tool-resultaten rauw (JSON-string-wrapped TSV), dus daar zijn quotes ge-escaped en zou een
     # terecht citaat als afwijking uit de bus komen.
     citaten = _citaten(answer_text)
+    namen = afgeleide_namen(source_trace)
     niet_letterlijk = [
         c for c in citaten
-        if "\\" not in c and not komt_letterlijk_voor(trace_text, c)
+        if "\\" not in c and not komt_letterlijk_voor(trace_text, c) and _normaal(c) not in namen
     ]
 
     if overzicht:

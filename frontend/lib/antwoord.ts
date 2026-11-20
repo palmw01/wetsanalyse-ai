@@ -12,8 +12,17 @@ export interface AntwoordDefinitie {
   bereik_soort?: string; bereik_waarde?: string; gebruikt?: AntwoordDefinitie[];
 }
 
+/** Een afleidingsregel uit de api (`bronmodel.antwoord.VastgelegdeRegel`): een analyse-uitkomst, geen wettekst. */
+export interface AntwoordRegel {
+  id: string; werkgebied_id: string; werkgebied: string; naam: string; uitvoer: string; status: string; soort: string;
+  gevallen: { label: string; tekst: string }[];
+  dragers: { rol: string; geval: string; beoordeling: string; passage: string; vindplaats: string; bron_iri: string; jci: string }[];
+  open_punten: number; vervangen_door: { id: string; naam: string } | null; vervangt: { id: string; naam: string }[]; gelezen: boolean;
+}
+
 export type AntwoordBlok =
   | { soort: "definities"; door: "bron"; items: AntwoordDefinitie[] }
+  | { soort: "regels"; door: "bron"; items: AntwoordRegel[] }
   | { soort: "begrippen"; door: "bron"; items: { id: string; naam: string; status: string; definitie: string; werkgebied: string; werkgebied_id: string; herbeoordelen: boolean; generiek?: boolean }[] }
   | { soort: "wettekst"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; nog_niet_in_werking?: boolean }[] }
   | { soort: "citaten"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; waarom: string }[] }
@@ -72,7 +81,7 @@ export type BlokSoort = AntwoordBlok["soort"];
 
 export interface Antwoord { sjabloon: string; versie: number; blokken: AntwoordBlok[]; doelen: AntwoordVindplaats[] }
 
-export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "stukken", "leemte"];
+export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "regels", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "stukken", "leemte"];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -87,6 +96,8 @@ function isBlok(b: unknown): b is AntwoordBlok {
   switch (b.soort as BlokSoort) {
     case "definities": case "wettekst": case "citaten": return lijst(metVindplaats);
     case "begrippen": return lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.naam === "string");
+    case "regels": return lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.naam === "string" &&
+      typeof x.status === "string" && Array.isArray(x.dragers) && Array.isArray(x.gevallen));
     case "verwijzingen": return lijst(isVindplaats);
     case "annotaties": return lijst((x) => isObject(x) && typeof x.klasse === "string" && typeof x.tekst === "string");
     case "toelichting": case "leemte": return typeof b.tekst === "string";
@@ -108,7 +119,7 @@ export function parseAntwoord(v: unknown): Antwoord | undefined {
 
 /** Wat de controle in graph-qa niet leest (`NIET_GETOETST` in `bronmodel/antwoord.py`): afgeleide duiding en tekst van de code.
  *  Bestaat een antwoord alleen hieruit, dan is "niets te controleren" geen melding waard: er staat niets van het model. */
-export const NIET_GETOETST: readonly BlokSoort[] = ["annotaties", "begrippen", "leemte", "stukken"];
+export const NIET_GETOETST: readonly BlokSoort[] = ["annotaties", "begrippen", "regels", "leemte", "stukken"];
 
 export function alleenNietGetoetst(a: Antwoord | undefined): boolean {
   return !!a && a.blokken.every((b) => NIET_GETOETST.includes(b.soort));

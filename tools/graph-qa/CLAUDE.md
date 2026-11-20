@@ -712,7 +712,16 @@ bruikbaar is.
   herkenning neemt ook een vraag naar de stand of opvolging van regels ("welke regels zijn vervangen?"), zonder artikel,
   wet of regeling erin. De bronnodes van de dragers van een gelezen regel (`get_regel`) staan in de bronnenlijst met hun
   vindplaats, ook zonder jci (`provenance._regeldragers`); het resultaat blijft afgeleide duiding, nooit grounding. Een
-  eerste alinea die alleen het antwoord aankondigt ("Hieronder volgt …"), is een aanloop (`narratie._AANKONDIGING_RE`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
+  eerste alinea die alleen het antwoord aankondigt ("Hieronder volgt …"), is een aanloop (`narratie._AANKONDIGING_RE`).
+  **Het regelantwoord is een sjabloon** (`sjablonen/regels.py`, `antwoord_regels`, ADR-008; laatste meting na #1797:
+  `sjabloon.gemist` in beide runs, want het duidingssjabloon vraagt wettekstpassages): het model schrijft het korte
+  antwoord en de id's, de code vult het blok `regels` (`bronmodel.antwoord.Regels`, niet getoetst) uit `search_regels` en
+  `get_regel`: naam, status, open punten, gevallen, dragers met vindplaats en opvolging; de doelen zijn de bronnodes van de
+  grondslag. Een tekstantwoord in de route zet `agent_node` zelf om naar dit sjabloon (`regels.omzetting`, telling
+  `omgezet`), zonder modelronde: zo hangt de vorm niet af van of het model het sjabloon kiest (`tool_choice` breekt de
+  cache). Een regelnaam tussen aanhalingstekens is geen wetcitaat (`grounding.afgeleide_namen`: precies een `naam` of
+  `uitvoer` uit de regel- en begrippentools); een citaat uit de wet blijft letterlijk getoetst. De regels zelf staan in de
+  bronnenlijst (`provenance.regel_bronnen`, brontype `regel`, `link` = de regelkaart), als het antwoord ze toont of noemt. Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
   regels is het byte-gelijk.
 - **`tools/__init__.py`** – `TOOLS` (33 declaraties: 21 graaftools, de vier annotatieleestools uit
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit
