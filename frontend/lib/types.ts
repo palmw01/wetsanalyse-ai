@@ -1224,6 +1224,8 @@ export interface BegripRelatie {
     van?: { element_id: string; tekst: string; vindplaats: string } | null;
     naar?: { element_id: string; tekst: string; vindplaats: string } | null;
     soort?: string; vorige_status?: string;
+    /** Een vastgelegde relatie die later is afgewezen: waarom, door wie, en wie haar eerder vastlegde. */
+    afwijzing?: { reden: string; door: string; op: string; was_door?: string; was_op?: string };
   };
   door?: string;
   op?: string;

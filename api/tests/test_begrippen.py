@@ -205,6 +205,44 @@ async def test_een_akkoord_op_de_annotatie_is_geen_wijziging(client):
 
 # --- primaire duiding, idempotentie, scope ----------------------------------------------------------
 
+async def test_open_contextkoppelingen_zijn_een_signaal_en_geen_poort(client):
+    """Termijnen e2e (20 nov 2026): een begrip werd geaccordeerd met drie open contextkoppelingen, zonder signaal."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                             "element_ids": [ids["awr"]], "rol": "context"})).json()
+    kaart = (await client.get(_url(wg, b))).json()
+    assert any("contextkoppeling is nog niet beoordeeld" in a for a in kaart["aandachtspunten"])
+    assert not any("context" in r for r in kaart["accorderen"]["redenen"])
+
+
+async def test_een_koppeling_afwijzen_laat_een_geaccordeerd_begrip_geaccordeerd(client):
+    """Besluit gebruiker 20 nov 2026, "Ja, blijft geaccordeerd": een afwijzing verandert de definitie niet. Valt de laatste
+    aanduidende passage weg, dan zegt een aandachtspunt dat het begrip geen grondslag meer heeft."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
+                                               "inhoud": {"naam": "Belastingschuldige", **DEFINITIE}})).json()
+    await _keur_alles_goed(ids)
+    for k in b["koppelingen"]:
+        b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                                json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
+    b = (await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})).json()
+    assert b["status"] == "geaccordeerd"
+    [k] = [x for x in b["koppelingen"] if x["rol"] == "duiding"]
+    b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                            json={"verwachte_revisie": b["revisie"], "beoordeling": "afgewezen", "motivatie": "Te ruim."})).json()
+    kaart = (await client.get(_url(wg, b))).json()
+    assert kaart["status"] == "geaccordeerd"
+    assert any(a.startswith("Geen grondslag meer") for a in kaart["aandachtspunten"])
+    # Een andere rol is een inhoudelijke wijziging: dan wel een concept.
+    b = (await client.patch(_url(wg, kaart, "koppelingen", k["id"]),
+                            json={"verwachte_revisie": kaart["revisie"], "rol": "context"})).json()
+    assert (await client.get(_url(wg, b))).json()["status"] == "concept"
+
+
 async def test_een_afgewezen_duiding_houdt_het_element_niet_vast(client):
     """Termijnen e2e (20 nov 2026): een afgewezen duiding gaf bij een nieuwe duiding nog 409 `al_primair`."""
     ids = await _annoteer()

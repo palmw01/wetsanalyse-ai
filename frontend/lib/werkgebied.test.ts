@@ -142,7 +142,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen", "b", "koppelingen", "k", "bevestigen"]], [["w", "dekking"]],
     [["w", "dekking", "buiten-behandeling"]], [["w", "dekking", "buiten-behandeling", "e"]],
     // Relaties en opvolging (fase F2).
-    [["w", "relaties"]], [["w", "relaties", "r"]], [["w", "relaties", "r", "bevestigen"]],
+    [["w", "relaties"]], [["w", "relaties", "r"]], [["w", "relaties", "r", "bevestigen"]], [["w", "relaties", "r", "afwijzen"]],
     [["w", "relaties", "voorstellen", "R1", "afwijzen"]], [["w", "begrippen", "b", "nieuwe-betekenis"]],
     [["w", "begrippen", "b", "combineren"]],
     // Deelvragen (optioneel).

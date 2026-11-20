@@ -591,8 +591,13 @@ spoor D (*Werkgebied als node*).
   `verwachte_revisie` → 412, revisie +1, revisiekopie en auditregel. De revisie van het werkgebied gaat
   niet omhoog: die gaat over de scope. Zonder echte wijziging (dezelfde inhoud, een element dat al
   gekoppeld is) gebeurt er niets, ook geen revisie.
-- **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept** – met één
-  uitzondering: herkoppelen en bevestigen (fase F1) laten de inhoud staan en het begrip geaccordeerd.
+- **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept** – met twee
+  uitzonderingen: herkoppelen en bevestigen (fase F1) laten de inhoud staan en het begrip geaccordeerd, en een
+  koppeling **afwijzen** ook. Dat laatste is een besluit van de gebruiker op 20 nov 2026, na Termijnen e2e. Zijn
+  antwoord was: "Ja, blijft geaccordeerd". Een afwijzing verandert de definitie niet. Dat geldt los of in bulk
+  (`_blijft_geaccordeerd`), ook als een motivatie meekomt; een andere rol of andere velden maken het wel een concept.
+  Valt daarmee de laatste aanduidende passage weg, dan blijft het begrip geaccordeerd, maar de aandachtspunten
+  zeggen *Geen grondslag meer*.
   Een **vervangen** begrip (fase F2) is alleen-lezen: elke mutatie 409 `vervangen`.
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
@@ -1012,6 +1017,19 @@ werkgebieden. Een verwijderd begrip of werkgebied is gewist en bestaat hier dus 
 - **`GET /v1/begrippen/{id}`**: `{werkgebied: {id, naam}, begrip: <kaart>, relaties: <akkoord>}`, zonder
   dat de vrager het werkgebied hoeft te kennen (`get_begrip` van Lex, de werkplek).
 - Tests: `tests/test_begrippen_overzicht.py`.
+
+## Termijnen e2e, vervolg (20 nov 2026)
+
+- **Een relatie tussen markeringen bevestigen** (`POST /v1/annotatie/relaties/{id}/bevestig`, `{verwachte_revisies}`,
+  ADR-011 §*Bevestigen*): een vastgestelde relatie die `veranderd` is (een verlengd anker), krijgt de stand van nu als
+  basis. De toetsen zijn die van goedkeuren, maar de laag hoeft niet heropend te worden en het oordeel blijft. Er komt
+  een beslissing `bevestig` en een auditregel `relatie-bevestigd`. In de werkplek is dit *Klopt nog*.
+- **Een vastgelegde begriprelatie afwijzen** (`POST …/relaties/{id}/afwijzen`, `{reden}`): `beoordeling: afgewezen`
+  met `bewijs.afwijzing` (reden, door, op, wie haar vastlegde). Ze blijft staan in plaats van te verdwijnen, en ze gaat
+  uit de projectie. Een opvolging wijs je niet af.
+- **Open contextkoppelingen zijn een signaal** in `aandachtspunten` (`_context_open`), geen reden van de poort.
+- **Een element met een uniek voorvoegsel** van zijn id (minstens 6 tekens; `GET /v1/annotatie/elementen/{id}` en
+  `…/graaf`, `store.volledig_element_id`): meer kandidaten is 409 `voorvoegsel_niet_uniek`, nooit een gok.
 
 ## Afleidingsregels
 
