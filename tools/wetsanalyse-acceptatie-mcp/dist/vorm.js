@@ -45,10 +45,71 @@ export function inventarisOverzicht(inv, bronIri) {
         uit.elementen = elementen.filter((e) => e.eigenaar_iri === bronIri).map(kortElement);
     return uit;
 }
+/**
+ * De elementen van één bepaling en wat eronder valt (een lid onder een artikel), zonder de selecties en tellingen van
+ * het hele werkgebied (Termijnen e2e, 20 nov 2026: `werkgebied_lezen` met `bron_iri` was nog ~70k tekens).
+ */
+export function bepalingElementen(inv, bronIri) {
+    const elementen = (Array.isArray(inv.elementen) ? inv.elementen : []).filter((e) => {
+        const iri = String(e.eigenaar_iri ?? "");
+        return iri === bronIri || iri.startsWith(`${bronIri}:`) || iri.startsWith(`${bronIri}%2F`);
+    });
+    return { bron_iri: bronIri, aantal: elementen.length, per_klasse: tel(elementen, "klasse"),
+        per_lifecycle: tel(elementen, "lifecycle"), elementen: elementen.map(kortElement) };
+}
 /** De nieuwste regels van de audit (de api geeft ze nieuwste eerst, hoogstens 100), met hoeveel er gelezen zijn: de
  *  hele audit groeit met elke handeling. */
 export function auditStaart(audit, n = 15) {
     const binnen = audit?.audit;
     const regels = Array.isArray(audit) ? audit : Array.isArray(binnen) ? binnen : [];
     return { gelezen: regels.length, nieuwste: regels.slice(0, n) };
+}
+/** Het aantal tekens van een definitie in het begrippenoverzicht; de hele kaart staat in `begrip_lezen` met een id. */
+export const DEFINITIE_KORT = 200;
+function kort(tekst, n) {
+    const t = typeof tekst === "string" ? tekst : "";
+    return t.length > n ? `${t.slice(0, n)}…` : t;
+}
+/**
+ * Alle begrippen van een werkgebied in één overzicht (Termijnen e2e, 20 nov 2026: `begrip_lezen` zonder id was 346k
+ * tekens, met `vorm=kort` nog 209k). Per begrip wat nodig is om er een te kiezen en te zien wat openstaat: naam,
+ * status, revisie, een korte definitie, alternatieve termen, het aantal passages, de aandachtspunten en of het
+ * NL-SBB-conform is met de meldingen zonder herhaling. De relaties als (van, type, naar); de voorstellen alleen geteld.
+ */
+export function begrippenOverzicht(lijst, conformiteit, samenhang) {
+    const begrippen = (Array.isArray(lijst?.begrippen) ? lijst.begrippen : []);
+    const conform = (conformiteit?.begrippen ?? {});
+    const sh = (samenhang ?? {});
+    const namen = new Map(begrippen.map((b) => [String(b.id), String(b.inhoud?.naam ?? b.naam ?? "")]));
+    const relaties = (Array.isArray(sh.relaties) ? sh.relaties : []);
+    return {
+        aantal: begrippen.length,
+        per_status: tel(begrippen, "status"),
+        begrippen: begrippen.map((b) => {
+            const inhoud = (b.inhoud ?? {});
+            const c = conform[String(b.id)] ?? {};
+            const meldingen = Array.isArray(c.meldingen) ? c.meldingen : [];
+            return {
+                id: b.id,
+                naam: inhoud.naam ?? b.naam,
+                status: b.status,
+                revisie: b.revisie,
+                // De lijst in `vorm=kort` draagt naam en definitie bovenaan, de volle lijst in `inhoud`.
+                definitie: kort(inhoud.definitie ?? b.definitie, DEFINITIE_KORT),
+                alternatieve_termen: inhoud.alternatieve_termen ?? b.alternatieve_termen ?? [],
+                aantal_koppelingen: b.aantal_koppelingen,
+                aandachtspunten: b.aandachtspunten ?? [],
+                conform: c.conform ?? null,
+                meldingen: [...new Set(meldingen.map((m) => `${m.ernst}: ${m.melding}`))],
+            };
+        }),
+        // Alleen de relaties die een begrip uit deze lijst raken (met `term` is de lijst gefilterd).
+        relaties: relaties.filter((r) => namen.has(String(r.van_begrip)) || namen.has(String(r.naar_begrip))).map((r) => ({
+            van: namen.get(String(r.van_begrip)) ?? r.van_naam ?? r.van_begrip,
+            type: r.type,
+            naar: namen.get(String(r.naar_begrip)) ?? r.naar_naam ?? r.naar_begrip,
+            id: r.id,
+        })),
+        voorstellen: Array.isArray(sh.voorstellen) ? sh.voorstellen.length : 0,
+    };
 }

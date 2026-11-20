@@ -1038,7 +1038,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Maken en beoordelen van een voorbeeld zijn twee handelingen** (`voorbeelden_na`): de POST en de PATCH zetten nooit een
   oordeel. Een nieuw of gewijzigd voorbeeld (geval, invoer en uitkomst) is `open` en draagt `door`; een gelijk voorbeeld
   houdt zijn oordeel. Het oordeel gaat via `POST …/regels/{id}/voorbeelden/{nr}/oordeel` (`nr` vanaf 1, met
-  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet. Beoordeelt de maker zijn eigen voorbeeld, dan is dat
+  `verwachte_revisie`), dat `beoordeeld_door`, `beoordeeld_op` en de grond (`reden`, of `motivering`) bij het voorbeeld zet.
+  Het moment en de persoon schuiven alleen op als het oordeel verandert; met `reden_aanvullen: true` komt de reden achter
+  de bestaande (met wie), en de vorige tekst staat in de revisie (`reden_voor`). Beoordeelt de maker zijn eigen voorbeeld, dan is dat
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
@@ -1061,7 +1063,7 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval
   ervan hangen. **Elk open punt van elke soort houdt het accorderen tegen** (`BLOKKERENDE_STANDEN`: `open`), dus ook
   een onderzoekspunt of een gat in de annotatie. Dat is het besluit van de gebruiker van 20 nov 2026: "Ja, blokkeren"
-  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het geval en de vraag. Een punt
+  (ADR-018 besluit 2). Daarvóór blokkeerde alleen een keuze. De reden noemt de soort, het korte id (acht tekens), het geval en de vraag. Een punt
   dat gekozen, getoetst of gesignaleerd is, of is omgehangen, houdt niet meer tegen. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen

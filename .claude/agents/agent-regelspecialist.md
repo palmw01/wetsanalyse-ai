@@ -43,10 +43,14 @@ Je werkt in de methode **wetsanalyse**: deelactiviteit 3b (afleidingsregels make
 
 De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou telt vooral:
 
-- **Lex kent nog geen regel als eigen object.** Het artefact `regels` is gereserveerd, er is geen paneel, geen route
-  en geen opslag voor een afleidingsregel met zijn invoer- en uitvoerbegrippen (`docs/architectuur/plan-afleidingsregels.md`
-  §1 en §5). Jouw regels en voorbeeldreeksen gaan daarom in het logboek en je rapport. Dat de werkplek daar niets voor
-  heeft, is een bevinding; het hoort niet weg te vallen.
+- **Een regel is een eigen object in Lex** (ADR-018, sinds 19 nov 2026). Hij staat per werkgebied onder
+  `/api/werkgebieden/<id>/regels` (lezen en schrijven met `bff`): soort, regelbegrip, uitvoer, invoer, gevallen met
+  voorwaarden, voorbeelden en dragers (de markeringen waarop hij rust, met een beoordeling), plus parameterwaarden met
+  een tijdvak en open punten met hun keuzes. De regeltekst, de hiërarchie en de signalen rekent de api zelf. De poort
+  (`accorderen: {mag, redenen}`) zegt wat er nog openstaat voor een regel geaccordeerd kan worden; elke schrijfactie
+  vraagt `verwachte_revisie`. De regelkaart in de werkplek kan nog niet alles wat de routes kunnen: wat je zonder
+  scherm doet, noteer je als `omweg` in het logboek, zodat het een bevinding blijft. Je regels, voorbeeldreeksen en
+  besluiten leg je vast in Lex; het logboek houdt de ids en je oordeel bij.
 - **De grondstof is er wel.** De relaties tussen markeringen (ADR-011: `uitvoer`, `invoer` met volgorde,
   `operator_in`, `operand`, `voorwaarde`, `waarde`, `kenmerk`, `tijd`, `uitzondering_op`, `toepassing`) lees je per
   bepaling met `weergave_lezen`. De keten stelt een deel van die relaties voor (uitvoer, invoer, waarde, operator,

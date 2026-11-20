@@ -777,19 +777,26 @@ def regelingen_met_woord(graph: GraphPort, woord: str, bereik: list[str]) -> lis
 
 def is_voorwerp(graph: GraphPort, gebeurtenis: str, regelingen: list[str]) -> bool:
     """Of de gekozen gebeurtenis in geen kop van de regelingen staat ("bankrekening"): dan is het vermoedelijk een
-    voorwerp, geen handeling, en vindt de keten a–d niets. Bij een haperende graaf: nee (niet opnieuw vragen)."""
+    voorwerp, geen handeling, en vindt de keten a–d niets. Bij een haperende graaf: nee (niet opnieuw vragen).
+
+    Een kop draagt de handeling, niet de hele omschrijving: de koppen worden gezocht op álle woorden, dus "verrekening
+    van een negatieve voorlopige aanslag met een positieve" vond niets en heette een voorwerp, terwijl "Verrekening" de
+    kop van IW hoofdstuk IV afdeling 2 is (Termijnen e2e, 20 nov 2026). Daarom daarna het kernwoord alleen: het eerste
+    woord, het hoofd van de omschrijving ("verrekening van …"). "Bankrekening" blijft een voorwerp."""
     woorden = zoektermen(gebeurtenis)
     if not woorden:
         return False
     stammen = [_stamdeel(w) for w in woorden]
     bereik = [r for r in dict.fromkeys(regelingen) if r]
+    zoek = [gebeurtenis] + ([woorden[0]] if len(woorden) > 1 else [])
     try:
         if not bereik:
-            return not regelingen_van_gebeurtenis(graph, gebeurtenis)
-        for bwb in bereik:
-            for r in _rijen(graph, queries.zoek_opbouw(gebeurtenis, bwb_id=bwb, limit=MAX_DELEN)):
-                if any(st in g.casefold() for g in kop_gebeurtenissen(r.get("label") or "") for st in stammen):
-                    return False
+            return not any(regelingen_van_gebeurtenis(graph, z) for z in zoek)
+        for z in zoek:
+            for bwb in bereik:
+                for r in _rijen(graph, queries.zoek_opbouw(z, bwb_id=bwb, limit=MAX_DELEN)):
+                    if any(st in g.casefold() for g in kop_gebeurtenissen(r.get("label") or "") for st in stammen):
+                        return False
     except Exception:  # noqa: BLE001
         logger.warning("voorwerp niet getoetst", extra={"categorie": "technisch"}, exc_info=True)
         return False

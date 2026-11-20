@@ -208,10 +208,11 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
 
 
 def _punt_zin(p: dict) -> str:
-    """Een open punt in de reden van de poort: de soort, het geval en de vraag ("onderzoekspunt (geval lid 5): …")."""
+    """Een open punt in de reden van de poort: de soort, het korte id (de eerste acht tekens, genoeg om het punt te
+    openen), het geval en de vraag ("onderzoekspunt 68bfec2e (geval lid 5): …")."""
     soort = p["soort"].replace("_", " ")
     gevallen = ", ".join(g for g in p.get("gevallen") or [] if g)
-    return f"{soort}{f' (geval {gevallen})' if gevallen else ''}: {p['vraag'].rstrip('.?')}"
+    return f"{soort} {p['id'][:8]}{f' (geval {gevallen})' if gevallen else ''}: {p['vraag'].rstrip('.?')}"
 
 
 def voorbeeldnummers(voorbeelden: list[dict], oordeel: str) -> list[int]:
@@ -808,16 +809,26 @@ async def beoordeel_voorbeeld(werkgebied_id: str, regel_id: str, nr: int, w: Voo
             v = voorbeelden[nr - 1]
             toelichting = v.get("toelichting", "") if w.toelichting is None else w.toelichting.strip()
             beoordeeld = w.oordeel.value != "open"
+            zelfde_oordeel = v.get("oordeel", "open") == w.oordeel.value
+            oud = v.get("reden", "")
             reden = w.reden.strip() if beoordeeld else ""
-            if (v.get("oordeel", "open") == w.oordeel.value and v.get("toelichting", "") == toelichting
-                    and v.get("reden", "") == reden):
+            if w.reden_aanvullen and reden and oud:
+                # Aanvullen, niet vervangen (zoals `motivatie_aanvullen` bij een begripskoppeling): de grond van de vorige
+                # beoordelaar blijft staan, met wie aanvult erbij.
+                reden = f"{oud}\n{actor}: {reden}"[:2000]
+            if zelfde_oordeel and v.get("toelichting", "") == toelichting and oud == reden:
                 stand["geen_wijziging"] = True
             else:
-                v.update(oordeel=w.oordeel.value, toelichting=toelichting, reden=reden,
-                         beoordeeld_door=actor if beoordeeld else "",
-                         beoordeeld_op=db.utcnow().isoformat() if beoordeeld else "")
-                if reden:
+                v.update(oordeel=w.oordeel.value, toelichting=toelichting, reden=reden)
+                # Het moment en de persoon van het oordeel schuiven alleen op als het oordeel zelf verandert: een reden
+                # aanvullen of verbeteren is geen nieuw oordeel.
+                if not zelfde_oordeel:
+                    v.update(beoordeeld_door=actor if beoordeeld else "",
+                             beoordeeld_op=db.utcnow().isoformat() if beoordeeld else "")
+                if reden != oud:
                     detail["reden"] = reden
+                    if oud:
+                        detail["reden_voor"] = oud              # wat vervangen of aangevuld wordt, staat in de revisie
                 detail["door_maker"] = beoordeeld and bool(v.get("door")) and v.get("door") == actor
                 stand["inhoud"] = {**row.inhoud, "voorbeelden": voorbeelden}
     return await haal(werkgebied_id, regel_id)

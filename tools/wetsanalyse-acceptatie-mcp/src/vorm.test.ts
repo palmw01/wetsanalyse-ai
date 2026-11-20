@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { auditStaart, inventarisOverzicht, kortElement, TEKST_KORT } from "./vorm.js";
+import { auditStaart, begrippenOverzicht, bepalingElementen, DEFINITIE_KORT, inventarisOverzicht, kortElement, TEKST_KORT } from "./vorm.js";
 
 const el = (id: string, eigenaar: string, klasse: string, lifecycle = "voorgesteld", tekst = "de belastingschuldige") =>
   ({ id, eigenaar_iri: eigenaar, klasse, lifecycle, tekst, ankers: [{ bron_iri: eigenaar, start: 0, eind: 5 }],
@@ -37,4 +37,44 @@ test("de audit: de nieuwste regels eerst, zoals de api ze geeft", () => {
   assert.equal(uit.gelezen, 3);
   assert.deepEqual(uit.nieuwste, [{ id: 30 }, { id: 29 }]);
   assert.deepEqual(auditStaart({ status: 500 }), { gelezen: 0, nieuwste: [] });
+});
+
+test("het begrippenoverzicht houdt per begrip wat je nodig hebt en laat het bewijs weg", () => {
+  const lijst = { begrippen: [
+    { id: "a", status: "geaccordeerd", revisie: 3, aantal_koppelingen: 2, aandachtspunten: [], element_ids: ["e1", "e2"],
+      inhoud: { naam: "jaar", definitie: "x".repeat(500), alternatieve_termen: ["kalenderjaar"], voorbeelden: [{ tekst: "2025" }] } },
+    { id: "b", status: "concept", revisie: 1, aantal_koppelingen: 1, inhoud: { naam: "tijdvak" } },
+  ] };
+  const conformiteit = { begrippen: { a: { conform: true, meldingen: [] }, b: { conform: false, meldingen: [
+    { ernst: "fout", melding: "geen definitie" }, { ernst: "fout", melding: "geen definitie" }] } } };
+  const samenhang = { relaties: [{ id: "r1", van_begrip: "b", naar_begrip: "a", type: "hierarchie", bewijs: { lang: "…" } }],
+    voorstellen: [{}, {}] };
+  const uit = begrippenOverzicht(lijst, conformiteit, samenhang) as any;
+  assert.equal(uit.aantal, 2);
+  assert.deepEqual(uit.per_status, { geaccordeerd: 1, concept: 1 });
+  assert.equal(uit.begrippen[0].definitie.length, DEFINITIE_KORT + 1);
+  assert.equal(uit.begrippen[0].voorbeelden, undefined);
+  assert.deepEqual(uit.begrippen[1].meldingen, ["fout: geen definitie"]);
+  assert.deepEqual(uit.relaties, [{ van: "tijdvak", type: "hierarchie", naar: "jaar", id: "r1" }]);
+  assert.equal(uit.voorstellen, 2);
+});
+
+test("het begrippenoverzicht leest ook de korte lijst, en houdt alleen de relaties van wat er staat", () => {
+  const lijst = { vorm: "kort", begrippen: [{ id: "a", naam: "jaar", status: "concept", revisie: 1, definitie: "Een jaar.",
+    alternatieve_termen: ["kalenderjaar"], aantal_koppelingen: 1 }] };
+  const samenhang = { relaties: [{ id: "r1", van_begrip: "b", naar_begrip: "a", type: "hierarchie" },
+    { id: "r2", van_begrip: "b", naar_begrip: "c", type: "verwant" }] };
+  const uit = begrippenOverzicht(lijst, {}, samenhang) as any;
+  assert.deepEqual([uit.begrippen[0].naam, uit.begrippen[0].definitie, uit.begrippen[0].alternatieve_termen],
+    ["jaar", "Een jaar.", ["kalenderjaar"]]);
+  assert.deepEqual(uit.relaties.map((r: any) => r.id), ["r1"]);
+});
+
+test("de elementen van één bepaling, met wat eronder valt, zonder de rest van het werkgebied", () => {
+  const inv = { selecties: [{ id: "s1" }], elementen: [el("1", "w:artikel:9:lid:1", "Rechtssubject"),
+    el("2", "w:artikel:9", "Voorwaarde"), el("3", "w:artikel:90", "Voorwaarde")] };
+  const uit = bepalingElementen(inv, "w:artikel:9") as any;
+  assert.deepEqual(uit.elementen.map((e: any) => e.id), ["1", "2"]);
+  assert.equal(uit.selecties, undefined);
+  assert.equal(uit.aantal, 2);
 });
