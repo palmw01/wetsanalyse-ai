@@ -18,7 +18,7 @@ EXPECTED = {
     "get_regeling_info", "follow_verwijzingen", "verwijst_naar_deze", "referenced_by",
     "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",
     "resolve_begrip", "graph_schema", "raw_sparql", "zoek_opbouw", "overzicht_onderwerp",
-    "search_begrippen", "get_begrip",
+    "search_begrippen", "get_begrip", "search_regels", "get_regel",
 } | {t for c in CONNECTORS.values() for t in c.tools}  # de bronconnectors (ADR-013), uit hun beschrijving
 
 
