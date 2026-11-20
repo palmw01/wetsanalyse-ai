@@ -460,7 +460,7 @@ async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(k.c.element_id, b.c.id, b.c.inhoud).join_from(k, b, k.c.begrip_id == b.c.id)
                                    .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
-                                          k.c.verwijderd.is_(None),
+                                          k.c.verwijderd.is_(None), k.c.beoordeling != "afgewezen",
                                           b.c.status != "vervangen"))).all()
     return {r.element_id: {"begrip_id": r.id, "naam": r.inhoud.get("naam", "")} for r in rows}
 
@@ -871,8 +871,13 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
                                                   k.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
+        if w.motivatie_aanvullen and gevraagd.get("motivatie") and row.motivatie:
+            # Aanvullen, niet vervangen: de motivatie van de vorige beoordelaar blijft staan (Termijnen e2e, 20 nov 2026).
+            gevraagd["motivatie"] = f"{row.motivatie}\n{actor}: {gevraagd['motivatie']}"[:4000]
         velden = {f: v for f, v in gevraagd.items() if getattr(row, f) != v}
         detail["velden"] = sorted(velden)
+        if "motivatie" in velden and row.motivatie:
+            detail["motivatie_voor"] = row.motivatie            # wat vervangen wordt, staat in de audit
         if "beoordeling" in velden:
             detail["beoordeling"] = velden["beoordeling"]
         if "rol" in velden:
@@ -926,6 +931,9 @@ async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: 
                                  .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
                                         k.c.verwijderd.is_(None), k.c.begrip_id != begrip_id,
                                         b.c.status != "vervangen",       # een vervangen begrip houdt niets vast
+                                        # Een afgewezen duiding ook niet (Termijnen e2e, 20 nov 2026: het element
+                                        # kwam pas vrij als je de rol op context zette).
+                                        k.c.beoordeling != "afgewezen",
                                         k.c.element_id.in_(element_ids)))).first()
     if elders is not None:
         naam = elders.inhoud.get("naam", "")

@@ -109,6 +109,17 @@ async def test_verwant_naast_een_hierarchie_weigert_de_api_in_beide_richtingen(c
     assert r.status_code == 409
 
 
+async def test_een_hierarchie_die_een_kring_sluit_weigert_de_api(client):
+    """De richting stond nergens en een omgekeerde hiërarchie gaf geen waarschuwing (Termijnen e2e, 20 nov 2026)."""
+    _, wg, a, b = await _twee(client)
+    r = await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "hierarchie",
+                                          "toelichting": "Soort."})
+    assert r.status_code == 201
+    r = await client.post(_rel(wg), json={"van_begrip": b["id"], "naar_begrip": a["id"], "type": "hierarchie",
+                                          "toelichting": "Omgekeerd."})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "hierarchie_kring"
+
+
 async def test_een_veranderde_kant_staat_bij_het_andere_begrip_in_de_herbeoordeling(client):
     ids, wg, a, b = await _twee(client)
     await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "inclusie"})

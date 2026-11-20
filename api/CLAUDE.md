@@ -603,6 +603,14 @@ spoor D (*Werkgebied als node*).
 - **Een PATCH noemt wat verandert** (`BegripInhoudDeel`, Termijnen e2e 20 nov 2026): wat de inhoud niet noemt, blijft
   staan; leegmaken is het veld met `""` of `[]`. Het geheel wordt onder het slot opnieuw getoetst. De werkplek stuurt
   alles en merkt geen verschil.
+- **Lezen kan smal** (Termijnen e2e 20 nov 2026): `GET …/begrippen?vorm=kort` geeft per begrip naam, status, revisie,
+  definitie en tellingen (zonder `primair` en element-id's); `term` filtert op (een deel van) naam of alternatieve term,
+  `id` (vaker te geven) op begrip-id's. `GET …/begrippen/{id}?vorm=stand|kort` zoals bij een wijziging.
+- **Een afgewezen duiding houdt het element niet vast**: `_toets_primair` en `primaire_duidingen` tellen haar niet.
+- **Een koppeling-PATCH met `motivatie_aanvullen: true`** zet de motivatie achter de bestaande (met wie); vervangen
+  blijft de standaard, en de vorige tekst staat in de audit (`motivatie_voor`).
+- **Een hiërarchie gaat van breed naar smal** (`van` is het bredere begrip, de projectie zet `naar skos:broader van`); een
+  hiërarchie die een kring sluit, is 409 `hierarchie_kring`.
 - **Combineren neemt geen inhoud mee**: een onbekend veld is 422 (`extra="forbid"`), geen stille 200.
 - **Verwant óf hiërarchie** tussen twee begrippen, niet allebei (409 `verwant_en_hierarchie`, in beide richtingen). De
   NL-SBB-melding "dezelfde voorkeursterm" telt een vervangen begrip niet mee (`_dubbel_alleen_met_vervangen`): de shape

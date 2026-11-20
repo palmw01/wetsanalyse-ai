@@ -127,6 +127,9 @@ class KoppelWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
     rol: KoppelRol | None = None
     motivatie: str | None = Field(default=None, max_length=4000)
+    #: Zet de motivatie achter de bestaande (met wie), in plaats van haar te vervangen. Vervangen blijft de standaard
+    #: (de werkplek bewerkt de tekst zelf); de vorige tekst staat dan in de audit (`motivatie_voor`).
+    motivatie_aanvullen: bool = False
     beoordeling: Beoordeling | None = None
 
 

@@ -164,6 +164,36 @@ async def test_een_wijziging_noemt_alleen_wat_verandert_en_een_nieuw_begrip_kent
     assert r.status_code == 422
 
 
+async def test_de_lijst_kent_een_korte_vorm_en_filters(client):
+    """Termijnen e2e (20 nov 2026): de lijst was ~230k tekens en niet te filteren; GET begrip ~40 kB zonder vorm."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    a = await _begrip(client, wg, [ids["lid1"]], naam="termijn")
+    b = await _begrip(client, wg, naam="vervaldag")
+    pad = f"/v1/werkgebieden/{wg['id']}/begrippen"
+    kort = (await client.get(pad, params={"vorm": "kort"})).json()
+    assert kort["vorm"] == "kort" and "primair" not in kort and {x["naam"] for x in kort["begrippen"]} == {"termijn", "vervaldag"}
+    assert "element_ids" not in kort["begrippen"][0]
+    assert [x["id"] for x in (await client.get(pad, params={"term": "VERVAL"})).json()["begrippen"]] == [b["id"]]
+    assert [x["id"] for x in (await client.get(pad, params={"id": a["id"]})).json()["begrippen"]] == [a["id"]]
+    assert (await client.get(f"{pad}/{a['id']}", params={"vorm": "kort"})).json()["id"] == a["id"]
+    assert "koppelingen" not in (await client.get(f"{pad}/{a['id']}", params={"vorm": "kort"})).json()
+
+
+async def test_een_motivatie_aanvullen_houdt_de_vorige(client):
+    """Een koppeling-PATCH verving de motivatie van de vorige beoordelaar (Termijnen e2e, 20 nov 2026)."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    [k] = (await client.get(_url(wg, b))).json()["koppelingen"]
+    b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                            json={"verwachte_revisie": b["revisie"], "motivatie": "Eerste."})).json()
+    b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                            json={"verwachte_revisie": b["revisie"], "motivatie": "Tweede.", "motivatie_aanvullen": True})).json()
+    [k] = (await client.get(_url(wg, b))).json()["koppelingen"]
+    assert k["motivatie"].startswith("Eerste.") and k["motivatie"].endswith("Tweede.")
+
+
 async def test_een_akkoord_op_de_annotatie_is_geen_wijziging(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)
@@ -174,6 +204,23 @@ async def test_een_akkoord_op_de_annotatie_is_geen_wijziging(client):
 
 
 # --- primaire duiding, idempotentie, scope ----------------------------------------------------------
+
+async def test_een_afgewezen_duiding_houdt_het_element_niet_vast(client):
+    """Termijnen e2e (20 nov 2026): een afgewezen duiding gaf bij een nieuwe duiding nog 409 `al_primair`."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    a = await _begrip(client, wg, [ids["lid1"]], naam="A")
+    [k] = a["koppelingen"]
+    r = await client.patch(_url(wg, a, "koppelingen", k["id"]),
+                           json={"verwachte_revisie": a["revisie"], "beoordeling": "afgewezen"})
+    assert r.status_code == 200, r.text
+    b = await _begrip(client, wg, naam="B")
+    r = await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                            "element_ids": [ids["lid1"]], "rol": "duiding"})
+    assert r.status_code == 200, r.text
+    primair = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen")).json()["primair"]
+    assert primair[ids["lid1"]]["begrip_id"] == b["id"]
+
 
 async def test_een_element_duidt_hooguit_een_begrip_aan(client):
     ids = await _annoteer()

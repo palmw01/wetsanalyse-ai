@@ -13,7 +13,10 @@ TYPEN = ("kwalificatie", "inclusie", "uitsluiting", "hierarchie", "verwant", "op
 
 
 class RelatieInvoer(BaseModel):
-    """Een relatie vastleggen: zelf (van, naar, type) of als akkoord op een voorstel van Lex (`voorstel_id`)."""
+    """Een relatie vastleggen: zelf (van, naar, type) of als akkoord op een voorstel van Lex (`voorstel_id`).
+
+    Bij `hierarchie` is `van_begrip` het bredere begrip en `naar_begrip` de soort ervan ("termijn" → "voorlopige
+    teruggaaf"-termijn): de projectie zet `naar skos:broader van`. Een hiërarchie die een kring sluit, weigert de api."""
 
     voorstel_id: str | None = Field(default=None, max_length=64)
     van_begrip: str | None = Field(default=None, max_length=64)
