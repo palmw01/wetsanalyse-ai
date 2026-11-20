@@ -21,9 +21,40 @@ router = APIRouter(prefix="/werkgebieden/{werkgebied_id}/begrippen", tags=["begr
 _MIME = {"json": "application/json", "csv": "text/csv; charset=utf-8", "ttl": "text/turtle; charset=utf-8"}
 
 
+LijstVorm = Literal["volledig", "kort"]
+
+
+def _kort_in_lijst(b: dict) -> dict:
+    """Een begrip in de lijst met `vorm=kort`: genoeg om het te vinden en te kiezen (Termijnen e2e, 20 nov 2026: de lijst
+    was ~230k tekens). De kaart met alles staat op `GET …/begrippen/{id}`."""
+    i = b.get("inhoud") or {}
+    return {"id": b["id"], "naam": i.get("naam", ""), "status": b.get("status"), "revisie": b.get("revisie"),
+            "kader": b.get("kader"), "alternatieve_termen": i.get("alternatieve_termen", []),
+            "definitie": i.get("definitie", ""), "aantal_koppelingen": b.get("aantal_koppelingen", 0),
+            "aandachtspunten": b.get("aandachtspunten", [])}
+
+
+def _past(b: dict, ids: set[str], term: str) -> bool:
+    if ids and b["id"] not in ids:
+        return False
+    if not term:
+        return True
+    i = b.get("inhoud") or {}
+    return any(term in (t or "").casefold() for t in (i.get("naam", ""), *(i.get("alternatieve_termen") or [])))
+
+
 @router.get("")
-async def get_lijst(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    return {"kader_iri": store.kader_iri(werkgebied_id), "begrippen": await store.lijst(werkgebied_id),
+async def get_lijst(werkgebied_id: str, vorm: LijstVorm = "volledig", term: str = Query("", max_length=200),
+                    id: list[str] = Query(default=[], max_length=200), actor: str = Depends(actieve_userid)):
+    """De begrippen van het werkgebied. `term` filtert op (een deel van) de naam of een alternatieve term, `id` (vaker te
+    geven) op begrip-id's; `vorm=kort` geeft per begrip alleen naam, status, revisie, definitie en tellingen, en laat
+    `primair` weg. Zonder parameters de lijst zoals de werkplek haar leest."""
+    ids, zoek = set(id), " ".join(term.split()).casefold()
+    begrippen = [b for b in await store.lijst(werkgebied_id) if _past(b, ids, zoek)]
+    if vorm == "kort":
+        return {"kader_iri": store.kader_iri(werkgebied_id), "vorm": "kort",
+                "begrippen": [_kort_in_lijst(b) for b in begrippen]}
+    return {"kader_iri": store.kader_iri(werkgebied_id), "begrippen": begrippen,
             # Welk begrip elk element primair aanduidt: de inventaris toont het bij het element.
             "primair": await store.primaire_duidingen(werkgebied_id)}
 
@@ -38,8 +69,8 @@ def _in_vorm(begrip: dict, vorm: str) -> dict:
 
 
 @router.post("", status_code=201)
-async def post_begrip(werkgebied_id: str, req: BegripInvoer, actor: str = Depends(actieve_userid)):
-    return await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
+async def post_begrip(werkgebied_id: str, req: BegripInvoer, vorm: Vorm = "kaart", actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron), vorm)
 
 
 @router.post("/gebruik")
@@ -93,8 +124,9 @@ async def get_samenhang(werkgebied_id: str, actor: str = Depends(actieve_userid)
 
 
 @router.get("/{begrip_id}")
-async def get_begrip(werkgebied_id: str, begrip_id: str, actor: str = Depends(actieve_userid)):
-    return await store.haal(werkgebied_id, begrip_id)
+async def get_begrip(werkgebied_id: str, begrip_id: str, vorm: Vorm = "kaart", actor: str = Depends(actieve_userid)):
+    """De kaart; `vorm=stand` of `kort` zoals bij een wijziging (de kaart is ~40 kB met de koppelingen erin)."""
+    return _in_vorm(await store.haal(werkgebied_id, begrip_id), vorm)
 
 
 @router.patch("/{begrip_id}")

@@ -129,11 +129,17 @@ def agent_routes() -> list[Route]:
     return _fastapi(WORTEL / "tools" / "graph-qa" / "api" / "main.py")
 
 
+#: `frontend/app/api/[...onbekend]`: een 404 als JSON voor elk `/api/`-pad zonder eigen route (Termijnen e2e, 20 nov 2026).
+VANGNET = "/api/[...onbekend]"
+
+
 def bff_routes() -> list[Route]:
     routes = []
     for bestand in (FRONTEND / "app" / "api").rglob("route.ts"):
         s = bestand.read_text(encoding="utf-8")
         url = "/" + str(bestand.parent.relative_to(FRONTEND / "app"))
+        if url == VANGNET:
+            continue  # de JSON-404 voor elk onbekend pad is geen route: hij zou op elke aanroep passen
         methoden = set(re.findall(r"export\s+(?:async\s+)?(?:function|const)\s+(GET|POST|PUT|PATCH|DELETE)\b", s))
         if "nextauth" in url:
             methoden |= {"GET", "POST"}
