@@ -62,7 +62,8 @@ ISOTHES = Namespace("http://purl.org/iso25964/skos-thes#")
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 SH = Namespace("http://www.w3.org/ns/shacl#")
 
-SCHEMA_VERSIE = 2
+#: 3: de afleidingsregels staan in de graph van hun werkgebied (`regel_projectie`, 20 nov 2026).
+SCHEMA_VERSIE = 3
 REGISTER = URIRef("urn:wa:graph:register:begrippen")
 NL_SBB_VERSIE = "1.0.0"
 NL_SBB = URIRef("https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/")
@@ -163,9 +164,13 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
             "vindplaats": bewijs.get("vindplaats", ""), "tekst": bewijs.get("tekst", ""),
             "bron": sorted({a["bron_iri"] for a in ankers if a.get("bron_iri")}) or
                     ([bewijs["eigenaar_iri"]] if bewijs.get("eigenaar_iri") else [])})
+    from . import regel_projectie                       # de regels horen in dezelfde graph (één PUT)
+    regels = [] if generiek else await regel_projectie.invoer(conn, werkgebied_id)
     return {
         "schema": SCHEMA_VERSIE,
         "werkgebied": _kader_van(wg),
+        # Alleen als er regels zijn, zodat een werkgebied zonder regels dezelfde vorm houdt.
+        **({"regels": regels} if regels else {}),
         # Alleen als er iets gebruikt wordt, zodat de hash van een werkgebied zonder generieke begrippen gelijk blijft.
         **({"gebruikt": gebruikt} if gebruikt else {}),
         "begrippen": [{"id": x.id, "status": x.status, "revisie": x.revisie, "inhoud": x.inhoud,
@@ -191,10 +196,14 @@ def _nl(tekst: str) -> Literal:
 
 
 def alleen_geaccordeerd(inv: dict) -> dict:
-    """De exportstand: alleen geaccordeerde begrippen, en relaties waarvan beide kanten meegaan."""
+    """De exportstand: alleen geaccordeerde begrippen, en relaties waarvan beide kanten meegaan. Van de afleidingsregels
+    alleen de geaccordeerde (ook als beleidsregel)."""
     ids = {b["id"] for b in inv["begrippen"] if b["status"] == "geaccordeerd"} | set(inv.get("gebruikt") or [])
-    return {**inv, "begrippen": [b for b in inv["begrippen"] if b["id"] in ids],
-            "relaties": [r for r in inv["relaties"] if r["van"] in ids and r["naar"] in ids]}
+    regels = [r for r in inv.get("regels") or [] if r["status"] in ("geaccordeerd", "geaccordeerd_als_beleidsregel")]
+    uit = {**inv, "begrippen": [b for b in inv["begrippen"] if b["id"] in ids],
+           "relaties": [r for r in inv["relaties"] if r["van"] in ids and r["naar"] in ids]}
+    uit.pop("regels", None)
+    return {**uit, **({"regels": regels} if regels else {})}
 
 
 def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict[str, str] | None = None) -> Graph:
@@ -247,6 +256,9 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict
         g.add((n, WA.herkomst, Literal(r["herkomst"])))
         if r["toelichting"]:
             g.add((n, WA.toelichting, _nl(r["toelichting"])))
+    if inv.get("regels"):
+        from . import regel_projectie
+        regel_projectie.bouw(g, kader, inv["regels"])
     return g
 
 

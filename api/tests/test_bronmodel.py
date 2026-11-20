@@ -258,6 +258,18 @@ def test_het_opschrift_staat_op_de_node_maar_buiten_de_snapshot_id():
     assert all(n["titel"] == "" for n in zonder["nodes"])
 
 
+def test_de_vindplaats_url_staat_op_de_node_maar_buiten_de_snapshot_id():
+    """`bwb:bronUrl` (het anker op de toestandspagina) is de weg naar de wettekst van een node zonder jci, zoals een
+    Leidraad-divisie (regels herleidbaar, 20 nov 2026). Hij kwam er later bij en verandert de snapshot niet."""
+    zonder = snapshot(artikel="9")
+    url = "https://wetten.overheid.nl/BWBR0024096/2026-07-01#Circulaire.divisie9_Circulaire.divisie9.1"
+    met = [{**r, "bron_url": url} if r["node"].endswith(":artikel:9") else r for r in fixture()]
+    s = bouw_snapshot(met, bwb_id=BWB, artikel="9")
+    assert s["snapshot_id"] == zonder["snapshot_id"]
+    assert next(n for n in s["nodes"] if n["bron_iri"].endswith(":artikel:9"))["bron_url"] == url
+    assert "?bron_url" in bron_query(BWB) and "bwb:bronUrl ?bron_url" in bron_query(BWB)
+
+
 def test_bron_query_leest_vindplaats_en_inbepaling():
     q = bron_query(BWB)
     assert "bwb:vindplaats ?vindplaats" in q and "bwb:inBepaling ?bepaling" in q

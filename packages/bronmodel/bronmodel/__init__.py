@@ -147,7 +147,7 @@ def bron_query(bwb_id: str, *, limit: int | None = None, offset: int = 0) -> str
         raise BronFout("Ongeldig BWB-id")
     types = " ".join("bwb:" + t for t in TYPEN)
     query = f'''PREFIX bwb: <urn:bwb-ns:>
-SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling ?status WHERE {{
+SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?bron_url ?toestand ?citeertitel ?vindplaats ?bepaling ?status WHERE {{
  GRAPH <urn:bwb:graph:{bwb_id}> {{
   VALUES ?type {{ {types} }}
   ?node a ?type .
@@ -159,6 +159,7 @@ SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?u
   OPTIONAL {{ ?node bwb:volgtOp ?vorige }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{ ?node <http://www.w3.org/2002/07/owl#sameAs> ?url }}
+  OPTIONAL {{ ?node bwb:bronUrl ?bron_url }}
   OPTIONAL {{ ?node bwb:vindplaats ?vindplaats }}
   OPTIONAL {{ ?node bwb:inBepaling ?bepaling }}
   OPTIONAL {{ ?node bwb:status ?status }}
@@ -334,7 +335,9 @@ def _kop(n: dict) -> str:
 # wijziging ervan (een artikel treedt in werking) verandert de tekst niet.
 # Het opschrift (`bwb:titel`, "Definities") hoort hier ook: het kwam er pas later bij, en een node die het krijgt mag zijn
 # snapshot niet veranderen (L-2-6). De keten leest het als kop van de ouder.
-PLEK = ("vindplaats", "bepaling", "status", "titel")
+# De vindplaats-URL (`bwb:bronUrl`, het anker op de toestandspagina) hoort hier ook: bij een node zonder jci (een
+# Leidraad-divisie) is dat de enige weg naar de wettekst, en ze kwam er pas later bij (regels herleidbaar, 20 nov 2026).
+PLEK = ("vindplaats", "bepaling", "status", "titel", "bron_url")
 
 #: `bwb:status` van een bepaling die al in de regeling staat maar nog niet geldt. `vervallen` hoeft geen eigen stand:
 #: daar zegt de tekst het zelf.

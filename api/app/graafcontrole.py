@@ -183,9 +183,12 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
     stand = await bp.postgres_stand()
     reg = {r["id"]: r for r in await sparql_select(client, bp._REGISTER_QUERY)}
     graphs = {r["g"] for r in await sparql_select(client, bp._GRAPHS_QUERY)}
+    from . import regel_projectie as rp
+
     uit: dict[str, Any] = {"werkgebieden": len(stand), "achterstand": [], "afwijkingen": [], "verweesd": [],
-                           "invariant_schoon": not await sparql_ask(client, _BEGRIPPEN_SCHOON), "nl_sbb_niet_conform": None}
-    niet_conform = 0
+                           "invariant_schoon": not await sparql_ask(client, _BEGRIPPEN_SCHOON), "nl_sbb_niet_conform": None,
+                           "regels_niet_conform": None}
+    niet_conform = regels_niet_conform = 0
     for wid, inv in sorted(stand.items()):
         if reg.get(wid, {}).get("hash") != bp.invoer_hash(inv):
             uit["achterstand"].append({"werkgebied_id": wid})
@@ -200,11 +203,23 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
         if shacl:
             c = await asyncio.to_thread(bp.conformiteit, echt)
             niet_conform += sum(v["conform"] is False for v in c["begrippen"].values())
+            if inv.get("regels"):
+                rc = await asyncio.to_thread(rp.conformiteit, echt)
+                regels_niet_conform += sum(v["conform"] is False for v in rc["regels"].values())
+    # De rooktest op de herleidbaarheid (regels herleidbaar, 20 nov 2026): rust elke geprojecteerde regel op markeringen
+    # met een bronnode die tekst en een jci of anker heeft? Diagnostisch, buiten `in_orde`: een regel kan op een
+    # markering rusten waarvan de laag nog niet is geprojecteerd.
+    if any(inv.get("regels") for inv in stand.values()):
+        rijen = await sparql_select(client, rp.NIET_HERLEIDBAAR)
+        uit["regels_niet_herleidbaar"] = [{"regel_id": r["regel"].removeprefix("urn:wa:regel:"),
+                                           **({"element": r["el"]} if r.get("el") else {"reden": "geen_drager"})}
+                                          for r in rijen]
     prefix = str(bp.graph_iri(""))
     uit["verweesd"] = sorted({w for w in reg if w not in stand}
                              | {g[len(prefix):] for g in graphs if g[len(prefix):] not in stand})
     if shacl:
         uit["nl_sbb_niet_conform"] = niet_conform
+        uit["regels_niet_conform"] = regels_niet_conform
     return uit
 
 
