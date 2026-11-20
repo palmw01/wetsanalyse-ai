@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 import agent
-from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, zoekvragen
+from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, schakelbepalingen, zoekvragen
 from agent.graph import queries as q
 from agent import tools as _tools
 from agent.adapters import kennisgroepen_bron as kgb
@@ -127,6 +127,8 @@ GEVALLEN: list[tuple[str, str]] = [
     ("adapters.kennisgroepen_bron.q_opvolgers", kgb.q_opvolgers('kg:013:2018:173')),
     ("tools.kennisgroep_tools._q_inwerkingen", kennisgroep_tools._q_inwerkingen([(IW, "36"), ("BWBR0005806", "10")])),
     ("tools.kennisgroep_tools._q_inwerking", kennisgroep_tools._q_inwerking(IW, "36")),
+    # L-1-1: de schakelbepalingen naar het zoekbereik (de AWR en de IW 1990), en een ongeldig BWB-id dat wegvalt.
+    ("schakelbepalingen.q_schakel", schakelbepalingen.q_schakel(["BWBR0002320", IW, "geen-bwb"])),
 ]
 
 
