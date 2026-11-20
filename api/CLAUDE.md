@@ -1037,6 +1037,11 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   zijbalk van de webapp, in de vorm van `GET /v1/begrippen`. Zoeken in naam, uitvoer en regeltekst (zonder hoofdletters of
   diakrieten), filteren op status en werkgebied, `mijn` (een revisie van jou), en `per_status` zonder het statusfilter.
 - Artefactsoorten: `regel` (ref `werkgebied_id`, `regel_id`) en `regels` (ref `werkgebied_id`), allebei met versies.
+- **Termijnen als eerste bestand** (bouwplan R4, `scripts/importeer_regels_termijnen.py`): zet R1–R8 van het team met hun
+  open punten, keuzes en parameterwaarden in Termijnen, via de BFF met een accounttoken uit de omgeving (herkomst `import`).
+  Droog tenzij `--uitvoeren`, idempotent op een sleutel vooraan in de toelichting, en het stopt bij een id dat niet
+  eenduidig oplost. De regels blijven concept: de poort vraagt voorbeelden (activiteit 4). Tests:
+  `tests/test_importeer_regels_termijnen.py`.
 - Tests: `tests/test_regels.py` en `tests/test_regels_termijnen.py` (de ontwikkelset: R1–R8 van Termijnen passen zonder
   vrije tekst).
 
