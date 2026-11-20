@@ -342,3 +342,43 @@ async def test_verwachte_revisies_ook_met_het_laag_id(lagen):
     with pytest.raises(HTTPException) as exc:
         await rel.leg(leg("zin", "termijn", "voorwaarde", {laag["id"]: rev, ONE: rev - 1}), "jurist")
     assert exc.value.status_code == 422 and exc.value.detail["fout"] == "dubbele_sleutel"
+
+
+# --- M-1-1: een hele bepaling als eindpunt ------------------------------------------------------------------------------
+
+AWB_493 = "urn:bwb:BWBR0005537:artikel:4:93:lid:3"
+
+
+async def test_een_uitzondering_op_een_hele_bepaling(lagen):
+    """"In afwijking van artikel 4:93 Awb": de bepaling waarnaar verwezen wordt, hoeft niet geannoteerd te zijn."""
+    s1, _ = lagen
+    invoer = RelatieInvoer(van={"soort": "element", "id": "zin"}, naar={"soort": "bron", "id": AWB_493},
+                           type="uitzondering_op", verwachte_revisies={ONE: 1})
+    r = (await rel.leg(invoer, "jurist"))["relatie"]
+    assert r["naar"] == {"soort": "bron", "id": AWB_493, "bestaat": True, "klasse": "Bron",
+                         "tekst": r["naar"]["tekst"], "laag_id": "", "actueel": True}
+    assert r["naar"]["tekst"] and r["veranderd"] is False
+    view = await store.weergave(s1)
+    assert [x["naar"]["soort"] for x in view["relaties"]] == ["bron"]
+
+
+@pytest.mark.parametrize("type_, van, fout", [
+    ("operand", "aanslag", "klassen_passen_niet"),           # geen eindpunt_bron in de catalogus
+    ("voorwerp", "zin", "klassen_passen_niet"),
+])
+async def test_alleen_typen_met_eindpunt_bron_mogen_een_bepaling(lagen, type_, van, fout):
+    invoer = RelatieInvoer(van={"soort": "element", "id": van}, naar={"soort": "bron", "id": AWB_493},
+                           type=type_, verwachte_revisies={ONE: 1})
+    with pytest.raises(HTTPException) as exc:
+        await rel.leg(invoer, "jurist")
+    assert exc.value.detail["fout"] == fout
+
+
+def test_een_bron_is_een_bron_iri_en_staat_alleen_aan_de_kant_naar():
+    with pytest.raises(ValidationError):
+        RelatieInvoer(van={"soort": "element", "id": "zin"}, naar={"soort": "bron", "id": "https://example.org/x"},
+                      type="uitzondering_op")
+    from app import jas_relaties
+    assert not jas_relaties.toegestaan("uitzondering_op", "Bron", "Rechtsbetrekking")
+    assert jas_relaties.toegestaan("toepassing", "Afleidingsregel", "Bron")
+    assert not jas_relaties.toegestaan("tijd", "Rechtsbetrekking", "Bron")

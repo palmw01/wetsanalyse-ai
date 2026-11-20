@@ -912,9 +912,21 @@
       "naam": "Tegenpartij via het voorzetsel",
       "uitleg": "Een rechtssubject na 'aan', 'ten aanzien van', 'jegens' of 'tegenover' heeft de andere rol dan het onderwerp; na 'op verzoek van' is het rechthebbende van een plicht; na 'van' bij een heffing of invordering ('wordt geheven van') plichthebbende."
     },
+    "REL_TIJD_NESTING": {
+      "naam": "Tijdsaanduiding bij de uitspraak",
+      "uitleg": "De buitenste tijdsaanduiding binnen een rechtsbetrekking, rechtsfeit of afleidingsregel is daarvan de tijd, tenzij ze er al invoer of operand is."
+    },
+    "REL_TOEPASSING_VERWIJZING": {
+      "naam": "Toepassing van een bepaling",
+      "uitleg": "'Vindt … toepassing' met een verwijzing: de afleidingsregel kiest de bepaling waarnaar verwezen wordt, ook als die zelf niet geannoteerd is."
+    },
     "REL_UITVOER_FUNCTIE": {
       "naam": "Uitkomst van de berekening",
       "uitleg": "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."
+    },
+    "REL_UITZONDERING_VERWIJZING": {
+      "naam": "Uitzondering op een bepaling",
+      "uitleg": "'In afwijking van' gevolgd door een verwijzing: de afleidingsregel, rechtsbetrekking of voorwaarde om die woorden maakt een uitzondering op de bepaling waarnaar verwezen wordt, ook als die zelf niet geannoteerd is."
     },
     "REL_VOORWAARDE_AANHECHTING": {
       "naam": "Voorwaarde bij het hoofdpredicaat",
@@ -1043,5 +1055,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "0242bc003a01"
+  "vocabulaire_versie": "b92ecd1bd6c1"
 }

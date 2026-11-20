@@ -164,3 +164,17 @@ async def test_zonder_relaties_is_de_batch_idempotent_zoals_voorheen():
     assert await store.batch(batch("b1", []), SNAP, "lex") == eerst
     assert "relaties" not in Batch.model_validate(batch("x", []).model_dump()).model_dump(
         mode="json", exclude={"relaties"})
+
+
+async def test_een_voorstel_naar_een_hele_bepaling():
+    """M-1-1: de keten stelt "In afwijking van artikel 4:93 Awb" voor als uitzondering_op naar die bepaling, zonder dat
+    die geannoteerd is. Een type zonder eindpunt_bron wordt overgeslagen."""
+    awb = "urn:bwb:BWBR0005537:artikel:4:93"
+    naar_bron = dict(van_ankers=anker(ZIN), naar_bron=awb, type="uitzondering_op", spoor={"door": "regel", "regel": "T"})
+    fout = {**naar_bron, "type": "voorwerp"}
+    uit = await store.batch(batch("b1", [naar_bron, fout]), SNAP, "lex")
+    assert len(uit["relaties"]) == 1 and len(uit["relaties_overgeslagen"]) == 1
+    [r] = (await _relaties()).values()
+    assert r["naar"] == {"soort": "bron", "id": awb} and r["type"] == "uitzondering_op"
+    [x] = (await store.weergave(SNAP))["relaties"]
+    assert x["naar"]["klasse"] == "Bron" and x["naar"]["bestaat"] is True

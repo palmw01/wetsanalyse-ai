@@ -1696,7 +1696,8 @@
           "default": "element",
           "enum": [
             "element",
-            "impliciet"
+            "impliciet",
+            "bron"
           ],
           "title": "Soort",
           "type": "string"

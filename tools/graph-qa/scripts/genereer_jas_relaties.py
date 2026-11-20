@@ -29,7 +29,9 @@ FRONTEND_DOEL = WORTEL / "frontend" / "lib" / "jasRelaties.ts"
 
 #: De velden van een type in de gegenereerde vorm, met hun standaard.
 VELDEN = {"leesvorm": "", "invers": "", "van": [], "naar": [], "paren": [], "drager": "", "volgorde": False,
-          "tekstueel": False, "methodisch": True, "bron": []}
+          "tekstueel": False, "eindpunt_bron": False, "methodisch": True, "bron": []}
+#: De pseudoklasse van een eindpunt dat een hele bepaling is (soort `bron`, M-1-1): geen JAS-klasse, wel een kant.
+BRON_KLASSE = "Bron"
 
 _API_FUNCTIES = '''
 
@@ -40,10 +42,13 @@ def type_van(code: str) -> dict | None:
 
 def toegestaan(code: str, van_klasse: str, naar_klasse: str, van_subtype: str = "", naar_subtype: str = "") -> bool:
     """Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar
-    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten."""
+    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een hele bepaling (`BRON`) mag
+    alleen aan de kant naar, bij een type met `eindpunt_bron` (M-1-1)."""
     t = RELATIETYPEN.get(code)
-    if t is None:
+    if t is None or van_klasse == BRON:
         return False
+    if naar_klasse == BRON:
+        return t["eindpunt_bron"] and van_klasse in t["van"]
     if t["paren"]:
         return any(p["van"] == van_klasse and p["naar"] == naar_klasse
                    and p.get("van_subtype", van_subtype) == van_subtype
@@ -63,7 +68,8 @@ _TS_FUNCTIES = """
  * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
 export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
   const t = RELATIETYPEN[code];
-  if (!t) return false;
+  if (!t || vanKlasse === BRON) return false;
+  if (naarKlasse === BRON) return t.eindpunt_bron && t.van.includes(vanKlasse);
   if (t.paren.length) {
     return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
       && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);
@@ -104,6 +110,7 @@ def api_bron(catalogus: dict) -> str:
             '"""De catalogus van relaties tussen markeringen (deelactiviteit 2c): typen, klassenparen, drager."""\n'
             "from __future__ import annotations\n\n"
             + blok("CATALOGUS_VERSIE", catalogus["versie"], "De eerste twaalf tekens van de sha256 van de bron.")
+            + blok("BRON", BRON_KLASSE, "De pseudoklasse van een eindpunt dat een hele bepaling is (soort bron, M-1-1).")
             + blok("RELATIETYPEN", catalogus["typen"], "code → type.")
             + blok("CENTRALE_KLASSEN", tuple(catalogus["centrale_klassen"]), "De klassen waaromheen een 2c-diagram staat.")
             + blok("IMPLICIET_TOEGESTAAN", tuple(catalogus["impliciet_toegestaan"]),
@@ -121,8 +128,10 @@ def frontend_bron(catalogus: dict) -> str:
             "export type RelatieType = {\n"
             "  leesvorm: string;\n  invers: string;\n  van: readonly string[];\n  naar: readonly string[];\n"
             "  paren: readonly RelatiePaar[];\n  drager: \"van\" | \"naar\";\n  volgorde: boolean;\n"
-            "  tekstueel: boolean;\n  methodisch: boolean;\n  bron: readonly string[];\n};\n\n"
+            "  tekstueel: boolean;\n  eindpunt_bron: boolean;\n  methodisch: boolean;\n  bron: readonly string[];\n};\n\n"
             f"export const CATALOGUS_VERSIE = {j(catalogus['versie'])};\n\n"
+            "/** De pseudoklasse van een eindpunt dat een hele bepaling is (soort bron, M-1-1). */\n"
+            f"export const BRON = {j(BRON_KLASSE)};\n\n"
             f"export const RELATIETYPEN: Record<string, RelatieType> = {j(catalogus['typen'])};\n\n"
             f"export const CENTRALE_KLASSEN: readonly string[] = {j(catalogus['centrale_klassen'])};\n\n"
             f"export const IMPLICIET_TOEGESTAAN: readonly string[] = {j(catalogus['impliciet_toegestaan'])};\n"

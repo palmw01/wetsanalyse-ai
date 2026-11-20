@@ -174,6 +174,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   - Een gewist element of een verwijderde bepaling neemt haar relaties mee (`wis_bij`).
   - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
     hoeft haar dus niet te kennen.
+  - **Een hele bepaling als eindpunt** (M-1-1): een eindpunt van de soort `bron` (een bron-IRI `urn:bwb:BWBR…`),
+    alleen aan de kant naar en alleen bij een type met `eindpunt_bron` (`uitzondering_op`, `toepassing`). `_info` geeft
+    de pseudoklasse `jas_relaties.BRON`, geen laag en geen stand; een bron draagt nooit een relatie (422
+    `bron_draagt_niet`). De keten stelt haar voor met `naar_bron` in plaats van `naar_ankers`. De dekking van een
+    werkgebied noemt in `contextsignalen` een contextbron waarnaar een beoordeelde relatie wijst (L-1-2,
+    `werkgebied_deelvragen.contextsignalen`).
   - De weergave draagt `relaties` en `impliciet`.
   - De projectie (schema 4) zet ze in de graph van de dragerlaag (`laag_invoer` levert ze, `bouw_graaf(…,
     relaties=)`). Een directe triple `rel:<type>` komt er alleen bij een beoordeelde relatie; `veranderd` niet,

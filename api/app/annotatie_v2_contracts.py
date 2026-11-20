@@ -1,4 +1,5 @@
 """Wirecontract voor bronnode-lagen; offsets zijn Unicode-codepoints."""
+import re
 from enum import Enum
 from typing import Literal
 
@@ -111,13 +112,23 @@ class KandidaatBeslissing(BaseModel):
 class RelatieVoorstel(BaseModel):
     """Een relatie die de keten voorstelt (ADR-011, proefvlag `RELATIE_VOORSTELLEN` in graph-qa). Een eindpunt wijst de
     agent aan met de ankers van zijn voorstel, nooit met een element-id: de api zet die na het opslaan van de elementen
-    om naar het element in de batch met precies die ankers (`annotatie_v2_store.batch`)."""
+    om naar het element in de batch met precies die ankers (`annotatie_v2_store.batch`). Aan de kant naar mag in plaats
+    daarvan een hele bepaling staan (`naar_bron`, M-1-1): de verwijzing die de keten in de tekst vond."""
     van_ankers: list[Anker] = Field(min_length=1, max_length=100)
-    naar_ankers: list[Anker] = Field(min_length=1, max_length=100)
+    naar_ankers: list[Anker] = Field(default_factory=list, max_length=100)
+    naar_bron: str | None = Field(default=None, max_length=512)
     type: str = Field(min_length=1, max_length=32)
     volgorde: int | None = Field(default=None, ge=1, le=99)
     # Herkomst per relatie: regel, versie, de voorstel-id's van de keten en wat de regel zag (UD-pad e.d.).
     spoor: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _een_naar(self) -> "RelatieVoorstel":
+        if bool(self.naar_ankers) == bool(self.naar_bron):
+            raise ValueError("aan de kant naar precies één: ankers of een bron")
+        if self.naar_bron and not re.fullmatch(r"urn:bwb:BWBR\d+(?::\S+)?", self.naar_bron):
+            raise ValueError("naar_bron is een bron-IRI uit de graaf (urn:bwb:BWBR…)")
+        return self
 
 
 class Batch(BaseModel):
@@ -223,10 +234,20 @@ class Zoekvraag(BaseModel):
 # --- relaties tussen markeringen (ADR-011) ------------------------------------------------------------------------
 
 class Eindpunt(BaseModel):
-    """Een kant van een relatie: een markering (element) of een impliciete partij. Een element mag in een andere laag
-    liggen dan de relatie."""
-    soort: Literal["element", "impliciet"]
-    id: str = Field(min_length=1, max_length=64)
+    """Een kant van een relatie: een markering (element), een impliciete partij, of een hele bepaling (bron, M-1-1). Een
+    element mag in een andere laag liggen dan de relatie. Een bron is een bron-IRI uit de graaf (`urn:bwb:BWBR…`), ook
+    als niemand haar annoteerde; welke typen dat mogen, zegt de catalogus (`eindpunt_bron`)."""
+    soort: Literal["element", "impliciet", "bron"]
+    id: str = Field(min_length=1, max_length=512)
+
+    @model_validator(mode="after")
+    def _vorm(self) -> "Eindpunt":
+        if self.soort == "bron":
+            if not re.fullmatch(r"urn:bwb:BWBR\d+(?::\S+)?", self.id):
+                raise ValueError("een bron is een bron-IRI uit de graaf (urn:bwb:BWBR…)")
+        elif len(self.id) > 64:
+            raise ValueError("een element- of partij-id is hoogstens 64 tekens")
+        return self
 
 
 class RelatieInvoer(BaseModel):

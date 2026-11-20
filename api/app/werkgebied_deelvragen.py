@@ -338,10 +338,51 @@ async def dekking(werkgebied_id: str) -> dict:
         s = db.werkgebied_bronselecties
         labels = {r.id: r.label for r in (await conn.execute(select(s.c.id, s.c.label).where(
             s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()}
+        signalen = await contextsignalen(conn, werkgebied_id)
     uit = [{"id": d["id"], "vraag": d["vraag"], "stand": "met_bron" if d["bronnen"] else "geen_bron",
             "bronnen": [{"id": x, "label": labels.get(x, "")} for x in d["bronnen"]]} for d in vragen]
     telling = {st: sum(1 for x in uit if x["stand"] == st) for st in STANDEN}
-    return {"deelvragen": uit, "telling": telling, "totaal": len(uit)}
+    return {"deelvragen": uit, "telling": telling, "totaal": len(uit), "contextsignalen": signalen}
+
+
+def _onder(iri: str, selectie: str) -> bool:
+    return iri == selectie or iri.startswith(selectie + ":")
+
+
+async def contextsignalen(conn, werkgebied_id: str) -> list[dict]:
+    """L-1-2: een contextbron waarnaar een beoordeelde relatie wijst (M-1-1: `uitzondering_op` of `toepassing` naar een
+    hele bepaling), is kandidaat om te analyseren. De rol van een bron verandert niet vanzelf: dit is een signaal, de
+    jurist beslist. Alleen de relaties in de lagen van de bronnen die het werkgebied analyseert (op `laag_id`)."""
+    from .annotatie_v2_contracts import BEOORDEELD
+    s = db.werkgebied_bronselecties
+    selecties = (await conn.execute(select(s.c.bron_iri, s.c.label, s.c.rol).where(
+        s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()
+    context = [x for x in selecties if x.rol == "context"]
+    analyse = [x.bron_iri for x in selecties if x.rol != "context"]
+    if not context or not analyse:
+        return []
+    lg = db.annotatie_v2_lagen
+    lagen = [r.id for r in (await conn.execute(select(lg.c.id, lg.c.bron_iri))).all()
+             if any(_onder(r.bron_iri, a) for a in analyse)]
+    if not lagen:
+        return []
+    rel = db.annotatie_v2_relaties
+    per: dict[str, dict] = {}
+    for row in (await conn.execute(select(rel.c.inhoud).where(rel.c.laag_id.in_(lagen)))).all():
+        r = row.inhoud or {}
+        naar = r.get("naar") or {}
+        if naar.get("soort") != "bron" or r.get("lifecycle") not in BEOORDEELD:
+            continue
+        for c in context:
+            if _onder(naar["id"], c.bron_iri):
+                p = per.setdefault(c.bron_iri, {"bron_iri": c.bron_iri, "label": c.label or c.bron_iri, "relaties": [],
+                                                "melding": ""})
+                p["relaties"].append({"id": r["id"], "type": r["type"], "naar": naar["id"]})
+    for p in per.values():
+        n = len(p["relaties"])
+        p["melding"] = (f"{p['label']} staat als context, maar {n} beoordeelde "
+                        f"{'relatie wijst' if n == 1 else 'relaties wijzen'} ernaar. Wordt dit een bron om te analyseren?")
+    return sorted(per.values(), key=lambda p: p["bron_iri"])
 
 
 async def _werkgebied(werkgebied_id: str) -> dict:

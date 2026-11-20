@@ -66,15 +66,17 @@ class Zin:
             return {"start": sp.start, "eind": sp.eind, "tekst": fragment}
         return json.dumps({"uitkomst": s(uitkomst), "invoer": s(invoer)}, sort_keys=True)
 
-    def voorstel(self) -> list[dict]:
+    def voorstel(self, verwijzingen: list[dict] | None = None) -> list[dict]:
         ks = label_kandidaten(list(self.kandidaten.values()))
         fusie = Fusie(kandidaten=ks, relaties=nesting(ks))
-        return R.stel_voor(self.voorstellen, fusie, {IRI: self.analyse})
+        return R.stel_voor(self.voorstellen, fusie, {IRI: self.analyse},
+                           verwijzingen={IRI: verwijzingen} if verwijzingen else None, teksten={IRI: self.tekst})
 
 
 def kort(relaties: list[dict]) -> set[tuple]:
     """(type, tekst van, tekst naar, volgorde)."""
-    return {(r["type"], r["van_ankers"][0]["tekst"], r["naar_ankers"][0]["tekst"], r["volgorde"]) for r in relaties}
+    return {(r["type"], r["van_ankers"][0]["tekst"], r.get("naar_bron") or r["naar_ankers"][0]["tekst"], r["volgorde"])
+            for r in relaties}
 
 
 # --- 1. uitvoer en invoer uit de functiedetector -------------------------------------------------------------------
@@ -509,10 +511,134 @@ def kenmerk_overlap():
         ("kenmerk", "de dagtekening van het aanslagbiljet", "het aanslagbiljet", None)}
 
 
+# --- 8. uitzondering en toepassing naar een hele bepaling (M-1-1) -----------------------------------------------------
+
+LID1 = "urn:bwb:BWBR0000001:artikel:9:lid:1"
+AFWIJKING = "In afwijking van het eerste lid is de aanslag invorderbaar in termijnen."
+EERSTE_LID = [{"anker": "het eerste lid", "naar": LID1}]
+
+
+def uitzondering_positief():
+    z = Zin(AFWIJKING)
+    z.markeer(AFWIJKING.rstrip("."), RB)
+    assert kort(z.voorstel(EERSTE_LID)) == {("uitzondering_op", AFWIJKING.rstrip("."), LID1, None)}
+
+
+def uitzondering_negatief():
+    # Zonder verwijzing uit de graaf geen doel; een anker ver van de formule hoort er niet bij.
+    z = Zin(AFWIJKING)
+    z.markeer(AFWIJKING.rstrip("."), RB)
+    assert not [r for r in z.voorstel() if r["type"] == "uitzondering_op"]
+    tekst = "In afwijking van de regels die hierna volgen en die gelden voor alle aanslagen, geldt het eerste lid."
+    z = Zin(tekst)
+    z.markeer(tekst.rstrip("."), RB)
+    assert not [r for r in z.voorstel(EERSTE_LID) if r["type"] == "uitzondering_op"]
+
+
+def uitzondering_rand():
+    # De kleinste drager om de formule: een voorwaarde binnen de rechtsbetrekking.
+    tekst = "Indien in afwijking in zoverre van het eerste lid wordt betaald, vervalt de aanslag."
+    z = Zin(tekst)
+    z.markeer(tekst.rstrip("."), RB)
+    z.markeer("Indien in afwijking in zoverre van het eerste lid wordt betaald", VW)
+    assert {r for r in kort(z.voorstel(EERSTE_LID)) if r[0] == "uitzondering_op"} == {
+        ("uitzondering_op", "Indien in afwijking in zoverre van het eerste lid wordt betaald", LID1, None)}
+
+
+def uitzondering_overlap():
+    # Twee dragers op precies dezelfde span: welke? Twijfel, geen voorstel.
+    z = Zin(AFWIJKING)
+    z.markeer(AFWIJKING.rstrip("."), RB)
+    z.markeer(AFWIJKING.rstrip("."), AR)
+    assert not [r for r in z.voorstel(EERSTE_LID) if r["type"] == "uitzondering_op"]
+
+
+TOEPASSING = "Indien de toepassing niet leidt tot meer dan één termijn, vindt het eerste lid toepassing."
+TOEP_AR = "vindt het eerste lid toepassing"
+
+
+def _toepassing(code="CALCULATION_APPLICABILITY", klasse=AR) -> Zin:
+    z = Zin(TOEPASSING)
+    regel = z.span("het eerste lid")
+    detail = json.dumps({"toepasselijke_regel": {"start": regel.start, "eind": regel.eind, "tekst": "het eerste lid"}})
+    z.markeer(TOEP_AR, klasse, code=code, detail=detail)
+    return z
+
+
+def toepassing_positief():
+    assert kort(_toepassing().voorstel(EERSTE_LID)) == {("toepassing", TOEP_AR, LID1, None)}
+
+
+def toepassing_negatief():
+    # Een ander bewijs dan de toepassingskeuze, of een verwijzing buiten de regel: geen voorstel.
+    assert not _toepassing(code="CALCULATION_PASSIVE").voorstel(EERSTE_LID)
+    assert not _toepassing().voorstel([{"anker": "artikel 4", "naar": LID1}])
+
+
+def toepassing_rand():
+    # Alleen een afleidingsregel kiest een regel (catalogus: van Afleidingsregel).
+    assert not [r for r in _toepassing(klasse=RB).voorstel(EERSTE_LID) if r["type"] == "toepassing"]
+
+
+def toepassing_overlap():
+    # Twee verwijzingen in de bepaling: die in de span van de regel telt.
+    lid2 = "urn:bwb:BWBR0000001:artikel:9:lid:2"
+    gevonden = kort(_toepassing().voorstel([{"anker": "termijn", "naar": lid2}, *EERSTE_LID]))
+    assert gevonden == {("toepassing", TOEP_AR, LID1, None)}
+
+
+# --- 9. tijd uit de nesting ----------------------------------------------------------------------------------------
+
+BEHANDELING = "De aanvraag wordt binnen 48 uur behandeld door de inspecteur."
+
+
+def tijd_positief():
+    z = Zin(BEHANDELING)
+    z.markeer(BEHANDELING.rstrip("."), RB)
+    z.markeer("binnen 48 uur", TIJD)
+    assert ("tijd", BEHANDELING.rstrip("."), "binnen 48 uur", None) in kort(z.voorstel())
+
+
+def tijd_negatief():
+    # Een tijdsaanduiding buiten elke rechtsbetrekking, en een die al operand is van een operator in de regel.
+    z = Zin(BEHANDELING)
+    z.markeer("binnen 48 uur", TIJD)
+    assert not z.voorstel()
+    tekst = "Indien de dag later valt dan 1 april, is de rente verschuldigd."
+    z = Zin(tekst)
+    z.markeer(tekst.rstrip("."), RB)
+    z.markeer("Indien de dag later valt dan 1 april", VW)
+    z.markeer("later valt dan", OP)
+    z.markeer("1 april", TIJD)
+    assert not [r for r in z.voorstel() if r["type"] == "tijd"]
+
+
+def tijd_rand():
+    # Een tijdsaanduiding in een tijdsaanduiding: alleen de buitenste.
+    z = Zin(BEHANDELING)
+    z.markeer(BEHANDELING.rstrip("."), RB)
+    z.markeer("binnen 48 uur", TIJD)
+    z.markeer("48 uur", TIJD)
+    assert {r for r in kort(z.voorstel()) if r[0] == "tijd"} == {("tijd", BEHANDELING.rstrip("."), "binnen 48 uur", None)}
+
+
+def tijd_overlap():
+    # In een voorwaarde binnen de rechtsbetrekking: de rechtsbetrekking is de ouder (een voorwaarde heeft geen tijd).
+    tekst = "Indien binnen 48 uur geen bericht komt, vervalt de aanvraag."
+    z = Zin(tekst)
+    z.markeer(tekst.rstrip("."), RB)
+    z.markeer("Indien binnen 48 uur geen bericht komt", VW)
+    z.markeer("binnen 48 uur", TIJD)
+    assert {r for r in kort(z.voorstel()) if r[0] == "tijd"} == {("tijd", tekst.rstrip("."), "binnen 48 uur", None)}
+
+
 GEVALLEN = {
     R.REL_UITVOER_FUNCTIE: (uitvoer_positief, uitvoer_negatief, uitvoer_rand, uitvoer_overlap),
     R.REL_INVOER_FUNCTIE: (invoer_positief, invoer_negatief, invoer_rand, invoer_overlap),
     R.REL_KENMERK_INVOER: (kenmerk_positief, kenmerk_negatief, kenmerk_rand, kenmerk_overlap),
+    R.REL_UITZONDERING_VERWIJZING: (uitzondering_positief, uitzondering_negatief, uitzondering_rand, uitzondering_overlap),
+    R.REL_TOEPASSING_VERWIJZING: (toepassing_positief, toepassing_negatief, toepassing_rand, toepassing_overlap),
+    R.REL_TIJD_NESTING: (tijd_positief, tijd_negatief, tijd_rand, tijd_overlap),
     R.REL_WAARDE_NESTING: (waarde_positief, waarde_negatief, waarde_rand, waarde_overlap),
     R.REL_OPERATOR_IN_NESTING: (operator_in_positief, operator_in_negatief, operator_in_rand, operator_in_overlap),
     R.REL_OPERAND_WOORDVOLGORDE: (operand_positief, operand_negatief, operand_rand, operand_overlap),

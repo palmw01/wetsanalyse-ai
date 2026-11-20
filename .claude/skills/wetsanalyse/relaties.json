@@ -1,6 +1,6 @@
 {
   "versie": "1",
-  "toelichting": "Catalogus van relaties tussen markeringen (activiteit 2, deelactiviteit 2c). De codes en leesvormen zijn een projectkeuze; de rollen en verbanden komen uit de methode (zie references/relaties.md en ADR-011). Gegenereerd naar api en werkplek; bewerk dit bestand, niet de afgeleide code.",
+  "toelichting": "Catalogus van relaties tussen markeringen (activiteit 2, deelactiviteit 2c). De codes en leesvormen zijn een projectkeuze; de rollen en verbanden komen uit de methode (zie references/relaties.md en ADR-011). Een type met eindpunt_bron mag aan de kant naar een hele bepaling als eindpunt hebben (soort bron, met de bron-IRI): alleen waar de wet zelf naar de hele bepaling verwijst (‘In afwijking van artikel 4:93 Awb’, ‘vindt het eerste lid toepassing’), ook als die bepaling niet geannoteerd is (M-1-1, ADR-011). Gegenereerd naar api en werkplek; bewerk dit bestand, niet de afgeleide code.",
   "bron": "P18",
   "centrale_klassen": [
     "Rechtsbetrekking",
@@ -428,7 +428,7 @@
         "Rechtsbetrekking"
       ],
       "drager": "van",
-      "tekstueel": true,
+      "tekstueel": true, "eindpunt_bron": true,
       "methodisch": false,
       "bron": [
         "H2:62",
@@ -448,7 +448,7 @@
         "Afleidingsregel"
       ],
       "drager": "van",
-      "tekstueel": true,
+      "tekstueel": true, "eindpunt_bron": true,
       "methodisch": false,
       "bron": [
         "P06",
