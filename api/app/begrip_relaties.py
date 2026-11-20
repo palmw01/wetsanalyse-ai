@@ -15,18 +15,24 @@ from .routers.auth import actieve_userid
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
                    dependencies=[Depends(require_client)])
 
-Vorm = Literal["lijst", "kort"]
+Vorm = Literal["lijst", "kort", "stand"]
 
 
-def _in_vorm(lijst: dict, vorm: str) -> dict:
+def _in_vorm(lijst: dict, vorm: str, relatie_id: str | None = None) -> dict:
     """`?vorm=kort`: alleen de tellingen in plaats van alle relaties en voorstellen met hun bewijs. Wie veel besluiten na
-    elkaar neemt (een MCP-client) leest anders bij elk besluit de hele lijst terug."""
-    if vorm != "kort":
+    elkaar neemt (een MCP-client) leest anders bij elk besluit de hele lijst terug. `?vorm=stand`: de tellingen plus de
+    ene relatie die de aanroep raakte (`relatie`, `null` als ze weg is), zoals `vorm=stand` bij de begrippen (Termijnen
+    e2e, 20 nov 2026: elke schrijfactie gaf ~85k tekens terug)."""
+    rid = lijst.get("relatie_id") or relatie_id
+    if vorm == "lijst":
         return lijst
     rel = lijst.get("relaties") or []
-    return {"relaties": sum(r.get("beoordeling") != "afgewezen" for r in rel),
-            "afgewezen": sum(r.get("beoordeling") == "afgewezen" for r in rel),
-            "voorstellen": len(lijst.get("voorstellen") or [])}
+    uit = {"relaties": sum(r.get("beoordeling") != "afgewezen" for r in rel),
+           "afgewezen": sum(r.get("beoordeling") == "afgewezen" for r in rel),
+           "voorstellen": len(lijst.get("voorstellen") or [])}
+    if vorm == "stand":
+        uit = {"vorm": "stand", "relatie_id": rid, "relatie": next((r for r in rel if r.get("id") == rid), None), **uit}
+    return uit
 
 
 @router.get("/relaties")
@@ -51,19 +57,19 @@ async def post_afwijzen(werkgebied_id: str, voorstel_id: str, req: Reden, vorm: 
 async def post_relatie_afwijzen(werkgebied_id: str, relatie_id: str, req: Reden, vorm: Vorm = "lijst",
                                 actor: str = Depends(actieve_userid)):
     """Een vastgelegde relatie afwijzen met een reden; ze blijft in de historie staan (`store.wijs_vastgelegd_af`)."""
-    return _in_vorm(await store.wijs_vastgelegd_af(werkgebied_id, relatie_id, req.reden, actor), vorm)
+    return _in_vorm(await store.wijs_vastgelegd_af(werkgebied_id, relatie_id, req.reden, actor), vorm, relatie_id)
 
 
 @router.post("/relaties/{relatie_id}/bevestigen")
 async def post_bevestigen(werkgebied_id: str, relatie_id: str, vorm: Vorm = "lijst",
                           actor: str = Depends(actieve_userid)):
-    return _in_vorm(await store.bevestig(werkgebied_id, relatie_id, actor), vorm)
+    return _in_vorm(await store.bevestig(werkgebied_id, relatie_id, actor), vorm, relatie_id)
 
 
 @router.delete("/relaties/{relatie_id}")
 async def delete_relatie(werkgebied_id: str, relatie_id: str, vorm: Vorm = "lijst",
                          actor: str = Depends(actieve_userid)):
-    return _in_vorm(await store.verwijder(werkgebied_id, relatie_id, actor), vorm)
+    return _in_vorm(await store.verwijder(werkgebied_id, relatie_id, actor), vorm, relatie_id)
 
 
 @router.post("/begrippen/{begrip_id}/nieuwe-betekenis", status_code=201)

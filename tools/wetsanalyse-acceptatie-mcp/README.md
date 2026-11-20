@@ -68,8 +68,17 @@ vraagt de revisie die je las: een 412 betekent opnieuw lezen. `<wg>` is `/api/we
 - `PATCH /<id>?vorm=stand`: `{"verwachte_revisie": n, "inhoud": {"definitie": "…"}}`. Alleen de velden die veranderen;
   leegmaken is `""`.
 - `PATCH /<id>/koppelingen/<kid>`: `{"verwachte_revisie": n, "beoordeling": "akkoord", "motivatie": "…", "motivatie_aanvullen": true}`.
-- `POST <wg>/relaties?vorm=kort`: `{"van_begrip": "…", "naar_begrip": "…", "type": "hierarchie", "toelichting": "…"}`.
-  Bij een hiërarchie is `van` het bredere begrip.
+- `GET /<id>` en `GET /<id>/revisies`: een uniek voorvoegsel van het id (minstens 6 tekens) mag ook.
+
+**Begriprelaties** (`<wg>/relaties…`, niet onder `/begrippen`). Elke schrijfroute kent `?vorm=stand`: de tellingen
+plus de ene relatie die je raakte. `?vorm=kort` geeft alleen de tellingen.
+- `GET <wg>/relaties?begrip_id=<id>`: de relaties en voorstellen van één begrip.
+- `POST <wg>/relaties?vorm=stand`: `{"van_begrip": "…", "naar_begrip": "…", "type": "hierarchie", "toelichting": "…"}`
+  of `{"voorstel_id": "R…"}` (een voorstel van Lex overnemen). Bij een hiërarchie is `van` het bredere begrip.
+- `POST <wg>/relaties/voorstellen/<voorstel_id>/afwijzen?vorm=stand`: `{"reden": "…"}`. Lex stelt het niet opnieuw voor.
+- `POST <wg>/relaties/<relatie_id>/afwijzen?vorm=stand`: `{"reden": "…"}`. Een vastgelegde relatie blijft in de historie.
+- `POST <wg>/relaties/<relatie_id>/bevestigen?vorm=stand`: geen body. De relatie klopt nog na een wijziging van een begrip.
+- `DELETE <wg>/relaties/<relatie_id>?vorm=stand`: weghalen. Liever afwijzen: dat houdt de historie.
 
 **Werkgebied en bronselectie**:
 - `PATCH <wg>/deelvragen/<id>?vorm=deelvraag`: `{"verwachte_revisie": n, "vraag": "…", "status": "actief" | "afgewezen", "reden": "…"}`.

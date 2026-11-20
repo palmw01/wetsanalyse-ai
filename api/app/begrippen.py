@@ -125,7 +125,9 @@ async def get_samenhang(werkgebied_id: str, actor: str = Depends(actieve_userid)
 
 @router.get("/{begrip_id}")
 async def get_begrip(werkgebied_id: str, begrip_id: str, vorm: Vorm = "kaart", actor: str = Depends(actieve_userid)):
-    """De kaart; `vorm=stand` of `kort` zoals bij een wijziging (de kaart is ~40 kB met de koppelingen erin)."""
+    """De kaart; `vorm=stand` of `kort` zoals bij een wijziging (de kaart is ~40 kB met de koppelingen erin). Een uniek
+    voorvoegsel van het id (minstens 6 tekens) mag ook (`store.volledig_begrip_id`)."""
+    begrip_id = await store.volledig_begrip_id(werkgebied_id, begrip_id)
     return _in_vorm(await store.haal(werkgebied_id, begrip_id), vorm)
 
 
@@ -188,4 +190,5 @@ async def post_generiek_maken(werkgebied_id: str, begrip_id: str, req: Revisie, 
 @router.get("/{begrip_id}/revisies")
 async def get_revisies(werkgebied_id: str, begrip_id: str, limit: int = Query(100, ge=1, le=500),
                        actor: str = Depends(actieve_userid)):
+    begrip_id = await store.volledig_begrip_id(werkgebied_id, begrip_id)
     return {"revisies": await store.revisies(werkgebied_id, begrip_id, limit)}
