@@ -12,11 +12,15 @@ export type RelatieType = {
   drager: "van" | "naar";
   volgorde: boolean;
   tekstueel: boolean;
+  eindpunt_bron: boolean;
   methodisch: boolean;
   bron: readonly string[];
 };
 
-export const CATALOGUS_VERSIE = "850faa640ba3";
+export const CATALOGUS_VERSIE = "86825c97b971";
+
+/** De pseudoklasse van een eindpunt dat een hele bepaling is (soort bron, M-1-1). */
+export const BRON = "Bron";
 
 export const RELATIETYPEN: Record<string, RelatieType> = {
   "beeindigt": {
@@ -32,6 +36,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:53",
@@ -52,6 +57,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:125",
@@ -71,6 +77,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:53",
@@ -98,6 +105,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:134",
@@ -119,6 +127,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:125",
@@ -145,6 +154,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": true,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:71",
@@ -170,6 +180,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:80",
@@ -189,6 +200,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": false,
     "bron": [
       "M06",
@@ -214,6 +226,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": true,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:62",
@@ -235,6 +248,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:62",
@@ -259,6 +273,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:116",
@@ -278,6 +293,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:44",
@@ -299,6 +315,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:44",
@@ -324,6 +341,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:107",
@@ -345,6 +363,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": true,
+    "eindpunt_bron": true,
     "methodisch": false,
     "bron": [
       "P06",
@@ -367,6 +386,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:71",
@@ -390,6 +410,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": true,
+    "eindpunt_bron": true,
     "methodisch": false,
     "bron": [
       "H2:62",
@@ -410,6 +431,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:53",
@@ -434,6 +456,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:62",
@@ -456,6 +479,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:35",
@@ -496,6 +520,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "naar",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:80",
@@ -516,6 +541,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "drager": "van",
     "volgorde": false,
     "tekstueel": false,
+    "eindpunt_bron": false,
     "methodisch": true,
     "bron": [
       "H2:53",
@@ -540,7 +566,8 @@ export const IMPLICIET_TOEGESTAAN: readonly string[] = [
  * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
 export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
   const t = RELATIETYPEN[code];
-  if (!t) return false;
+  if (!t || vanKlasse === BRON) return false;
+  if (naarKlasse === BRON) return t.eindpunt_bron && t.van.includes(vanKlasse);
   if (t.paren.length) {
     return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
       && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);

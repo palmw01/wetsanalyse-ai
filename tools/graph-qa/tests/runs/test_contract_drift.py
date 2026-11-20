@@ -114,11 +114,17 @@ def test_een_relatievoorstel_van_de_keten_haalt_het_api_contract():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     anker = {"bron_iri": "urn:x", "start": 0, "eind": 3, "tekst": "abc", "bron_hash": "h"}
-    voorstel = {"van_ankers": [anker], "naar_ankers": [{**anker, "start": 1}], "type": "operand", "volgorde": 1,
-                "spoor": {"door": "regel", "regel": "REL_OPERAND_WOORDVOLGORDE"}}
+    voorstel = {"van_ankers": [anker], "naar_ankers": [{**anker, "start": 1}], "naar_bron": None, "type": "operand",
+                "volgorde": 1, "spoor": {"door": "regel", "regel": "REL_OPERAND_WOORDVOLGORDE"}}
     contract = relatie_naar_contract(voorstel)
     assert set(contract) == set(module.RelatieVoorstel.model_fields) == set(am.RelatieVoorstel.model_fields)
     assert module.RelatieVoorstel.model_validate(contract).model_dump() == voorstel
+    # Een hele bepaling als eindpunt (M-1-1): geen ankers aan de kant naar, wel de bron-IRI; nooit allebei.
+    bron = {**voorstel, "naar_ankers": [], "naar_bron": "urn:bwb:BWBR0004770:artikel:9:lid:1", "type": "uitzondering_op",
+            "volgorde": None}
+    assert module.RelatieVoorstel.model_validate(relatie_naar_contract(bron)).model_dump() == bron
+    with pytest.raises(ValueError):
+        module.RelatieVoorstel.model_validate({**voorstel, "naar_bron": "urn:bwb:BWBR0004770:artikel:9"})
 
 
 def test_de_vertaling_dekt_alles_wat_in_opgevangen_staat():

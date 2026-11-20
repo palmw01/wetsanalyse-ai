@@ -56,7 +56,7 @@ async def test_zonder_deelvragen_verandert_er_niets(client):
     wg = await _nieuw(client)
     assert wg["deelvragen"] == []
     assert await _dekking(client, wg) == {"deelvragen": [], "telling": {"geen_bron": 0, "met_bron": 0},
-                                          "totaal": 0}
+                                          "totaal": 0, "contextsignalen": []}
 
 
 async def test_toevoegen_wijzigen_en_weghalen_dragen_de_revisie(client):

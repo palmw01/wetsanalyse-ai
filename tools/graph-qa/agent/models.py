@@ -483,10 +483,12 @@ class AgentRun(BaseModel):
 
 class RelatieVoorstel(BaseModel):
     """Een relatievoorstel van de keten (ADR-011, `jas_pipeline/relaties.py`), in de vorm van `RelatieVoorstel` bij de
-    api. Eindpunten zijn de ankers van een voorstel, nooit een element-id; de api zet ze na het opslaan om."""
+    api. Eindpunten zijn de ankers van een voorstel, nooit een element-id; de api zet ze na het opslaan om. Aan de kant
+    naar mag een hele bepaling staan (`naar_bron`, M-1-1) in plaats van ankers."""
 
     van_ankers: list[dict[str, Any]]
-    naar_ankers: list[dict[str, Any]]
+    naar_ankers: list[dict[str, Any]] = Field(default_factory=list)
+    naar_bron: str | None = None
     type: str
     volgorde: int | None = None
     spoor: dict[str, Any] = Field(default_factory=dict)

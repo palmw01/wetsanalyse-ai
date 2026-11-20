@@ -258,6 +258,8 @@ def _relatie_eind(kant: dict, eigen_iri: str, plek: Plek, nodes: dict[str, dict]
     if kant["soort"] == "impliciet":
         return RelatieEind(soort="impliciet", klasse=kant.get("klasse") or "", tekst=kant.get("tekst") or "",
                            bestaat=bool(kant.get("bestaat", True)))
+    if kant["soort"] == "bron":
+        return RelatieEind(soort="bron", tekst=_plaatsnaam(kant["id"], nodes) or kant.get("tekst") or kant["id"])
     waar, nr = plek.get(kant["id"], (kant.get("eigenaar_iri") or "", 0))
     hier = waar == eigen_iri
     return RelatieEind(nr=nr if hier else 0, klasse=kant.get("klasse") or "", tekst=kant.get("tekst") or "",

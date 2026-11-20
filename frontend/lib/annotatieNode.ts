@@ -51,8 +51,9 @@ export interface NodeDekking {
   structureel?: Record<string, StructureleDekking>;
 }
 export interface NodeLaag { id: string; bron_iri: string; revisie: number; status: string }
-/** Eén kant van een relatie, zoals de api hem vraagt (ADR-011): een markering of een impliciete partij. */
-export interface NodeEindpuntRef { soort: "element" | "impliciet"; id: string }
+/** Eén kant van een relatie, zoals de api hem vraagt (ADR-011): een markering, een impliciete partij, of een hele
+ *  bepaling (`bron`, M-1-1: de bron-IRI, ook als niemand haar annoteerde). */
+export interface NodeEindpuntRef { soort: "element" | "impliciet" | "bron"; id: string }
 /** Een kant van een relatie zoals de weergave hem toont (`beschrijf` in `api/app/annotatie_v2_relaties.py`). Een
  *  element mag in een andere laag liggen; `bestaat: false` als het weg is. */
 export interface NodeEindpunt extends NodeEindpuntRef {

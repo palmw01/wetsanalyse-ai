@@ -46,25 +46,33 @@ onderwerp van de voorwaarde, niet van de betrekking.
 Overal geldt: **bij twijfel geen voorstel.** Twee even goede kandidaten voor één plek, een gedegradeerde parse, een
 eindpunt zonder klasse: dan komt er niets. En elk voorstel moet door de catalogus (`jas_relaties.toegestaan`: klassen,
 richting, subtype), dezelfde regels die de api daarna nog eens toetst. Een kenmerk alleen binnen de invoer van een
-regel (regel 1); tijd, `uitzondering_op` en `toepassing` doet deze module nog niet (die laatste twee wachten op een
-bron als eindpunt, M-1-1).
+regel (regel 1).
+
+8. **Uitzondering en toepassing naar een hele bepaling** (`REL_UITZONDERING_VERWIJZING`, `REL_TOEPASSING_VERWIJZING`,
+   M-1-1): "In afwijking van <verwijzing>" maakt de kleinste afleidingsregel, rechtsbetrekking of voorwaarde om die
+   woorden tot `uitzondering_op` naar het doel van de verwijzing; "vindt <verwijzing> toepassing" (de toepassingskeuze
+   van de functiedetector) maakt de afleidingsregel tot `toepassing` naar dat doel. Het doel komt uit de graaf
+   (`verwijzingen`, anker en `bwb:naar`), en is een hele bepaling (`naar_bron`): ook als niemand haar annoteerde.
+9. **Tijd uit de nesting** (`REL_TIJD_NESTING`): de buitenste tijdsaanduiding binnen een rechtsbetrekking, rechtsfeit of
+   afleidingsregel is daarvan de `tijd`, tenzij ze er al invoer of operand is.
 
 Deterministisch: dezelfde invoer geeft dezelfde lijst, in dezelfde volgorde.
 """
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..jas_relaties import toegestaan
+from ..jas_relaties import BRON, toegestaan
 from .detectoren.syntactisch import _VOORWAARDELIJK
 from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "4"
+VERSIE = "5"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -76,10 +84,14 @@ REL_ROL_ONDERWERP = "REL_ROL_ONDERWERP"
 REL_ROL_VOORZETSEL = "REL_ROL_VOORZETSEL"
 REL_VOORWERP_ZINSDEEL = "REL_VOORWERP_ZINSDEEL"
 REL_KENMERK_INVOER = "REL_KENMERK_INVOER"
+REL_UITZONDERING_VERWIJZING = "REL_UITZONDERING_VERWIJZING"
+REL_TOEPASSING_VERWIJZING = "REL_TOEPASSING_VERWIJZING"
+REL_TIJD_NESTING = "REL_TIJD_NESTING"
 #: Alle codes die deze module kan uitgeven; `tests/test_verklaringen.py` eist voor elk een verklaring.
 CODES = (REL_UITVOER_FUNCTIE, REL_INVOER_FUNCTIE, REL_WAARDE_NESTING, REL_OPERATOR_IN_NESTING,
          REL_OPERAND_WOORDVOLGORDE, REL_VOORWAARDE_AANHECHTING, REL_ROL_ONDERWERP, REL_ROL_VOORZETSEL,
-         REL_VOORWERP_ZINSDEEL, REL_KENMERK_INVOER)
+         REL_VOORWERP_ZINSDEEL, REL_KENMERK_INVOER, REL_UITZONDERING_VERWIJZING, REL_TOEPASSING_VERWIJZING,
+         REL_TIJD_NESTING)
 
 AR, VW, OP, RB, RF = "Afleidingsregel", "Voorwaarde", "Operator", "Rechtsbetrekking", "Rechtsfeit"
 RS, RO = "Rechtssubject", "Rechtsobject"
@@ -141,6 +153,13 @@ def _voorstel(type_: str, van: _El, naar: _El, code: str, volgorde: int | None =
             "type": type_, "volgorde": volgorde,
             "spoor": {"door": "regel", "regel": code, "versie": VERSIE, "van_element": van.id,
                       "naar_element": naar.id, **({"detail": detail} if detail else {})}}
+
+
+def _voorstel_bron(type_: str, van: _El, bron_iri: str, code: str, **detail) -> dict[str, Any]:
+    """Een relatie naar een hele bepaling (M-1-1): aan de kant naar geen ankers maar de bron-IRI."""
+    return {"van_ankers": [dict(a) for a in van.ankers], "naar_bron": bron_iri, "type": type_, "volgorde": None,
+            "spoor": {"door": "regel", "regel": code, "versie": VERSIE, "van_element": van.id,
+                      "naar_element": bron_iri, **({"detail": detail} if detail else {})}}
 
 
 def _enige(kandidaten: list[_El]) -> _El | None:
@@ -438,13 +457,92 @@ def _rollen(els: list[_El], analyses: Mapping[str, LinguisticAnalysis | None]) -
     return uit
 
 
+# --- 8. uitzondering en toepassing naar een hele bepaling (M-1-1) -----------------------------------------------------
+
+_AFWIJKING = re.compile(r"\bin\s+afwijking\s+(?:in\s+zoverre\s+)?van\s+", re.IGNORECASE)
+#: Hoeveel tekens tussen de formule en het anker mogen staan ("In afwijking van het bepaalde in artikel 9").
+_TUSSEN = 40
+
+
+def _doel_na(tekst: str, positie: int, verwijzingen: list[dict[str, str]]) -> str | None:
+    """Het doel van de verwijzing waarvan het anker het eerst na `positie` begint (binnen `_TUSSEN` tekens)."""
+    beste: tuple[int, str] | None = None
+    for v in verwijzingen:
+        i = tekst.find(v["anker"], positie, positie + _TUSSEN + len(v["anker"]))
+        if i >= 0 and (beste is None or i < beste[0]):
+            beste = (i, v["naar"])
+    return beste[1] if beste else None
+
+
+def _uitzondering(els: list[_El], verwijzingen: Mapping[str, list[dict[str, str]]],
+                  teksten: Mapping[str, str]) -> list[dict[str, Any]]:
+    uit = []
+    for iri, tekst in teksten.items():
+        for m in _AFWIJKING.finditer(tekst):
+            doel = _doel_na(tekst, m.end(), verwijzingen.get(iri, []))
+            if doel is None:
+                continue
+            om = [e for e in els if e.bron_iri == iri and e.klasse in (AR, RB, VW)
+                  and e.start <= m.start() and m.end() <= e.eind]
+            drager = _enige(_minimaal(om))
+            if drager is not None and toegestaan("uitzondering_op", drager.klasse, BRON, drager.subtype, ""):
+                uit.append(_voorstel_bron("uitzondering_op", drager, doel, REL_UITZONDERING_VERWIJZING,
+                                          formule=m.group(0).strip()))
+    return uit
+
+
+def _toepassing(els: list[_El], verwijzingen: Mapping[str, list[dict[str, str]]]) -> list[dict[str, Any]]:
+    """De toepassingskeuze ("vindt het eerste lid toepassing") noemt de span van de regel die toepassing vindt."""
+    uit = []
+    for regel in (e for e in els if e.klasse == AR and e.kandidaat is not None):
+        for ev in regel.kandidaat.evidence:
+            if ev.code != "CALCULATION_APPLICABILITY":
+                continue
+            try:
+                span = (json.loads(ev.detail or "{}") or {}).get("toepasselijke_regel") or {}
+            except ValueError:
+                continue
+            if not _span(span):
+                continue
+            tekst = span.get("tekst", "")
+            doel = next((v["naar"] for v in verwijzingen.get(regel.bron_iri, []) if v["anker"] and v["anker"] in tekst),
+                        None)
+            if doel and toegestaan("toepassing", regel.klasse, BRON, regel.subtype, ""):
+                uit.append(_voorstel_bron("toepassing", regel, doel, REL_TOEPASSING_VERWIJZING, regel=tekst))
+    return uit
+
+
+# --- 9. tijd uit de nesting ----------------------------------------------------------------------------------------
+
+def _tijd(els: list[_El], genest: set[tuple[str, str]], al: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """De buitenste tijdsaanduiding in een rechtsbetrekking, rechtsfeit of afleidingsregel. Een tijdsaanduiding die al
+    invoer of operand is (de datumregel, een vergelijking), krijgt geen `tijd` erbij."""
+    bezet = {r["spoor"]["van_element"] for r in al if r["type"] in ("invoer", "operand")}
+    tijden = [e for e in els if e.klasse == TIJD]
+    uit = []
+    for t in tijden:
+        if t.id in bezet or any(o.bevat(t) for o in tijden):
+            continue
+        ouder = _binnenste([o for o in els if o.klasse in (RB, RF, AR) and _in(o, t, genest)])
+        if ouder is not None and _past("tijd", ouder, t):
+            uit.append(_voorstel("tijd", ouder, t, REL_TIJD_NESTING))
+    return uit
+
+
 def stel_voor(voorstellen: list[dict[str, Any]], fusie: Fusie,
-              analyses: Mapping[str, LinguisticAnalysis | None] | None = None) -> list[dict[str, Any]]:
-    """De relatievoorstellen tussen `voorstellen` (de uitkomst van `keten.analyseer`), ontdubbeld en geordend."""
+              analyses: Mapping[str, LinguisticAnalysis | None] | None = None, *,
+              verwijzingen: Mapping[str, list[dict[str, str]]] | None = None,
+              teksten: Mapping[str, str] | None = None) -> list[dict[str, Any]]:
+    """De relatievoorstellen tussen `voorstellen` (de uitkomst van `keten.analyseer`), ontdubbeld en geordend.
+    `verwijzingen` (per bronnode `{anker, naar}`, uit de graaf) en `teksten` (per bronnode de tekst) zijn nodig voor de
+    relaties naar een hele bepaling; zonder komen die niet."""
     els = _elementen(voorstellen, fusie)
     genest = _genest(fusie)
     alle = [*_functie(els), *_waarde(els, genest), *_operator(els, genest), *_voorwaarde(els, analyses or {}),
             *_rollen(els, analyses or {})]
+    if verwijzingen and teksten:
+        alle += [*_uitzondering(els, verwijzingen, teksten), *_toepassing(els, verwijzingen)]
+    alle += _tijd(els, genest, alle)
     uniek: dict[tuple, dict[str, Any]] = {}
     for r in alle:
         sleutel = (r["spoor"]["van_element"], r["spoor"]["naar_element"], r["type"], r["volgorde"])

@@ -55,7 +55,7 @@ def test_een_type_is_volledig_en_noemt_alleen_bestaande_klassen(code):
     assert t["drager"] in ("van", "naar")
     assert isinstance(t["methodisch"], bool)
     assert set(t) <= {"leesvorm", "invers", "van", "naar", "paren", "drager", "volgorde", "tekstueel",
-                      "methodisch", "bron"}, code
+                      "eindpunt_bron", "methodisch", "bron"}, code
 
 
 @pytest.mark.parametrize("code", sorted(TYPEN))
@@ -73,6 +73,15 @@ def test_elke_bron_bestaat(code):
         assert "P18" in bronnen, code
     else:
         assert any(r.startswith(("H2:", "M")) for r in bronnen), code
+
+
+def test_alleen_een_tekstueel_type_mag_een_hele_bepaling_als_eindpunt():
+    """M-1-1 (ADR-011): een bepaling als eindpunt alleen waar de wet zelf naar de hele bepaling verwijst, en dan draagt de
+    markering aan de kant van de relatie (de bepaling draagt nooit)."""
+    for code, t in TYPEN.items():
+        if t.get("eindpunt_bron"):
+            assert t.get("tekstueel") is True and t["drager"] == "van", code
+    assert {c for c, t in TYPEN.items() if t.get("eindpunt_bron")} == {"uitzondering_op", "toepassing"}
 
 
 def test_een_tekstueel_type_is_een_projectkeuze():

@@ -24,9 +24,13 @@ export interface RelatieBediening {
   wis(relatie: NodeRelatie): Promise<void>;
 }
 
-/** Wat de andere kant is, in één regel: de tekst van de markering, of het label van een impliciete partij. */
+/** Wat de andere kant is, in één regel: de tekst van de markering, het label van een impliciete partij, of de
+ *  vindplaats van een hele bepaling (M-1-1). */
 function AndereKant({ ep }: { ep: NodeEindpunt }) {
   if (!ep.bestaat) return <span className="text-muted">(niet meer aanwezig)</span>;
+  if (ep.soort === "bron") {
+    return <><span className="font-medium">{ep.tekst || ep.id}</span> <StatusLabel klein>hele bepaling</StatusLabel></>;
+  }
   if (ep.soort === "impliciet") {
     return <><span className="font-medium">{ep.tekst}</span> <StatusLabel klein>impliciet</StatusLabel></>;
   }

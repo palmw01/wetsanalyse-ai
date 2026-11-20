@@ -24,6 +24,7 @@ import pytest
 import agent
 from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
+from agent.jas_pipeline import verwijzingen as jas_verwijzingen
 from agent import tools as _tools
 from agent.adapters import kennisgroepen_bron as kgb
 from agent.tools import begrip_tools, bekendmaking_tools, kennisgroep_tools, rechtspraak_tools, wetgeving_tools
@@ -127,6 +128,9 @@ GEVALLEN: list[tuple[str, str]] = [
     ("adapters.kennisgroepen_bron.q_opvolgers", kgb.q_opvolgers('kg:013:2018:173')),
     ("tools.kennisgroep_tools._q_inwerkingen", kennisgroep_tools._q_inwerkingen([(IW, "36"), ("BWBR0005806", "10")])),
     ("tools.kennisgroep_tools._q_inwerking", kennisgroep_tools._q_inwerking(IW, "36")),
+    # M-1-1: de verwijzingen van een bepaling met hun doel, voor uitzondering_op en toepassing naar een hele bepaling.
+    ("jas_pipeline.verwijzingen.q_verwijzingen", jas_verwijzingen.q_verwijzingen(
+        [f"urn:bwb:{IW}:artikel:9:lid:5", f"urn:bwb:{IW}:artikel:9:lid:1", "geen-iri"])),
 ]
 
 

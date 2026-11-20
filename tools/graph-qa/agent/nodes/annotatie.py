@@ -28,6 +28,7 @@ from ..focus import na_annotatie
 from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen, kandidaten_uit_graaf
 from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
+from ..jas_pipeline.verwijzingen import verwijzingen_van
 from ..jas_pipeline.beslisregister import compact as beslisregister
 from ..jas_pipeline.keten import analyseer
 from ..jas_pipeline.broncontext import BronContext
@@ -190,6 +191,10 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         hergebruikte_nodes=frozenset(bron.get("hergebruikte_nodes") or []),
         context=BronContext.ouders(bron["bron_snapshot"]) if b.settings.broncontext else None,
         melding=lambda fase, samenvatting, ms: _stap(writer, fase, samenvatting, duur_ms=ms),
+        # De verwijzingen van de bepaling (anker en doel), voor `uitzondering_op` en `toepassing` met een hele bepaling
+        # als eindpunt (M-1-1). Alleen met de proefvlag: zonder blijft de beurt bitgelijk.
+        verwijzingen=verwijzingen_van(b.graph, [s["bron_iri"] for s in bron["bron_snapshot"]["segmenten"]])
+        if b.settings.relatie_voorstellen else None,
     )
     if uitkomst.meting.get("gedegradeerd"):
         # De beurt slaagt, maar zonder zinsontleding ontbraken subject-, object- en bijzindetectie.
