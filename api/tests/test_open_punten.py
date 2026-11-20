@@ -44,7 +44,10 @@ def test_de_soorten_zijn_die_van_de_skill():
 
 def test_het_besluit_is_van_de_jurist_en_niet_van_het_agent_token():
     assert not agent_toegang.mag(agent_toegang.AGENT_CLIENT, "POST", "/werkgebieden/{a}/open-punten/{b}/besluit")
-    assert not agent_toegang.mag(agent_toegang.AGENT_CLIENT, "POST", "/werkgebieden/{a}/open-punten")
+    # Een punt vastleggen mag Lex (het onderzoekspunt van de analist bij de bronselectie, ADR-018 bijlage A §3.2);
+    # het wijzigen, wissen en de keuze niet.
+    assert agent_toegang.mag(agent_toegang.AGENT_CLIENT, "POST", "/werkgebieden/{a}/open-punten")
+    assert not agent_toegang.mag(agent_toegang.AGENT_CLIENT, "PATCH", "/werkgebieden/{a}/open-punten/{b}")
     assert agent_toegang.mag("werkplek", "POST", "/werkgebieden/{a}/open-punten/{b}/besluit")
 
 

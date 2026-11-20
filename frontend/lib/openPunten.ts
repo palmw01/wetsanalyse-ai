@@ -9,7 +9,7 @@ export type Methode = "grammaticaal" | "systematisch" | "wetshistorisch" | "tele
 export type Bronsoort = "wettekst" | "wetsgeschiedenis" | "jurisprudentie" | "beleid" | "kennisgroepstandpunt"
   | "uitvoeringspraktijk" | "literatuur";
 
-export interface Aanhaking { soort: "regel" | "geval" | "markering" | "begrip" | "deelvraag"; id: string; geval: string; bestaat?: boolean }
+export interface Aanhaking { soort: "regel" | "geval" | "markering" | "begrip" | "deelvraag" | "werkgebied"; id: string; geval: string; bestaat?: boolean }
 export interface Grondslag { soort: "markering" | "bron" | "begrip" | "stuk"; id: string; label: string }
 export interface Lezing { label: string; omschrijving: string; grondslag: Grondslag[] }
 export interface TeToetsen { bronsoort: Bronsoort; omschrijving: string; getoetst: boolean; uitkomst: string }

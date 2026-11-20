@@ -65,10 +65,11 @@ class Bronsoort(str, Enum):
 
 
 class Aanhaking(BaseModel):
-    """Waar het punt aan hangt. `geval` alleen bij een regel: het label van de rij."""
+    """Waar het punt aan hangt. `geval` alleen bij een regel: het label van de rij. `werkgebied` is het werkgebied zelf:
+    een onderzoekspunt bij de bronselectie van een werkgebied zonder deelvragen (de analysevraag)."""
     model_config = ConfigDict(extra="ignore")
 
-    soort: Literal["regel", "geval", "markering", "begrip", "deelvraag"]
+    soort: Literal["regel", "geval", "markering", "begrip", "deelvraag", "werkgebied"]
     id: str = Field(pattern=_ID)
     geval: str = Field(default="", max_length=80)
 

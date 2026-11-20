@@ -64,6 +64,9 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/status"),
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/voorstellen"),
     ("POST", "/v1/werkgebieden/{}/deelvragen/voorstellen"),
+    # Een onderzoekspunt dat de analist in het gesprek noemt (bronselectie, lessenbundel 4): Lex legt het vast als open
+    # punt. De keuze bij een open punt (`…/besluit`) staat hier nooit in (ADR-018 bijlage A §3.2).
+    ("POST", "/v1/werkgebieden/{}/open-punten"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/batches/{}"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/uitkomst"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/verdieping"),

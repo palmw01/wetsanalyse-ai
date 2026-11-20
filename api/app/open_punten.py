@@ -20,7 +20,7 @@ from .routers.auth import actieve_userid
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["open punten"],
                    dependencies=[Depends(require_client)])
 
-Aanhaking = Literal["regel", "geval", "markering", "begrip", "deelvraag"]
+Aanhaking = Literal["regel", "geval", "markering", "begrip", "deelvraag", "werkgebied"]
 
 
 @router.get("/open-punten")

@@ -315,6 +315,12 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/status", actie)
 
+    async def maak_open_punt(self, werkgebied_id: str, punt: dict[str, Any]) -> dict[str, Any]:
+        """Een open punt in het werkgebied (`{inhoud: {soort, vraag, hangt_aan, …}, herkomst}`, lessenbundel 4): bij de
+        bronselectie een onderzoekspunt aan de deelvraag. De keuze bij een open punt maakt Lex nooit: die route
+        (`…/besluit`) staat niet in de toegang van het agent-token."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/open-punten", punt)
+
     async def zoek_bepalingen(self, werkgebied_id: str, bwb_id: str, q: str) -> dict[str, Any]:
         """De bepalingen in één regeling bij een vindplaats ("9 lid 2", "25.4 onderdeel b"), uit de echte boom en
         met het begin van hun tekst: `{bwb_id, gelezen, treffers: [{bron_iri, soort, vindplaats, titel, fragment}]}`.
