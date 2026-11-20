@@ -108,6 +108,12 @@ Bij het regelobject:
 - `operator_zonder_begrip`: een operatorformulering in de regel draagt geen operatorbegrip.
 - `impliciete_invoer`: een invoer rust op geen formulering en geen regel leidt haar af; signaleer ontbrekend
   uitvoeringsbeleid.
+- `voorwaarde_zonder_markering`: een voorwaarde rust op geen markering en verwijst naar geen geval van een andere
+  regel; ze is dan niet naar de tekst te herleiden.
+- `verwijzing_niet_geldig`: een voorwaarde verwijst naar een regel of geval dat niet meer geldt (afgewezen, vervangen).
+- `verwijzing_zonder_invoer`: een voorwaarde verwijst naar een andere regel, maar de uitvoer daarvan is geen invoer;
+  neem haar op als invoer, anders ziet de keten het verband niet.
+- `uitkomstbegrip_geen_invoer`: een uitkomst noemt een begrip dat geen invoer van de regel is.
 
 In de keten van het werkgebied:
 - `zelfde_uitvoer`: meer regels leiden hetzelfde begrip af; hun gevallen moeten elkaar uitsluiten.

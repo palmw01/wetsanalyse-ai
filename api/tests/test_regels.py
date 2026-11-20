@@ -257,7 +257,7 @@ async def test_hierarchie_en_afwijzen(client):
                                                 "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
     h = (await client.get(_url(wg, "hierarchie"))).json()
     assert h["volgorde"] == [eerst["id"], daarna["id"]]
-    assert h["pijlen"] == [{"van": eerst["id"], "naar": daarna["id"], "begrip_id": b["in"]["id"]}]
+    assert h["pijlen"] == [{"van": eerst["id"], "naar": daarna["id"], "begrip_id": b["in"]["id"], "via": "invoer"}]
     assert h["basisgegevens"] == [{"begrip_id": jaar["id"], "naam": "jaar"}]
     # Afwijzen bewaart de regel met de reden; hij doet niet meer mee in de keten.
     r = await client.post(_url(wg, eerst["id"], "afwijzen"), json={"verwachte_revisie": eerst["revisie"], "reden": ""})

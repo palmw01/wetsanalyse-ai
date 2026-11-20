@@ -2,6 +2,8 @@
 // de namen die overal gelijk zijn, en de export. De regeltekst maakt de api (`regeltekst.py`): de frontend typt hem
 // nooit na, zodat kaart, paneel en export dezelfde tekst tonen.
 
+import { bronHref } from "@/lib/url";
+
 /** Dezelfde tonen als `StatusLabel` (`components/ui/Lijst`); `lib/` importeert geen componenten. */
 type StatusToon = "groen" | "geel" | "rood" | "neutraal";
 
@@ -12,7 +14,9 @@ export type DragerBeoordeling = "open" | "akkoord" | "afgewezen";
 export type VoorbeeldOordeel = "open" | "juist" | "onjuist" | "kan_niet";
 
 export interface Term { soort: "begrip" | "operator" | "tekst"; begrip_id?: string; tekst?: string }
-export interface Voorwaarde { tekst: string; element_ids?: string[]; niet?: boolean }
+/** Een voorwaarde over een geval van een andere regel ("bepaald volgens geval lid 5 van de regel aantal termijnen"). */
+export interface GevalVerwijzing { regel_id: string; geval: string }
+export interface Voorwaarde { tekst: string; element_ids?: string[]; niet?: boolean; geval_van?: GevalVerwijzing }
 export interface Voorwaarden { verband: "alle" | "een_van"; delen: (Voorwaarden | Voorwaarde)[] }
 export interface Geval { label: string; voorwaarden: Voorwaarden | null; uitkomst: Term[]; voorrang: number }
 /** Een voorbeeld. Het oordeel, de maker en de beoordelaar zet de api: een nieuw voorbeeld is open, en een oordeel gaat via
@@ -47,6 +51,27 @@ export interface RegelDrager {
   motivering?: string;
   /** Van `begrip_store.actualiteit`: is de dragende passage nog dezelfde? */
   actualiteit?: "actueel" | "gewijzigd" | "verworpen" | "verdwenen" | string;
+  /** De bronnode van de markering met de weg naar de wettekst (`annotatie_v2_store.bronreferentie`): de jci waar de BWB er
+   *  een toekent, anders het anker op de toestandspagina. Een oudere api stuurt het niet. */
+  bron?: RegelBron;
+}
+
+export interface RegelBron {
+  bron_iri: string; jci: string; url: string; bron_url: string; vindplaats: string; label: string; bwb_id: string;
+  soort: "jci" | "anker" | "geen";
+}
+
+/** De link naar de wettekst van een drager: de jci (met de toestand), anders het anker; zonder beide niets (geen
+ *  verzonnen link). Via `bronHref`, dezelfde poort als elke andere bronlink. */
+export function bronLink(b: RegelBron | undefined): string {
+  if (!b) return "";
+  return bronHref(b.jci || b.url || b.bron_url) ?? "";
+}
+
+/** De tekst en vindplaats van een drager, uit het bewijs (de stand bij het vastleggen). */
+export function dragerTekst(d: RegelDrager): { tekst: string; vindplaats: string } {
+  const b = (d.bewijs ?? {}) as { tekst?: string; vindplaats?: string };
+  return { tekst: b.tekst ?? "", vindplaats: b.vindplaats || d.bron?.vindplaats || d.bron?.label || "" };
 }
 
 export interface Regel {
@@ -84,7 +109,9 @@ export interface RegelKeten {
   regels: { id: string; naam: string; uitvoer: string; status: RegelStatus; soort: RegelSoort; gevallen: number; brontype: "wet" | "beleid" }[];
   /** Van onder naar boven: een regel staat na alles waarvan hij de uitkomst gebruikt. */
   volgorde: string[];
-  pijlen: { van: string; naar: string; begrip_id: string }[];
+  /** `via`: de invoer, of een voorwaarde over een geval van de andere regel (`gevallen`: welk geval, in welk geval). */
+  pijlen: { van: string; naar: string; begrip_id: string; via?: "invoer" | "voorwaarde";
+    gevallen?: { van_geval: string; in_geval: string }[] }[];
   basisgegevens: { begrip_id: string; naam: string }[];
   signalen: KetenSignaal[];
 }
