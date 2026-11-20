@@ -284,3 +284,15 @@ async def test_bulk_op_een_andere_bronstand_is_een_409():
 def test_het_contract_van_de_bulk(onjuist):
     with pytest.raises(ValueError):
         Laagbesluiten.model_validate({"verwachte_revisie": 1, "snapshot_id": "s", **onjuist})
+
+
+async def test_een_element_met_een_uniek_voorvoegsel_van_zijn_id():
+    """Termijnen e2e (20 nov 2026): een kort id van 8 tekens, zoals in het logboek, gaf 404."""
+    snap = snapshot(ONE)
+    _laag, [el] = await voorstel(snap, element(snap))
+    assert await store.volledig_element_id(el["id"]) == el["id"]
+    assert await store.volledig_element_id(el["id"][:8]) == el["id"]
+    for kort in (el["id"][:3], "zz" * 4, el["id"][:6] + "%"):
+        with pytest.raises(HTTPException) as fout:
+            await store.volledig_element_id(kort)
+        assert fout.value.status_code == 404

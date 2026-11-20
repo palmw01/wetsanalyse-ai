@@ -243,6 +243,9 @@ export interface NodeOpslag {
   legRelatie?(body: RelatieInvoer & { verwachte_revisies: Record<string, number> }): Promise<unknown>;
   beslisRelatie?(relatieId: string, body: { type: "approve" | "reject" | "heropen" | "comment"; comment: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
   wisRelatie?(relatieId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  /** Een vastgestelde relatie klopt nog na een wijziging aan een kant: de stand wordt ververst, ook in een geaccordeerde
+   *  laag. Weglaten: *Klopt nog* keurt opnieuw goed (oudere api). */
+  bevestigRelatie?(relatieId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
   maakImpliciet?(body: { doel: { bron_iri: string }; snapshot_id: string; label: string; toelichting: string;
     vindplaats?: string; zelfde_als?: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
   wisImpliciet?(implicietId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
@@ -280,6 +283,7 @@ export const apiOpslag: NodeOpslag = {
   legRelatie: (body) => nodeRequest("relaties", body),
   beslisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/beslissing`, body),
   wisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/wis`, body),
+  bevestigRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/bevestig`, body),
   maakImpliciet: (body) => nodeRequest("impliciet", body),
   wisImpliciet: (id, body) => nodeRequest(`impliciet/${pathSegment(id)}/wis`, body),
   async exporteer(body) {

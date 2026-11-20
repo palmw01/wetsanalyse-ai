@@ -236,7 +236,8 @@ const TOOLS = [
     {
         name: "annotatie_lezen",
         description: "Eén geannoteerd element met alles om het te beoordelen: klasse, ankers, bronreferentie, aandachtsniveau, " +
-            "herkomst en de bron. De ids staan in de elementen van werkgebied_lezen.",
+            "herkomst en de bron. De ids staan in de elementen van werkgebied_lezen; een uniek voorvoegsel van minstens 6 " +
+            "tekens mag ook (meer kandidaten: 409 met de lijst).",
         input: S({ element_id: z.string(), als: Als }),
         run: (a) => samen(client(a.als), {
             element: `/api/annotatie/v2/elementen/${seg(a.element_id)}`,

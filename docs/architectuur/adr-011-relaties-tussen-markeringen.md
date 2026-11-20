@@ -121,6 +121,25 @@ en beoordeeld zoals markeringen, en de graaf maakt er het 2c-diagram van. Geen l
 - **De dekking** van een werkgebied noemt een contextbron waarnaar een beoordeelde relatie wijst
   (`contextsignalen`): misschien wordt het een bron om te analyseren.
 
+### Bevestigen na een wijziging aan een kant (aanvulling, 20 nov 2026)
+
+Een relatie bewaart de stand van beide eindpunten. Verlengt de jurist een anker, dan is de relatie `veranderd`, ook
+als ze inhoudelijk nog klopt. Opnieuw goedkeuren kon alleen in een open laag: in Termijnen e2e kostte het vier mutaties
+op een geaccordeerde laag om de stand te verversen.
+
+Daarom is er een eigen actie `POST /v1/annotatie/relaties/{id}/bevestig` met `{verwachte_revisies}`, naar het voorbeeld
+van de begripsrelaties:
+- alleen een vastgestelde relatie (`human_approved` of `edited`) kan bevestigd worden; een voorstel of een afgewezen
+  relatie beoordeel je;
+- de toetsen zijn die van goedkeuren: beide kanten actueel, en het klassenpaar past nog bij het type;
+- de stand van nu wordt de nieuwe basis, met een beslissing `bevestig` in de historie en een auditregel
+  `relatie-bevestigd` met de oude stand;
+- de revisie van de dragerlaag geldt (412) en gaat één omhoog. De laag blijft geaccordeerd, want het oordeel verandert
+  niet;
+- een relatie die niet veranderd is, laat alles staan.
+
+In de werkplek is dit de knop *Klopt nog*.
+
 ### Projectie (RDF)
 
 - **Een n-aire knoop `jas:Relatie`** in de graph van de dragerlaag, met `jas:van`, `jas:naar`, `jas:relatietype`,
