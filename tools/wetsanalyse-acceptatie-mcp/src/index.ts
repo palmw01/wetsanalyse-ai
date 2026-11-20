@@ -35,7 +35,8 @@ import { GraafClient } from "./graaf.js";
 import { aanvullen, lezen, type LogRegel, ROLLEN, SOORTEN, standaardMap } from "./logboek.js";
 import { zoekLogs } from "./logs.js";
 import { isVerwijderend, leesRuimte, opruimplan, toetsVerwijderen, voerUit } from "./runruimte.js";
-import { auditStaart, inventarisOverzicht } from "./vorm.js";
+import { checkoutStand, gitIn } from "./checkout.js";
+import { auditStaart, begrippenOverzicht, inventarisOverzicht } from "./vorm.js";
 
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
@@ -128,7 +129,9 @@ async function samen(c: AcceptatieClient, routes: Record<string, string>): Promi
 const TOOLS: ToolDef[] = [
   {
     name: "wie_ben_ik",
-    description: "Het account en de rol waarmee deze MCP werkt. `als` kiest het analist- of beheerderaccount.",
+    description:
+      "Het account en de rol waarmee deze MCP werkt, en uit welke checkout hij draait (`checkout`: branch, commit en " +
+      "hoe ver achter master; een waarschuwing als de tools verouderd kunnen zijn). `als` kiest het analist- of beheerderaccount.",
     input: S({ als: Als }),
     run: async (a) => {
       const me = await client(a.als).bff("GET", "/api/account/me");
@@ -136,7 +139,7 @@ const TOOLS: ToolDef[] = [
       const account_verwacht = !ACCOUNT
         ? "niet ingesteld (WETSANALYSE_ACC_ACCOUNT)"
         : userid === ACCOUNT ? "ja" : `nee: het token hoort bij ${String(userid)}, niet bij ${ACCOUNT}`;
-      return { ...me, account_verwacht };
+      return { ...me, account_verwacht, checkout: checkoutStand(gitIn(REPO)) };
     },
   },
   {
@@ -272,13 +275,17 @@ const TOOLS: ToolDef[] = [
   {
     name: "begrip_lezen",
     description:
-      "Eén begrip: kaart met definitie en status, gekoppelde passages en revisies. Zonder begrip_id alle begrippen " +
-      "van het werkgebied, met de NL-SBB-conformiteit en de samenhang (koppelingen, relaties en voorstellen).",
-    input: S({ werkgebied_id: z.string(), begrip_id: z.string().optional(), als: Als }),
-    run: (a) => {
+      "Eén begrip: kaart met definitie en status, gekoppelde passages en revisies. Zonder begrip_id een overzicht van " +
+      "alle begrippen van het werkgebied: per begrip naam, status, revisie, korte definitie, passages, aandachtspunten en " +
+      "NL-SBB-meldingen, en de relaties. `volledig: true` geeft alles zoals de api het levert (groot: honderdduizenden tekens).",
+    input: S({ werkgebied_id: z.string(), begrip_id: z.string().optional(), volledig: z.boolean().optional(), als: Als }),
+    run: async (a) => {
       const pad = `/api/werkgebieden/${seg(a.werkgebied_id)}/begrippen`;
       if (!a.begrip_id) {
-        return samen(client(a.als), { begrippen: pad, conformiteit: `${pad}/conformiteit`, samenhang: `${pad}/samenhang` });
+        const uit = await samen(client(a.als), { begrippen: pad, conformiteit: `${pad}/conformiteit`, samenhang: `${pad}/samenhang` });
+        // Een fout van de api (geen lijst) gaat ongewijzigd terug: een leeg overzicht zou liegen.
+        const lijstOk = Array.isArray((uit.begrippen as { begrippen?: unknown } | null)?.begrippen);
+        return a.volledig || !lijstOk ? uit : begrippenOverzicht(uit.begrippen, uit.conformiteit, uit.samenhang);
       }
       return samen(client(a.als), {
         begrip: `${pad}/${seg(a.begrip_id)}`,

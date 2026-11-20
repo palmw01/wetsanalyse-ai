@@ -21,7 +21,7 @@ acceptatie samen een wetsanalyse uit te voeren, inclusief echte beslissingen; he
 
 | tool | wat |
 |---|---|
-| `wie_ben_ik` | het account en de rol, en of het token bij het verwachte account hoort (`WETSANALYSE_ACC_ACCOUNT`) |
+| `wie_ben_ik` | het account en de rol, of het token bij het verwachte account hoort (`WETSANALYSE_ACC_ACCOUNT`), en uit welke checkout de MCP draait (branch, commit, achter master) |
 | `bff` | één aanroep op een BFF-route; elke status komt terug, met een `trace_id`. Verwijderen gaat langs een vangrail: alleen in de ruimte van een testrun |
 | `opruimen` | wist wat een testrun maakte (voorvoegsel `lex-bench-keten · `, `acc-test-` of `Bench `); zonder `bevestig: true` alleen de lijst |
 | `lex_start`, `lex_wacht`, `lex_stop` | een beurt van Lex starten, volgen en stoppen; een klik is `intake_actie` of `actie`. `lex_start` bewaart eerst de vraag als user-bericht in het gesprek, zoals de werkplek, zodat wie meekijkt vraag én antwoord ziet (`vraag_bewaren: false` slaat dat over) |

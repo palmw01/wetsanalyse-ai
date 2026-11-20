@@ -58,3 +58,53 @@ export function auditStaart(audit: unknown, n = 15): Obj {
   const regels = Array.isArray(audit) ? audit : Array.isArray(binnen) ? binnen : [];
   return { gelezen: regels.length, nieuwste: regels.slice(0, n) };
 }
+
+/** Het aantal tekens van een definitie in het begrippenoverzicht; de hele kaart staat in `begrip_lezen` met een id. */
+export const DEFINITIE_KORT = 200;
+
+function kort(tekst: unknown, n: number): string {
+  const t = typeof tekst === "string" ? tekst : "";
+  return t.length > n ? `${t.slice(0, n)}…` : t;
+}
+
+/**
+ * Alle begrippen van een werkgebied in één overzicht (Termijnen e2e, 20 nov 2026: `begrip_lezen` zonder id was 346k
+ * tekens, met `vorm=kort` nog 209k). Per begrip wat nodig is om er een te kiezen en te zien wat openstaat: naam,
+ * status, revisie, een korte definitie, alternatieve termen, het aantal passages, de aandachtspunten en of het
+ * NL-SBB-conform is met de meldingen zonder herhaling. De relaties als (van, type, naar); de voorstellen alleen geteld.
+ */
+export function begrippenOverzicht(lijst: unknown, conformiteit: unknown, samenhang: unknown): Obj {
+  const begrippen = (Array.isArray((lijst as Obj | null)?.begrippen) ? (lijst as Obj).begrippen : []) as Obj[];
+  const conform = (((conformiteit as Obj | null)?.begrippen ?? {}) as Record<string, Obj>);
+  const sh = (samenhang ?? {}) as Obj;
+  const namen = new Map(begrippen.map((b) => [String(b.id), String((b.inhoud as Obj | undefined)?.naam ?? b.naam ?? "")]));
+  const relaties = (Array.isArray(sh.relaties) ? sh.relaties : []) as Obj[];
+  return {
+    aantal: begrippen.length,
+    per_status: tel(begrippen, "status"),
+    begrippen: begrippen.map((b) => {
+      const inhoud = (b.inhoud ?? {}) as Obj;
+      const c = conform[String(b.id)] ?? {};
+      const meldingen = Array.isArray(c.meldingen) ? (c.meldingen as Obj[]) : [];
+      return {
+        id: b.id,
+        naam: inhoud.naam ?? b.naam,
+        status: b.status,
+        revisie: b.revisie,
+        definitie: kort(inhoud.definitie, DEFINITIE_KORT),
+        alternatieve_termen: inhoud.alternatieve_termen ?? [],
+        aantal_koppelingen: b.aantal_koppelingen,
+        aandachtspunten: b.aandachtspunten ?? [],
+        conform: c.conform ?? null,
+        meldingen: [...new Set(meldingen.map((m) => `${m.ernst}: ${m.melding}`))],
+      };
+    }),
+    relaties: relaties.map((r) => ({
+      van: namen.get(String(r.van_begrip)) ?? r.van_naam ?? r.van_begrip,
+      type: r.type,
+      naar: namen.get(String(r.naar_begrip)) ?? r.naar_naam ?? r.naar_begrip,
+      id: r.id,
+    })),
+    voorstellen: Array.isArray(sh.voorstellen) ? sh.voorstellen.length : 0,
+  };
+}
