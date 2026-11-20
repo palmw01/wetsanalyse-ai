@@ -9,16 +9,17 @@ import { ButtonRow } from "@/components/ui/ButtonRow";
 import { LaadRegel, LaadStand } from "@/components/ui/LaadStand";
 import { Leeg } from "@/components/ui/Leeg";
 import { Lijst, LijstRij, Regel as RegelVeld, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
+import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, SplitDetail } from "@/components/ui/Pagina";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { OpenPunten } from "@/components/werkgebieden/OpenPunten";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { accordeerRegel, beoordeelRegelDrager, haalRegelRevisies, heropenRegel, wijsRegelAf } from "@/lib/api";
+import { accordeerRegel, beoordeelRegelDrager, beoordeelVoorbeeld, haalRegelRevisies, heropenRegel, wijsRegelAf } from "@/lib/api";
 import { datumTijd } from "@/lib/datum";
 import {
   DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
-  VOORBEELD_OORDEEL_LABEL, begripNaam, buren, isGeaccordeerd, isOpen, voorbeeldenBij,
+  VOORBEELD_OORDEEL_LABEL, begripNaam, buren, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldenBij,
   type Regel, type RegelDrager, type RegelKeten, type RegelRevisie, type VoorbeeldOordeel,
 } from "@/lib/regels";
 import type { RegelStand } from "@/lib/useRegel";
@@ -51,16 +52,17 @@ export function RegelInhoud({ stand, weergave, keten }: {
   const melding = stand.melding && <Melding type={stand.melding.type} className="mb-4" data-regel-melding>{stand.melding.tekst}</Melding>;
   const hoofd = <>
     <RegelTekst regel={regel} />
-    <Gevallen regel={regel} />
+    <Gevallen stand={stand} regel={regel} />
     <OpenPunten werkgebiedId={regel.werkgebied_id} regelId={regel.id} revisie={regel.revisie}
-      alleenLezen={stand.alleenLezen} onBesluit={stand.laad} />
+      alleenLezen={stand.alleenLezen} onBesluit={stand.laad} gevallen={gevalLabels(regel)}
+      regels={keten?.regels ?? []} opvolger={regel.vervangen_door} />
     <Dragers stand={stand} regel={regel} />
     {regel.inhoud.toelichting.trim() && (
       <Kaart titel="Toelichting"><p className="whitespace-pre-line text-sm text-ink">{regel.inhoud.toelichting}</p></Kaart>
     )}
   </>;
   const zij = <>
-    <Beoordeling stand={stand} regel={regel} />
+    <Beoordeling stand={stand} regel={regel} keten={keten} />
     {keten && <InDeKeten regel={regel} keten={keten} />}
     {!stand.alleenLezen && <Historie regel={regel} />}
   </>;
@@ -107,9 +109,17 @@ function RegelTekst({ regel }: { regel: Regel }) {
   );
 }
 
-/** De gevallen met hun voorbeelden: één rij per geval, de voorbeelden met het oordeel "juridisch juist?". */
-function Gevallen({ regel }: { regel: Regel }) {
+const OORDELEN: VoorbeeldOordeel[] = ["juist", "onjuist", "kan_niet"];
+const OORDEEL_KNOP: Record<VoorbeeldOordeel, string> = { open: "Terug naar open", juist: "Juist", onjuist: "Niet juist", kan_niet: "Kan niet" };
+
+/** De gevallen met hun voorbeelden: één rij per geval, de voorbeelden met het oordeel "juridisch juist?". Een voorbeeld
+ *  dat nog open is, beoordeel je hier: dat is een besluit op het artefact, apart van het maken (de api zet geen oordeel
+ *  bij een wijziging van de regel). */
+function Gevallen({ stand, regel }: { stand: RegelStand; regel: Regel }) {
   const enkel = regel.inhoud.gevallen.length === 1;
+  const kan = !stand.alleenLezen && isOpen(regel);
+  const beoordeel = (nr: number, oordeel: VoorbeeldOordeel) =>
+    stand.muteer((r) => beoordeelVoorbeeld(regel.werkgebied_id, regel.id, nr, r, oordeel));
   return (
     <Kaart titel={enkel ? "Voorbeelden" : "Gevallen"} telling={enkel ? regel.inhoud.voorbeelden.length : regel.inhoud.gevallen.length}
       toelichting={enkel ? "Is de uitkomst juridisch juist?" : "Per geval de voorwaarden, de uitkomst en de voorbeelden."}>
@@ -123,12 +133,32 @@ function Gevallen({ regel }: { regel: Regel }) {
               meta={!enkel && tekst}>
               {voorbeelden.length ? (
                 <ul className="mt-2 space-y-1.5">
-                  {voorbeelden.map((v, j) => (
-                    <li key={j} className="flex items-start justify-between gap-3 text-sm" data-regel-voorbeeld={v.oordeel}>
-                      <span className="min-w-0 text-ink">{v.invoer} <span className="text-muted">→</span> {v.uitkomst}</span>
-                      <StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel>
-                    </li>
-                  ))}
+                  {voorbeelden.map((v, j) => {
+                    const nr = voorbeeldNr(regel, v);
+                    return (
+                      <li key={j} className="text-sm" data-regel-voorbeeld={v.oordeel} data-voorbeeld-nr={nr}>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="min-w-0 text-ink">{v.invoer} <span className="text-muted">→</span> {v.uitkomst}</span>
+                          <StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel>
+                        </div>
+                        {(v.door || v.beoordeeld_door) && (
+                          <p className="text-xs text-muted">
+                            {v.door && <>Gemaakt door {v.door}</>}{v.door && v.beoordeeld_door && " · "}
+                            {v.beoordeeld_door && <>beoordeeld door {v.beoordeeld_door}</>}
+                          </p>
+                        )}
+                        {kan && (
+                          <ButtonRow className="mt-1">
+                            {(v.oordeel === "open" ? OORDELEN : (["open"] as VoorbeeldOordeel[])).map((o) => (
+                              <Button key={o} size="xs" variant={o === "juist" ? "secondary" : "ghost"} disabled={stand.bezig}
+                                onClick={() => void beoordeel(nr, o)} data-voorbeeld-oordeel={o}
+                                aria-label={`Voorbeeld ${nr}: ${OORDEEL_KNOP[o].toLowerCase()}`}>{OORDEEL_KNOP[o]}</Button>
+                            ))}
+                          </ButtonRow>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : <Leeg klein className="mt-2">Nog geen voorbeeld bij dit geval.</Leeg>}
             </LijstRij>
@@ -167,25 +197,43 @@ function Dragers({ stand, regel }: { stand: RegelStand; regel: Regel }) {
   );
 }
 
-/** De beoordeling: wat er openstaat (de poort van de api, letterlijk), de signalen, en accorderen, heropenen of afwijzen. */
-function Beoordeling({ stand, regel }: { stand: RegelStand; regel: Regel }) {
+/** De beoordeling: wat er openstaat (de poort van de api, letterlijk), de signalen, en accorderen, heropenen of afwijzen.
+ *  Afwijzen kan met een opvolger: dan is de regel vervangen, en hang je zijn open punten om naar de opvolger. */
+function Beoordeling({ stand, regel, keten }: { stand: RegelStand; regel: Regel; keten?: RegelKeten | null }) {
   const [reden, setReden] = useState("");
   const [afwijzen, setAfwijzen] = useState(false);
+  const [opvolger, setOpvolger] = useState("");
   const kan = !stand.alleenLezen;
+  const kandidaten = (keten?.regels ?? []).filter((r) => r.id !== regel.id);
   const accordeer = async () => {
     if (await stand.muteer((r) => accordeerRegel(regel.werkgebied_id, regel.id, r, reden.trim()), "De regel is geaccordeerd.")) setReden("");
   };
   const wijsAf = async () => {
-    if (await stand.muteer((r) => wijsRegelAf(regel.werkgebied_id, regel.id, r, reden.trim()), "De regel is afgewezen.")) {
+    if (await stand.muteer((r) => wijsRegelAf(regel.werkgebied_id, regel.id, r, reden.trim(), opvolger),
+      opvolger ? "De regel is vervangen. Hang zijn open punten om naar de opvolger." : "De regel is afgewezen.")) {
       setReden("");
       setAfwijzen(false);
+      setOpvolger("");
     }
   };
+  const naam = (id: string) => keten?.regels.find((r) => r.id === id)?.naam || id;
   return (
     <Kaart titel="Beoordeling" data-regel-beoordeling>
       <Regels>
         <RegelVeld naam="Status"><StatusLabel toon={REGEL_STATUS_TOON[regel.status]}>{REGEL_STATUS_LABEL[regel.status]}</StatusLabel></RegelVeld>
-        <RegelVeld naam="Herkomst">{HERKOMST_LABEL[regel.herkomst]}</RegelVeld>
+        <RegelVeld naam="Herkomst">{HERKOMST_LABEL[regel.herkomst] ?? regel.herkomst}</RegelVeld>
+        {regel.vervangen_door && (
+          <RegelVeld naam="Vervangen door">
+            <Link href={regelPad(regel.werkgebied_id, regel.vervangen_door)} className="focus-ring rounded text-lint hover:underline"
+              data-regel-vervangen-door>{naam(regel.vervangen_door)}</Link>
+          </RegelVeld>
+        )}
+        {regel.opvolger_van && (
+          <RegelVeld naam="Vervangt">
+            <Link href={regelPad(regel.werkgebied_id, regel.opvolger_van)} className="focus-ring rounded text-lint hover:underline">
+              {naam(regel.opvolger_van)}</Link>
+          </RegelVeld>
+        )}
         {isGeaccordeerd(regel) && regel.geaccordeerd_door && (
           <RegelVeld naam="Geaccordeerd">{regel.geaccordeerd_door}, {datumTijd(regel.geaccordeerd_op)}</RegelVeld>
         )}
@@ -202,17 +250,25 @@ function Beoordeling({ stand, regel }: { stand: RegelStand; regel: Regel }) {
           <ul className="list-disc space-y-1 pl-5 text-sm text-ink">{regel.signalen.map((s) => <li key={s}>{s}</li>)}</ul>
         </Sectie>
       )}
-      {kan && isOpen(regel) && (
+      {kan && (isOpen(regel) || (regel.status === "afgewezen" && !regel.vervangen_door)) && (
         <div className="mt-4 space-y-2">
           <label className="block text-sm text-muted" htmlFor={`reden-${regel.id}`}>
-            {afwijzen ? "Waarom wijs je de regel af?" : "Waarom accordeer je de regel?"}
+            {!isOpen(regel) ? "Vervangt een andere regel deze afgewezen regel? Zeg waarom." : afwijzen ? "Waarom wijs je de regel af?" : "Waarom accordeer je de regel?"}
           </label>
           <AutoTextarea id={`reden-${regel.id}`} value={reden} onChange={(e) => setReden(e.target.value)} rows={2}
             className="w-full" data-regel-reden />
+          {(afwijzen || !isOpen(regel)) && kandidaten.length > 0 && (
+            <Select aria-label="Vervangen door" value={opvolger} onChange={(e) => setOpvolger(e.target.value)} className="w-full"
+              data-regel-opvolger>
+              <option value="">Niet vervangen door een andere regel</option>
+              {kandidaten.map((r) => <option key={r.id} value={r.id}>Vervangen door: {r.naam || r.id}</option>)}
+            </Select>
+          )}
           <ButtonRow>
-            {afwijzen ? <>
-              <Button size="sm" variant="danger" disabled={stand.bezig || !reden.trim()} onClick={() => void wijsAf()}>Afwijzen</Button>
-              <Button size="sm" variant="ghost" onClick={() => setAfwijzen(false)}>Annuleren</Button>
+            {afwijzen || !isOpen(regel) ? <>
+              <Button size="sm" variant="danger" disabled={stand.bezig || !reden.trim() || (!isOpen(regel) && !opvolger)}
+                onClick={() => void wijsAf()}>{opvolger ? "Vervangen" : "Afwijzen"}</Button>
+              {isOpen(regel) && <Button size="sm" variant="ghost" onClick={() => setAfwijzen(false)}>Annuleren</Button>}
             </> : <>
               <Button size="sm" disabled={stand.bezig || !regel.accorderen.mag || !reden.trim()} onClick={() => void accordeer()}
                 data-regel-accorderen>Accorderen</Button>
@@ -258,6 +314,7 @@ const ACTIE_ZIN: Record<string, string> = {
   "regel-aangemaakt": "Aangemaakt", "regel-gewijzigd": "Gewijzigd", "drager-beoordeeld": "Passage beoordeeld",
   "drager-toegevoegd": "Passages toegevoegd", "drager-verwijderd": "Passage verwijderd",
   "regel-geaccordeerd": "Geaccordeerd", "regel-heropend": "Heropend", "regel-afgewezen": "Afgewezen",
+  "regel-vervangen": "Vervangen", "voorbeeld-beoordeeld": "Voorbeeld beoordeeld",
 };
 
 /** De revisies, pas geladen bij openklappen en opnieuw bij een nieuwe revisie. */

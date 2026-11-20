@@ -15,7 +15,12 @@ export interface Term { soort: "begrip" | "operator" | "tekst"; begrip_id?: stri
 export interface Voorwaarde { tekst: string; element_ids?: string[]; niet?: boolean }
 export interface Voorwaarden { verband: "alle" | "een_van"; delen: (Voorwaarden | Voorwaarde)[] }
 export interface Geval { label: string; voorwaarden: Voorwaarden | null; uitkomst: Term[]; voorrang: number }
-export interface RegelVoorbeeld { geval: string; invoer: string; uitkomst: string; oordeel: VoorbeeldOordeel; toelichting: string }
+/** Een voorbeeld. Het oordeel, de maker en de beoordelaar zet de api: een nieuw voorbeeld is open, en een oordeel gaat via
+ *  `beoordeelVoorbeeld` (maken en beoordelen zijn twee handelingen, e2e-run 20 nov 2026). */
+export interface RegelVoorbeeld {
+  geval: string; invoer: string; uitkomst: string; oordeel: VoorbeeldOordeel; toelichting: string;
+  door?: string; beoordeeld_door?: string; beoordeeld_op?: string;
+}
 
 export interface RegelInhoud {
   soort: RegelSoort;
@@ -38,6 +43,8 @@ export interface RegelDrager {
   bewijs: Record<string, unknown> | null;
   beoordeling: DragerBeoordeling;
   beoordeeld_door: string | null;
+  /** De grond van het oordeel; een oudere api stuurt hem niet. */
+  motivering?: string;
   /** Van `begrip_store.actualiteit`: is de dragende passage nog dezelfde? */
   actualiteit?: "actueel" | "gewijzigd" | "verworpen" | "verdwenen" | string;
 }
@@ -47,8 +54,10 @@ export interface Regel {
   werkgebied_id: string;
   status: RegelStatus;
   revisie: number;
-  herkomst: "lex" | "jurist" | "import";
+  herkomst: "lex" | "jurist" | "import" | "regelspecialist";
   opvolger_van: string | null;
+  /** De regel die deze verving (status `vervangen`); een oudere api stuurt het niet. */
+  vervangen_door?: string | null;
   inhoud: RegelInhoud;
   /** De naam van het regelbegrip ("bepalen termijnbedrag") en van de uitvoer. */
   naam: string;
@@ -60,7 +69,7 @@ export interface Regel {
   signalen: string[];
   /** Hoeveel open punten aan de regel of een geval hangen, en hoeveel daarvan nog open zijn (R3). Een oudere api stuurt
    *  het niet. */
-  open_punten?: { open: number; totaal: number };
+  open_punten?: { open: number; totaal: number; bij_voorganger?: number };
   aangemaakt_door: string;
   aangemaakt: string | null;
   gewijzigd: string | null;
@@ -113,7 +122,18 @@ export const VOORBEELD_OORDEEL_LABEL: Record<VoorbeeldOordeel, string> = {
 
 export const HERKOMST_LABEL: Record<Regel["herkomst"], string> = {
   lex: "Voorstel van Lex", jurist: "Opgesteld door de jurist", import: "Geïmporteerd",
+  regelspecialist: "Opgesteld door de regelspecialist",
 };
+
+/** Het nummer van een voorbeeld voor de api (`…/voorbeelden/{nr}/oordeel`): de plek in de lijst, vanaf 1. */
+export function voorbeeldNr(r: Pick<Regel, "inhoud">, v: RegelVoorbeeld): number {
+  return r.inhoud.voorbeelden.indexOf(v) + 1;
+}
+
+/** De labels van de gevallen, voor een keuzelijst ("" = de hele regel). */
+export function gevalLabels(r: Pick<Regel, "inhoud">): string[] {
+  return r.inhoud.gevallen.map((g) => g.label).filter(Boolean);
+}
 
 /** Is de regel nog te beoordelen (niet afgewezen of vervangen, niet geaccordeerd)? */
 export function isOpen(r: Pick<Regel, "status">): boolean {

@@ -4,8 +4,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  BRONSOORT_LABEL, KEUZE_SOORTEN, METHODE_LABEL, besluitFout, blokkeert, keuzeZin, ordenPunten, puntenAlsMarkdown,
-  puntenBij, type OpenPunt,
+  BRONSOORT_LABEL, KEUZE_SOORTEN, METHODE_LABEL, besluitFout, blokkeert, keuzeZin, nieuwePuntInhoud, nieuwFout,
+  ordenPunten, puntenAlsMarkdown, puntenBij, type OpenPunt,
 } from "./openPunten";
 
 const punt = (over: Partial<OpenPunt> & { id: string }, inhoud: Partial<OpenPunt["inhoud"]> = {}): OpenPunt => ({
@@ -69,5 +69,29 @@ describe("het besluit", () => {
     expect(md).toContain("  - Gekozen: Lezing B (grammaticaal): Volgt uit lid 2.");
     expect(md).toContain("  - Nog te toetsen: wetsgeschiedenis (MvT)");
     expect(md).not.toMatch(/^\|/m);
+  });
+});
+
+describe("na de e2e-run van Termijnen (20 nov 2026)", () => {
+  it("ontbrekend beleid zegt of het beleid er is; gesignaleerd is geen keuze", () => {
+    const p = punt({ id: "b", soort: "ontbrekend_uitvoeringsbeleid", soort_naam: "ontbrekend uitvoeringsbeleid" }, { lezingen: [] });
+    expect(besluitFout(p, { gekozen: "", motivering: "Signaleren", methode: null })).toBe("Zeg of het beleid gevonden is of ontbreekt.");
+    expect(besluitFout(p, { gekozen: "", motivering: "", methode: null, uitkomst: "gesignaleerd" })).toBe("Zeg welk beleid ontbreekt.");
+    expect(besluitFout(p, { gekozen: "", motivering: "Geen afronding", methode: null, uitkomst: "gesignaleerd" })).toBeNull();
+    expect(besluitFout(p, { gekozen: "", motivering: "LI 9.5", methode: null, uitkomst: "gekozen" })).toBeNull();
+    const g = punt({ id: "g", soort: "ontbrekend_uitvoeringsbeleid", status: "gesignaleerd",
+      keuze: { gekozen: "", motivering: "Geen afronding.", methode: null, door: "j", op: null, uitkomst: "gesignaleerd" } }, { lezingen: [] });
+    expect(keuzeZin(g)).toBe("Het beleid ontbreekt: Geen afronding.");
+    expect(blokkeert(g)).toBe(false);
+  });
+  it("een nieuw punt: een vraag, en bij een keuze twee lezingen met labels", () => {
+    const n = { soort: "interpretatiekeuze" as const, vraag: "Per termijn?", toelichting: "", geval: "lid 5", lezingen: ["Ja", " "] };
+    expect(nieuwFout(n)).toBe("Een interpretatiekeuze heeft ten minste twee lezingen.");
+    expect(nieuwFout({ ...n, vraag: " " })).toBe("Zeg wat er open is.");
+    const inhoud = nieuwePuntInhoud("r1", { ...n, lezingen: ["Ja", "Nee"] });
+    expect(inhoud.hangt_aan).toEqual([{ soort: "geval", id: "r1", geval: "lid 5" }]);
+    expect(inhoud.lezingen.map((l) => l.label)).toEqual(["A", "B"]);
+    expect(nieuwePuntInhoud("r1", { ...n, geval: "", soort: "onderzoekspunt", lezingen: [] }).hangt_aan)
+      .toEqual([{ soort: "regel", id: "r1", geval: "" }]);
   });
 });
