@@ -117,9 +117,20 @@ class NepApi:
                 r["fase"] = actie["fase"]
             if actie["actie"] in ("afronden", "beoordelen"):
                 r["fase"] = "afronden"
-            if actie.get("open_punten") is not None:
-                r["open_punten"] = actie["open_punten"]
+            # De echte api weigert het oude veld: een onderzoekspunt is een open punt (`maak_open_punt`).
+            assert "open_punten" not in actie
         return await self.haal_bronselectie(werkgebied_id, na=did)
+
+    async def maak_open_punt(self, werkgebied_id, punt):
+        """Een onderzoekspunt als open punt (lessenbundel 4): het overzicht toont het bij de deelvraag waar het aan hangt."""
+        assert werkgebied_id == WID and punt["inhoud"]["soort"] == "onderzoekspunt"
+        [a] = punt["inhoud"]["hangt_aan"]
+        did = a["id"] if a["soort"] == "deelvraag" else "analysevraag"
+        self.aanroepen.append(("open_punt", did))
+        r = self.rijen[did]
+        r["open_punten"] = [*r["open_punten"], {"id": f"p{len(r['open_punten']) + 1}",
+                                                "tekst": punt["inhoud"]["vraag"], "status": "open"}]
+        return {"id": r["open_punten"][-1]["id"]}
 
     async def besluit_bronselectie(self, werkgebied_id, did, kid, besluit):
         self.aanroepen.append(("besluit", did, kid, besluit["besluit"]))
@@ -262,7 +273,8 @@ def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_hervatten():
     # Een onderzoekspunt noteer je bij het afronden.
     assert uit["kaart"]["stap"] == "bs_afronden"
     uit = _klik(api, uit["kaart"], tekst="Onderzoek ook de bijzondere invorderbaarheid.")
-    assert api.rijen["d2"]["open_punten"] == [{"tekst": "Onderzoek ook de bijzondere invorderbaarheid."}]
+    assert api.rijen["d2"]["open_punten"] == [{"id": "p1", "tekst": "Onderzoek ook de bijzondere invorderbaarheid.",
+                                              "status": "open"}]
     assert "onderzoekspunt" in " ".join(uit["zinnen"]) and uit["kaart"]["stap"] == "bs_afronden"
 
     # Springen naar 4 vanuit het overzicht, zonder 2 af te ronden.

@@ -418,9 +418,12 @@ async def _punt(api, wid: str, ov: dict, did: str, tekst: str) -> tuple[dict, bo
         return ov, False
     if any(p["tekst"] == tekst for p in d["open_punten"]):
         return ov, True
-    punten = [*d["open_punten"], {"tekst": tekst}]
-    return await api.zet_bronselectie_status(wid, did, {"actie": "fase", "fase": d["fase"],
-                                                         "verwachte_revisie": d["revisie"], "open_punten": punten}), True
+    # Een onderzoekspunt is een open punt van het werkgebied (lessenbundel 4): aan de deelvraag, of bij een werkgebied
+    # zonder deelvragen aan het werkgebied zelf. De tekst is van de analist; de poort van de bronselectie leest het daar.
+    hangt_aan = {"soort": "werkgebied", "id": wid} if did == ANALYSEVRAAG else {"soort": "deelvraag", "id": did}
+    await api.maak_open_punt(wid, {"inhoud": {"soort": "onderzoekspunt", "vraag": tekst, "hangt_aan": [hangt_aan]},
+                                   "herkomst": "jurist"})
+    return await api.haal_bronselectie(wid), True
 
 
 async def _toon_fase(api, wid: str, ov: dict, did: str, zoek: Zoek | None, zinnen: list[str],

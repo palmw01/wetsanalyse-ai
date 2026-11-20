@@ -452,7 +452,9 @@ bronselectie_voortgang = Table("bronselectie_voortgang", metadata,
     Column("deelvraag_id", String(64), primary_key=True),
     Column("status", String(24), nullable=False),
     Column("fase", String(24), nullable=False, default="kern"),
-    Column("open_punten", _JSON, nullable=False),
+    # Niet meer gebruikt: de onderzoekspunten zijn open punten (`open_punten`, soort onderzoekspunt). De kolom blijft
+    # alleen omdat bestaande databases haar als NOT NULL hebben; niets leest of schrijft haar, de standaard vult haar.
+    Column("open_punten", _JSON, nullable=False, default=list),
     Column("scope_stand", String(64), nullable=False, default="", server_default=""),
     Column("revisie", Integer, nullable=False, default=1),
     Column("gewijzigd_door", String(64), nullable=False),

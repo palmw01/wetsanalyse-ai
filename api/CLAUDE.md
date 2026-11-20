@@ -1068,8 +1068,13 @@ komt uit de skill (`references/afleidingsregels.md`, *Wat open blijft*):
   status en hoogstens `MAX_SAMENVATTING` punten in het kort, de open eerst). `agent/werkgebied_context.py` zet ze in
   het dossier van het gesprek. Zonder open punten is die tekst byte-gelijk.
 - **Het rapport** heeft hoofdstuk 7, *Open punten* (`werkgebied_rapport.open_punten_regels`, model `OpenPunt`).
-- Nog niet: het onderzoekspunt van de bronselectie (`bronselectie.py`) is nog geen open punt. De koppeling op de
-  regelkaart (R3) en de keuzekaart in het gesprek komen apart.
+- **Het onderzoekspunt van de bronselectie is een open punt** (soort `onderzoekspunt`, aan de deelvraag, of bij een
+  werkgebied zonder deelvragen aan het werkgebied: soort `werkgebied`).
+  - Het overzicht van de bronselectie toont de open punten per deelvraag (`open_punten: [{id, tekst, status}]`), en de
+    poort *beoordelen* telt ze. Een besluit lost ze op.
+  - De statusroute weigert het oude veld `open_punten` (422). De kolom `bronselectie_voortgang.open_punten` leest of
+    schrijft niemand meer; ze blijft alleen staan voor bestaande databases.
+  - Lex legt een punt vast met `POST …/open-punten`; dat staat in `agent_toegang.TOEGESTAAN`, het besluit niet.
 
 ## Bronnen vinden met Lex
 
