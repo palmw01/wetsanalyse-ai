@@ -90,6 +90,25 @@ async def test_zelf_vastleggen_met_regels(client):
     assert "relatie-vastgelegd" in acties and "relatie-verwijderd" in acties
 
 
+async def test_verwant_naast_een_hierarchie_weigert_de_api_in_beide_richtingen(client):
+    """NL-SBB: verwant óf hiërarchie, niet allebei (Termijnen e2e, 20 nov 2026: jaar ↔ tijdvak)."""
+    _, wg, a, b = await _twee(client)
+    r = await client.post(_rel(wg), json={"van_begrip": b["id"], "naar_begrip": a["id"], "type": "hierarchie",
+                                          "toelichting": "Soort aanslag."})
+    assert r.status_code == 201
+    r = await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "verwant",
+                                          "toelichting": "Hangen samen."})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "verwant_en_hierarchie"
+    [x] = (await client.get(_rel(wg))).json()["relaties"]
+    await client.delete(_rel(wg, x["id"]))
+    r = await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "verwant",
+                                          "toelichting": "Hangen samen."})
+    assert r.status_code == 201
+    r = await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "hierarchie",
+                                          "toelichting": "Soort."})
+    assert r.status_code == 409
+
+
 async def test_een_veranderde_kant_staat_bij_het_andere_begrip_in_de_herbeoordeling(client):
     ids, wg, a, b = await _twee(client)
     await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "inclusie"})
@@ -160,6 +179,18 @@ async def test_combineren_houdt_een_identiteit(client):
     r = await client.post(_url(wg2, a2, "combineren"), json={
         "verwachte_revisie": a2["revisie"], "ander_begrip_id": a2["id"], "ander_revisie": a2["revisie"], "reden": "x"})
     assert r.status_code == 422
+
+
+async def test_combineren_neemt_geen_inhoud_mee_en_zegt_dat(client):
+    """Termijnen e2e (20 nov 2026): een nieuwe inhoud in het verzoek werd stil genegeerd."""
+    _, wg, a, b = await _twee(client)
+    r = await client.post(_url(wg, a, "combineren") + "?vorm=kort", json={
+        "verwachte_revisie": a["revisie"], "ander_begrip_id": b["id"], "ander_revisie": b["revisie"], "reden": "x",
+        "inhoud": {"naam": "aanslag"}})
+    assert r.status_code == 422
+    r = await client.post(_url(wg, a, "combineren") + "?vorm=kort", json={
+        "verwachte_revisie": a["revisie"], "ander_begrip_id": b["id"], "ander_revisie": b["revisie"], "reden": "x"})
+    assert r.status_code == 200 and set(r.json()) <= {"id", "status", "revisie", "geaccordeerd_revisie", "accorderen"}
 
 
 async def test_combineren_zonder_de_naam_als_alternatieve_term(client):

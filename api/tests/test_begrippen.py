@@ -145,6 +145,25 @@ async def test_een_veranderde_passage_blijft_staan_met_haar_bewijs(client):
     assert any("gewijzigd, verworpen of verdwenen" in x for x in b["accorderen"]["redenen"])
 
 
+async def test_een_wijziging_noemt_alleen_wat_verandert_en_een_nieuw_begrip_kent_vorm(client):
+    """Termijnen e2e (20 nov 2026): een PATCH vroeg de hele inhoud (naam verplicht), en POST negeerde `vorm=stand`."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen?vorm=stand",
+                          json={"inhoud": {"naam": "termijn", "uitleg": "Een deel van de aanslag."},
+                                "element_ids": [ids["lid1"]], "rol": "duiding"})
+    assert r.status_code == 201 and r.json()["vorm"] == "stand", r.text
+    b = r.json()
+    r = await client.patch(_url(wg, b) + "?vorm=stand", json={"verwachte_revisie": b["revisie"],
+                                                              "inhoud": {"definitie": "Een deelbetaling."}})
+    assert r.status_code == 200, r.text
+    inhoud = r.json()["inhoud"]
+    assert (inhoud["naam"], inhoud["uitleg"], inhoud["definitie"]) == ("termijn", "Een deel van de aanslag.",
+                                                                        "Een deelbetaling.")
+    r = await client.patch(_url(wg, b), json={"verwachte_revisie": r.json()["revisie"], "inhoud": {"naam": " "}})
+    assert r.status_code == 422
+
+
 async def test_een_akkoord_op_de_annotatie_is_geen_wijziging(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)
@@ -315,9 +334,9 @@ async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
     assert b["inhoud"]["voorbeelden"] == [{"tekst": "a", "oordeel": "wel"}]
     # Een eigen definitie is geformuleerd, wat de client ook meestuurt.
     assert (b["inhoud"]["definitie_herkomst"], b["inhoud"]["definitie_door"]) == ("geformuleerd", "analist")
-    # Zonder definitie geen herkomst.
+    # Zonder definitie geen herkomst. Een wijziging noemt wat verandert: de definitie leeg maken is `definitie: ""`.
     r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
-                                              "inhoud": {"naam": "X", "definitie_herkomst": "letterlijk"}})
+                                              "inhoud": {"naam": "X", "definitie": "", "definitie_herkomst": "letterlijk"}})
     assert r.json()["inhoud"]["definitie_herkomst"] is None
 
 

@@ -3,6 +3,14 @@ import type { Deelvraag } from "./types";
 /** Deelvragen bij een werkgebied (optioneel; open keuze 4). De rekenkern van `Deelvragen.tsx`. Hun stand is de
  *  voortgang van de bronselectie (`deelvraagStand` in `lib/bronselectie.ts`, spoor K). */
 
+/** Wie de tekst schreef, kort: "voorgesteld door Lex", "voorgesteld door Lex, aangepast" of "door <wie>"; met
+ *  `zinBegin` met een hoofdletter. */
+export function herkomstZin(d: Pick<Deelvraag, "herkomst" | "aangemaakt_door">, zinBegin = false): string {
+  const zin = d.herkomst === "lex" ? "voorgesteld door Lex"
+    : d.herkomst === "lex_aangepast" ? "voorgesteld door Lex, aangepast" : `door ${d.aangemaakt_door}`;
+  return zinBegin ? zin.charAt(0).toUpperCase() + zin.slice(1) : zin;
+}
+
 /** Actieve deelvragen in hun volgorde, de voorstellen van Lex apart. */
 export function splits(deelvragen: Deelvraag[] | undefined): { actief: Deelvraag[]; voorgesteld: Deelvraag[] } {
   const lijst = [...(deelvragen ?? [])].sort((a, b) => a.volgorde - b.volgorde || a.aangemaakt.localeCompare(b.aangemaakt));

@@ -613,3 +613,37 @@ def test_een_onderdeel_van_een_id_bepaling_valt_onder_haar_artikel():
     assert bronselectie.onder("urn:bwb:BWBR0004770:artikel:24:lid:1", "urn:bwb:BWBR0004770:artikel:24")
     assert not bronselectie.onder(art + "0", art)                              # divisie 1.1.20 is geen deel van 1.1.2
     assert not bronselectie.onder("urn:bwb:BWBR0004770:artikel:240", "urn:bwb:BWBR0004770:artikel:24")
+
+
+LI = "urn:bwb:BWBR0024096"
+LI9 = LI + ":artikel:9"                                         # de topdivisie draagt de refKey artikel=9
+LI95 = LI + ":id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+
+
+async def _leidraad(doel):
+    return {"nodes": [{"bron_iri": LI, "parent_iri": ""}, {"bron_iri": LI9, "parent_iri": LI},
+                      {"bron_iri": LI95, "parent_iri": LI9}]}
+
+
+async def test_een_onderdeel_in_de_id_vorm_valt_onder_een_artikel_volgens_de_bronboom():
+    """Termijnen e2e (20 nov 2026): LI 9.5 opnemen onder de kandidaat 'artikel 9' gaf 422 `niet_onder_kandidaat`.
+    De twee IRI-vormen delen geen pad; de bronboom zegt dat 9.5 onder 9 valt."""
+    assert not bronselectie.onder(LI95, LI9)
+    gelezen = []
+
+    async def lees(doel):
+        gelezen.append(doel)
+        return await _leidraad(doel)
+
+    vo = await bronselectie.voorouders_van([(LI95, LI9), (ONE, ART)], lees=lees)
+    assert bronselectie.onder(LI95, LI9, vo)
+    assert gelezen == [{"bwb_id": "BWBR0024096"}]                      # een artikel en zijn leden vragen geen graaf
+    assert not bronselectie.onder(LI9, LI95, vo)                       # niet omgekeerd
+
+
+async def test_zonder_bronboom_beslist_het_pad():
+    async def weg(doel):
+        raise RuntimeError("graaf weg")
+
+    assert await bronselectie.voorouders_van([(LI95, LI9)], lees=weg) == {}
+    assert not bronselectie.vraagt_bronboom(LI95, ART)                  # een andere regeling: nooit

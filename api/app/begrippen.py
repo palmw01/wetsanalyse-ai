@@ -38,8 +38,8 @@ def _in_vorm(begrip: dict, vorm: str) -> dict:
 
 
 @router.post("", status_code=201)
-async def post_begrip(werkgebied_id: str, req: BegripInvoer, actor: str = Depends(actieve_userid)):
-    return await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
+async def post_begrip(werkgebied_id: str, req: BegripInvoer, vorm: Vorm = "kaart", actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron), vorm)
 
 
 @router.post("/gebruik")

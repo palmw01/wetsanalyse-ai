@@ -10,7 +10,7 @@ import { DeelvraagVoorstel } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
 import { deelvraagStand } from "@/lib/bronselectie";
-import { splits } from "@/lib/deelvragen";
+import { herkomstZin, splits } from "@/lib/deelvragen";
 import type { Deelvraag, DeelvraagDetail, Werkgebied } from "@/lib/types";
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
@@ -53,7 +53,7 @@ function DeelvraagOpname({ opname, deelvraagId, opPagina = false }: {
       <div className="space-y-1.5">
         <p className="text-xs text-muted">
           {nummer ? `Deelvraag ${nummer} van ${actief.length}` : "Deelvraag"}
-          {" · "}{d.herkomst === "lex" ? "voorgesteld door Lex" : `door ${d.aangemaakt_door}`}
+          {" · "}{herkomstZin(d)}
         </p>
         {!opPagina && <p className="font-medium" data-deelvraag-vraag>{d.vraag}</p>}
         {stand && <StatusLabel toon={stand.toon} data-stand={hier?.status}>{stand.label}</StatusLabel>}
@@ -131,7 +131,7 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
       <div className="space-y-1.5">
         <p className="text-xs text-muted">
           {nummer ? `Deelvraag ${nummer} van ${actief.length}` : detail.status === "voorgesteld" ? "Voorstel van Lex" : "Deelvraag"}
-          {" · "}{detail.herkomst === "lex" ? "voorgesteld door Lex" : `door ${detail.aangemaakt_door}`}
+          {" · "}{herkomstZin(detail)}
         </p>
         {!opPagina && <p className="font-medium" data-deelvraag-vraag>{detail.vraag}</p>}
         {stand && <StatusLabel toon={stand.toon} data-stand={hier?.status}>{stand.label}</StatusLabel>}

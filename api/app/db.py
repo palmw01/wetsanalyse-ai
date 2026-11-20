@@ -420,7 +420,7 @@ werkgebied_deelvragen = Table("werkgebied_deelvragen", metadata,
     Column("vraag", Text, nullable=False),
     Column("volgorde", Integer, nullable=False, default=0),
     Column("status", String(16), nullable=False, default="actief"),
-    Column("herkomst", String(16), nullable=False, default="analist"),
+    Column("herkomst", String(16), nullable=False, default="analist"),       # analist | lex | lex_aangepast
     Column("reden", Text, nullable=False, default=""),
     # Bij een voorstel van Lex dat een actieve deelvraag verbetert: die deelvraag. Overnemen zet haar op
     # `vervangen`, en de opvolger krijgt haar plek en koppelingen.

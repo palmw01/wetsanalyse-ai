@@ -89,9 +89,23 @@ class BegripInvoer(BaseModel):
     rol: KoppelRol = KoppelRol.duiding
 
 
+class BegripInhoudDeel(BegripInhoud):
+    """De velden die een wijziging raakt: wat ontbreekt, blijft zoals het was (Termijnen e2e, 20 nov 2026: een PATCH
+    vroeg de hele inhoud, en wat een client wegliet viel weg). De werkplek stuurt alles en merkt geen verschil."""
+
+    naam: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @field_validator("naam")
+    @classmethod
+    def _naam(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("naam is verplicht")
+        return None if v is None else v.strip()
+
+
 class BegripWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
-    inhoud: BegripInhoud
+    inhoud: BegripInhoudDeel
     #: De jurist is akkoord met de nieuwe inhoud: een geaccordeerd begrip wordt in dezelfde transactie opnieuw
     #: geaccordeerd als de poort het toelaat (zoals `KoppelInvoer.akkoord`). Eén aanroep in plaats van twee.
     akkoord: bool = False

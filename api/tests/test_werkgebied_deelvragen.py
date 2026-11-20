@@ -148,6 +148,32 @@ async def test_voorstellen_van_lex_overnemen_en_afwijzen(client):
     assert r.json()["nieuw"] == [] and r.json()["overgeslagen"][0]["reden"] == "afgewezen"
 
 
+async def test_een_aangepast_voorstel_draagt_dat_in_zijn_herkomst_en_de_reden_blijft_te_lezen(client):
+    """Termijnen e2e (20 nov 2026): een overgenomen en verbrede deelvraag hield herkomst `lex` en een lege reden, en de
+    reden van een afwijzing was nergens terug te zien. `?vorm=deelvraag` geeft de deelvraag zelf, ook afgewezen."""
+    wg = await _nieuw(client)
+    await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/voorstellen",
+                      json={"vragen": ["Wanneer vervallen de termijnen?", "Welke drempel geldt?"]})
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    termijn, drempel = (d for d in wg["deelvragen"] if d["status"] == "voorgesteld")
+    wg = await _patch(client, wg, termijn["id"], status="actief", vraag="Hoe worden aantal en vervaldagen bepaald?",
+                      reden="Verbreed tot de hele termijnstructuur.")
+    [d] = [d for d in wg["deelvragen"] if d["id"] == termijn["id"]]
+    assert (d["herkomst"], d["reden"]) == ("lex_aangepast", "Verbreed tot de hele termijnstructuur.")
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}/deelvragen/{drempel['id']}?vorm=deelvraag",
+                           json={"verwachte_revisie": wg["revisie"], "status": "afgewezen", "reden": "Geen drempel."})
+    assert r.status_code == 200, r.text
+    uit = r.json()
+    assert set(uit) == {"revisie", "deelvraag"}
+    assert (uit["deelvraag"]["status"], uit["deelvraag"]["reden"]) == ("afgewezen", "Geen drempel.")
+    # Overnemen zonder de tekst te raken: de tekst is van Lex.
+    await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/voorstellen", json={"vragen": ["Wie betaalt?"]})
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    [wie] = [d for d in wg["deelvragen"] if d["status"] == "voorgesteld"]
+    wg = await _patch(client, wg, wie["id"], status="actief")
+    assert next(d for d in wg["deelvragen"] if d["id"] == wie["id"])["herkomst"] == "lex"
+
+
 async def test_dekking_per_deelvraag(client):
     wg = await _nieuw(client)
     wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]

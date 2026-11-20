@@ -1,6 +1,7 @@
 """De annotatie-werkvoorraad van een werkgebied (spoor D, fase B): wat Lex nog moet annoteren.
 
-- Alleen bronselecties met rol `analyseren`; contextbronnen worden geteld, niet meegenomen.
+- Alleen bronselecties met rol `analyseren` – van de selectie, of bij een actieve deelvraag (`met_deelvraagrol`);
+  contextbronnen worden geteld, niet meegenomen.
 - Per selectie de **annotatie-eenheden** (`bronmodel.annotatie_eenheden`, de regel van de
   keuzekaart: een artikel met leden gaat per lid). Een eenheid die in meer selecties valt, staat er
   één keer.
@@ -129,15 +130,24 @@ async def schatting(userid: str) -> dict | None:
     return {"per_bepaling": int(median(verbruikt)), "basis": len(verbruikt)}
 
 
+def met_deelvraagrol(selecties: list[dict], deelvragen: list[dict]) -> list[dict]:
+    """Een bron is één selectie met een rol per deelvraag (spoor J). Analyseren bij één van deze deelvragen maakt haar
+    een analysebron, ook als de selectie zelf `context` heet (Termijnen e2e, 20 nov 2026: LI 9.1 was analyseren bij DV4
+    en telde toch als contextbron). Zonder eigen rol bij de deelvraag geldt die van de selectie."""
+    analyse = {sid for d in deelvragen if d.get("status") == "actief"
+               for sid in d.get("bronnen") or [] if (d.get("bron_rollen") or {}).get(sid) == "analyseren"}
+    return [{**s, "rol": "analyseren"} if s["id"] in analyse and s["rol"] != "analyseren" else s for s in selecties]
+
+
 def selecties_in_bereik(selecties: list[dict], deelvragen: list[dict],
                         deelvraag_id: str = "") -> tuple[list[dict], list[dict]]:
-    """De selecties onder de actieve deelvragen (of onder die ene), in de volgorde van het werkgebied,
-    en per meegenomen deelvraag hoeveel selecties ze draagt."""
+    """De selecties onder de actieve deelvragen (of onder die ene), in de volgorde van het werkgebied, met de rol die
+    ze bij die deelvragen hebben (`met_deelvraagrol`), en per meegenomen deelvraag hoeveel selecties ze draagt."""
     actief = [d for d in deelvragen if d.get("status") == "actief"]
     if deelvraag_id:
         actief = [d for d in actief if d["id"] == deelvraag_id]
     ids = {i for d in actief for i in d.get("bronnen") or []}
-    return ([s for s in selecties if s["id"] in ids],
+    return ([s for s in met_deelvraagrol(selecties, actief) if s["id"] in ids],
             [{"id": d["id"], "vraag": d["vraag"], "selecties": len(d.get("bronnen") or [])} for d in actief])
 
 

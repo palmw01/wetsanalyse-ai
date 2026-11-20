@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # De vier relaties van de keten (`begrippen_pipeline.model.Hypothese`, zonder zelfde betekenis) en
 # `verwant`, de enige zwakke: die vraagt een toelichting. `opvolging` maakt alleen de api zelf
@@ -56,7 +56,10 @@ class CombinerenGeneriek(Reden):
 
 
 class Combineren(Reden):
-    """Het begrip in de url blijft; `ander_begrip_id` wordt vervangen."""
+    """Het begrip in de url blijft; `ander_begrip_id` wordt vervangen. Een onbekend veld (een nieuwe inhoud, zoals in
+    Termijnen e2e, 20 nov 2026) is een fout: combineren neemt geen inhoud mee, die wijzig je daarna op het begrip."""
+
+    model_config = ConfigDict(extra="forbid")
 
     verwachte_revisie: int = Field(ge=1)
     ander_begrip_id: str = Field(min_length=1, max_length=64)

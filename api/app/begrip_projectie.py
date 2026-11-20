@@ -338,6 +338,26 @@ def _onder(g: Graph, focus) -> URIRef | None:
     return None
 
 
+def _dubbel_alleen_met_vervangen(g: Graph, rapport: Graph, r, focus) -> bool:
+    """Of een melding "dezelfde voorkeursterm" alleen komt door een vervangen begrip. Een vervangen begrip staat in het
+    kader (de historie hoort erbij), maar zijn opvolger draagt vaak dezelfde naam: dat is geen dubbel (Termijnen e2e,
+    20 nov 2026: vervaldag en zijn opvolger). De NL-SBB-shape zelf blijft ongewijzigd; hier telt alleen wat levend is."""
+    bron = rapport.value(r, SH.sourceConstraint) or rapport.value(r, SH.sourceShape)
+    if not str(bron or "").endswith("UniquePreflabelWithinConceptScheme"):
+        return False
+
+    def levend(c) -> bool:
+        return str(g.value(c, WA.status) or "") != "vervangen"
+
+    if not levend(focus):
+        return True
+    namen = set(g.objects(focus, SKOS.prefLabel))
+    kaders = set(g.objects(focus, SKOS.inScheme))
+    anderen = {c for n in namen for c in g.subjects(SKOS.prefLabel, n)
+               if c != focus and kaders & set(g.objects(c, SKOS.inScheme))}
+    return not any(levend(c) for c in anderen)
+
+
 def conformiteit(g: Graph) -> dict[str, Any]:
     """Per begrip: conform NL-SBB (geen Violation op het begrip of zijn bronnen) en de meldingen, per
     laag (`nl_sbb` / `eigen`). Diagnostisch (ADR-003, besloten 16 okt 2026): accorderen blijft mogelijk.
@@ -354,6 +374,8 @@ def conformiteit(g: Graph) -> dict[str, Any]:
         _conform, rapport, _ = validate(g, shacl_graph=shapes, advanced=True, inference="none")
         for r in rapport.subjects(RDF.type, SH.ValidationResult):
             focus = rapport.value(r, SH.focusNode)
+            if _dubbel_alleen_met_vervangen(g, rapport, r, focus):
+                continue
             ernst = "fout" if rapport.value(r, SH.resultSeverity) == SH.Violation else "waarschuwing"
             melding = {"laag": laag, "ernst": ernst, "pad": str(rapport.value(r, SH.resultPath) or ""),
                        "melding": str(rapport.value(r, SH.resultMessage) or "")}
