@@ -41,7 +41,7 @@ def _open_punt(p: dict[str, Any]) -> str:
 
 
 def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronnen: bool = True,
-                  open_punten: bool = True) -> str:
+                  open_punten: bool = True, afleidingsregels: bool = True) -> str:
     """Het dossier als platte tekst; alleen wat gevuld is. Leeg als er niets ligt."""
     regels = [f"Werkgebied: {naam}"] if (naam := (werkgebied.get("naam") or "").strip()) else []
     for veld, kop in VELDEN:
@@ -76,6 +76,14 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
         meer = len(punten) - MAX_OPEN_PUNTEN + ((werkgebied.get("open_punten") or {}).get("afgekapt") or 0)
         regels.append("Open punten (de jurist kiest; leg voor, kies niet zelf):\n"
                       + "\n".join(_open_punt(p) for p in punten[:MAX_OPEN_PUNTEN])
+                      + (f"\n(en {meer} meer)" if meer > 0 else ""))
+    # De afleidingsregels (activiteit 3b; regels herleidbaar, 20 nov 2026): welke er liggen en met welke status, zodat Lex
+    # weet wat hij met get_regel kan lezen. Zonder regels is de tekst byte-gelijk.
+    if afleidingsregels and (lijst := (werkgebied.get("regels") or {}).get("regels") or []):
+        meer = (werkgebied.get("regels") or {}).get("afgekapt") or 0
+        regels.append("Afleidingsregels (analyse-uitkomsten; lees een regel met get_regel):\n"
+                      + "\n".join(f"- {r.get('naam') or r.get('uitvoer') or r.get('id')} ({r.get('status', '')}) "
+                                   f"[{r.get('id', '')}]" for r in lijst)
                       + (f"\n(en {meer} meer)" if meer > 0 else ""))
     return "\n".join(regels)[:MAX_TEKENS]
 

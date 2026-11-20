@@ -24,6 +24,14 @@ export interface Geval { label: string; voorwaarden: Voorwaarden | null; uitkoms
 export interface RegelVoorbeeld {
   geval: string; invoer: string; uitkomst: string; oordeel: VoorbeeldOordeel; toelichting: string;
   door?: string; beoordeeld_door?: string; beoordeeld_op?: string;
+  /** Narekenbaar: de invoer per invoerbegrip en het geval van de regels eronder; een oudere api stuurt het niet. */
+  waarden?: { begrip_id: string; waarde: string }[];
+  van_geval?: GevalVerwijzing[];
+}
+
+/** De invoer van een voorbeeld per invoerbegrip, met de naam van het begrip ("dagtekening: 10-05-2026"). */
+export function voorbeeldWaarden(regel: Regel, v: RegelVoorbeeld): string[] {
+  return (v.waarden ?? []).map((w) => `${begripNaam(regel, w.begrip_id)}: ${w.waarde}`);
 }
 
 export interface RegelInhoud {

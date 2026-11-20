@@ -10,6 +10,8 @@ de invoer uit Postgres en de triples; projecteren, register, reconcile en graafc
   JAS-laag, `urn:jas:element:*`) → `oa:hasTarget/oa:hasSource` → de bronnode (`urn:bwb:…`, met `bwb:jci` of
   `bwb:bronUrl` en `bwb:tekst`). De regel draagt ook `wa:rustOp` (de dragende markeringen) en `prov:wasDerivedFrom` (de
   bronnodes van zijn grondslag), zodat één SPARQL-stap volstaat.
+- **Een voorbeeld** (`wa:Voorbeeld`) draagt zijn invoer (in tekst en per invoerbegrip, `wa:waarde`), het geval
+  (`wa:inGeval`), de gevallen eronder (`wa:gevalVan`), de verwachte uitkomst en het oordeel.
 - **Een voorwaarde** is een knoop met haar tekst, `wa:rustOp` naar haar markeringen en `wa:gevalVan` naar het geval
   van een andere regel. Een groep (`alle`, `een_van`) is een `wa:Voorwaardengroep` met `wa:deel`.
 - **Geen subject onder `urn:bwb:`** en geen personen: wie iets deed, staat in Postgres.
@@ -139,6 +141,25 @@ def bouw(g: Graph, kader: URIRef, regels: list[dict[str, Any]]) -> None:
             if gv.get("voorwaarden"):
                 g.add((gi, WA.voorwaarden, _voorwaarde(g, URIRef(f"{gi}:voorwaarde:1"), gv["voorwaarden"], doel)))
         per_label = {gv.get("label", ""): geval_iri(rid, n) for n, gv in enumerate(i.get("gevallen", []), start=1)}
+        enkel = geval_iri(rid, 1) if len(per_label) == 1 else None
+        # De voorbeelden: invoer per invoerbegrip, het gekozen geval en de verwachte uitkomst, met het oordeel.
+        for n, v in enumerate(i.get("voorbeelden", []), start=1):
+            vb = URIRef(f"{rg}:voorbeeld:{n}")
+            g.add((rg, WA.voorbeeld, vb))
+            g.add((vb, RDF.type, WA.Voorbeeld))
+            g.add((vb, WA.volgorde, Literal(n)))
+            g.add((vb, WA.voorbeeldInvoer, _nl(v.get("invoer", ""))))
+            g.add((vb, WA.verwachteUitkomst, _nl(v.get("uitkomst", ""))))
+            g.add((vb, WA.oordeel, Literal(v.get("oordeel", "open"))))
+            if (gi := per_label.get(v.get("geval") or "") or enkel) is not None:
+                g.add((vb, WA.inGeval, gi))
+            for m, w in enumerate(v.get("waarden") or [], start=1):
+                wn = URIRef(f"{vb}:waarde:{m}")
+                g.add((vb, WA.waarde, wn))
+                g.add((wn, WA.begrip, begrip_iri(w["begrip_id"])))
+                g.add((wn, WA.waarde, Literal(w["waarde"])))
+            for x in v.get("van_geval") or []:
+                g.add((vb, WA.gevalVan, doel(x)))
         for d in x["dragers"]:
             dn = URIRef(f"urn:wa:regeldrager:{d['id']}")
             g.add((rg, WA.drager, dn))

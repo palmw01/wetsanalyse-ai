@@ -22,6 +22,8 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("GET", "/v1/delegaties"),
     ("GET", "/v1/delegaties/{}"),
     ("GET", "/v1/modelkeuzes"),
+    ("GET", "/v1/regels"),
+    ("GET", "/v1/werkgebieden/{}/regels/{}"),
     ("GET", "/v1/annotatie/elementen/{}"),
     ("GET", "/v1/annotatie/weergave"),
     ("GET", "/v1/begrippen"),

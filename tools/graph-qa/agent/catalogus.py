@@ -760,7 +760,7 @@ VAN_WETSANALYSE: frozenset[str] = frozenset({
     "workflow/werkgebied_intake",
     "agent/annotatie", "agent/begrippen", "agent/deelvragen",
     "tool/get_annotatie", "tool/get_annotatiedekking", "tool/overzicht_annotaties", "tool/search_annotaties",
-    "tool/get_begrip", "tool/search_begrippen", "tool/jas_klasse_opvragen",
+    "tool/get_begrip", "tool/search_begrippen", "tool/jas_klasse_opvragen", "tool/get_regel", "tool/search_regels",
     "sjabloon/antwoord_annotaties", "sjabloon/antwoord_begrip",
     "route/meerdere_artikelen",
 })

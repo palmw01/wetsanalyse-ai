@@ -47,6 +47,8 @@ REDEN_ZIN: dict[str, str] = {
     "annotatie_api_niet_ingesteld": _NIET_BESCHIKBAAR, "begrippen_api_niet_ingesteld": _NIET_BESCHIKBAAR,
     "annotatie_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
     "begrippen_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
+    "regels_api_onbereikbaar": _NIET_BEREIKBAAR, "regels_api_niet_ingesteld": _NIET_BESCHIKBAAR,
+    "regels_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
     "connector_uit": "staat uit in dit gesprek",
     "tool_buiten_profiel": "hoort niet bij de tools van deze agent",
     "na_subagent": "is al gedaan door de subagent",

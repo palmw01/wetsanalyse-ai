@@ -21,7 +21,7 @@ import {
 import { datumTijd } from "@/lib/datum";
 import {
   DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
-  VOORBEELD_OORDEEL_LABEL, begripNaam, bronLink, buren, dragerTekst, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldenBij,
+  VOORBEELD_OORDEEL_LABEL, begripNaam, bronLink, buren, dragerTekst, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldWaarden, voorbeeldenBij,
   type Regel, type RegelDrager, type RegelKeten, type RegelRevisie, type VoorbeeldOordeel,
 } from "@/lib/regels";
 import type { RegelStand } from "@/lib/useRegel";
@@ -143,6 +143,9 @@ function Gevallen({ stand, regel }: { stand: RegelStand; regel: Regel }) {
                           <span className="min-w-0 text-ink">{v.invoer} <span className="text-muted">→</span> {v.uitkomst}</span>
                           <StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel>
                         </div>
+                        {(v.waarden?.length ?? 0) > 0 && (
+                          <p className="text-xs text-muted" data-voorbeeld-waarden>{voorbeeldWaarden(regel, v).join(" · ")}</p>
+                        )}
                         {(v.door || v.beoordeeld_door) && (
                           <p className="text-xs text-muted">
                             {v.door && <>Gemaakt door {v.door}</>}{v.door && v.beoordeeld_door && " · "}

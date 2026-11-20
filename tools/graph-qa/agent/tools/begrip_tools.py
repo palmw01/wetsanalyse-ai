@@ -26,7 +26,8 @@ from .annotatie_tools import ANNOTATIE_TOOL_NAMEN, _d, schema, uitkomsten, vindp
 
 BEGRIP_TOOL_NAMEN = frozenset({"search_begrippen", "get_begrip"})
 #: Tools waarvan het resultaat afgeleide duiding is: nooit een bron, nooit grounding.
-AFGELEIDE_TOOL_NAMEN = ANNOTATIE_TOOL_NAMEN | BEGRIP_TOOL_NAMEN
+from .regel_tools import REGEL_TOOL_NAMEN  # noqa: E402  (afgeleide duiding, net als begrippen)
+AFGELEIDE_TOOL_NAMEN = ANNOTATIE_TOOL_NAMEN | BEGRIP_TOOL_NAMEN | REGEL_TOOL_NAMEN
 
 STATUSSEN = ("concept", "geaccordeerd", "vervangen")
 STATUS_VOLGORDE = {"geaccordeerd": 0, "concept": 1, "vervangen": 2}

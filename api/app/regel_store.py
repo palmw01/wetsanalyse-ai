@@ -206,6 +206,12 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         redenen.append(_meervoud(len(onjuist), "Voorbeeld <nrs> geeft een onjuiste uitkomst: pas de regel of het "
                                  "voorbeeld aan.", "De voorbeelden <nrs> geven een onjuiste uitkomst: pas de regel of de "
                                  "voorbeelden aan.").replace("<nrs>", _nrs(onjuist)))
+    tegen = [n for n, v in enumerate(voorbeelden, start=1)
+             if any(b["code"] in TEGENSPRAAK for b in toets_voorbeeld(inhoud, v))]
+    if tegen:
+        redenen.append(_meervoud(len(tegen), "Voorbeeld <nrs> past niet bij zijn geval: pas het geval of de gevallen "
+                                 "eronder aan.", "De voorbeelden <nrs> passen niet bij hun geval: pas het geval of de "
+                                 "gevallen eronder aan.").replace("<nrs>", _nrs(tegen)))
     # Per geval telt alleen een voorbeeld met het oordeel `juist`: alleen dan is de uitkomst van dat geval nagelopen.
     # Een `kan_niet` ("deze invoer doet zich niet voor") zegt niets over de uitkomst (besluit gebruiker 20 nov 2026,
     # review regelstapel bevinding 7).
@@ -219,6 +225,68 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
             redenen.append("Nog geen voorbeeld met een juridisch juiste uitkomst bij geval " + ", ".join(zonder) + ".")
     # Accorderen vraagt daarna nog een reden (veld `reden`); dat zegt de poort vooraf, zodat `mag` geen verrassing geeft.
     return {"mag": not redenen, "redenen": redenen, "vraagt": ["reden"]}
+
+
+def _evalueer(knoop: dict | None, gelden: dict[str, str]) -> bool | None:
+    """De voorwaardenboom van een geval, driewaardig, op wat een voorbeeld zegt over de gevallen van de regels eronder
+    (`gelden`: regel-id → geval). Alleen een blad met `geval_van` is te beslissen; de rest is onbekend (`None`): de api
+    rekent niet. `alle` is onwaar zodra één deel onwaar is, `een_van` waar zodra één deel waar is."""
+    if not knoop:
+        return True
+    if "delen" in knoop:
+        uit = [_evalueer(d, gelden) for d in knoop["delen"]]
+        if knoop.get("verband", "alle") == "een_van":
+            return True if any(x is True for x in uit) else (False if all(x is False for x in uit) else None)
+        return False if any(x is False for x in uit) else (True if all(x is True for x in uit) else None)
+    v = knoop.get("geval_van")
+    if not v or v["regel_id"] not in gelden:
+        return None
+    waar = not v.get("geval") or gelden[v["regel_id"]] == v["geval"]
+    return (not waar) if knoop.get("niet") else waar
+
+
+def toets_voorbeeld(inhoud: dict, v: dict) -> list[dict]:
+    """Past dit voorbeeld bij het gekozen geval (regels herleidbaar, 20 nov 2026)? Zonder te rekenen:
+
+    - `geval_past_niet`: volgens de gevallen eronder (`van_geval`) geldt het gekozen geval niet;
+    - `ander_geval_gaat_voor`: een geval met meer voorrang geldt volgens die gevallen wél;
+    - `invoer_ontbreekt`: het voorbeeld noemt waarden, maar niet voor elk invoerbegrip in de uitkomst van het geval;
+    - `niet_narekenbaar`: het voorbeeld noemt de invoer alleen in tekst. Wat een regel eronder oplevert, zegt
+      `van_geval`, niet een waarde.
+
+    De eerste twee houden het accorderen tegen (een voorbeeld dat zichzelf tegenspreekt); de andere zijn een signaal."""
+    gevallen = inhoud.get("gevallen", [])
+    labels = [g.get("label", "") for g in gevallen]
+    label = v.get("geval") or (labels[0] if len(labels) == 1 else "")
+    geval = next((g for g in gevallen if g.get("label", "") == label), None)
+    if geval is None:
+        return []
+    gelden = {x["regel_id"]: x.get("geval", "") for x in v.get("van_geval") or []}
+    uit: list[dict] = []
+    if gelden:
+        if _evalueer(geval.get("voorwaarden"), gelden) is False:
+            uit.append({"code": "geval_past_niet", "tekst": f"Volgens de gevallen eronder geldt geval {label or 'van de regel'} niet."})
+        else:
+            voor = [g for g in gevallen if int(g.get("voorrang", 0) or 0) > int(geval.get("voorrang", 0) or 0)
+                    and _evalueer(g.get("voorwaarden"), gelden) is True]
+            if voor:
+                uit.append({"code": "ander_geval_gaat_voor",
+                            "tekst": f"Volgens de gevallen eronder geldt geval {voor[0].get('label', '')}, en dat gaat voor."})
+    invoer = {i["begrip_id"]: i.get("rol", "invoer") for i in inhoud.get("invoer", [])}
+    nodig = {t["begrip_id"] for t in geval.get("uitkomst", []) if t.get("soort") == "begrip" and t.get("begrip_id") in invoer}
+    gegeven = {w["begrip_id"] for w in v.get("waarden") or []}
+    ontbreekt = sorted(b for b in nodig - gegeven if invoer.get(b) == "invoer")
+    if v.get("waarden") and ontbreekt:
+        uit.append({"code": "invoer_ontbreekt", "begrip_ids": ontbreekt,
+                    "tekst": "Het voorbeeld noemt geen waarde voor een invoer die het geval gebruikt."})
+    elif not v.get("waarden") and nodig:
+        uit.append({"code": "niet_narekenbaar", "tekst": "Het voorbeeld noemt de invoer alleen in tekst, niet per "
+                    "invoerbegrip: het is niet na te rekenen."})
+    return uit
+
+
+#: De bevindingen van `toets_voorbeeld` die het accorderen tegenhouden: een voorbeeld dat zijn eigen geval tegenspreekt.
+TEGENSPRAAK = ("geval_past_niet", "ander_geval_gaat_voor")
 
 
 def _punt_zin(p: dict) -> str:
@@ -240,7 +308,9 @@ def _nrs(nrs: list[int]) -> str:
 def smalle_voorbeelden(regel: dict) -> list[dict]:
     """De voorbeelden met hun nummer, zonder de rest van de regel (`GET …/regels/{id}/voorbeelden`)."""
     return [{"nr": i, **{k: v.get(k, "") for k in ("geval", "invoer", "uitkomst", "oordeel", "toelichting", "door",
-                                                      "beoordeeld_door", "beoordeeld_op", "reden")}}
+                                                      "beoordeeld_door", "beoordeeld_op", "reden")},
+             "waarden": v.get("waarden") or [], "van_geval": v.get("van_geval") or [],
+             "toets": toets_voorbeeld(regel["inhoud"], v)}
             for i, v in enumerate(regel["inhoud"].get("voorbeelden", []), start=1)]
 
 
@@ -279,6 +349,12 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
             uit.append("Geval " + ", ".join(alleen_regel) + " rust alleen op een grondslag voor de hele regel: toets "
                        "of die grondslag dit geval ook draagt.")
     voorbeelden = inhoud.get("voorbeelden", [])
+    los = [n for n, v in enumerate(voorbeelden, start=1)
+           if any(b["code"] in ("invoer_ontbreekt", "niet_narekenbaar") for b in toets_voorbeeld(inhoud, v))]
+    if los:
+        uit.append(_meervoud(len(los), "Voorbeeld <nrs> is niet na te rekenen: het noemt de invoer niet per invoerbegrip.",
+                             "De voorbeelden <nrs> zijn niet na te rekenen: ze noemen de invoer niet per "
+                             "invoerbegrip.").replace("<nrs>", _nrs(los)))
     zelf = sum(bool(v.get("door")) and v.get("beoordeeld_door") == v.get("door") for v in voorbeelden
                if v.get("oordeel", "open") != "open")
     if zelf:
@@ -590,6 +666,24 @@ async def overzicht(q: str = "", status: list[str] | None = None, werkgebied_id:
     return {"resultaten": gevonden, "totaal": len(gevonden), "per_status": per_status}
 
 
+#: Zoveel regels noemt de samenvatting van een werkgebied (`samenvatting`, voor het dossier van Lex).
+MAX_SAMENVATTING = 12
+
+
+async def samenvatting(werkgebied_id: str) -> dict:
+    """De afleidingsregels van een werkgebied in het kort (stap 7 van het rapport over de herleidbaarheid, 20 nov 2026):
+    een telling per status en per regel naam, uitvoer, status en het aantal gevallen, de geldende eerst. Licht: de rijen
+    van het overzicht, zonder dragers, poort en gaten. Lex leest het in het dossier van het gesprek; de regel zelf leest
+    hij met `get_regel`."""
+    rijen = (await overzicht(werkgebied_id=werkgebied_id))["resultaten"]
+    telling: dict[str, int] = {}
+    for x in rijen:
+        telling[x["status"]] = telling.get(x["status"], 0) + 1
+    return {"telling": telling, "afgekapt": max(0, len(rijen) - MAX_SAMENVATTING),
+            "regels": [{k: x[k] for k in ("id", "naam", "uitvoer", "status", "soort", "brontype", "gevallen")}
+                       for x in rijen[:MAX_SAMENVATTING]]}
+
+
 def keten(regels: list[dict]) -> dict:
     """De afleidingshiërarchie (ADR-018 §3, D2), afgeleid. Pijlen van de regel die een begrip afleidt naar de regel die
     het gebruikt; de volgorde van onder naar boven; basisgegevens (invoer zonder regel) en signalen."""
@@ -714,6 +808,13 @@ async def _toets_verwijzingen(conn, werkgebied_id: str, inhoud: dict, regel_id: 
     dit werkgebied en naar een geval dat die regel heeft (422 `verwijzing_onbekend`). Bij een regel met meer gevallen
     is het geval verplicht. Wordt de andere regel later afgewezen of vervangen, dan is dat een gat, geen fout."""
     verwijzingen = [blad["geval_van"] for _, blad in voorwaarde_bladen(inhoud) if blad.get("geval_van")]
+    verwijzingen += [x for v in inhoud.get("voorbeelden", []) for x in v.get("van_geval") or []]
+    invoer = {i["begrip_id"] for i in inhoud.get("invoer", [])}
+    vreemd = sorted({w["begrip_id"] for v in inhoud.get("voorbeelden", []) for w in v.get("waarden") or []} - invoer)
+    if vreemd:
+        raise HTTPException(422, {"fout": "waarde_geen_invoer", "begrip_ids": vreemd,
+                                  "melding": "Een voorbeeld geeft een waarde voor een begrip dat geen invoer van de "
+                                             "regel is."})
     if not verwijzingen:
         return
     r = db.regels
@@ -754,6 +855,10 @@ def inhoud_van(model) -> dict:
     for _, blad in voorwaarde_bladen(inhoud):
         if blad.get("geval_van") is None:
             blad.pop("geval_van", None)
+    for v in inhoud.get("voorbeelden", []):           # idem voor een voorbeeld zonder waarden of gevallen eronder
+        for k in ("waarden", "van_geval"):
+            if not v.get(k):
+                v.pop(k, None)
     return inhoud
 
 async def _revisieregel(conn, regel_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
@@ -799,9 +904,12 @@ def voorbeelden_na(oud: list[dict], nieuw: list[dict], actor: str) -> list[dict]
     """De voorbeelden na een schrijfactie (B4: maker en beoordelaar). Een voorbeeld dat er al was (zelfde geval, invoer
     en uitkomst), houdt zijn oordeel en wie het maakte en beoordeelde. Een nieuw of gewijzigd voorbeeld is van de actor
     en `open`: een oordeel komt alleen via `beoordeel_voorbeeld`, zodat maken en beoordelen twee handelingen zijn."""
-    def sleutel(v: dict) -> tuple[str, str, str]:
+    def sleutel(v: dict) -> tuple:
+        # Andere waarden of een ander geval eronder is een ander voorbeeld: dan geldt het oordeel niet meer.
         return ((v.get("geval") or "").strip(), " ".join((v.get("invoer") or "").split()),
-                " ".join((v.get("uitkomst") or "").split()))
+                " ".join((v.get("uitkomst") or "").split()),
+                tuple(sorted((w["begrip_id"], w["waarde"].strip()) for w in v.get("waarden") or [])),
+                tuple(sorted((x["regel_id"], x.get("geval", "")) for x in v.get("van_geval") or [])))
     over: dict[tuple, list[dict]] = {}
     for v in oud:
         over.setdefault(sleutel(v), []).append(v)

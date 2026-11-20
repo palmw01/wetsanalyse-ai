@@ -100,3 +100,61 @@ def test_dragen_gaten_is_puur():
                             "voorwaarden": {"delen": [{"tekst": "t", "geval_van": {"regel_id": "r", "geval": ""}}]}}]}
     regels = {"r": {"status": "concept", "labels": [""], "uitvoer": "i", "naam": "bepalen van i"}}
     assert regel_store.dragen_gaten(inhoud, {}, regels) == []
+
+
+def test_toets_voorbeeld_rekent_niet_maar_ziet_tegenspraak():
+    inhoud = {"uitvoer_begrip_id": "u", "invoer": [{"begrip_id": "a", "rol": "invoer"}, {"begrip_id": "p", "rol": "parameter"}],
+              "gevallen": [
+                  {"label": "lid 5", "voorrang": 0, "uitkomst": [{"soort": "begrip", "begrip_id": "a"}],
+                   "voorwaarden": {"delen": [{"tekst": "aantal volgens lid 5", "geval_van": {"regel_id": "R1", "geval": "lid 5"}}]}},
+                  {"label": "lid 7", "voorrang": 1, "uitkomst": [{"soort": "tekst", "tekst": "x"}],
+                   "voorwaarden": {"verband": "een_van", "delen": [
+                       {"tekst": "aantal volgens lid 7", "geval_van": {"regel_id": "R1", "geval": "lid 7"}},
+                       {"tekst": "iets anders"}]}}]}
+    codes = lambda v: [b["code"] for b in regel_store.toets_voorbeeld(inhoud, v)]  # noqa: E731
+    goed = {"geval": "lid 5", "invoer": "x", "uitkomst": "y", "waarden": [{"begrip_id": "a", "waarde": "3"}],
+            "van_geval": [{"regel_id": "R1", "geval": "lid 5"}]}
+    assert codes(goed) == []
+    assert codes({**goed, "van_geval": [{"regel_id": "R1", "geval": "lid 6"}]}) == ["geval_past_niet"]
+    # Lid 7 gaat voor, en geldt volgens het geval eronder: dan past lid 5 niet, en lid 7 gaat voor.
+    assert "geval_past_niet" in codes({**goed, "van_geval": [{"regel_id": "R1", "geval": "lid 7"}]})
+    assert codes({**goed, "waarden": [{"begrip_id": "p", "waarde": "6 weken"}]}) == ["invoer_ontbreekt"]
+    assert codes({"geval": "lid 5", "invoer": "a is 3", "uitkomst": "3"}) == ["niet_narekenbaar"]
+    # Een `een_van` met een onbekend deel is onbekend, geen tegenspraak.
+    assert codes({"geval": "lid 7", "invoer": "x", "uitkomst": "x", "van_geval": [{"regel_id": "R1", "geval": "lid 6"}]}) == []
+
+
+async def test_een_voorbeeld_met_waarden_per_invoerbegrip(client):
+    wg, ids, b = await _opzet(client)
+    regel = await _regel(client, wg, b, ids)
+    vb = {"invoer": "bedrag 1200, 12 termijnen", "uitkomst": "100",
+          "waarden": [{"begrip_id": b["in"]["id"], "waarde": "12"}]}
+    r = await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                        "inhoud": {**_inhoud(b), "voorbeelden": [vb]}})
+    assert r.status_code == 200, r.text
+    regel = r.json()
+    smal = (await client.get(_url(wg, regel["id"], "voorbeelden"))).json()["voorbeelden"][0]
+    assert smal["waarden"] == vb["waarden"] and smal["toets"] == []
+    assert not any("niet na te rekenen" in s for s in regel["signalen"])
+    # Een waarde voor een begrip dat geen invoer is: 422.
+    fout = {**vb, "waarden": [{"begrip_id": b["uit"]["id"], "waarde": "100"}]}
+    r = await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                        "inhoud": {**_inhoud(b), "voorbeelden": [fout]}})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "waarde_geen_invoer"
+    # Zonder waarden is het een signaal, geen poort.
+    kaal = {"invoer": "bedrag 1200, 12 termijnen", "uitkomst": "100"}
+    regel = (await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                             "inhoud": {**_inhoud(b), "voorbeelden": [kaal]}})).json()
+    assert any("Voorbeeld 1 is niet na te rekenen" in s for s in regel["signalen"])
+    assert "waarden" not in regel["inhoud"]["voorbeelden"][0]
+
+
+async def test_het_werkgebied_draagt_zijn_regels_in_het_kort(client):
+    wg, ids, b = await _opzet(client)
+    leeg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["regels"]
+    assert leeg == {"telling": {}, "afgekapt": 0, "regels": []}
+    regel = await _regel(client, wg, b, ids)
+    kort = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["regels"]
+    assert kort["telling"] == {"concept": 1}
+    assert kort["regels"] == [{"id": regel["id"], "naam": "bepalen van het termijnbedrag", "uitvoer": "termijnbedrag",
+                               "status": "concept", "soort": "rekenregel", "brontype": "wet", "gevallen": 1}]

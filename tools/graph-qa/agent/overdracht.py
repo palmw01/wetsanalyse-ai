@@ -517,7 +517,8 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "bij: geldigheid (peildatum, versie, terugwerkende kracht), grondslagen (delegatie), "
                       "verwijst_naar_deze en referenced_by (wie verwijst naar een bepaling), bijlagen, "
                       "overzicht_onderwerp en semantic_search (breder zoeken op een onderwerp), resolve_begrip, "
-                      "search_begrippen en get_begrip (vastgelegde begrippen van een werkgebied), graph_schema en "
+                      "search_begrippen en get_begrip (vastgelegde begrippen van een werkgebied), search_regels en "
+                      "get_regel (vastgelegde afleidingsregels van een werkgebied), graph_schema en "
                       "raw_sparql. Roep het alleen aan als de vraag daarom gaat; voor de tekst, de context en de "
                       "verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast."),
         invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}), strict=False,
