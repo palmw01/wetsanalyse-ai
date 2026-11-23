@@ -18,6 +18,22 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+/** De link naar de volle pagina zonder het gesprek waar hij vandaan kwam (`?vanuit=`, `lib/terugNaarGesprek.ts`). */
+const zonderVanuit = (href) => href?.replace(/[?&]vanuit=[^&#]*$/, "");
+/** *Openen als pagina* staat in het menu ⋯ van de paneelkop (besluit gebruiker 23 nov 2026): open het menu, geef de regel. */
+async function paginaLink(paneel) {
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  const regel = page.getByRole("menuitem", { name: "Openen als pagina" });
+  await regel.waitFor();
+  return regel;
+}
+/** De link van *Openen als pagina*; het menu gaat daarna weer dicht. */
+async function paginaHref(paneel) {
+  const href = await (await paginaLink(paneel)).getAttribute("href");
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  await page.getByRole("menuitem", { name: "Openen als pagina" }).waitFor({ state: "detached" });
+  return href;
+}
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -184,8 +200,7 @@ try {
   // Een oud bericht *Gevonden bepalingen* (vóór 4 nov 2026) is een chip van de bronselectie en opent die (één soort).
   await page.locator('button[data-artefact-soort="bronselectie"]').click();
   const paneel = page.locator("[data-artefact-soort=bronselectie][data-artefact]");
-  await paneel.getByRole("link", { name: "Open volledige pagina" }).waitFor();
-  assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen");
+  assert.equal(zonderVanuit(await paginaHref(paneel)), "/werkgebieden/wg1/bronnen");
   assert.equal(await paneel.locator("[data-bronkandidaten]").count(), 0, "de bronverkenner is een pagina, geen artefact");
 
   assert.deepEqual(errors, []);

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { BrowserFouten } from "@/components/BrowserFouten";
 import { InstellingenVenster } from "@/components/instellingen/InstellingenVenster";
 import { Providers } from "@/components/Providers";
+import { TerugNaarGesprek } from "@/components/TerugNaarGesprek";
 import { sans, mono } from "./fonts";
 import "./globals.css";
 
@@ -58,6 +59,10 @@ export default async function RootLayout({
               Suspense-grens). */}
           <Suspense fallback={null}>
             <InstellingenVenster />
+          </Suspense>
+          {/* *Terug naar het gesprek* op een pagina die je vanuit het zijpaneel opende (`?vanuit=`). */}
+          <Suspense fallback={null}>
+            <TerugNaarGesprek />
           </Suspense>
         </Providers>
       </body>

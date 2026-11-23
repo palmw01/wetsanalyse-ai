@@ -71,7 +71,7 @@ export interface ArtefactInhoudProps {
   /** De laatste laag van Escape, als dat niet sluiten is: het paneel verbergen (het bronvenster, PR 3b). */
   onEscapeEinde?: () => void;
   onSluiten?: () => void;
-  /** *Open volledige pagina* in de kop (alleen in de dialoogschil naast het gesprek). */
+  /** *Openen als pagina* in het menu ⋯ van de kop (alleen in de dialoogschil naast het gesprek). */
   pagina?: string;
   /** De export van de bronnode-annotatie; de knop, het keuzepaneel en de foutmelding blijven die
    *  van het paneel. */
@@ -310,7 +310,7 @@ export function ArtefactInhoud({
             afronden rechts. Exporteren en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders
             af naar een derde rij. Elke gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast
             wie het deed, en de tweede klik bevestigt. */}
-        <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onSluiten={onSluiten} onder={kopOnder} balk={kopBalk} vraag={kopVraag}
+        <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onder={kopOnder} balk={kopBalk} vraag={kopVraag}
           onStatus={onStatus} onVerwijder={onVerwijder} onExport={onExport} onFout={setFout} />
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
@@ -427,11 +427,10 @@ export function focusBijArtefact(doel: EventTarget | null): boolean {
 /** De kop van een annotatie (`PaneelKop`): de status links, afronden rechts, exporteren en verwijderen in het menu ⋯.
  *  Eén component voor de tab Tekst (hier) en de tab Graaf (`NodeAnnotatiePaneel`), zodat de kop bij een tabwissel
  *  niet springt. Een fout landt via `onFout` in de melding van de tab die openstaat. */
-export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, vraag, onStatus, onVerwijder, onExport, onFout }: {
+export function AnnotatieKop({ doc, opschrift, pagina, onder, balk, vraag, onStatus, onVerwijder, onExport, onFout }: {
   doc: AnnotatieDocument;
   opschrift: string;
   pagina?: string;
-  onSluiten?: () => void;
   onder?: ReactNode;
   balk?: ReactNode;
   vraag?: ReactNode;
@@ -480,7 +479,7 @@ export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, v
     // De vaste kop (8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en afronden rechts. Exporteren
     // en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders af naar een derde rij. Elke
     // gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast wie het deed, de tweede klik bevestigt.
-    <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={onder} balk={balk} vraag={vraag}
+    <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onder={onder} balk={balk} vraag={vraag}
       status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
       hoofdactie={onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
       menu={(sluit) => <>

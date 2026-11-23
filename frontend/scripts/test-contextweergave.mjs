@@ -200,7 +200,8 @@ try {
   assert.equal(await paneel.locator('a[href*="/werkgebieden"], [data-naar-pagina]').count(), 0, "geen volledige pagina: de weergave bestaat alleen naast het gesprek");
 
   // --- /context: hetzelfde paneel, dezelfde tab, zonder beurt ---
-  await page.getByRole("button", { name: /^Sluit tab/ }).first().click();
+  // Sluiten met ✕ in de kop: bij één open item staat er geen tabrij (besluit gebruiker 23 nov 2026).
+  await paneel.locator("[data-kop-gereedschap]").getByRole("button", { name: "Sluiten", exact: true }).click();
   await paneel.waitFor({ state: "detached" });
   await veld.fill("/con");
   await page.locator("[data-commandomenu]").getByRole("option").filter({ hasText: "/context" }).waitFor();
@@ -209,7 +210,9 @@ try {
   assert.equal(await veld.inputValue(), "");
   assert.equal(runs.length, 0, "/context is geen beurt");
   await meter.click();
-  assert.equal(await page.getByRole("tab", { name: "Context" }).count(), 1, "de meter en het commando delen één tab");
+  // Eén item, dus geen tabrij (die staat er pas bij twee of meer): een tweede tab zou de rij laten verschijnen.
+  assert.equal(await page.locator("[data-paneel-tab]").count(), 0, "de meter en het commando delen één tab");
+  assert.equal(await paneel.count(), 1);
 
   // --- Een lopende beurt werkt de meter bij uit het meting-event, zonder herladen ---
   await veld.fill("En lid 3?");

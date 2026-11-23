@@ -77,15 +77,18 @@ export function MenuKnop({ icoon, onClick, children, ariaLabel, gevaar = false }
 }
 
 /** Een regel die naar een pagina gaat: een echte link, zodat de bewaker van niet-bewaarde wijzigingen hem ziet. */
-export function MenuLink({ icoon, href, children, ariaLabel }: {
+export function MenuLink({ icoon, href, children, ariaLabel, title, ...data }: {
   icoon?: React.ReactNode;
   href: string;
   children: React.ReactNode;
   ariaLabel?: string;
+  title?: string;
+  /** Een `data-*`-kenmerk voor de tests (`data-naar-pagina`). */
+  [data: `data-${string}`]: string | boolean | undefined;
 }) {
   return (
     <li role="none">
-      <Link role="menuitem" href={href} className={MENU_RIJ} aria-label={ariaLabel}>
+      <Link role="menuitem" href={href} className={MENU_RIJ} aria-label={ariaLabel} title={title} {...data}>
         <Icoonplek>{icoon}</Icoonplek>{children}
       </Link>
     </li>

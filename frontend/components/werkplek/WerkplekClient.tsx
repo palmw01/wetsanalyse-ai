@@ -24,7 +24,8 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
 import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Zijpaneel } from "@/components/ui/Zijpaneel";
-import { PaneelTabsContext } from "@/components/ui/PaneelKop";
+import { PaneelContext } from "@/components/ui/Paneel";
+import type { DialogVariant } from "@/components/ui/Dialog";
 import { TabRij } from "@/components/ui/Tabs";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
 import { bepalingSleutel, bewaarVorm, leesBewaard, openTab, opslagSleutel, sleutelVan, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
@@ -210,6 +211,8 @@ export function WerkplekClient({
   const [volgendeVanuit, setVolgendeVanuit] = useState<string>();
   // Op een telefoon is het paneel een sheet; Escape (of *Vraag Lex*) verbergt hem, de tabs blijven.
   const [sheetVerborgen, setSheetVerborgen] = useState(false);
+  // Op een telefoon: de sheet over het hele scherm (*Vergroten* in de kop, `lib/paneelBediening.ts`).
+  const [sheetVergroot, setSheetVergroot] = useState(false);
   // Op een breed scherm klapt Escape het zijpaneel in.
   const [inklapSignaal, setInklapSignaal] = useState(0);
   // Telt elke opening: het zijpaneel klapt dan uit.
@@ -286,6 +289,7 @@ export function WerkplekClient({
    *  weg, en dan loopt het door de bewaker – de inhoud wordt ontkoppeld. */
   function verbergPaneel() {
     if (breed) setInklapSignaal((n) => n + 1);
+    else if (sheetVergroot) setSheetVergroot(false);       // Escape verkleint eerst, net als in het zijpaneel
     else wgBewaker.bewaak(() => setSheetVerborgen(true), "sluiten");
   }
 
@@ -1013,6 +1017,10 @@ export function WerkplekClient({
     const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
     return nav ? { ...nav, onGa: (d: NodeDoel) => { setNodeGraaf(zonderKennisgraaf); setNodeDoel(d); } } : undefined;
   })();
+  /** De enige ✕ van het paneel (in de kop): sluit wat er open is; de buur wordt actief. */
+  const sluitActief = () => sluitPaneelTab(tabStand.actief);
+  const paneelGesprek = demo ? null : gesprekId;
+  const paneelVariant: DialogVariant = breed ? "kolom" : sheetVergroot ? "fullscreen" : "side";
   const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeDoel.versie ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeGraaf.keten ? "keten" : ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
     extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
@@ -1022,7 +1030,7 @@ export function WerkplekClient({
     onWisselDoel={(nieuw, graaf) => openContext({ soort: "bron", bron_iri: nieuw.bron_iri, titel: vindplaatsTekst({ iri: nieuw.bron_iri, label: "" }),
       weergave: "graaf", samenhang: { extra: [nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri),
         graaf: { ...nodeGraaf, ...graaf }, van: "antwoord" } }, "het paneel")}
-    variant={breed ? "kolom" : "side"} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
+    variant={paneelVariant} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
     reeks={nodeReeksNav}
     // De rondleiding draait op een voorbeeld in het geheugen, met het invoerveld stil: daar is geen
     // vraag te stellen, en de graaf heeft niets om te tonen.
@@ -1040,7 +1048,7 @@ export function WerkplekClient({
           void verstuur({ prompt: antwoordTekst(paneelKaart, a), intake: a });
         } : undefined}
       klaarVoor={paneelKaart?.deelvraag_id}
-      variant={breed ? "kolom" : "side"}
+      variant={paneelVariant}
       bewaker={wgBewaker}
       onOnbewaard={setWgOnbewaard}
       onSluit={() => sluitPaneelTab(tabStand.actief)}
@@ -1051,7 +1059,7 @@ export function WerkplekClient({
   ));
 
   /** Een context naast het gesprek (`ContextPaneelContext`): een bron uit een antwoord krijgt het werkgebied
-   *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
+   *  van het gesprek mee, zodat *Openen als pagina* in dat werkgebied landt. */
   function openContext(d: ContextDoel, vanuit = "het gesprek") {
     const naar = d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d;
     setVolgendeVanuit(vanuit);
@@ -1079,14 +1087,16 @@ export function WerkplekClient({
   }
 
   // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
-  // De tabrij: in de balk van het zijpaneel, en op een telefoon boven de kop van de sheet (`PaneelTabsContext`).
-  const tabRij = tabStand.tabs.length > 0 && (
+  // De tabrij: boven de inhoud van het zijpaneel, en op een telefoon boven de kop van de sheet (`PaneelContext.tabs`).
+  // Pas bij twee of meer open items: met één is de kop van wat er open is genoeg. Geen ✕ op de tabs: sluiten is één
+  // handeling, in de kop (`lib/paneelBediening.ts`).
+  const tabRij = tabStand.tabs.length > 1 && (
     <TabRij label="Open in het paneel" active={tabStand.actief}
-      tabs={tabStand.tabs.map((t) => { const l = tabLabel(t); return { key: t.sleutel, label: l.kort, title: l.vol, onSluit: () => sluitPaneelTab(t.sleutel) }; })}
+      tabs={tabStand.tabs.map((t) => { const l = tabLabel(t); return { key: t.sleutel, label: l.kort, title: l.vol }; })}
       onChange={(k) => { const t = tabStand.tabs.find((x) => x.sleutel === k); if (t && k !== tabStand.actief) laad(t.inhoud); }} />
   );
   const paneel = ctx ? (
-    <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
+    <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={paneelVariant}
       onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
       onWissel={(d) => openContext(d, "het paneel")} onMaakWerkgebied={setWgUitOverzicht}
       onBeoordelen={demo ? undefined : beoordeel} />
@@ -1478,12 +1488,15 @@ export function WerkplekClient({
       </div>
 
       {/* Op een smal scherm schuift het artefact als overlay over de chat heen. */}
-      {!breed && !sheetVerborgen && paneel && <PaneelTabsContext.Provider value={tabRij}>{paneel}</PaneelTabsContext.Provider>}
+      {!breed && !sheetVerborgen && paneel && (
+        <PaneelContext.Provider value={{ plek: sheetVergroot ? "sheet-vergroot" : "sheet", zetVergroot: setSheetVergroot,
+          sluiten: sluitActief, gesprekId: paneelGesprek, tabs: tabRij || undefined }}>{paneel}</PaneelContext.Provider>
+      )}
     </div>
 
     {/* Op een breed scherm staat het ernaast: chat en review tegelijk in beeld. */}
-    {breed && paneel && <Zijpaneel label="Paneel" sleutel={String(openTeller)} hersteld={tabsHersteld} vast={Boolean(demo)} balk={tabRij}
-      inklapSignaal={inklapSignaal}>{paneel}</Zijpaneel>}
+    {breed && paneel && <Zijpaneel sleutel={String(openTeller)} hersteld={tabsHersteld} vast={Boolean(demo)} tabs={tabRij || undefined}
+      inklapSignaal={inklapSignaal} omgeving={{ sluiten: sluitActief, gesprekId: paneelGesprek }}>{paneel}</Zijpaneel>}
     </div>
     </ContextPaneelContext.Provider>
     </ContextopbouwContext.Provider>
