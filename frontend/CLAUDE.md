@@ -1773,7 +1773,7 @@ terwijl de chat ernaast bereikbaar moet zijn); Escape sluit in alle varianten. D
 
 **Het zijpaneel** (het bronvenster, PR 3a; `components/ui/Zijpaneel`, rekenkern `lib/zijpaneel.ts`) is die kolom: één
 vaste kolom rechts, naar het voorbeeld van Claude Code.
-- **De scheiding** (`role="separator"`, `data-paneel-scheiding`) versleep je tussen 320 px en 60% van de werkplek, en het
+- **De scheiding** (`components/ui/Scheiding`, de ene versleepbare scheiding van de app; `data-paneel-scheiding`) versleep je tussen 320 px en 60% van de werkplek, en het
   gesprek houdt minstens 300 px. Met de focus erop doen ←/→ een stap van 16 px en Home/End de grenzen; dubbelklik zet de
   standaard (`min(34rem,46%)`) terug.
 - **De bediening van een paneel** (besluit gebruiker 23 nov 2026, eenduidig). **Regel voor wie een paneel toevoegt: geef
@@ -1889,10 +1889,24 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   (`useBronHerkomst`, ook de peildatum met `?werkgebied=`); de zijkolom houdt Werkgebieden en Herleidbaarheid. ↗ in het
   paneel opent deze pagina. Geen eigen tekstkaart meer (`app/wettekst.test.ts`).
 
-Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
-niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
-de markering (`WettekstBlok`, markeerlaag) en de kaart (`ReviewQueue`), met respect voor
-`prefers-reduced-motion`.
+**Tekst en lijst** (`components/ui/TekstEnLijst`, melding gebruiker 23 nov 2026). Wettekst en reviewlijst hebben **elk
+een eigen scroll**, zodat de tekst niet uit beeld loopt als je verderop in de lijst bent. **Regel: een tekst met een lijst
+die erover gaat, zet je in `TekstEnLijst`; bouw geen eigen kolommen of eigen hoogtes.**
+- **Smal onder elkaar** (de tekst bovenin, hoogstens 45%), **breed genoeg naast elkaar**: links de tekst over de volle
+  hoogte, rechts de lijst. "Breed genoeg" is een **containerquery** op het blok zelf (56rem, `lib/tekstEnLijst.ts`, de
+  CSS in `app/globals.css`), niet de schermbreedte of de stand van het paneel: een vergroot paneel, een breed gesleept
+  paneel en de pagina krijgen twee kolommen, een paneel naast het gesprek niet. Tailwind 3 heeft geen containerquery's
+  zonder plugin; daarom gewone CSS.
+- **Te verslepen** (de ene `Scheiding`, ook met de pijltjes; dubbelklik zet 57% terug), tussen 35% en 75%, per browser
+  bewaard (`lex.tekstEnLijst.aandeel`). Alleen naast elkaar: onder elkaar is er niets te verdelen.
+- **Compacter op breed**: minder lucht in en tussen de kaartjes (`data-review-kaart`, `data-kaart-citaat`,
+  `data-kaart-meta`), niets weggelaten.
+- Onder de wettekst staat ***Wat de graaf weet*** (`WatDeGraafWeet`, hetzelfde blok als in het bronvenster): een
+  verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie.
+- De annotatie gebruikt het overal (`ArtefactInhoud`: paneel, vergroot en `/annotaties/node`). Het bronvenster niet: dat
+  stroomt mee in de scroll van het paneel, en de bronpagina heeft al een eigen tweedeling (`SplitDetail`).
+- Selecteren scrolt **beide kanten** in beeld, elk in zijn eigen kolom: de markering (`WettekstBlok`, markeerlaag) en de
+  kaart (`ReviewQueue`), met respect voor `prefers-reduced-motion`. Browserregressie: `scripts/test-tekst-en-lijst.mjs`.
 
 - **De kaart is compact**; toelichting, uitleg van de review, alternatieven en opmerking vouwen open
   bij selectie. Eén begrip stuurt alles: `actief`.

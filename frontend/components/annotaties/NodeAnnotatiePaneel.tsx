@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { LaadStand } from "@/components/ui/LaadStand";
@@ -32,7 +34,10 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
-import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
+import { NOG_NIET_IN_WERKING, annotatieKopTekst, vindplaatsTekst } from "@/lib/herkomst";
+import { bronPad } from "@/lib/werkgebiedPaden";
+import { WatDeGraafWeet } from "@/components/werkplek/BepalingFeiten";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { BronGraaf, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -94,6 +99,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   // Een fout van afronden, exporteren of verwijderen op de tab Graaf (op de tab Tekst landt hij in de inhoud).
   const [kopFout, setKopFout] = useState<string | null>(null);
   const { data: sessie } = useSession();
+  const openBron = useOpenBron();
+  const router = useRouter();
   const gebruiker = sessie?.user?.userid ?? undefined;
 
   const laad = useCallback(async () => {
@@ -267,6 +274,13 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     if (knoop.element_id) return vraagOverElement(knoop.element_id);
     return knoop.id.startsWith("urn:bwb:") ? { soort: "bepaling", bron_iri: knoop.id, label: knoop.naam } : undefined;
   }
+  // *Wat de graaf weet* onder de wettekst (melding gebruiker 23 nov 2026): dezelfde metadata als in het bronvenster. Een
+  // verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie (die
+  // toont de stand van toen) en niet in de rondleiding.
+  const graafFeiten = basisOpslag.levend && !opname && (
+    <WatDeGraafWeet bronIri={doel.bron_iri} onOpen={(v) => openBron
+      ? openBron({ soort: "bron", bron_iri: v.iri, titel: vindplaatsTekst(v) }) : router.push(bronPad(v.iri))} />
+  );
   const kopVraag = view && !opname && (
     <VraagLexKnop onderwerp={{ soort: "bepaling", bron_iri: view.doel.bron_iri, label: view.doel.label || doel.label || "",
       annotatie: view.lagen.length > 0 }} />
@@ -325,6 +339,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         onWisEigenMarkering={wisEigenMarkering}
         vraagOnderwerp={(el) => vraagOverElement(el.id)}
         kopVraag={kopVraag}
+        naTekst={graafFeiten}
         onStatus={view.lagen.length && !opname ? status : undefined}
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
         alleenLezen={!!opname}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Uitklap } from "@/components/ui/Uitklap";
+import { TekstEnLijst } from "@/components/ui/TekstEnLijst";
 import { Leeg } from "@/components/ui/Leeg";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import { annotatieAlsMarkdown } from "@/lib/artefactMarkdown";
@@ -38,6 +39,8 @@ export interface ArtefactInhoudProps {
   kopBalk?: React.ReactNode;
   /** *Vraag Lex* over de bepaling, in de kop. */
   kopVraag?: React.ReactNode;
+  /** Onder de wettekst, in dezelfde kolom (de annotatie: *Wat de graaf weet*). */
+  naTekst?: React.ReactNode;
   /** Een oude versie (de versiekiezer): vergrendeld zoals een afgeronde annotatie, zonder de uitleg over heropenen. */
   alleenLezen?: boolean;
   doc: AnnotatieDocument;
@@ -92,7 +95,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, plekken, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
-  onWisEigenMarkering, vraagOnderwerp, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, kopVraag, alleenLezen = false,
+  onWisEigenMarkering, vraagOnderwerp, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, kopVraag, naTekst, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -313,84 +316,85 @@ export function ArtefactInhoud({
         <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onder={kopOnder} balk={kopBalk} vraag={kopVraag}
           onStatus={onStatus} onVerwijder={onVerwijder} onExport={onExport} onFout={setFout} />
 
-        {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
-            zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}
+        {/* Tekst en kaartjes met elk een EIGEN scroll (`TekstEnLijst`). Eén gedeelde scroller liet de wettekst uit beeld
+            lopen zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. Breed genoeg
+            (vergroot, op de pagina, een breed gesleept paneel) staan ze naast elkaar, smal onder elkaar. */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4">
-          <div className="max-h-[45%] overflow-y-auto pb-3">
-          <AnnotatieTekst
-            regels={regels}
-            plekken={plekken}
-            // Verworpen markeringen niet in de tekst oplichten (de reviewer keurde ze net af); ze
-            // blijven wél in de ReviewQueue zichtbaar met hun "verworpen"-status.
-            elementen={actueel
-              .filter((e) => e.lifecycle !== "rejected")
-              .map((e) => ({
-                id: e.id, klasse: e.klasse, tekst: e.tekst, herkomst: e.herkomst, anker: e.anker,
-              }))}
-            actiefId={actiefId}
-            onKies={onKies}
-            onSelectie={onEigenMarkering && !vergrendeld ? setSelectie : undefined}
-            ongedekt={ongedekt}
-            toonOngedekt={toonOngedekt}
-            onToonOngedekt={setToonOngedekt}
-          />
-          {onEigenMarkering && !vergrendeld && (
-            <p data-tour="wettekst-tip" className="mt-2 text-xs text-faint">
-              Tip: selecteer een stuk tekst om het zelf te markeren – of klik eerst een markering aan
-              en selecteer opnieuw om die in te korten of uit te breiden.
-            </p>
-          )}
-          </div>
+          <TekstEnLijst
+            tekst={<>
+              <AnnotatieTekst
+                regels={regels}
+                plekken={plekken}
+                // Verworpen markeringen niet in de tekst oplichten (de reviewer keurde ze net af); ze
+                // blijven wél in de ReviewQueue zichtbaar met hun "verworpen"-status.
+                elementen={actueel
+                  .filter((e) => e.lifecycle !== "rejected")
+                  .map((e) => ({
+                    id: e.id, klasse: e.klasse, tekst: e.tekst, herkomst: e.herkomst, anker: e.anker,
+                  }))}
+                actiefId={actiefId}
+                onKies={onKies}
+                onSelectie={onEigenMarkering && !vergrendeld ? setSelectie : undefined}
+                ongedekt={ongedekt}
+                toonOngedekt={toonOngedekt}
+                onToonOngedekt={setToonOngedekt}
+              />
+              {onEigenMarkering && !vergrendeld && (
+                <p data-tour="wettekst-tip" className="mt-2 text-xs text-faint">
+                  Tip: selecteer een stuk tekst om het zelf te markeren – of klik eerst een markering aan
+                  en selecteer opnieuw om die in te korten of uit te breiden.
+                </p>
+              )}
+              {naTekst && <div className="mt-5">{naTekst}</div>}
+            </>}
+            lijst={<div className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              {fout && (
+                <div className="py-2">
+                  <Melding type="fout" compact>{fout}</Melding>
+                </div>
+              )}
 
-          {fout && (
-            <div className="py-2">
-              <Melding type="fout" compact>{fout}</Melding>
-            </div>
-          )}
-
-          {/* Zonder deze regel lijkt een afgeronde annotatie kapot: de knoppen zijn weg en er staat
-              niets over waarom. Neutraal van toon – afgerond zijn is de bedoeling, geen fout. */}
-          {vergrendeld && !alleenLezen && (
-            <div className="py-2">
-              <Melding type="uitleg" compact>
-                Deze annotatie is afgerond en staat daarom op slot. Kies <em>Heropenen</em> hierboven
-                om hem weer te kunnen wijzigen.
-              </Melding>
-            </div>
-          )}
-
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {actueel.length > 0 ? (
-            <ReviewQueue
-              elementen={actueel}
-              getoond={getoond}
-              filter={filter}
-              onFilter={setFilter}
-              actiefId={actiefId}
-              zwevendeIds={zwevendeIds}
-              open={open}
-              onOpen={setOpen}
-              onAkkoord={keurGoed}
-              onKies={onKies}
-              onBeslissing={beslis}
-              onAkkoordGroen={onAkkoordGroen && !vergrendeld ? akkoordGroen : undefined}
-              onVerwijder={onWisEigenMarkering && !vergrendeld ? wis : undefined}
-              vraagOnderwerp={vraagOnderwerp}
-              elementExtra={elementExtra}
-              docVergrendeld={vergrendeld}
-              // Alleen als het document méér dan één lid beslaat. Is het tot één lid afgebakend, dan
-              // staat dat al in de kop hierboven en herhaalt elke kaart dezelfde mededeling.
-              toonLid={!doc.lid}
-            />
-          ) : (
-            // De lege stand wijst de weg (ontdubbelen PR 5): *Vraag Lex* in de kop biedt *Annoteer dit …* aan.
-            <Leeg data-leeg-annotatie>
-              Nog geen markeringen. {kopVraag ? "Vraag Lex (in de kop) om dit te annoteren, of selecteer zelf tekst." : "Selecteer tekst om zelf te markeren."}
-            </Leeg>
-          )}
-          {historie.length > 0 && <Historie elementen={historie} />}
-          {extra}
-          </div>
+              {/* Zonder deze regel lijkt een afgeronde annotatie kapot: de knoppen zijn weg en er staat
+                  niets over waarom. Neutraal van toon – afgerond zijn is de bedoeling, geen fout. */}
+              {vergrendeld && !alleenLezen && (
+                <div className="py-2">
+                  <Melding type="uitleg" compact>
+                    Deze annotatie is afgerond en staat daarom op slot. Kies <em>Heropenen</em> hierboven
+                    om hem weer te kunnen wijzigen.
+                  </Melding>
+                </div>
+              )}
+              {actueel.length > 0 ? (
+                <ReviewQueue
+                  elementen={actueel}
+                  getoond={getoond}
+                  filter={filter}
+                  onFilter={setFilter}
+                  actiefId={actiefId}
+                  zwevendeIds={zwevendeIds}
+                  open={open}
+                  onOpen={setOpen}
+                  onAkkoord={keurGoed}
+                  onKies={onKies}
+                  onBeslissing={beslis}
+                  onAkkoordGroen={onAkkoordGroen && !vergrendeld ? akkoordGroen : undefined}
+                  onVerwijder={onWisEigenMarkering && !vergrendeld ? wis : undefined}
+                  vraagOnderwerp={vraagOnderwerp}
+                  elementExtra={elementExtra}
+                  docVergrendeld={vergrendeld}
+                  // Alleen als het document méér dan één lid beslaat. Is het tot één lid afgebakend, dan
+                  // staat dat al in de kop hierboven en herhaalt elke kaart dezelfde mededeling.
+                  toonLid={!doc.lid}
+                />
+              ) : (
+                // De lege stand wijst de weg (ontdubbelen PR 5): *Vraag Lex* in de kop biedt *Annoteer dit …* aan.
+                <Leeg data-leeg-annotatie>
+                  Nog geen markeringen. {kopVraag ? "Vraag Lex (in de kop) om dit te annoteren, of selecteer zelf tekst." : "Selecteer tekst om zelf te markeren."}
+                </Leeg>
+              )}
+              {historie.length > 0 && <Historie elementen={historie} />}
+              {extra}
+            </div>} />
         </div>
 
         {selectie && (
