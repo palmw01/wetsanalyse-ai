@@ -1395,6 +1395,12 @@ geannoteerd was, schreef hij "staat in de gesprekscontext", zonder tools en zond
 opdracht zonder artikel ("annoteer lid 2", "doe hetzelfde voor lid 2") leunt op het gesprek en blijft bij de centrale agent,
 net als meer artikelen tegelijk (zijn overdracht weigert). Een regeling buiten de graaf krijgt eerst zijn melding.
 
+**De ophaalstap haalt zelf op.** Haalt de ophaal-agent in een beurt niets op en geeft hij geen doel (hij las in het gesprek
+dat de bepaling al geannoteerd was), dan vraagt de code het hem één keer (`nodes.antwoord.ophaal_uitkomst`,
+`OPHALEN_GEVRAAGD`, de vlaggen `ophalen_gevraagd`/`ophalen_nu`): het gesprek is geen ophaling, hergebruik toetst de keten.
+Komt er daarna nog geen doel, dan zegt `_bereid_voor` dat de bepaling niet gevonden is (`GEEN_DOEL`) in plaats van
+`get_bronnode` met een leeg doel aan te roepen ("Ongeldig BWB-id", acceptatie 23 nov 2026).
+
 **Een ONDERWERP in plaats van een bepaling** ("annoteer alles over aansprakelijkheid van de bestuurder")
 levert een keuze, geen annotatie: de ophaal-agent geeft `{"kandidaten": [...]}` terug, `annoteer_node`
 emit één `kandidaten`-event en stopt. Welke bepaling de werkvoorraad in gaat, kiest de jurist.
