@@ -275,3 +275,20 @@ a {
     padding-top: 0.25rem;
   }
 }
+
+/* Een object met een zijkolom (`SplitDetail` in `components/ui/Pagina.tsx`): de inhoud en rechts 20rem voor beoordeling,
+   relaties en historie. Net als tekst en lijst een containerquery op het blok zelf (`SPLIT_DETAIL_BREED`, getest), zodat
+   een begrip en een regel op hun pagina, vergroot en in een breed gesleept paneel naast elkaar staan, en smal onder elkaar. */
+.split-detail-schil {
+  container-type: inline-size;
+  container-name: split-detail;
+}
+.split-detail {
+  display: grid;
+  gap: 1rem;
+}
+@container split-detail (min-width: 44rem) {
+  .split-detail {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+  }
+}

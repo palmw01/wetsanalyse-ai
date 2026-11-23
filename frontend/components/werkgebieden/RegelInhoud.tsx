@@ -39,12 +39,12 @@ export function RegelStatus({ regel }: { regel: Regel }) {
   </>;
 }
 
-/** Eén afleidingsregel: de regelkaart (ADR-018 §6), gebouwd zoals de begripskaart. Op de pagina in twee kolommen (links
- *  de regel, de gevallen en de grondslag, rechts de beoordeling, de keten en de historie), naast het gesprek onder elkaar.
+/** Eén afleidingsregel: de regelkaart (ADR-018 §6), gebouwd zoals de begripskaart. Breed genoeg in twee kolommen (links
+ *  de regel, de gevallen en de grondslag, rechts de beoordeling, de keten en de historie), smal onder elkaar (`SplitDetail`):
+ *  op de pagina, vergroot en naast het gesprek dezelfde indeling.
  *  De regeltekst komt van de api. Geen Lex-knoppen: dat vraag je in het gesprek. */
-export function RegelInhoud({ stand, weergave, keten }: {
+export function RegelInhoud({ stand, keten }: {
   stand: RegelStand;
-  weergave: "pagina" | "paneel";
   /** De keten van het werkgebied, voor *Volgt op* en *Leidt tot*; ontbreekt hij, dan staat dat blok er niet. */
   keten?: RegelKeten | null;
 }) {
@@ -71,7 +71,8 @@ export function RegelInhoud({ stand, weergave, keten }: {
   return (
     <div data-regel-inhoud={regel.id} data-regel-status={regel.status}>
       {melding}
-      {weergave === "pagina" ? <SplitDetail hoofd={hoofd} zij={zij} /> : <div className="space-y-4">{hoofd}{zij}</div>}
+      {/* Op elke plek dezelfde indeling; de breedte van het blok beslist over twee kolommen (`SplitDetail`). */}
+      <SplitDetail hoofd={hoofd} zij={zij} />
     </div>
   );
 }
