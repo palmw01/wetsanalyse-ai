@@ -43,10 +43,24 @@ from ..skill_regels import aan as skill_regels_aan
 logger = logging.getLogger("graph_qa.orchestrator")
 
 
+def _hergebruikte_leden(leden: list[str]) -> str:
+    """Welke leden, in woorden. Een ongenummerd onderdeel (een opsommingsstreepje: "–", "•") heeft
+    geen nummer om te noemen – "leden –, –, –" zegt niets –, dus dat telt mee als aantal."""
+    leden = [ld.strip() for ld in leden if ld.strip()]
+    genummerd = [ld for ld in leden if any(c.isalnum() for c in ld)]
+    ongenummerd = len(leden) - len(genummerd)
+    if not leden:
+        return "het artikel"
+    if not genummerd:
+        return "het onderdeel" if ongenummerd == 1 else f"{ongenummerd} onderdelen"
+    nummers = f"lid {genummerd[0]}" if len(genummerd) == 1 else "leden " + ", ".join(genummerd)
+    if not ongenummerd:
+        return nummers
+    return f"{nummers} en {ongenummerd} ongenummerd{' onderdeel' if ongenummerd == 1 else 'e onderdelen'}"
+
+
 def _hergebruik_melding(hergebruik: dict[str, Any]) -> str:
-    leden = [ld["lid"] for ld in hergebruik["leden"]]
-    wat = ("het artikel" if leden == [""] else
-           f"lid {leden[0]}" if len(leden) == 1 else "leden " + ", ".join(leden))
+    wat = _hergebruikte_leden([str(ld.get("lid", "")) for ld in hergebruik["leden"]])
     t = hergebruik["telling"]
     return (f"{wat} ongewijzigd sinds de vorige annotatie · {t['markeringen']} markeringen uit de "
             f"graaf ({t['beoordeeld']} beoordeeld, {t['te_beoordelen']} te beoordelen)")

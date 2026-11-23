@@ -342,13 +342,28 @@ export function isVerwijderd(e: unknown): boolean {
  *  Volledig: er is niets opnieuw bekeken, en dat moet er staan – anders lijkt het een verse
  *  annotatie. Deels: welke leden kwamen uit de laag; de rest is net opnieuw geannoteerd. */
 export function hergebruikTekst(h: AgentHergebruik): string {
-  const leden = h.leden.filter((l) => l !== "");
-  const wat = leden.length === 0 ? "Dit artikel" : leden.length === 1 ? `Lid ${leden[0]}` : `Leden ${leden.join(", ")}`;
+  const { wat, meervoud } = hergebruikteLeden(h.leden, h.volledig);
   const t = h.telling;
   const stand = `${aantal(t.markeringen, "markering", "markeringen")}, waarvan ${t.beoordeeld} beoordeeld en ${t.te_beoordelen} nog te beoordelen`;
   return h.volledig
-    ? `${wat} was al geannoteerd en de wettekst is sindsdien niet veranderd. Dit is de bestaande annotatie (${stand}).`
-    : `${wat} kwam ongewijzigd uit de bestaande annotatie (${stand}); de rest is nu opnieuw geannoteerd.`;
+    ? `${wat} ${meervoud ? "waren" : "was"} al geannoteerd en de wettekst is sindsdien niet veranderd. Dit is de bestaande annotatie (${stand}).`
+    : `${wat} ${meervoud ? "kwamen" : "kwam"} ongewijzigd uit de bestaande annotatie (${stand}); de rest is nu opnieuw geannoteerd.`;
+}
+
+/** Welke leden, in woorden. Een ongenummerd onderdeel (een opsommingsstreepje: "–", "•") heeft geen
+ *  nummer om te noemen – "Leden –, –, –" zegt niets –, dus dat telt mee als aantal. */
+function hergebruikteLeden(alle: string[], volledig: boolean): { wat: string; meervoud: boolean } {
+  const leden = alle.map((l) => l.trim()).filter((l) => l !== "");
+  const genummerd = leden.filter((l) => /[\p{L}\p{N}]/u.test(l));
+  const ongenummerd = leden.length - genummerd.length;
+  if (leden.length === 0) return { wat: "Dit artikel", meervoud: false };
+  if (genummerd.length === 0) {
+    if (ongenummerd === 1) return { wat: "Het onderdeel", meervoud: false };
+    return { wat: `${volledig ? "Alle " : ""}${ongenummerd} onderdelen`, meervoud: true };
+  }
+  const nummers = genummerd.length === 1 ? `Lid ${genummerd[0]}` : `Leden ${genummerd.join(", ")}`;
+  if (ongenummerd === 0) return { wat: nummers, meervoud: genummerd.length > 1 };
+  return { wat: `${nummers} en ${aantal(ongenummerd, "ongenummerd onderdeel", "ongenummerde onderdelen")}`, meervoud: true };
 }
 
 /** Actuele markeringen en de historie: markeringen van een lid waarvan de wettekst sindsdien

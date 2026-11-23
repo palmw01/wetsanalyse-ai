@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codepointOffset, momentopnameOpslag, segmentAnker,
+import { codepointOffset, momentopnameOpslag, segmentAnker, segmentLabel,
   nodeLink, nodeError, type NodeWeergave } from "./annotatieNode";
 
 describe("canonieke bronnode-annotaties", () => {
@@ -40,5 +40,21 @@ describe("momentopnameOpslag", () => {
     expect(o.levend).toBe(false);
     await expect(o.beslis("e1", {})).rejects.toThrow(/alleen te lezen/);
     await expect(o.verwijder({})).rejects.toThrow(/alleen te lezen/);
+  });
+});
+
+describe("segmentLabel", () => {
+  it("laat een genummerd label staan", () => {
+    expect(segmentLabel({ label: "Lid 2", nummer: "2", tekst: "De ontvanger …" })).toBe("Lid 2");
+    expect(segmentLabel({ label: "Onderdeel a", nummer: "a", tekst: "x" })).toBe("Onderdeel a");
+  });
+
+  it("noemt een ongenummerd onderdeel bij het begin van zijn tekst", () => {
+    const tekst = "Onder de overige in deze leidraad gebruikte begrippen wordt hetzelfde verstaan als in de Invorderingswet 1990.";
+    const l = segmentLabel({ label: "Onderdeel –", nummer: "–", tekst });
+    expect(l).toMatch(/^Onderdeel – Onder de overige in deze leidraad/);
+    expect(l.endsWith("…")).toBe(true);
+    expect(segmentLabel({ label: "Onderdeel •", tekst: "kort" })).toBe("Onderdeel – kort");
+    expect(segmentLabel({ label: "Onderdeel –", nummer: "–", tekst: "" })).toBe("Onderdeel –");
   });
 });
