@@ -99,6 +99,8 @@ markers = [
     # De live-proef van de bronconnectors (ADR-013): raakt de echte externe dienst, zonder graaf of model. Slaat
     # zichzelf over zonder BRONNEN_LIVE=1; draait dagelijks in `.github/workflows/bronnenwacht.yml`, niet in de poort.
     "live: raakt een echte externe bron (BRONNEN_LIVE=1)",
+    # pytest-cov registreert deze zelf; hier ook, zodat hij zonder pytest-cov (lokaal) geen onbekende marker is.
+    "no_cover: meet geen dekking voor deze test (pytest-cov; zie scripts/kwaliteit.py)",
 ]
 
 # De dekking voor het kwaliteitsrapport (scripts/kwaliteit.py); de poort meet met `--cov`. Relatieve paden, zodat de

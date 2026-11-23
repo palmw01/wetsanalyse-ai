@@ -15,7 +15,7 @@
 #   raakt ─┬─ guards              (altijd: de structurele toetsen hieronder, seconden)
 #          ├─ kruistests          (bij elke codewijziging: scripts/kruistests.sh)
 #          ├─ mcp-tools / frontend / frontend-browser (4 shards)
-#          ├─ graph-qa (3 shards) / api (3 shards), elk met een eigen PostgreSQL
+#          ├─ graph-qa (2 shards) / api (3 shards), elk met een eigen PostgreSQL
 #          └─ bwb-import
 #   frontend, graph-qa, api ──► kwaliteit   (rapport: ruff, complexiteit, testdekking; `poort` wacht er niet op)
 #   alles ──► poort               (de verplichte check: faalt als een benodigde job faalt)
@@ -574,14 +574,14 @@ jobs:
   # database slaan die tests zichzelf over — en tests die alleen lokaal draaien, verrotten. Elke shard
   # heeft een eigen service-container, dus shards delen geen database.
   graph-qa:
-    name: graph-qa (${{ matrix.shard }}/3)
+    name: graph-qa (${{ matrix.shard }}/2)
     needs: raakt
     if: needs.raakt.outputs.graph_qa == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:16
@@ -598,12 +598,12 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
-      - name: graph-qa – tests (shard ${{ matrix.shard }}/3)
+      - name: graph-qa – tests (shard ${{ matrix.shard }}/2)
         working-directory: tools/graph-qa
         env:
           # Zet de integratietests van de gedeelde run-store aan; zonder deze slaan ze zichzelf over.
           RUNSTORE_TEST_DSN: postgresql://test:test@localhost:5432/test
-          PYTEST_SHARD: ${{ matrix.shard }}/3
+          PYTEST_SHARD: ${{ matrix.shard }}/2
           PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           # `nlp`: de taalanalyse van de hybride JAS-pijplijn (ADR-002). Zonder die extra slaan de
