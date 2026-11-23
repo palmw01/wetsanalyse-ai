@@ -8,6 +8,13 @@ __pycache__/
 api/.venv/
 .pytest_cache/
 
+# Dekking en het kwaliteitsrapport (scripts/kwaliteit.py)
+.coverage
+.coverage.*
+coverage/
+/kwaliteit/
+/dekking/
+
 # Logs
 *.log
 
@@ -76,4 +83,3 @@ demo/
 
 # Ruwe modelruns van metingen: als archief bewaard, niet in git (zie README van de meetmap).
 docs/architectuur/metingen/hybrid-v1-baseline-2026-09-29/modelruns*/
-coverage/

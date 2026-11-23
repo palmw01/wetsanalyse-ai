@@ -1,0 +1,35 @@
+# De regels van het kwaliteitsrapport (scripts/kwaliteit.py, job `kwaliteit` in de poort). Het rapport blokkeert niets:
+# het meet, en wie een PR maakt (mens of agent) ruimt op wat in zijn eigen wijziging nieuw is.
+#
+# Bewust een smalle set met signaal, geen stijl: echte fouten (pyflakes, syntax), bugrisico's (bugbear),
+# beveiligingsrisico's (bandit) en complexiteit (mccabe). Importvolgorde en regellengte doen niet mee.
+#
+# Het script draait ruff met `--config ruff.toml`, dus deze set geldt voor de hele repo, ook waar een onderdeel een
+# eigen [tool.ruff] heeft (tools/bwb-import).
+line-length = 120
+# De laagste `requires-python` van de onderdelen; bwb-import vraagt 3.13.
+target-version = "py311"
+per-file-target-version = { "tools/bwb-import/**" = "py313" }
+# Meetbestanden zijn bewijs en worden niet achteraf gewijzigd (docs/architectuur/metingen/README.md).
+extend-exclude = ["docs/architectuur/metingen"]
+
+[lint]
+select = ["E9", "F", "B", "S", "C901"]
+
+[lint.mccabe]
+max-complexity = 15
+
+[lint.flake8-bugbear]
+# FastAPI-afhankelijkheden in een standaardwaarde zijn het gewone patroon, geen gedeelde veranderlijke waarde.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi.Header", "fastapi.Cookie",
+    "fastapi.Form", "fastapi.File", "fastapi.Security",
+]
+
+[lint.per-file-ignores]
+# In tests: fixtures komen als import binnen en heten dan opnieuw gedefinieerd (F811); asserts, vaste tokens en
+# subprocessen horen bij een test (S).
+"**/tests/**" = ["F811", "S"]
+"**/conftest.py" = ["F811", "S"]
+# Ontwikkelscripts roepen git, uv en ruff aan met vaste argumenten.
+"**/scripts/**" = ["S603", "S607"]

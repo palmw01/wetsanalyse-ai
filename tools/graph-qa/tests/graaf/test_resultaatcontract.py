@@ -249,7 +249,10 @@ def test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord():
 from agent.adapters.sru_kamerstukken import Document, Record  # noqa: E402
 from bronmodel.connectors import CONNECTORS  # noqa: E402
 
-pytestmark = pytest.mark.risico("R10")
+# `no_cover`: zonder dekking duurt dit bestand ~90 s, met dekking ~330 s (de worst-case graaf is een hete lus), en de
+# poort verdeelt per bestand, dus het werd in zijn eentje de traagste shard. Het contract wordt hier getoetst, niet de
+# dekking gemeten.
+pytestmark = [pytest.mark.risico("R10"), pytest.mark.no_cover]
 
 
 class NepSru:
