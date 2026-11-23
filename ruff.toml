@@ -33,3 +33,6 @@ extend-immutable-calls = [
 "**/conftest.py" = ["F811", "S"]
 # Ontwikkelscripts roepen git, uv en ruff aan met vaste argumenten.
 "**/scripts/**" = ["S603", "S607"]
+# De meetscripts van graph-qa starten hun eigen worker (`sys.executable`) en git met vaste argumenten, net als de
+# ontwikkelscripts; ze draaien nooit in de dienst.
+"tools/graph-qa/eval/**" = ["S603", "S607"]
