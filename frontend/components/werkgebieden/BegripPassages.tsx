@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Field";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
-import { KlasseLabel, Lijst, LijstRij, StatusLabel } from "@/components/ui/Lijst";
+import { KlasseLabel, Lijst, LijstRij, PassageCitaat, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuKeuze, MenuKnop, MenuLink, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
@@ -102,7 +102,7 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
   const open = k.beoordeling === "open";
   return (
     <LijstRij data-passage={k.element_id} className={k.beoordeling === "afgewezen" ? "opacity-70" : ""}
-      titel={<blockquote>{bij}</blockquote>}
+      titel={<PassageCitaat tekst={k.bewijs.tekst} />}
       meta={
         <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <KlasseLabel klasse={k.bewijs.klasse} klein />
