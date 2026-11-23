@@ -382,7 +382,7 @@ def conformiteit(g: Graph) -> dict[str, Any]:
                 "begrippen": {c: {"conform": None, "meldingen": []} for c in begrippen}, "kader": []}
     uit = {c: {"conform": True, "meldingen": []} for c in begrippen}
     kader: list[dict] = []
-    for laag, shapes in zip(("nl_sbb", "eigen"), _shapes()):
+    for laag, shapes in zip(("nl_sbb", "eigen"), _shapes(), strict=True):
         _conform, rapport, _ = validate(g, shacl_graph=shapes, advanced=True, inference="none")
         for r in rapport.subjects(RDF.type, SH.ValidationResult):
             focus = rapport.value(r, SH.focusNode)

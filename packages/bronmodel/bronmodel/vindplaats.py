@@ -101,7 +101,7 @@ def vindplaats(ref: str) -> Vindplaats | None:
         bwb, rest = delen[0], delen[1:]
         if not _BWB.fullmatch(bwb) or len(rest) % 2 or any(not d for d in rest):
             return None
-        pad = tuple(zip(rest[::2], rest[1::2]))
+        pad = tuple(zip(rest[::2], rest[1::2], strict=True))
         if any(k == "id" for k, _ in pad):
             return Vindplaats(ref, bwb, pad, "node", "")
         if any(k not in _SOORT for k, _ in pad):

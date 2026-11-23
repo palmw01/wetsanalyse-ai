@@ -109,7 +109,7 @@ def _bwbt(m: re.Match[str]) -> ExterneVindplaats:
     hij teruggeeft draagt hem altijd. Het label uit het id kent de citeertitel niet; dat geeft de leestool."""
     bwb, versie, staart = m.group(1), m.group(2) or "", m.group(3) or ""
     delen = staart.strip(":").split(":") if staart else []
-    paren = list(zip(delen[::2], delen[1::2]))
+    paren = list(zip(delen[::2], delen[1::2], strict=False))  # een kale soort achteraan (zonder nummer) valt bewust weg
     plek = ", ".join(f"{_BWBT_NAAM.get(k, k)} {unquote(v)}" for k, v in paren if k != "id")
     label = bwb + (f", {plek}" if plek else "") + (f" (toestand {versie})" if versie else "")
     ident = f"bwbt:{bwb}" + (f":{versie}" if versie else "") + staart
@@ -124,7 +124,8 @@ def bwbt_delen(ident: str) -> tuple[str, str, tuple[tuple[str, str], ...]] | Non
     if not m:
         return None
     delen = (m.group(3) or "").strip(":").split(":") if m.group(3) else []
-    return m.group(1), m.group(2) or "", tuple((k, unquote(v)) for k, v in zip(delen[::2], delen[1::2]))
+    # Een kale soort achteraan (zonder nummer) valt bewust weg, zoals in `_bwbt`.
+    return m.group(1), m.group(2) or "", tuple((k, unquote(v)) for k, v in zip(delen[::2], delen[1::2], strict=False))
 
 
 def _ecli(ident: str) -> ExterneVindplaats:

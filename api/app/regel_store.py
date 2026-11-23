@@ -24,7 +24,6 @@ from __future__ import annotations
 import re
 import uuid
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import delete, insert, select, update

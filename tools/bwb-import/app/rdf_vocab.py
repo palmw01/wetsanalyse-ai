@@ -198,7 +198,8 @@ class Vocab:
         for segment in rest.split("#"):
             sleutel, _, waarde = segment.partition("=")
             if not bwb or not sleutel or not waarde:
-                digest = hashlib.sha1(ref_key.encode("utf-8")).hexdigest()[:16]
+                sleutel_bytes = ref_key.encode("utf-8")
+                digest = hashlib.sha1(sleutel_bytes, usedforsecurity=False).hexdigest()[:16]
                 return self._iri("ref", digest)
             segmenten.extend((sleutel, waarde))
         return self._iri(bwb, *segmenten)
@@ -221,7 +222,7 @@ class Vocab:
     def verwijzing(self, bron: URIRef, doel: URIRef, soort: str) -> URIRef:
         """Deterministische IRI voor de tussenresource van één verwijzing."""
         sleutel = f"{bron}|{doel}|{soort}".encode()
-        digest = hashlib.sha1(sleutel).hexdigest()[:16]
+        digest = hashlib.sha1(sleutel, usedforsecurity=False).hexdigest()[:16]
         return self._iri("verwijzing", digest)
 
     # ---------------------------------------------------------------------- termen

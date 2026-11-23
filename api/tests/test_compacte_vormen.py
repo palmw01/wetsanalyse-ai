@@ -13,7 +13,7 @@ from __future__ import annotations
 from app import annotatie_v2_store as store
 from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
 from test_begrippen import DEFINITIE, _begrip, _url, _werkgebied
-from test_bronselectie import _besluit, _dq, _kd, _kid, _met_kandidaten, _overzicht, _vier
+from test_bronselectie import _dq, _kd, _kid, _met_kandidaten, _overzicht, _vier
 from gedeelde_bron import ART2, client, database, graaf  # noqa: F401
 
 

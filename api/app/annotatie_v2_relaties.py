@@ -27,7 +27,7 @@ from sqlalchemy import delete, insert, select, update
 
 from . import db
 from . import jas_relaties
-from .annotatie_v2_contracts import (AFGEHANDELD, NIET_ACTUEEL, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing,
+from .annotatie_v2_contracts import (AFGEHANDELD, NIET_ACTUEEL, ImplicietInvoer, Lifecycle, RelatieBeslissing,
                                      Relatiebesluiten,
                                       RelatieInvoer, RelatieVoorstel, is_vervangen)
 from .annotatie_v2_store import (_audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie,

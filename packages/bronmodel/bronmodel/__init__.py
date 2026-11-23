@@ -11,7 +11,8 @@ import re
 from collections import defaultdict
 from typing import Any, Callable
 
-from .corpus import CorpusMap, CorpusSegment, Span, SpanFout
+# Herexport: api en graph-qa importeren deze uit `bronmodel` zelf.
+from .corpus import CorpusMap as CorpusMap, CorpusSegment as CorpusSegment, Span as Span, SpanFout as SpanFout
 from .taal import BRON_IRI
 
 RELATIES = ("heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
@@ -205,8 +206,17 @@ def parse_rows(result: Any) -> list[dict[str, str]]:
             except ValueError as exc:
                 raise BronFout("Ongeldig tekstliteral") from exc
         return term
-    return [{k: decode(v) for k, v in zip(keys, line.split("\t"))}
-            for line in lines[1:] if line.strip()]
+    rijen = []
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        velden = line.split("\t")
+        # Een rij met meer of minder velden dan de kop is geen SPARQL-TSV: zip zou de waarden stil onder de verkeerde
+        # variabele zetten of laten vallen.
+        if len(velden) != len(keys):
+            raise BronFout("Ongeldige SPARQL-TSV-rij: het aantal velden past niet bij de kop")
+        rijen.append({k: decode(v) for k, v in zip(keys, velden, strict=True)})
+    return rijen
 
 
 def _sort(waarde: str) -> tuple:

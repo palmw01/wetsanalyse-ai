@@ -282,7 +282,7 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
                              "afgekapt": False, "vlak": True})
             ry = y - 4 * mm
             labelstijl = stijl("Statuslabel", "Fira-SemiBold", 9, 12.5, GRIJS)
-            for (label, waarde), rh in zip(rijen, rijhoogtes):
+            for (label, waarde), rh in zip(rijen, rijhoogtes, strict=True):
                 teken(label, labelstijl, links + binnen, ry, labelbreedte - 2 * mm, max_regels=2)
                 teken(waarde, waardestijl, links + binnen + labelbreedte, ry, waardebreedte, max_regels=3,
                       waar="Volledig in het colofon.")
