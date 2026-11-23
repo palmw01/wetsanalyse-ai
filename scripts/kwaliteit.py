@@ -298,7 +298,8 @@ def meet(basis: str, dekking: Path | None) -> dict:
         try:
             meting = python_dekking(naam, map_, _dekkingsbestanden(dekking, naam, map_))
         except subprocess.CalledProcessError as fout:
-            rapport["meldingen"].append(f"dekking {naam}: coverage faalde ({fout.stderr[:200]})")
+            uitleg = (fout.stderr or fout.stdout or "").strip()[:300]
+            rapport["meldingen"].append(f"dekking {naam}: coverage faalde ({uitleg})")
             meting = None
         if meting:
             rapport["dekking"][naam] = meting
@@ -382,7 +383,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     basis = _git("rev-parse", args.basis or standaardbasis()).strip()
-    rapport = meet(basis, args.dekking)
+    # Absoluut: coverage draait vanuit de map van het onderdeel, niet vanuit de projectroot.
+    rapport = meet(basis, args.dekking.resolve() if args.dekking else None)
     tekst = markdown(rapport)
     if args.uit:
         args.uit.mkdir(parents=True, exist_ok=True)
