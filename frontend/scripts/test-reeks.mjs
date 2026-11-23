@@ -71,6 +71,8 @@ await page.route("**/api/**", async (route) => {
   if (url.pathname === "/api/annotatie/run") return route.fulfill({ json: null });
   const events = url.pathname.match(/\/run\/([^/]+)\/events$/);
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
+  // *Wat de graaf weet* onder de wettekst: hier niet beschikbaar (dat blok toetst test-tekst-en-lijst).
+  if (url.pathname === "/api/annotatie/v2/bepaling") return route.fulfill({ json: { beschikbaar: false } });
   if (url.pathname.endsWith("/weergave")) {
     weergaven.push(url.searchParams.get("bron_iri"));
     return route.fulfill({ json: { schema_versie: 2, snapshot_id: "s",

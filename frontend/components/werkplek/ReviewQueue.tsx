@@ -296,7 +296,8 @@ function DecisionCard({
           hetzelfde patroon als `ui/ButtonRow`: mobiel gestapeld, `sm:` naast elkaar. */}
       <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:items-start sm:gap-2">
         {/* `min-w-0`: zonder dit rekt een brede klassenaam deze kant alsnog op. */}
-        <span className="order-1 flex min-w-0 flex-wrap items-center gap-1.5">
+        {/* `sm:min-h-[24px]`: even hoog als het klasselabel en de knoppen, zodat "lid 1" op dezelfde lijn staat. */}
+        <span className="order-1 flex min-w-0 flex-wrap items-center gap-1.5 sm:min-h-[24px]">
           {aandacht && (
             <StatusLabel toon={aandacht.toon} uitleg={el.review_uitleg || undefined}>{aandacht.label}</StatusLabel>
           )}
@@ -457,7 +458,7 @@ function DecisionCard({
         </div>
       )}
 
-      <p className="mt-2 border-l-2 border-line pl-2.5 text-sm italic text-ink">“{el.tekst}”</p>
+      <p data-kaart-citaat className="mt-2 border-l-2 border-line pl-2.5 text-sm italic text-ink">“{el.tekst}”</p>
 
       {/* Een markering die niet in de tekst te vinden is, mag niet stilzwijgend uit de weergave
           verdwijnen. Dan lijkt hij weg terwijl hij er nog is – zeg het gewoon. */}
@@ -531,7 +532,7 @@ function DecisionCard({
           grounding. Buiten de werkplek heeft een markering geen weg, en dan geen knop. */}
       {uitgeklapt && vraag && <div className="mt-2" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
 
-      <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-3xs text-muted">
+      <div data-kaart-meta className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-3xs text-muted">
         <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
           {!uitgeklapt || notitieDicht ? null : notitie ? (
             <InlineVeld

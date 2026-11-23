@@ -208,3 +208,70 @@ a {
   padding: 4px;
   margin: -4px;
 }
+
+/* Tekst en lijst (`components/ui/TekstEnLijst.tsx`): een wettekst met de lijst die erover gaat (de annotatie: de
+   markeringen in de tekst, de kaartjes ernaast). Smal onder elkaar: de tekst bovenin, hoogstens 45% hoog, de lijst
+   eronder; elk met een eigen scroll, zodat de tekst in beeld blijft terwijl je door de lijst gaat. Breed genoeg naast
+   elkaar: links de tekst over de volle hoogte, rechts de lijst. Een containerquery, geen schermbreedte en geen stand van
+   het paneel: zo krijgt een vergroot paneel, een breed gesleept paneel en een pagina het, en een smal paneel niet.
+   Naast elkaar is de verdeling te verslepen (`Scheiding`, `--tekst-aandeel`); onder elkaar is de scheiding er niet.
+   De drempel en de grenzen staan in `lib/tekstEnLijst.ts` (getest tegen deze regels). */
+.tekst-en-lijst-schil {
+  container-type: inline-size;
+  container-name: tekst-en-lijst;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+.tekst-en-lijst {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.tekst-en-lijst > [data-tekst-kolom] {
+  max-height: 45%;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
+}
+.tekst-en-lijst > [data-lijst-kolom] {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+}
+.tekst-en-lijst > [data-tekst-scheiding] {
+  display: none;
+}
+@container tekst-en-lijst (min-width: 56rem) {
+  .tekst-en-lijst {
+    flex-direction: row;
+  }
+  .tekst-en-lijst > [data-tekst-kolom] {
+    flex: 0 0 var(--tekst-aandeel, 57%);
+    max-height: none;
+    padding-right: 1rem;
+  }
+  /* De scheiding tekent de lijn tussen de kolommen zelf: een smalle greep met een lijn van 1 px in het midden. */
+  .tekst-en-lijst > [data-tekst-scheiding] {
+    display: block;
+    flex: 0 0 0.5rem;
+    margin-right: 1rem;
+    background-image: linear-gradient(rgb(var(--line)), rgb(var(--line)));
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 1px 100%;
+  }
+  /* Compacter op breed, zonder iets weg te laten: minder lucht in en tussen de kaartjes. */
+  .tekst-en-lijst [data-review-kaart] {
+    padding: 0.5rem 0.75rem;
+  }
+  .tekst-en-lijst [data-kaart-citaat] {
+    margin-top: 0.375rem;
+  }
+  .tekst-en-lijst [data-kaart-meta] {
+    margin-top: 0.375rem;
+    padding-top: 0.25rem;
+  }
+}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { PaneelContext, PaneelKnop, actieVan, type PaneelOmgeving } from "@/components/ui/Paneel";
+import { Scheiding } from "@/components/ui/Scheiding";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
 import { OPSLAG_WEERGAVE, knoppenVoor, leesWeergave, plekVanWeergave, volgende, type Gebeurtenis, type Weergave } from "@/lib/paneelBediening";
 import { OPSLAG_BREEDTE, begrens, grenzen, leesBreedte, naToets } from "@/lib/zijpaneel";
@@ -39,7 +40,6 @@ export function Zijpaneel({ sleutel, hersteld = false, vast = false, tabs, inkla
   const ref = useRef<HTMLDivElement>(null);
   const [breedte, setBreedte] = useState<number>();
   const [stand, setStand] = useState<Weergave>("normaal");
-  const [sleept, setSleept] = useState(false);
   // De breedte van de werkplek en van het paneel zelf, gemeten: tijdens het renderen lezen we geen refs.
   const [maat, setMaat] = useState({ container: 1280, paneel: 544 });
 
@@ -108,30 +108,11 @@ export function Zijpaneel({ sleutel, hersteld = false, vast = false, tabs, inkla
 
   const container = () => ref.current?.parentElement?.clientWidth ?? maat.container;
   const huidig = () => breedte ?? ref.current?.offsetWidth ?? maat.paneel;
+  const rechts = () => (ref.current?.parentElement ?? document.body).getBoundingClientRect().right;
   const zet = (b: number | undefined) => {
     setBreedte(b);
     if (!vast) schrijfOpslag(OPSLAG_BREEDTE, b);
   };
-
-  function begin(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    const doel = e.currentTarget;
-    doel.setPointerCapture(e.pointerId);
-    setSleept(true);
-    const rechts = (ref.current?.parentElement ?? document.body).getBoundingClientRect().right;
-    const beweeg = (ev: PointerEvent) => setBreedte(begrens(rechts - ev.clientX, container()));
-    const los = (ev: PointerEvent) => {
-      doel.removeEventListener("pointermove", beweeg);
-      doel.removeEventListener("pointerup", los);
-      doel.removeEventListener("pointercancel", los);
-      setSleept(false);
-      zet(begrens(rechts - ev.clientX, container()));
-    };
-    doel.addEventListener("pointermove", beweeg);
-    doel.addEventListener("pointerup", los);
-    doel.addEventListener("pointercancel", los);
-  }
 
   const plek = plekVanWeergave(stand, vast);
   const { sluiten, gesprekId } = omgeving;
@@ -156,17 +137,17 @@ export function Zijpaneel({ sleutel, hersteld = false, vast = false, tabs, inkla
       {/* Ingeklapt is de kop niet te zien: de strook draagt dezelfde knoppen. */}
       {!open && knoppenVoor(plek, { kanSluiten: !!sluiten }).map((h) => <PaneelKnop key={h} handeling={h} onClick={actieVan(h, { plek, sluiten, uitklappen: () => ga("uitklappen") })} />)}
       {open && !vergroot && (
-        // De scheiding: slepen, of de pijltjes als hij de focus heeft (WCAG 2.1.1). Dubbelklik zet de standaard terug.
-        <div role="separator" aria-orientation="vertical" aria-label="Breedte van het paneel" tabIndex={0}
-          aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(breedte ?? maat.paneel)} data-paneel-scheiding
-          onPointerDown={begin} onDoubleClick={() => zet(undefined)}
-          onKeyDown={(e) => {
-            const nieuw = naToets(huidig(), e.key, container());
-            if (nieuw === null) return;
-            e.preventDefault();
+        // De scheiding (`Scheiding`): slepen, of de pijltjes als hij de focus heeft. Dubbelklik zet de standaard terug.
+        <Scheiding label="Breedte van het paneel" waarde={breedte ?? maat.paneel} min={min} max={max} data-paneel-scheiding
+          onSleep={(x) => setBreedte(begrens(rechts() - x, container()))}
+          onLos={(x) => zet(begrens(rechts() - x, container()))}
+          onToets={(toets) => {
+            const nieuw = naToets(huidig(), toets, container());
+            if (nieuw === null) return false;
             zet(nieuw);
+            return true;
           }}
-          className={`focus-ring absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none rounded-sm hover:bg-lint/20 ${sleept ? "bg-lint/30" : ""}`} />
+          onStandaard={() => zet(undefined)} className="absolute inset-y-0 -left-1 z-10 w-2" />
       )}
       <div className={open ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
         {tabs && (

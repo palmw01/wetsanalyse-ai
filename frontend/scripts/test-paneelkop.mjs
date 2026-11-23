@@ -64,6 +64,8 @@ async function mock(page, metGraaf) {
     if (p.startsWith("/api/auth/")) return route.continue();
     if (p === "/api/annotatie/run") return route.fulfill({ json: null });
     if (p.endsWith("/weergave")) return route.fulfill({ json: view });
+    // *Wat de graaf weet* onder de wettekst: hier niet beschikbaar (dat blok toetst test-tekst-en-lijst).
+    if (p === "/api/annotatie/v2/bepaling") return route.fulfill({ json: { beschikbaar: false } });
     if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg1 });
     if (p === "/api/werkgebieden/wg1/bronselectie")
       return route.fulfill({ json: { werkgebied_id: "wg1", naam: wg1.naam, revisie: wg1.revisie, modus: "deelvragen", actief: null, volgende: null,
