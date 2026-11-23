@@ -1,6 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+// Draait deze run met dekking (`--coverage`, de poort)? De instrumentatie van v8 maakt rekenwerk tot tien keer trager;
+// een tijdgrens in een test (de layout van de hele graaf) leest `VITEST_DEKKING` om dat niet als terugval te zien.
+const metDekking = process.argv.some((a) => a === "--coverage" || a.startsWith("--coverage."));
+
 // Logica-tests (node-env, geen DOM): de dragende, framework-onafhankelijke helpers.
 // De "@/"-alias spiegelt tsconfig.paths zodat imports identiek zijn aan de app.
 export default defineConfig({
@@ -20,5 +24,14 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["node_modules", ".next"],
     server: { deps: { inline: ["next-auth"] } },
+    env: metDekking ? { VITEST_DEKKING: "1" } : {},
+    // Alleen met `--coverage` (de poort): de dekking voor het kwaliteitsrapport (scripts/kwaliteit.py), per statement.
+    coverage: {
+      provider: "v8",
+      reporter: ["json"],
+      reportsDirectory: "coverage",
+      include: ["**/*.{ts,tsx}"],
+      exclude: ["**/*.test.ts", "**/*.d.ts", "scripts/**", "test/**", "e2e/**", ".next/**", "node_modules/**", "*.config.*"],
+    },
   },
 });
