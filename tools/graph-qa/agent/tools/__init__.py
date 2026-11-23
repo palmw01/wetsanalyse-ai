@@ -33,7 +33,7 @@ from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_ann
 from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
 from .regel_tools import REGEL_TOOLS, REGEL_TOOL_NAMEN, dispatch_regel
 from .connectortools import MODULES as CONNECTORMODULES, module_van
-from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
+from ..resultaat import BUDGET, TeGroot, compact, fout, resultaat, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
 from .. import overzicht
 
@@ -296,14 +296,62 @@ def _h_verwijst_naar_deze(g: GraphPort, a: dict[str, Any]) -> str:
 _INHOUD_DIEPTE = 4
 
 
+# Hoe je de tekst leest van een bepaling waaronder de opbouw stopt.
+_LEES_BEPALING = {"Artikel": ("get_artikel", "artikel"), "Divisie": ("get_bepaling", "nummer")}
+
+
+def _inhoud_zonder_delen(g: GraphPort, bwb_id: str, vanaf: str) -> str:
+    """`inhoudsopgave(vanaf=…)` op een deel zonder onderliggende hoofdstukken, artikelen of divisies.
+
+    De inhoudsopgave volgt alleen containerniveaus. Onder een bepaling (een artikel; een divisie als 1.1.2 van de
+    Leidraad Invordering 2008, met geneste nummering Artikel 1 → 1.1 → 1.1.2) hangen alleen leden en onderdelen, en die
+    horen bij de tekst. Nul rijen was daar een `ValueError` en in het denkproces "gaf een fout", terwijl de bepaling er
+    gewoon stond en Lex daarna verder zocht (acceptatie 23 nov 2026). Nu: staat het deel er, dan is dit een gewoon
+    resultaat met het deel, zijn ouder en de aanroep die de tekst leest; staat het er niet, een fout met een reden."""
+    try:
+        rij = next(iter(parse_select(g.sparql(queries.structuurdeel(bwb_id, vanaf)))), None)
+    except ValueError as exc:
+        # Een IRI die geen deel van deze regeling is (`queries._structuur_iri`).
+        return fout("deel_niet_gevonden", str(exc), bwb_id=bwb_id, vanaf=vanaf)
+    if rij is None:
+        return fout("deel_niet_gevonden", (
+            f"{vanaf!r} is geen deel van {bwb_id}. Zoek het deel met zoek_opbouw of search_wetgeving, of begin bij de "
+            "hele regeling (inhoudsopgave zonder vanaf)."), bwb_id=bwb_id, vanaf=vanaf,
+            alternatief={"tool": "inhoudsopgave", "args": {"bwb_id": bwb_id}})
+    soort, nummer = rij.get("soort", ""), rij.get("nummer", "")
+    deel = compact({"niveau": 1, "soort": soort, "nummer": nummer, "titel": rij.get("titel"), "iri": rij.get("node"),
+                    "onderdelen": 0})
+    lezen = _LEES_BEPALING.get(soort)
+    if lezen and nummer:
+        deel["lezen"] = {"tool": lezen[0], "args": {"bwb_id": bwb_id, lezen[1]: nummer}}
+    ouder = compact({"soort": rij.get("oudersoort"), "nummer": rij.get("oudernummer"), "iri": rij.get("ouder")})
+    if ouder.get("iri") and ouder["iri"] != queries.regeling_iri(bwb_id):
+        deel["ouder"] = {**ouder, "openen": {"tool": "inhoudsopgave", "args": {"bwb_id": bwb_id, "vanaf": ouder["iri"]}}}
+    naam = " ".join(x for x in (soort.lower(), nummer) if x) or "dit deel"
+    return resultaat([deel], volledig=True, toelichting=(
+        f"De opbouw stopt bij {naam}: daaronder hangen geen hoofdstukken, artikelen of divisies, alleen de tekst "
+        "(leden, onderdelen). Dat is geen fout. Lees de tekst met 'lezen'; de omliggende delen met 'openen' bij de ouder."),
+        extra={"bwb_id": bwb_id, "wortel": rij.get("node", ""), "telling": {soort or "Onbekend": 1},
+               "zonder_delen": naam})
+
+
 def _h_inhoudsopgave(g: GraphPort, a: dict[str, Any]) -> str:
     bwb_id, vanaf = a["bwb_id"], a.get("vanaf") or None
-    rijen = parse_select(g.sparql(queries.inhoudsopgave(bwb_id, vanaf, _INHOUD_DIEPTE)))
+    try:
+        query = queries.inhoudsopgave(bwb_id, vanaf, _INHOUD_DIEPTE)
+    except ValueError as exc:
+        if not (vanaf and vanaf.startswith(queries.NS) and queries._BWB_RE.match(str(bwb_id).strip())):
+            raise
+        # Een IRI die geen deel van deze regeling is (`queries._structuur_iri`).
+        return fout("deel_niet_gevonden", str(exc), bwb_id=bwb_id, vanaf=vanaf)
+    rijen = parse_select(g.sparql(query))
     if not rijen and not vanaf and (weg := _niet_in_graaf(g, bwb_id, {})):
         return weg
+    if not rijen and vanaf:
+        return _inhoud_zonder_delen(g, bwb_id, vanaf)
     if not rijen:
-        raise ValueError(f"Geen structuur gevonden voor {bwb_id}" + (f" vanaf {vanaf!r}" if vanaf else "")
-                         + ". Controleer het BWB-id (list_regelingen) of het deel.")
+        return fout("geen_opbouw", f"{bwb_id} staat in de kennisgraaf, maar zonder hoofdstukken, artikelen of divisies. "
+                    "Lees de regeling met get_regeling_info of zoek erin met search_wetgeving.", bwb_id=bwb_id)
     args = {k: v for k, v in a.items() if k != "offset"}
     return inhoudsopgave_resultaat(rijen, bwb_id=bwb_id, wortel=rijen[0]["ouder"], args=args,
                                    query_diepte=_INHOUD_DIEPTE, offset=_geheel(a.get("offset"), 0, 0, 100_000))
