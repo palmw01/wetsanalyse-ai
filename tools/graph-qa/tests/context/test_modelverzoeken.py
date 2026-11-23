@@ -131,7 +131,7 @@ def test_centrale_agent_en_antwoordlus():
     _vergelijk("antwoord", llm.calls)
 
 
-# --- de annotatieketen: centrale agent, ophaal-agent, classifier en reviewer ------------------
+# --- de annotatieketen: ophaal-agent (de code routeert de opdracht), classifier en reviewer ------------------
 
 LID = "De ontvanger verleent binnen zes weken uitstel van betaling, indien de belastingplichtige daarom verzoekt."
 LID_TSV = json.dumps(f'?nummer\t?tekst\t?jci\n"1"\t"{LID}"@nl\t"jci"')
@@ -140,8 +140,6 @@ DOEL_JSON = '{"bwbId":"BWBR0004770","artikel":"9","lid":"1","nummer":"","citeert
 
 def _aanloop() -> list[Any]:
     return [
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer artikel 9 lid 1 van de Invorderingswet 1990"})],
-                 "tool_use"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block(DOEL_JSON)], "end_turn"),
     ]

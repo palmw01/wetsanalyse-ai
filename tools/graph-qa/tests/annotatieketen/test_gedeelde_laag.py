@@ -66,7 +66,6 @@ def _events(hergebruik: str = "auto") -> list[dict]:
     def kies(toegestaan, fragment):
         return "Rechtssubject" if fragment == "De ontvanger" and "Rechtssubject" in toegestaan else GEEN_ANNOTATIE
     llm = KetenLLM([
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"2","nummer":"","citeertitel":"IW 1990"}')], "end_turn"),
     ], kies=kies)

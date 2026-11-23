@@ -244,6 +244,26 @@ def werkgebied_annoteeropdracht(vraag: str) -> str:
     return "werkgebied" if _WG_GEHEEL_RE.search(vraag) else ""
 
 
+#: Een opdracht om te annoteren, in de gebiedende wijs vooraan ("annoteer …", "graag markeren …") of als verzoek ("kun je …
+#: annoteren?"). "Welke bepalingen zijn al geannoteerd?" en "wat betekent annoteren?" zijn geen opdracht.
+_ANNOTEEROPDRACHT_RE = re.compile(
+    r"^\W*(?:(?:graag|svp|alsjeblieft|nu|nog\s+een\s+keer|opnieuw)\s+)?(?:annoteer|markeer|classificeer)\b"
+    r"|^\W*(?:kun|kunt|wil|wilt|zou|zoudt)\s+(?:je|jij|u)\b.*\b(?:annoteren|markeren|classificeren)\b",
+    re.IGNORECASE | re.DOTALL)
+
+
+def annoteeropdracht(vraag: str) -> bool:
+    """Is dit een opdracht om één bepaling te annoteren die de vraag zelf aanwijst ("annoteer leidraad artikel 1.1.2",
+    "kun je artikel 9 lid 1 IW annoteren?")? Dan gaat de beurt in code naar de annotatieketen, zonder de centrale agent.
+
+    Die moest de overdracht `annoteer` zelf kiezen, en deed dat niet altijd: in een gesprek waarin dezelfde bepaling al
+    geannoteerd was, schreef hij "de annotatie is al uitgevoerd en staat in de gesprekscontext", zonder tools en zonder
+    artefact (acceptatie 23 nov 2026: vier van de vijf keer). De keten hergebruikt een laag die af is zelf, en opent hem
+    naast het gesprek. Een opdracht zonder artikel ("annoteer lid 2", "doe hetzelfde voor lid 2") leunt op het gesprek:
+    die blijft bij de centrale agent. Meer artikelen tegelijk ook: daar weigert zijn overdracht met een melding."""
+    return bool(_ANNOTEEROPDRACHT_RE.search(vraag or "")) and len(lees_aanwijzing(vraag).artikelen) == 1
+
+
 #: Een verzoek om een bepaling op te nemen of toe te voegen (aan de bronselectie, het werkgebied): dat kan alleen met een
 #: bronnode in de graaf.
 _OPNEEM_RE = re.compile(r"\b(?:neem\b.*\bop\b|opnemen|voeg\b.*\btoe\b|toevoegen)", re.IGNORECASE)
@@ -663,6 +683,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return _keuze_regeling(writer, terug)
     if modus == "auto" and (melding := _buiten_graaf_melding(writer, state, vraag_nu, buiten, b.graph)):
         return melding
+    if modus == "auto" and not _open_kaartje(state) and annoteeropdracht(vraag_nu):
+        # Een annoteeropdracht die de bepaling zelf aanwijst: de annotatieketen, ook als dezelfde vraag eerder in het gesprek
+        # stond (`annoteeropdracht`). Na de melding voor een regeling buiten de graaf: die annoteert de keten niet.
+        _stap(writer, "Lex", _WORKER_STAP["annotatie"], route="annotatie")
+        logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": "annotatie", "route": "annoteeropdracht"})
+        return {"zelfstandige_vraag": vraag_nu, "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
+                "plan": "annotatie" + _herschreven(vraag_nu), "afwijzen": False, "annotaties_lezen": False}
     if modus == "auto" and (live_bepaling := lees_buiten(vraag_nu, buiten)):
         # De tekst van een artikel buiten de graaf: dezelfde workflow als een artikel uit de graaf (ADR-010, D1), met het
         # hele artikel in het blok `extern` en de controle op letterlijkheid. Ook in een gesprek: de vraag noemt het zelf.

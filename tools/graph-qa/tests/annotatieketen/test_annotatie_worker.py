@@ -22,8 +22,9 @@ DOEL_91 = '{"bwbId":"BWBR0004770","artikel":"9","lid":"1","nummer":"","citeertit
 
 def _aanloop(tool: str = "get_lid", invoer: dict | None = None, doel: str = DOEL_91,
              plan: str = "annoteer art 9 lid 1") -> list:
+    # Geen stap van de centrale agent: een annoteeropdracht die het artikel noemt, routeert de code
+    # (`supervisie.annoteeropdracht`). De ophaal-agent is de eerste modelaanroep.
     return [
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),                   # supervisor
         response([tool_block("t1", tool, invoer or {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})],
                  "tool_use"),
         response([text_block(doel)], "end_turn"),
@@ -200,7 +201,7 @@ def test_onoplosbare_bronnode_valt_niet_terug_op_de_trace():
 
     elementen = [e["element"] for e in events if e["type"] == "element"]
     assert elementen == []
-    assert llm.index == 3 and len(llm.calls) == 3, "geen classifier-call op een onoplosbare bron"
+    assert llm.index == 2 and len(llm.calls) == 2, "geen classifier-call op een onoplosbare bron"
 
 
 def test_de_centrale_agent_annoteert_via_annoteer_het_gewone_pad():
@@ -208,9 +209,11 @@ def test_de_centrale_agent_annoteert_via_annoteer_het_gewone_pad():
     de bepaling en de hybride keten annoteert. Dezelfde events als via de supervisor (`doel`, `element`)."""
     from agent.agentvorm import CENTRAAL  # noqa: F401 – de vorm van de beurt
 
-    vraag = "Annoteer artikel 9 lid 1 van de Invorderingswet 1990."
-    centraal = response([tool_block("c1", "annoteer", {"vraag": vraag})], "tool_use")
-    llm = KetenLLM([centraal, *_aanloop()[1:]], kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
+    # Een opdracht zonder artikel leunt op het gesprek: die routeert de code niet, de centrale agent geeft haar door.
+    vraag = "Kun je dat lid ook annoteren?"
+    centraal = response([tool_block("c1", "annoteer", {"vraag": "Annoteer artikel 9 lid 1 van de Invorderingswet 1990."})],
+                        "tool_use")
+    llm = KetenLLM([centraal, *_aanloop()], kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
     events = _run(answer_stream(vraag, settings=make_settings(), llm=llm,
                                 graph=FakeGraph(result=LID_TSV)))
     doel = next(e for e in events if e["type"] == "doel")["doel"]

@@ -53,9 +53,9 @@ def _ketencalls(llm) -> list[dict]:
 
 
 def _aanloop() -> list:
-    """Supervisor + de twee ophaal-beurten – de weg zonder meegegeven doel."""
+    """De twee ophaal-beurten – de weg zonder meegegeven doel. Een annoteeropdracht die het artikel noemt, routeert de
+    code (`supervisie.annoteeropdracht`): geen stap van de centrale agent."""
     return [
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})],
                  "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1"}')], "end_turn"),
@@ -87,7 +87,7 @@ def test_from_env_leest_de_rol_modellen():
 
 
 def test_elke_rol_draait_op_zijn_eigen_model():
-    """De volgorde van de calls is de volgorde van de keten: centrale agent → ophaal ×2 → classifier (→ reviewer)."""
+    """De volgorde van de calls is de volgorde van de keten: ophaal ×2 → classifier (→ reviewer)."""
     llm = _keten(_aanloop())
     _run(answer_stream(
         VRAAG,
@@ -96,8 +96,8 @@ def test_elke_rol_draait_op_zijn_eigen_model():
     ))
 
     modellen = [c["model"] for c in llm.calls]
-    assert modellen[:3] == ["sterk", "middel", "middel"], "de centrale agent draait op het hoofdmodel"
-    assert _ketencalls(llm) and set(modellen[3:]) == {"sterk"}, "wie het oordeel velt, draait op het hoofdmodel"
+    assert modellen[:2] == ["middel", "middel"], "de ophaal-agent draait op zijn eigen model"
+    assert _ketencalls(llm) and set(modellen[2:]) == {"sterk"}, "wie het oordeel velt, draait op het hoofdmodel"
 
 
 def test_zonder_overrides_draait_alles_op_een_model():
@@ -155,7 +155,7 @@ def test_een_half_doel_gaat_gewoon_de_gewone_weg():
         VRAAG, doel={"bwbId": "BWBR0004770"}, settings=make_settings(),
         llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert "rol agent" in llm.calls[0]["system"] and llm.index == 3, "de centrale agent en de ophaal-agent draaiden"
+    assert llm.index == 2 and _ketencalls(llm), "de ophaal-agent draaide, daarna de keten"
 
 
 def test_zonder_doel_verandert_er_niets():
@@ -163,7 +163,7 @@ def test_zonder_doel_verandert_er_niets():
     events = _run(answer_stream(
         VRAAG, settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert llm.index == 3 and _ketencalls(llm)
+    assert llm.index == 2 and _ketencalls(llm)
     assert "De ontvanger" in [e["element"]["tekst"] for e in events if e["type"] == "element"]
 
 
