@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { icoonKnopKlasse } from "@/components/ui/Button";
+import { IcoonKnop } from "@/components/ui/Button";
 import { NaarPagina } from "@/components/ui/Icoon";
-import { MeerMenu } from "@/components/ui/MeerMenu";
+import { MeerMenu, MenuLink } from "@/components/ui/MeerMenu";
+import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
 import { metVanuit } from "@/lib/terugNaarGesprek";
 
 /** Het kruisje rechtsboven in elk paneel en venster: één icoon, één lijndikte, één plek. */
@@ -63,19 +63,22 @@ export function usePaneelKopVulling(vulling: KopVulling | null, sleutel: string)
 /** De kop van elk paneel naast het gesprek (spoor I4; één schil voor elk artefact sinds 4 nov 2026; één vaste indeling
  *  sinds 8 nov 2026). Hoogstens twee rijen, nooit wrappend:
  *
- *  1. soort en titel (afgekapt), en rechtsboven het kopgereedschap: ↗ *Open volledige pagina*, ⋯ en ✕ – altijd in die
- *     volgorde en op die plek, zodat sluiten en de pagina nooit wandelen;
+ *  1. soort en titel (afgekapt), en rechtsboven het kopgereedschap: ⋯, dan in het zijpaneel *Vergroten* of *Verkleinen*
+ *     en *Inklappen* (`ZijpaneelContext.bediening`), en ✕ – altijd in die volgorde en op die plek. **De kop is de enige
+ *     bediening van het paneel** (besluit gebruiker 23 nov 2026): er is geen balk erboven, en geen knop naar een pagina
+ *     die op *Vergroten* lijkt. Vergroten is de volle weergave binnen de werkplek; de pagina zelf (een link om te delen)
+ *     staat als *Openen als pagina* bovenaan in ⋯, met het gesprek erbij (`?vanuit=`, `lib/terugNaarGesprek.ts`);
  *  2. alleen als er iets is: de status links en één hoofdactie rechts (de annotatie: *Annotatie afronden*).
  *
  *  Kopiëren en exporteren, verwijderen en de zeldzame bewerkingen van een soort staan in het menu ⋯ (eerst wat de
  *  schil geeft, dan wat de inhoud via `usePaneelKopVulling` toevoegt; *Verwijderen* onderaan): in een paneel van 360 px
- *  passen ze niet naast de status. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (tabs
- *  en *Vergroten*), zodat geen paneel een eigen kop of sluitknop nodig heeft. `app/paneelKop.test.ts` bewaakt het. */
-/** De tabs van het paneel naast het gesprek, op een telefoon (het bronvenster, PR 3b): daar is het paneel een sheet en
- *  staat er geen zijpaneel met een balk, dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze. */
+ *  passen ze niet naast de status. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (de
+ *  weergaven van de inhoud: Tekst | Graaf), zodat geen paneel een eigen kop of sluitknop nodig heeft. `app/paneelKop.test.ts` bewaakt het. */
+/** De tabs van het paneel naast het gesprek, op een telefoon (het bronvenster, PR 3b): daar is het paneel een sheet,
+ *  dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze, en pas bij twee of meer. */
 export const PaneelTabsContext = createContext<React.ReactNode>(null);
 
-/** Het gesprek waarin het paneel openstaat (de werkplek geeft het). *Open volledige pagina* neemt het mee als
+/** Het gesprek waarin het paneel openstaat (de werkplek geeft het). *Openen als pagina* neemt het mee als
  *  `?vanuit=`, zodat de pagina een weg terug naar het gesprek heeft (`lib/terugNaarGesprek.ts`). */
 export const PaneelGesprekContext = createContext<string | null>(null);
 
@@ -83,7 +86,7 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
   titel: string;
-  /** Waar *Open volledige pagina* heen gaat; zonder geen knop (de rondleiding, een overzicht). */
+  /** Waar *Openen als pagina* (in ⋯) heen gaat; zonder geen regel (de rondleiding, een overzicht). */
   pagina?: string;
   /** De stand, links op de tweede rij: een `StatusLabel`, eventueel met een meta ("revisie 3"). */
   status?: React.ReactNode;
@@ -103,7 +106,9 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
   const stand = status ?? vulling?.status;
   const actie = hoofdactie ?? vulling?.hoofdactie;
   const eigenMenu = vulling?.menu;
-  const heeftMenu = Boolean(menu || eigenMenu);
+  const heeftMenu = Boolean(pagina || menu || eigenMenu);
+  const zp = useContext(ZijpaneelContext);
+  const bediening = zp?.bediening;
   const tabs = useContext(PaneelTabsContext);
   const gesprek = useContext(PaneelGesprekContext);
   return (
@@ -116,19 +121,30 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
           <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
         </div>
         <div data-kop-gereedschap className="flex shrink-0 items-center gap-1.5">
-          {pagina && (
-            <Link href={metVanuit(pagina, gesprek)} aria-label="Open volledige pagina"
-              title={gesprek ? "Open volledige pagina (verlaat het gesprek; terug met Terug naar het gesprek)" : "Open volledige pagina"}
-              data-naar-pagina
-              className={icoonKnopKlasse("sm")}>
-              <NaarPagina />
-            </Link>
-          )}
           {heeftMenu && (
             <MeerMenu label={`Meer: ${titel}`} maat="sm" breedte="w-64">
-              {(sluit) => <>{menu?.(sluit)}{eigenMenu?.(sluit)}</>}
+              {(sluit) => <>
+                {pagina && (
+                  <MenuLink href={metVanuit(pagina, gesprek)} icoon={<NaarPagina />} data-naar-pagina
+                    title={gesprek ? "Je verlaat het gesprek; Terug naar het gesprek brengt je hier terug" : undefined}>
+                    Openen als pagina
+                  </MenuLink>
+                )}
+                {menu?.(sluit)}{eigenMenu?.(sluit)}
+              </>}
             </MeerMenu>
           )}
+          {zp && bediening && <>
+            <IcoonKnop size="sm" aria-label={zp.vergroot ? "Verkleinen" : "Vergroten"} aria-pressed={zp.vergroot}
+              title={zp.vergroot ? "Verkleinen: terug naast het gesprek" : "Vergroten: de volle weergave"}
+              onClick={() => zp.zetVergroot(!zp.vergroot)} data-paneel-vergroten>
+              {zp.vergroot ? <Verkleinen /> : <Vergroten />}
+            </IcoonKnop>
+            <IcoonKnop size="sm" aria-label={`${bediening.label} inklappen`} title={`${bediening.label} inklappen`}
+              onClick={bediening.inklappen} data-paneel-inklappen>
+              <Inklappen />
+            </IcoonKnop>
+          </>}
           {onSluit && <SluitKnop onSluit={onSluit} />}
         </div>
       </div>
@@ -143,4 +159,16 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
     {balk}
     </div>
   );
+}
+
+const SVG = { width: 16, height: 16, viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.6,
+  strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+function Vergroten() {
+  return <svg {...SVG}><path d="M12 3h5v5M8 17H3v-5M17 3l-6 6M3 17l6-6" /></svg>;
+}
+function Verkleinen() {
+  return <svg {...SVG}><path d="M16 9h-5V4M4 11h5v5M11 9l6-6M9 11l-6 6" /></svg>;
+}
+function Inklappen() {
+  return <svg {...SVG}><path d="M5 5l5 5-5 5M11 5l5 5-5 5" /></svg>;
 }

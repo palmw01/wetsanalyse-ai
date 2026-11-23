@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { IcoonKnop } from "@/components/ui/Button";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
-import { OPSLAG_BREEDTE, OPSLAG_INGEKLAPT, begrens, grenzen, leesBreedte, naToets } from "@/lib/zijpaneel";
+import { OPSLAG_BREEDTE, OPSLAG_INGEKLAPT, OPSLAG_VERGROOT, begrens, grenzen, leesBreedte, naToets } from "@/lib/zijpaneel";
 
 /** Voor de inhoud van het zijpaneel: er is één *Vergroten*, die van het paneel. De graaf leest `vergroot` in plaats van
  *  een eigen knop, en een inhoud die Escape zelf laag voor laag afpelt (de graaf: lagen → selectie → verkleinen →
@@ -14,11 +14,19 @@ export const ZijpaneelContext = createContext<{
   vergroot: boolean;
   zetVergroot: (v: boolean) => void;
   claimEscape: (ja: boolean) => void;
+  /** De bediening van het paneel voor de kop (`PaneelKop`): *Vergroten* of *Verkleinen* en *Inklappen*. Weg in de
+   *  rondleiding (`vast`). */
+  bediening?: { label: string; inklappen: () => void };
 } | null>(null);
 
 /** Het paneel naast het gesprek op een breed scherm (het bronvenster, PR 3a; naar het voorbeeld van Claude Code): één
  *  vaste kolom rechts, met een scheiding om de breedte te verslepen, *Inklappen* tot een strook en *Vergroten* over het
- *  gesprek heen. De breedte en de ingeklapte stand bewaart de browser (`lib/opslag.ts`). Onder 800 px is er geen
+ *  gesprek heen. De breedte, de ingeklapte en de vergrote stand bewaart de browser (`lib/opslag.ts`).
+ *
+ *  **Geen eigen balk** (besluit gebruiker 23 nov 2026): de kop van wat er open is (`PaneelKop`) is de enige bediening –
+ *  ⋯, *Vergroten* of *Verkleinen*, *Inklappen* en ✕ – via `ZijpaneelContext.bediening`. Vergroten is de volle weergave,
+ *  binnen de werkplek; de volle pagina staat als *Openen als pagina* in ⋯. Boven de inhoud staat alleen een tabrij, en
+ *  alleen bij twee of meer open items (`balk`). Onder 800 px is er geen
  *  zijpaneel maar een sheet (`Dialog side`); dit component staat daar niet.
  *
  *  De inhoud blijft gemount als het paneel ingeklapt is: wat je half had gelezen of ingevuld, staat er nog als je
@@ -34,7 +42,7 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
   hersteld?: boolean;
   /** In de rondleiding: altijd uitgeklapt, niets bewaard (de stappen wijzen in het paneel). */
   vast?: boolean;
-  /** Links in de balk boven de inhoud: de tabs van het paneel. */
+  /** De tabrij boven de inhoud; de werkplek geeft hem pas bij twee of meer open items. */
   balk?: ReactNode;
   /** Verhoogt als het paneel moet inklappen (Escape in de inhoud verbergt het paneel, het sluit geen tab). */
   inklapSignaal?: number;
@@ -43,17 +51,27 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
   const ref = useRef<HTMLDivElement>(null);
   const [breedte, setBreedte] = useState<number>();
   const [ingeklapt, setIngeklapt] = useState(false);
-  const [vergroot, setVergroot] = useState(false);
+  const [vergroot, setVergrootStand] = useState(false);
   const [sleept, setSleept] = useState(false);
   // De breedte van de werkplek en van het paneel zelf, gemeten: tijdens het renderen lezen we geen refs.
   const [maat, setMaat] = useState({ container: 1280, paneel: 544 });
+
+  // Vergroten en verkleinen, altijd bewaard: na herladen staat het paneel zoals je het verliet.
+  const setVergroot = useCallback((v: boolean) => {
+    setVergrootStand(v);
+    if (!vast) schrijfOpslag(OPSLAG_VERGROOT, v || undefined);
+  }, [vast]);
 
   // Pas na het mounten: de server kent geen opslag.
   useEffect(() => {
     if (vast) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBreedte(leesOpslag(OPSLAG_BREEDTE, leesBreedte));
-    if (hersteld) setIngeklapt(leesOpslag(OPSLAG_INGEKLAPT, (r) => (r === true ? true : undefined)) ?? false);
+    if (hersteld) {
+      const dicht = leesOpslag(OPSLAG_INGEKLAPT, (r) => (r === true ? true : undefined)) ?? false;
+      setIngeklapt(dicht);
+      if (!dicht) setVergrootStand(leesOpslag(OPSLAG_VERGROOT, (r) => (r === true ? true : undefined)) ?? false);
+    }
     // Alleen bij het mounten: daarna beslist de kijker zelf.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vast]);
@@ -67,7 +85,7 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIngeklapt(true);
     setVergroot(false);
-  }, [inklapSignaal, vast]);
+  }, [inklapSignaal, vast, setVergroot]);
 
   // Iets anders geopend: uitklappen (de eerste keer telt het mounten al als opening).
   const vorige = useRef(sleutel);
@@ -92,7 +110,7 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
     };
     document.addEventListener("keydown", opToets, true);
     return () => document.removeEventListener("keydown", opToets, true);
-  }, [vergroot]);
+  }, [vergroot, setVergroot]);
 
   useEffect(() => {
     const el = ref.current;
@@ -138,9 +156,12 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
     doel.addEventListener("pointercancel", los);
   }
 
+  const klapRef = useRef(klap);
+  useEffect(() => { klapRef.current = klap; });
   const context = useMemo(() => ({
     vergroot, zetVergroot: setVergroot, claimEscape: (ja: boolean) => { escapeGeclaimd.current = ja; },
-  }), [vergroot]);
+    bediening: vast ? undefined : { label, inklappen: () => klapRef.current(true) },
+  }), [vergroot, setVergroot, vast, label]);
   const open = vast || !ingeklapt;
   const { min, max } = grenzen(maat.container);
   const stijl = vergroot || !open ? undefined : breedte ? { width: `${breedte}px` } : undefined;
@@ -172,19 +193,8 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
           className={`focus-ring absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none rounded-sm hover:bg-lint/20 ${sleept ? "bg-lint/30" : ""}`} />
       )}
       <div className={open ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-        {!vast && (
-          <div data-zijpaneel-balk className="flex h-10 shrink-0 items-center justify-end gap-1.5 border-b border-l border-line bg-paper px-2">
-            {balk}
-            {!vergroot && (
-              <IcoonKnop aria-label={`${label} inklappen`} title={`${label} inklappen`} onClick={() => klap(true)} data-paneel-inklappen>
-                <PijlRechts />
-              </IcoonKnop>
-            )}
-            <IcoonKnop aria-label={vergroot ? "Verkleinen" : "Vergroten"} title={vergroot ? "Terug naast het gesprek" : "Paneel vergroten"}
-              aria-pressed={vergroot} onClick={() => setVergroot(!vergroot)} data-paneel-vergroten>
-              {vergroot ? <Verkleinen /> : <Vergroten />}
-            </IcoonKnop>
-          </div>
+        {balk && (
+          <div data-paneel-tabs className="flex shrink-0 items-center border-b border-l border-line bg-paper px-2 py-1">{balk}</div>
         )}
         <div className="flex min-h-0 flex-1 flex-col"><ZijpaneelContext.Provider value={context}>{children}</ZijpaneelContext.Provider></div>
       </div>
@@ -195,15 +205,6 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
 const SVG = { width: 14, height: 14, viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.6,
   strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 
-function PijlRechts() {
-  return <svg {...SVG}><path d="M5 5l5 5-5 5M11 5l5 5-5 5" /></svg>;
-}
 function PijlLinks() {
   return <svg {...SVG}><path d="M15 5l-5 5 5 5M9 5l-5 5 5 5" /></svg>;
-}
-function Vergroten() {
-  return <svg {...SVG}><path d="M12 3h5v5M8 17H3v-5M17 3l-6 6M3 17l6-6" /></svg>;
-}
-function Verkleinen() {
-  return <svg {...SVG}><path d="M16 9h-5V4M4 11h5v5M11 9l6-6M9 11l-6 6" /></svg>;
 }

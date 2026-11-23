@@ -7,8 +7,9 @@
  *  - de scheiding: slepen binnen de grenzen (320 px tot 60%, het gesprek minstens 300 px), de pijltjes als hij de
  *    focus heeft, dubbelklik terug naar de standaard;
  *  - inklappen tot een strook en weer uitklappen, met de inhoud nog op zijn plek;
- *  - vergroten over het gesprek met dezelfde balk en tabs; *Verkleinen* en Escape zetten het terug (het paneel blijft open);
- *  - *Open volledige pagina* neemt het gesprek mee (`?vanuit=`); de pagina heeft *Terug naar het gesprek*, ook na herladen,
+ *  - de kop is de enige bediening (geen balk): vergroten is de volle weergave, met *Verkleinen*, *Inklappen* en ✕ in de
+ *    kop; *Verkleinen* en Escape zetten het terug, na herladen blijft het vergroot; een tabrij alleen bij twee of meer;
+ *  - *Openen als pagina* (in ⋯) neemt het gesprek mee (`?vanuit=`); de pagina heeft *Terug naar het gesprek*, ook na herladen,
  *    en terug staat het paneel er weer met dezelfde tabs; de terugknop van de browser werkt;
  *  - na herladen dezelfde breedte (per browser bewaard); iets anders openen klapt een ingeklapt paneel uit;
  *  - de tabs (PR 3b): elke opening een tab, met de tooltip waar hij vandaan kwam; wisselen, sluiten (de buur wordt actief),
@@ -19,6 +20,20 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+/** *Openen als pagina* staat in het menu ⋯ van de paneelkop (besluit gebruiker 23 nov 2026): open het menu, geef de regel. */
+async function paginaLink(paneel) {
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  const regel = page.getByRole("menuitem", { name: "Openen als pagina" });
+  await regel.waitFor();
+  return regel;
+}
+/** De link van *Openen als pagina*; het menu gaat daarna weer dicht. */
+async function paginaHref(paneel) {
+  const href = await (await paginaLink(paneel)).getAttribute("href");
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  await page.getByRole("menuitem", { name: "Openen als pagina" }).waitFor({ state: "detached" });
+  return href;
+}
 
 /** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
 const NIET_NAGEBOOTST = [
@@ -155,20 +170,26 @@ try {
   await stand("open", "Escape verkleint");
   assert.equal(await page.locator("[data-context-paneel=bron]").count(), 1, "en sluit het paneel niet");
 
-  // --- Vergroten is een weergave van hetzelfde paneel: de balk met de tabs blijft, *Verkleinen* zet het terug ---
+  // --- De kop is de enige bediening (besluit gebruiker 23 nov 2026): geen balk; vergroten is de volle weergave, met
+  // dezelfde kop, en *Verkleinen* op dezelfde plek zet het terug. Na herladen blijft het vergroot. ---
   const tabsVoor = await page.locator("[data-paneel-tab]").evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-tab")));
-  await page.getByRole("button", { name: "Vergroten", exact: true }).click();
+  const gereedschap = page.locator("[data-context-paneel=bron] [data-kop-gereedschap]");
+  assert.equal(await page.locator("[data-zijpaneel-balk]").count(), 0, "geen balk boven het paneel");
+  await gereedschap.getByRole("button", { name: "Vergroten", exact: true }).click();
   await stand("vergroot");
-  assert.ok(await page.locator("[data-zijpaneel-balk] [data-paneel-tab]").first().isVisible(), "vergroot staan de tabs in de balk");
-  assert.equal(await page.getByRole("button", { name: "Paneel inklappen" }).count(), 0, "vergroot is er geen inklappen");
-  await page.getByRole("button", { name: "Verkleinen", exact: true }).click();
+  for (const naam of ["Verkleinen", "Paneel inklappen", "Sluiten"])
+    assert.equal(await gereedschap.getByRole("button", { name: naam, exact: true }).count(), 1, `vergroot heeft de kop ${naam}`);
+  assert.equal(await page.getByRole("link", { name: "Open volledige pagina" }).count(), 0, "geen losse knop naar de pagina");
+  await page.reload();
+  await stand("vergroot", "na herladen blijft het paneel vergroot");
+  await gereedschap.getByRole("button", { name: "Verkleinen", exact: true }).click();
   await stand("open", "Verkleinen zet het paneel terug naast het gesprek");
   assert.equal(await page.locator("[data-context-paneel=bron]").count(), 1, "met dezelfde inhoud");
   assert.deepEqual(await page.locator("[data-paneel-tab]").evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-tab"))),
     tabsVoor, "en dezelfde tabs");
 
-  // --- *Open volledige pagina* verlaat het gesprek, met een weg terug (melding gebruiker 23 nov 2026) ---
-  const naarPagina = page.locator("[data-context-paneel=bron]").getByRole("link", { name: "Open volledige pagina" });
+  // --- *Openen als pagina* (in ⋯) verlaat het gesprek, met een weg terug (melding gebruiker 23 nov 2026) ---
+  const naarPagina = await paginaLink(page.locator("[data-context-paneel=bron]"));
   assert.match(await naarPagina.getAttribute("href"), /[?&]vanuit=g1$/, "de link neemt het gesprek mee");
   await naarPagina.click();
   await page.waitForURL((u) => u.pathname === "/bronnen");
@@ -213,7 +234,7 @@ try {
   // Een tab sluiten: de buur wordt actief.
   await page.getByRole("button", { name: "Sluit tab Artikel 9, lid 2" }).click();
   await page.locator("[data-context-paneel=bibliotheek]").waitFor();
-  assert.equal(await tabs.count(), 1);
+  assert.equal(await tabs.count(), 0, "met één open item geen tabrij: de kop is genoeg");
   // Herladen: de tabs van dit gesprek komen terug, de actieve open.
   await bronTabOpnieuw();
   await page.reload();
@@ -264,7 +285,7 @@ try {
 
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Verkleinen en Escape terug, Open volledige pagina met een weg terug naar het gesprek, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling.");
+  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, de kop als enige bediening (vergroten bewaard, Verkleinen en Escape terug), Openen als pagina met een weg terug naar het gesprek, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling.");
 } finally {
   await browser.close();
 }

@@ -1079,8 +1079,9 @@ export function WerkplekClient({
   }
 
   // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
-  // De tabrij: in de balk van het zijpaneel, en op een telefoon boven de kop van de sheet (`PaneelTabsContext`).
-  const tabRij = tabStand.tabs.length > 0 && (
+  // De tabrij: boven de inhoud van het zijpaneel, en op een telefoon boven de kop van de sheet (`PaneelTabsContext`).
+  // Pas bij twee of meer open items: met één is de kop van wat er open is genoeg (✕ sluit hem). Geen eigen balk.
+  const tabRij = tabStand.tabs.length > 1 && (
     <TabRij label="Open in het paneel" active={tabStand.actief}
       tabs={tabStand.tabs.map((t) => { const l = tabLabel(t); return { key: t.sleutel, label: l.kort, title: l.vol, onSluit: () => sluitPaneelTab(t.sleutel) }; })}
       onChange={(k) => { const t = tabStand.tabs.find((x) => x.sleutel === k); if (t && k !== tabStand.actief) laad(t.inhoud); }} />

@@ -26,6 +26,20 @@ import { sessieCookies } from "./sessie.mjs";
 import { sse } from "./nepApi.mjs";
 /** De link naar de volle pagina zonder het gesprek waar hij vandaan kwam (`?vanuit=`, `lib/terugNaarGesprek.ts`). */
 const zonderVanuit = (href) => href?.replace(/[?&]vanuit=[^&#]*$/, "");
+/** *Openen als pagina* staat in het menu ⋯ van de paneelkop (besluit gebruiker 23 nov 2026): open het menu, geef de regel. */
+async function paginaLink(paneel) {
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  const regel = page.getByRole("menuitem", { name: "Openen als pagina" });
+  await regel.waitFor();
+  return regel;
+}
+/** De link van *Openen als pagina*; het menu gaat daarna weer dicht. */
+async function paginaHref(paneel) {
+  const href = await (await paginaLink(paneel)).getAttribute("href");
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: /^Meer:/ }).click();
+  await page.getByRole("menuitem", { name: "Openen als pagina" }).waitFor({ state: "detached" });
+  return href;
+}
 
 /** Open het menu ⋯ van de paneelkop in `paneel`, doe `fn` op het menu en sluit het weer (Escape). */
 async function inKopMenu(paneel, fn) {
@@ -296,7 +310,7 @@ try {
   await regels.click();
   const regelsPaneel = page.getByRole("region", { name: "Afleidingsregels", exact: true });
   await regelsPaneel.locator("[data-regel-keten-lijst]").getByText("Nog geen afleidingsregels", { exact: false }).waitFor();
-  assert.equal(zonderVanuit(await regelsPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
+  assert.equal(zonderVanuit(await paginaHref(regelsPaneel)),
     "/werkgebieden/wg1/artefacten/regels");
   await regelsPaneel.getByRole("button", { name: "Sluiten" }).click();
   await regelsPaneel.waitFor({ state: "detached" });
@@ -310,7 +324,7 @@ try {
   // F3e: geen Lex-knoppen in het paneel; starten en meedenken vraag je in het gesprek.
   for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
     assert.equal(await begrippenPaneel().getByRole("button", { name: naam }).count(), 0, String(naam));
-  assert.equal(zonderVanuit(await begrippenPaneel().getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
+  assert.equal(zonderVanuit(await paginaHref(begrippenPaneel())),
     "/werkgebieden/wg1/artefacten/begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
@@ -356,7 +370,7 @@ try {
   await begripPaneel.locator("[data-begrip-paneel=b9]").waitFor();
   assert.equal(await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden|Zoek de brondefinitie/ }).count(), 0,
     "het paneel is voor beoordelen: geen Lex-knoppen");
-  assert.equal(zonderVanuit(await begripPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
+  assert.equal(zonderVanuit(await paginaHref(begripPaneel)),
     "/werkgebieden/wg1/begrippen/b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
@@ -517,9 +531,12 @@ try {
   const bv = page.getByRole("region", { name: "Begrip: Termijn" });
   // Zolang de kiezer de versie laadt (de mock wacht even) is er niets te exporteren: het zou de stand van nu zijn.
   await bv.locator("[data-artefact]").waitFor();
-  assert.equal(await bv.locator("[data-paneel-kop] [data-meer-knop]").count(), 0, "geen export voordat de versie vaststaat");
+  // In ⋯ staat dan alleen *Openen als pagina* (de pagina hangt niet van de versie af). Alleen toetsen als de kiezer na
+  // het lezen nog laadt: dan las het menu een stand van vóór de versie.
+  const kopRegels = await inKopMenu(bv, (m) => m.getByRole("menuitem").allInnerTexts());
+  if (!await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").count())
+    assert.deepEqual(kopRegels.map((t) => t.trim()), ["Openen als pagina"], "geen export voordat de versie vaststaat");
   await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
-  await bv.locator("[data-paneel-kop] [data-meer-knop]").waitFor();
   await bv.locator("[data-begrip-paneel][data-alleen-lezen]").getByText("De oude definitie.").waitFor();
   assert.equal(await bv.getByRole("button", { name: "Betekenis bewerken" }).count(), 0, "een oude versie is niet te bewerken");
   assert.equal(await inKopMenu(bv, (m) => m.getByRole("menuitem", { name: "Begrip verwijderen" }).count()), 0);

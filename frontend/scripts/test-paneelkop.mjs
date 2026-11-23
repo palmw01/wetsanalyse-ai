@@ -6,8 +6,8 @@
  * Voor elk paneel naast het gesprek – annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag,
  * bronselectie, Bronnen – en voor de annotatiepagina, op 375, 400, 800 en 1280 px:
  *  - geen horizontale scroll;
- *  - de kop heeft hoogstens twee rijen: titel met ↗ ⋯ ✕ rechtsboven, en de status links met de hoofdactie rechts;
- *  - ✕ staat het meest rechts, ↗ en ⋯ ervoor op dezelfde hoogte, en het gereedschap blijft binnen het paneel, ook bij een
+ *  - de kop heeft hoogstens twee rijen: titel met ⋯ (en in het zijpaneel vergroten en inklappen) en ✕ rechtsboven, en de status links met de hoofdactie rechts;
+ *  - ✕ staat het meest rechts, de rest ervoor op dezelfde hoogte, en het gereedschap blijft binnen het paneel, ook bij een
  *    lange titel;
  *  - in het menu ⋯ staat *Verwijderen* als laatste (annotatie, werkgebied, begrip);
  *  - op een aanraakscherm zijn de knoppen in de kop minstens 44 × 44 px.
@@ -118,7 +118,7 @@ async function meetKop(page, naam) {
     const rechts = Math.max(...r.gereedschap.map((g) => g.r));
     assert.ok(Math.abs(rechts - r.sluit.r) < 1, `${naam}: ✕ staat het meest rechts`);
     const mid = (g) => g.y + g.h / 2;
-    for (const g of r.gereedschap) assert.ok(Math.abs(mid(g) - mid(r.sluit)) <= 2, `${naam}: ↗ ⋯ ✕ op één hoogte`);
+    for (const g of r.gereedschap) assert.ok(Math.abs(mid(g) - mid(r.sluit)) <= 2, `${naam}: het gereedschap op één hoogte`);
     assert.ok(r.sluit.r <= r.kop.r + 1, `${naam}: het gereedschap blijft binnen de kop`);
   }
   if (r.stand?.rechts) {
@@ -237,4 +237,4 @@ for (const breedte of [375, 400, 800, 1280]) {
 assert.deepEqual(fouten, []);
 await browser.close();
 controleerOnbekend();
-console.log("Browser OK: één paneelkop voor annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag, Bronnen en de annotatiepagina op 375, 400, 800 en 1280 px; geen horizontale scroll, hoogstens twee rijen, ↗ ⋯ ✕ rechtsboven, Verwijderen onderaan in ⋯, 44 px op touch, het rapport vanuit ⋯ met en zonder voorstellen van Lex.");
+console.log("Browser OK: één paneelkop voor annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag, Bronnen en de annotatiepagina op 375, 400, 800 en 1280 px; geen horizontale scroll, hoogstens twee rijen, het gereedschap met ✕ rechtsboven, Verwijderen onderaan in ⋯, 44 px op touch, het rapport vanuit ⋯ met en zonder voorstellen van Lex.");

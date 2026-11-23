@@ -45,9 +45,9 @@ describe("de weg terug naar het gesprek", () => {
     expect(gesprekHref("4c31")).toBe("/workbench?gesprek=4c31");
   });
 
-  it("is één patroon: de paneelkop neemt het gesprek mee, de root-layout toont de strook op elke pagina", () => {
+  it("is één patroon: *Openen als pagina* in de paneelkop neemt het gesprek mee, de root-layout toont de strook op elke pagina", () => {
     const kop = bron("components/ui/PaneelKop.tsx");
-    expect(kop).toMatch(/<Link href=\{metVanuit\(pagina, gesprek\)\}/);
+    expect(kop).toMatch(/<MenuLink href=\{metVanuit\(pagina, gesprek\)\}/);
     expect(kop).toMatch(/useContext\(PaneelGesprekContext\)/);
     expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/<PaneelGesprekContext\.Provider value=\{demo \? null : gesprekId\}>/);
     expect(bron("app/layout.tsx")).toMatch(/<TerugNaarGesprek \/>/);
