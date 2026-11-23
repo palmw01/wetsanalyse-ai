@@ -459,11 +459,11 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 ### Het kwaliteitsrapport
 
 De poort meet ook de kwaliteit van de code, maar **als rapport, niet als poort**: de job `kwaliteit`
-(`scripts/kwaliteit.py`) houdt niets tegen, en `poort` telt hem nooit als rood (`tests/poort/test_kwaliteit.py` bewaakt
-dat). Hij meet, vergeleken met de doelbranch:
+(`scripts/kwaliteit.py`) houdt niets tegen: `poort` wacht er niet op (`tests/poort/test_kwaliteit.py` bewaakt dat). Hij
+meet, vergeleken met de doelbranch:
 
 - **ruff** met de regels uit `ruff.toml`: fouten (pyflakes), bugrisico's (bugbear), beveiligingsrisico's (bandit) en
-  complexiteit (mccabe, grens 15), voor alle Python in de repo; geen stijlregels;
+  complexiteit (mccabe), voor alle Python in de repo; geen stijlregels;
 - **testdekking** van api en graph-qa (`pytest-cov` in de shards, `[tool.coverage.run]` in hun `pyproject.toml`) en van
   de frontend (vitest met `--coverage`), alleen voor de suites die de PR draaide; de browserregressie telt niet mee.
 
@@ -477,8 +477,8 @@ run=$(gh run list --workflow poort --branch "$(git branch --show-current)" -L1 -
 gh run download "$run" -n kwaliteitsrapport -D /tmp/kwaliteit && cat /tmp/kwaliteit/kwaliteit.md
 ```
 
-Lokaal hetzelfde rapport, vóór je pusht (dekking alleen als je die lokaal mat, zie de docstring van het script):
-`uv run --no-project --with ruff==0.17.6 --with coverage==7.17.4 python scripts/kwaliteit.py`.
+Lokaal hetzelfde rapport, vóór je pusht: `uv run scripts/kwaliteit.py` (dekking alleen als je die lokaal mat; zie de
+docstring van het script).
 
 ### Infra
 

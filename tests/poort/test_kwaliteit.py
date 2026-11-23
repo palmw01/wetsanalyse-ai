@@ -1,9 +1,9 @@
 """Het kwaliteitsrapport (`scripts/kwaliteit.py`, job `kwaliteit` in de poort): een rapport dat niets tegenhoudt.
 
-Wat stil mis kan gaan: een stap die toch faalt en de poort rood maakt (dan wordt een meting een poort zonder dat iemand
-dat besloot), een testjob die zijn dekking onder een andere naam bewaart dan het script leest (dan staat er "niet
-gemeten" terwijl er gemeten is), of uiteenlopende versies van ruff en coverage tussen de poort en het lokale commando.
-Daaronder de rekenregels van het script zelf. Alleen de standaardbibliotheek, zoals de andere poorttests.
+Wat stil mis kan gaan: `poort` die toch op het rapport wacht of een stap die faalt (dan wordt een meting een poort zonder
+dat iemand dat besloot), of een testjob die zijn dekking onder een andere naam bewaart dan het script leest (dan staat
+er "niet gemeten" terwijl er gemeten is). Daaronder de rekenregels van het script zelf. Alleen de standaardbibliotheek,
+zoals de andere poorttests.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from routeboek import WORTEL
 
 sys.path.insert(0, str(WORTEL / "scripts"))
 import kwaliteit  # noqa: E402
-from test_poort_parallel import JOBS  # noqa: E402
+from test_poort_parallel import JOBS, RAPPORT  # noqa: E402
 
 JOB = JOBS["kwaliteit"]
 
@@ -24,23 +24,24 @@ def _stappen(job: str) -> list[str]:
     return re.split(r"^      - ", job.partition("\n    steps:\n")[2], flags=re.M)[1:]
 
 
+def test_de_poort_wacht_niet_op_het_rapport():
+    assert RAPPORT == {"kwaliteit"}
+    assert "kwaliteit" not in re.search(r"^    needs: \[(.*)\]\s*$", JOBS["poort"], re.M).group(1)
+
+
 def test_elke_stap_van_het_rapport_mag_falen():
+    """Anders staat er een rode job op de PR, al houdt hij de merge niet tegen."""
     for stap in _stappen(JOB):
         if stap.startswith("uses: actions/checkout@"):
             continue
-        assert "continue-on-error: true" in stap, f"deze stap kan de poort rood maken:\n{stap}"
-
-
-def test_de_poort_telt_het_rapport_nooit_als_rood():
-    poort = JOBS["poort"]
-    assert 'rapport = {"kwaliteit"}' in poort
-    assert "naam not in rapport" in poort
+        assert "continue-on-error: true" in stap, f"deze stap kan rood worden:\n{stap}"
 
 
 def test_het_rapport_draait_na_de_testjobs_en_alleen_bij_code():
     assert re.search(r"^    needs: \[raakt, frontend, graph-qa, api\]\s*$", JOB, re.M)
     assert "if: always() && needs.raakt.outputs.kruis == 'true'" in JOB
     assert "fetch-depth: 2" in JOB and "--basis HEAD^1" in JOB, "de eerste ouder van de merge-commit is de basis"
+    assert "uv run scripts/kwaliteit.py" in JOB, "de versies van ruff en coverage staan in de kop van het script"
 
 
 def test_de_testjobs_bewaren_hun_dekking_waar_het_script_zoekt():
@@ -48,17 +49,13 @@ def test_de_testjobs_bewaren_hun_dekking_waar_het_script_zoekt():
         job = JOBS[naam]
         assert f'COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/{naam}/{naam}-${{{{ matrix.shard }}}}.coverage"' in job, naam
         assert "--cov --cov-report=" in job, naam
-        assert f"name: dekking-{naam}-${{{{ matrix.shard }}}}" in job, naam
     assert "npm run test -- --coverage" in JOBS["frontend"]
-    assert 'dekking/frontend/wortel.txt' in JOBS["frontend"] and "coverage-final.json" in JOBS["frontend"]
-    for naam in (*kwaliteit.PYTHON_DEKKING, "frontend"):
+    assert 'cp coverage/coverage-final.json "$GITHUB_WORKSPACE/dekking/frontend/"' in JOBS["frontend"]
+    for naam in kwaliteit.DEKKING_ONDERDELEN:
         upload = next(s for s in _stappen(JOBS[naam]) if "name: dekking-" in s)
         assert re.search(r"^          path: dekking$", upload, re.M), f"{naam}: de artefactwortel moet `dekking/` zijn"
-    assert "name: dekking-frontend" in JOBS["frontend"]
-    assert "pattern: dekking-*" in JOB and "merge-multiple: true" in JOB
-    for naam in (*kwaliteit.PYTHON_DEKKING, "frontend"):
-        upload = next(s for s in _stappen(JOBS[naam]) if "name: dekking-" in s)
         assert "continue-on-error: true" in upload and "if: always()" in upload, naam
+    assert "pattern: dekking-*" in JOB and "merge-multiple: true" in JOB
 
 
 def test_de_dekking_meet_de_code_met_relatieve_paden():
@@ -69,15 +66,6 @@ def test_de_dekking_meet_de_code_met_relatieve_paden():
         assert run["relative_files"] is True, naam
         for bron in run["source"]:
             assert (WORTEL / map_ / bron).is_dir(), f"{naam}: de dekkingsbron {bron} bestaat niet"
-
-
-def test_een_versie_van_ruff_en_coverage():
-    poort = (WORTEL / ".github" / "workflows" / "poort.yml").read_text(encoding="utf-8")
-    for pakket in ("ruff", "coverage"):
-        versies = set(re.findall(rf"--with {pakket}==([\d.]+)", poort))
-        versies |= set(re.findall(rf"--with {pakket}==([\d.]+)", kwaliteit.__doc__))
-        versies |= set(re.findall(rf"--with {pakket}==([\d.]+)", (WORTEL / "CLAUDE.md").read_text(encoding="utf-8")))
-        assert len(versies) == 1, f"{pakket}: verschillende versies {versies}"
 
 
 # ── de rekenregels ──────────────────────────────────────────────────────────────────────────────────────────────────

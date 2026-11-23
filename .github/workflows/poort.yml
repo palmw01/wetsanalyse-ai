@@ -17,7 +17,7 @@
 #          ├─ mcp-tools / frontend / frontend-browser (4 shards)
 #          ├─ graph-qa (2 shards) / api (3 shards), elk met een eigen PostgreSQL
 #          └─ bwb-import
-#   frontend, graph-qa, api ──► kwaliteit   (rapport: ruff, complexiteit, testdekking; houdt niets tegen)
+#   frontend, graph-qa, api ──► kwaliteit   (rapport: ruff, complexiteit, testdekking; `poort` wacht er niet op)
 #   alles ──► poort               (de verplichte check: faalt als een benodigde job faalt)
 #
 # Een shard verdeelt per testbestand en verliest niets: `scripts/pytest_shard.py` en
@@ -502,13 +502,11 @@ jobs:
       - uses: ./.github/actions/frontend-deps
       - name: frontend – tests
         working-directory: frontend
-        # Met dekking voor het kwaliteitsrapport, in dezelfde indeling als de Python-shards (`dekking/<onderdeel>/`). De
-        # paden in de uitvoer zijn absoluut, dus de wortel gaat mee.
+        # Met dekking voor het kwaliteitsrapport, in dezelfde indeling als de Python-shards (`dekking/<onderdeel>/`).
         run: |
           npm run test -- --coverage
           mkdir -p "$GITHUB_WORKSPACE/dekking/frontend"
           cp coverage/coverage-final.json "$GITHUB_WORKSPACE/dekking/frontend/"
-          echo "$GITHUB_WORKSPACE" > "$GITHUB_WORKSPACE/dekking/frontend/wortel.txt"
       - name: frontend – dekking bewaren
         if: always()
         continue-on-error: true
@@ -616,7 +614,7 @@ jobs:
           if [ "${{ matrix.shard }}" = 1 ]; then uv run python scripts/genereer_jas_klassen.py --check; fi
           # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
           COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/graph-qa/graph-qa-${{ matrix.shard }}.coverage" \
-            uv run --with pytest-cov==7.1.0 --with coverage==7.17.4 pytest -q -p pytest_shard --cov --cov-report=
+            uv run --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
       - name: graph-qa – dekking bewaren
         if: always()
         continue-on-error: true
@@ -666,7 +664,7 @@ jobs:
           uv sync --extra dev
           # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
           COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/api/api-${{ matrix.shard }}.coverage" \
-            uv run --with pytest-cov==7.1.0 --with coverage==7.17.4 pytest -q -p pytest_shard --cov --cov-report=
+            uv run --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
       - name: api – dekking bewaren
         if: always()
         continue-on-error: true
@@ -696,7 +694,7 @@ jobs:
           python -m pytest -q
 
   # Het kwaliteitsrapport (scripts/kwaliteit.py): ruff met `ruff.toml`, complexiteit en testdekking, vergeleken met de
-  # doelbranch. Een RAPPORT, geen poort: elke stap mag falen, en `poort` telt deze job nooit als rood. Het rapport staat
+  # doelbranch. Een RAPPORT, geen poort: `poort` wacht er niet op en elke stap mag falen. Het rapport staat
   # in de samenvatting van de run en als artefact `kwaliteitsrapport` (kwaliteit.md en kwaliteit.json), zodat wie de PR
   # maakt – mens of agent – het kan ophalen en oppakken wat in de wijziging nieuw is.
   #
@@ -714,6 +712,8 @@ jobs:
       - name: uv installeren
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         continue-on-error: true
+        with:
+          enable-cache: true
       - name: Dekking van de testjobs
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -724,8 +724,7 @@ jobs:
       - name: Rapport
         continue-on-error: true
         run: |
-          uv run --no-project --with ruff==0.17.6 --with coverage==7.17.4 \
-            python scripts/kwaliteit.py --basis HEAD^1 --dekking dekking --uit kwaliteit
+          uv run scripts/kwaliteit.py --basis HEAD^1 --dekking dekking --uit kwaliteit
           cat kwaliteit/kwaliteit.md >> "$GITHUB_STEP_SUMMARY"
       - name: Rapport bewaren
         if: always()
@@ -746,7 +745,7 @@ jobs:
   poort:
     name: poort
     if: always()
-    needs: [raakt, guards, kruistests, mcp-tools, frontend, frontend-browser, graph-qa, api, bwb-import, kwaliteit]
+    needs: [raakt, guards, kruistests, mcp-tools, frontend, frontend-browser, graph-qa, api, bwb-import]
     runs-on: ubuntu-latest
     steps:
       - name: Uitkomst van de jobs
@@ -758,15 +757,13 @@ jobs:
 
           needs = json.loads(os.environ["UITKOMSTEN"])
           altijd = {"raakt", "guards"}
-          # Een rapport, geen poort: elke uitkomst telt als groen (zie de job `kwaliteit`).
-          rapport = {"kwaliteit"}
           fout = []
           regels = ["## Poort", "", "| job | uitkomst |", "|---|---|"]
           for naam, job in sorted(needs.items()):
               uitkomst = job["result"]
               regels.append(f"| {naam} | {uitkomst} |")
               toegestaan = {"success"} if naam in altijd else {"success", "skipped"}
-              if uitkomst not in toegestaan and naam not in rapport:
+              if uitkomst not in toegestaan:
                   fout.append(f"{naam}: {uitkomst}")
           uit = needs.get("raakt", {}).get("outputs", {})
           regels += ["", "| onderdeel | geraakt |", "|---|---|"]
