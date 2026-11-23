@@ -55,6 +55,12 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+# De dekking voor het kwaliteitsrapport (scripts/kwaliteit.py); de poort meet met `--cov`. Relatieve paden, zodat de
+# shards in een andere job samen te voegen zijn.
+[tool.coverage.run]
+source = ["app", "scripts"]
+relative_files = true
+
 [tool.uv]
 package = false
 # filelock < 4.2.1 heeft drie bekende kwetsbaarheden (CVE-2026-112907, -112913, -112940); het komt indirect

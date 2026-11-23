@@ -17,6 +17,7 @@
 #          ├─ mcp-tools / frontend / frontend-browser (4 shards)
 #          ├─ graph-qa (2 shards) / api (3 shards), elk met een eigen PostgreSQL
 #          └─ bwb-import
+#   frontend, graph-qa, api ──► kwaliteit   (rapport: ruff, complexiteit, testdekking; houdt niets tegen)
 #   alles ──► poort               (de verplichte check: faalt als een benodigde job faalt)
 #
 # Een shard verdeelt per testbestand en verliest niets: `scripts/pytest_shard.py` en
@@ -501,7 +502,22 @@ jobs:
       - uses: ./.github/actions/frontend-deps
       - name: frontend – tests
         working-directory: frontend
-        run: npm run test
+        # Met dekking voor het kwaliteitsrapport, in dezelfde indeling als de Python-shards (`dekking/<onderdeel>/`). De
+        # paden in de uitvoer zijn absoluut, dus de wortel gaat mee.
+        run: |
+          npm run test -- --coverage
+          mkdir -p "$GITHUB_WORKSPACE/dekking/frontend"
+          cp coverage/coverage-final.json "$GITHUB_WORKSPACE/dekking/frontend/"
+          echo "$GITHUB_WORKSPACE" > "$GITHUB_WORKSPACE/dekking/frontend/wortel.txt"
+      - name: frontend – dekking bewaren
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dekking-frontend
+          path: dekking
+          retention-days: 14
+          if-no-files-found: ignore
       - name: frontend – lint
         working-directory: frontend
         run: npm run lint
@@ -598,7 +614,18 @@ jobs:
           # Het spaCy-model staat niet in uv.lock (Dependabot kan geen directe URL aan); de URL uit pyproject.toml.
           uv pip install "$(uv run python scripts/taalmodel.py)"
           if [ "${{ matrix.shard }}" = 1 ]; then uv run python scripts/genereer_jas_klassen.py --check; fi
-          uv run pytest -q -p pytest_shard
+          # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
+          COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/graph-qa/graph-qa-${{ matrix.shard }}.coverage" \
+            uv run --with pytest-cov==7.1.0 --with coverage==7.17.4 pytest -q -p pytest_shard --cov --cov-report=
+      - name: graph-qa – dekking bewaren
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dekking-graph-qa-${{ matrix.shard }}
+          path: dekking
+          retention-days: 14
+          if-no-files-found: ignore
 
   api:
     name: api (${{ matrix.shard }}/3)
@@ -637,7 +664,18 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           uv sync --extra dev
-          uv run pytest -q -p pytest_shard
+          # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
+          COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/api/api-${{ matrix.shard }}.coverage" \
+            uv run --with pytest-cov==7.1.0 --with coverage==7.17.4 pytest -q -p pytest_shard --cov --cov-report=
+      - name: api – dekking bewaren
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dekking-api-${{ matrix.shard }}
+          path: dekking
+          retention-days: 14
+          if-no-files-found: ignore
 
   # bwb-import draait op pip + requirements.txt, niet op uv – zie zijn publish-workflow.
   bwb-import:
@@ -657,6 +695,48 @@ jobs:
           pip install -r requirements.txt
           python -m pytest -q
 
+  # Het kwaliteitsrapport (scripts/kwaliteit.py): ruff met `ruff.toml`, complexiteit en testdekking, vergeleken met de
+  # doelbranch. Een RAPPORT, geen poort: elke stap mag falen, en `poort` telt deze job nooit als rood. Het rapport staat
+  # in de samenvatting van de run en als artefact `kwaliteitsrapport` (kwaliteit.md en kwaliteit.json), zodat wie de PR
+  # maakt – mens of agent – het kan ophalen en oppakken wat in de wijziging nieuw is.
+  #
+  # Dekking komt uit de testjobs (artefacten `dekking-*`); een suite die deze PR niet draaide, heeft geen meting.
+  # `fetch-depth: 2`: de checkout is de merge-commit van de PR, en zijn eerste ouder is de doelbranch.
+  kwaliteit:
+    name: kwaliteitsrapport
+    needs: [raakt, frontend, graph-qa, api]
+    if: always() && needs.raakt.outputs.kruis == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: uv installeren
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        continue-on-error: true
+      - name: Dekking van de testjobs
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dekking-*
+          path: dekking
+          merge-multiple: true
+      - name: Rapport
+        continue-on-error: true
+        run: |
+          uv run --no-project --with ruff==0.17.6 --with coverage==7.17.4 \
+            python scripts/kwaliteit.py --basis HEAD^1 --dekking dekking --uit kwaliteit
+          cat kwaliteit/kwaliteit.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Rapport bewaren
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kwaliteitsrapport
+          path: kwaliteit
+          retention-days: 30
+          if-no-files-found: ignore
+
   # De verplichte check. Branch protection staat op deze naam; hernoem hem niet.
   #
   # `if: always()` is nodig: zonder draait hij niet als een benodigde job faalt, en een overgeslagen
@@ -666,7 +746,7 @@ jobs:
   poort:
     name: poort
     if: always()
-    needs: [raakt, guards, kruistests, mcp-tools, frontend, frontend-browser, graph-qa, api, bwb-import]
+    needs: [raakt, guards, kruistests, mcp-tools, frontend, frontend-browser, graph-qa, api, bwb-import, kwaliteit]
     runs-on: ubuntu-latest
     steps:
       - name: Uitkomst van de jobs
@@ -678,13 +758,15 @@ jobs:
 
           needs = json.loads(os.environ["UITKOMSTEN"])
           altijd = {"raakt", "guards"}
+          # Een rapport, geen poort: elke uitkomst telt als groen (zie de job `kwaliteit`).
+          rapport = {"kwaliteit"}
           fout = []
           regels = ["## Poort", "", "| job | uitkomst |", "|---|---|"]
           for naam, job in sorted(needs.items()):
               uitkomst = job["result"]
               regels.append(f"| {naam} | {uitkomst} |")
               toegestaan = {"success"} if naam in altijd else {"success", "skipped"}
-              if uitkomst not in toegestaan:
+              if uitkomst not in toegestaan and naam not in rapport:
                   fout.append(f"{naam}: {uitkomst}")
           uit = needs.get("raakt", {}).get("outputs", {})
           regels += ["", "| onderdeel | geraakt |", "|---|---|"]

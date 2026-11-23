@@ -20,5 +20,14 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["node_modules", ".next"],
     server: { deps: { inline: ["next-auth"] } },
+    // Alleen met `--coverage` (de poort): de dekking voor het kwaliteitsrapport (scripts/kwaliteit.py). `json` geeft
+    // per regel wat ongedekt is, `json-summary` de totalen.
+    coverage: {
+      provider: "v8",
+      reporter: ["json", "json-summary"],
+      reportsDirectory: "coverage",
+      include: ["**/*.{ts,tsx}"],
+      exclude: ["**/*.test.ts", "**/*.d.ts", "scripts/**", "test/**", "e2e/**", ".next/**", "node_modules/**", "*.config.*"],
+    },
   },
 });
