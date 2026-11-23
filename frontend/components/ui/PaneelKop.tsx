@@ -2,13 +2,14 @@
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { IcoonKnop } from "@/components/ui/Button";
 import { NaarPagina } from "@/components/ui/Icoon";
 import { MeerMenu, MenuLink } from "@/components/ui/MeerMenu";
-import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
+import { PaneelKnop, actieVan, usePaneel } from "@/components/ui/Paneel";
+import { knoppenVoor } from "@/lib/paneelBediening";
 import { metVanuit } from "@/lib/terugNaarGesprek";
 
-/** Het kruisje rechtsboven in elk paneel en venster: één icoon, één lijndikte, één plek. */
+/** Het kruisje rechtsboven in een venster (`Dialog`, de rondleiding, het menu op een telefoon). Een paneel naast het
+ *  gesprek heeft het niet: daar is sluiten een handeling van het paneel (`PaneelKnop`, `lib/paneelBediening.ts`). */
 export function SluitKnop({ onSluit, label = "Sluiten", className = "" }: {
   onSluit: () => void;
   /** De voorleesnaam, als "Sluiten" niet genoeg zegt ("Instellingen sluiten"). */
@@ -63,26 +64,18 @@ export function usePaneelKopVulling(vulling: KopVulling | null, sleutel: string)
 /** De kop van elk paneel naast het gesprek (spoor I4; één schil voor elk artefact sinds 4 nov 2026; één vaste indeling
  *  sinds 8 nov 2026). Hoogstens twee rijen, nooit wrappend:
  *
- *  1. soort en titel (afgekapt), en rechtsboven het kopgereedschap: ⋯, dan in het zijpaneel *Vergroten* of *Verkleinen*
- *     en *Inklappen* (`ZijpaneelContext.bediening`), en ✕ – altijd in die volgorde en op die plek. **De kop is de enige
- *     bediening van het paneel** (besluit gebruiker 23 nov 2026): er is geen balk erboven, en geen knop naar een pagina
- *     die op *Vergroten* lijkt. Vergroten is de volle weergave binnen de werkplek; de pagina zelf (een link om te delen)
- *     staat als *Openen als pagina* bovenaan in ⋯, met het gesprek erbij (`?vanuit=`, `lib/terugNaarGesprek.ts`);
+ *  1. soort en titel (afgekapt), en rechtsboven het kopgereedschap: ⋯ en dan de knoppen van de plek (`usePaneel()` en
+ *     `knoppenVoor` in `lib/paneelBediening.ts`: *Vergroten* of *Verkleinen*, *Paneel inklappen*, *Sluiten*), altijd in
+ *     die volgorde. **De kop is de enige bediening van het paneel** (besluit gebruiker 23 nov 2026): een paneel zegt wat
+ *     het is, de plek bepaalt de knoppen. Op een pagina staat alleen ⋯. De pagina zelf (een link om te delen) staat als
+ *     *Openen als pagina* bovenaan in ⋯, met het gesprek erbij (`?vanuit=`, `lib/terugNaarGesprek.ts`);
  *  2. alleen als er iets is: de status links en één hoofdactie rechts (de annotatie: *Annotatie afronden*).
  *
  *  Kopiëren en exporteren, verwijderen en de zeldzame bewerkingen van een soort staan in het menu ⋯ (eerst wat de
  *  schil geeft, dan wat de inhoud via `usePaneelKopVulling` toevoegt; *Verwijderen* onderaan): in een paneel van 360 px
  *  passen ze niet naast de status. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (de
  *  weergaven van de inhoud: Tekst | Graaf), zodat geen paneel een eigen kop of sluitknop nodig heeft. `app/paneelKop.test.ts` bewaakt het. */
-/** De tabs van het paneel naast het gesprek, op een telefoon (het bronvenster, PR 3b): daar is het paneel een sheet,
- *  dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze, en pas bij twee of meer. */
-export const PaneelTabsContext = createContext<React.ReactNode>(null);
-
-/** Het gesprek waarin het paneel openstaat (de werkplek geeft het). *Openen als pagina* neemt het mee als
- *  `?vanuit=`, zodat de pagina een weg terug naar het gesprek heeft (`lib/terugNaarGesprek.ts`). */
-export const PaneelGesprekContext = createContext<string | null>(null);
-
-export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, menu, onSluit, onder, balk }: {
+export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, menu, onder, balk }: {
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
   titel: string;
@@ -96,10 +89,9 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
   vraag?: React.ReactNode;
   /** De regels van het menu ⋯ (`MenuKnop`, `ExportRegels`, `MenuVerwijder`). */
   menu?: (sluit: () => void) => React.ReactNode;
-  onSluit?: () => void;
   /** Eén regel onder de kop: waar je bent in een reeks of in de versies. */
   onder?: React.ReactNode;
-  /** Tabs en weergaveknoppen (de annotatie: Tekst | Graaf, *Vergroten*). */
+  /** De weergaven van de inhoud (de annotatie: Tekst | Graaf). */
   balk?: React.ReactNode;
 }) {
   const vulling = useContext(Vulling);
@@ -107,10 +99,8 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
   const actie = hoofdactie ?? vulling?.hoofdactie;
   const eigenMenu = vulling?.menu;
   const heeftMenu = Boolean(pagina || menu || eigenMenu);
-  const zp = useContext(ZijpaneelContext);
-  const bediening = zp?.bediening;
-  const tabs = useContext(PaneelTabsContext);
-  const gesprek = useContext(PaneelGesprekContext);
+  const paneel = usePaneel();
+  const { tabs, gesprekId: gesprek } = paneel;
   return (
     <div data-paneel-kop className="shrink-0">
     {tabs && <div data-paneel-tabs className="flex border-b border-line px-3 py-1.5">{tabs}</div>}
@@ -134,18 +124,9 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
               </>}
             </MeerMenu>
           )}
-          {zp && bediening && <>
-            <IcoonKnop size="sm" aria-label={zp.vergroot ? "Verkleinen" : "Vergroten"} aria-pressed={zp.vergroot}
-              title={zp.vergroot ? "Verkleinen: terug naast het gesprek" : "Vergroten: de volle weergave"}
-              onClick={() => zp.zetVergroot(!zp.vergroot)} data-paneel-vergroten>
-              {zp.vergroot ? <Verkleinen /> : <Vergroten />}
-            </IcoonKnop>
-            <IcoonKnop size="sm" aria-label={`${bediening.label} inklappen`} title={`${bediening.label} inklappen`}
-              onClick={bediening.inklappen} data-paneel-inklappen>
-              <Inklappen />
-            </IcoonKnop>
-          </>}
-          {onSluit && <SluitKnop onSluit={onSluit} />}
+          {knoppenVoor(paneel.plek, { kanSluiten: !!paneel.sluiten }).map((h) => (
+            <PaneelKnop key={h} handeling={h} onClick={actieVan(h, paneel)} />
+          ))}
         </div>
       </div>
       {(stand || actie || vraag) && (
@@ -159,16 +140,4 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
     {balk}
     </div>
   );
-}
-
-const SVG = { width: 16, height: 16, viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.6,
-  strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
-function Vergroten() {
-  return <svg {...SVG}><path d="M12 3h5v5M8 17H3v-5M17 3l-6 6M3 17l6-6" /></svg>;
-}
-function Verkleinen() {
-  return <svg {...SVG}><path d="M16 9h-5V4M4 11h5v5M11 9l6-6M9 11l-6 6" /></svg>;
-}
-function Inklappen() {
-  return <svg {...SVG}><path d="M5 5l5 5-5 5M11 5l5 5-5 5" /></svg>;
 }

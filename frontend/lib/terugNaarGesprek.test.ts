@@ -48,8 +48,8 @@ describe("de weg terug naar het gesprek", () => {
   it("is één patroon: *Openen als pagina* in de paneelkop neemt het gesprek mee, de root-layout toont de strook op elke pagina", () => {
     const kop = bron("components/ui/PaneelKop.tsx");
     expect(kop).toMatch(/<MenuLink href=\{metVanuit\(pagina, gesprek\)\}/);
-    expect(kop).toMatch(/useContext\(PaneelGesprekContext\)/);
-    expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/<PaneelGesprekContext\.Provider value=\{demo \? null : gesprekId\}>/);
+    expect(kop).toMatch(/gesprekId: gesprek \} = paneel/);
+    expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/const paneelGesprek = demo \? null : gesprekId;/);
     expect(bron("app/layout.tsx")).toMatch(/<TerugNaarGesprek \/>/);
   });
 });

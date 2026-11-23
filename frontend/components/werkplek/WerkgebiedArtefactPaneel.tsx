@@ -103,7 +103,7 @@ type Opname = Omit<ArtefactVersie, "inhoud"> & {
     regel?: Regel; regels?: Regel[]; hierarchie?: RegelKetenVorm };
 };
 
-/** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
+/** Waar *Openen als pagina* (in ⋯) heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
   const id = doel.werkgebied_id;
   switch (doel.soort) {
@@ -179,7 +179,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
     <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit} onEscape={onVerberg}>
       <PaneelKopVuller>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
+        <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied}
           // *Vraag Lex* over wat het paneel toont (besluit gebruiker 10 nov 2026, vervangt spoor K): het onderwerp met de
           // suggesties van zijn soort boven het invoerveld. Alleen op de versie van nu.
           vraag={vraagOver && opname === null && <VraagLexKnop onderwerp={vraagOver} />}

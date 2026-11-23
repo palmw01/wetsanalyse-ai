@@ -29,17 +29,12 @@ describe("de paneelkop", () => {
     for (const pad of code) expect(bron(pad), pad).not.toMatch(/<PaneelKop\b[^>]*\bacties=/s);
   });
 
-  it("zet het kopgereedschap in een vaste volgorde: menu, vergroten, inklappen, sluiten", () => {
+  it("zet het kopgereedschap in een vaste volgorde: eerst het menu, dan de knoppen van de plek", () => {
     const gereedschap = kop.slice(kop.indexOf("data-kop-gereedschap"));
-    const plek = (s: string) => gereedschap.indexOf(s);
-    expect(plek("<MeerMenu")).toBeGreaterThan(0);
-    expect(plek("data-paneel-vergroten")).toBeGreaterThan(plek("<MeerMenu"));
-    expect(plek("data-paneel-inklappen")).toBeGreaterThan(plek("data-paneel-vergroten"));
-    expect(plek("<SluitKnop")).toBeGreaterThan(plek("data-paneel-inklappen"));
+    expect(gereedschap.indexOf("<MeerMenu")).toBeGreaterThan(0);
+    expect(gereedschap.indexOf("knoppenVoor(paneel.plek")).toBeGreaterThan(gereedschap.indexOf("<MeerMenu"));
   });
 
-  // Besluit gebruiker 23 nov 2026: de kop is de enige bediening van het paneel. Geen balk erboven, en geen losse knop
-  // naar de pagina die op *Vergroten* lijkt: de pagina is een regel in ⋯.
   it("heeft geen knop naar de pagina: Openen als pagina staat in het menu", () => {
     expect(kop).not.toMatch(/Open volledige pagina/);
     const menu = kop.slice(kop.indexOf("<MeerMenu label"), kop.indexOf("</MeerMenu>"));
@@ -47,10 +42,8 @@ describe("de paneelkop", () => {
     expect(menu).toMatch(/Openen als pagina/);
   });
 
-  it("het zijpaneel heeft geen eigen balk: de kop leest de bediening uit ZijpaneelContext", () => {
-    const zijpaneel = bron("components/ui/Zijpaneel.tsx");
-    expect(zijpaneel).not.toMatch(/data-zijpaneel-balk|data-paneel-vergroten|data-paneel-inklappen/);
-    expect(kop).toMatch(/useContext\(ZijpaneelContext\)/);
+  it("het zijpaneel heeft geen eigen balk: de kop leest de plek uit usePaneel()", () => {
+    expect(kop).toMatch(/usePaneel\(\)/);
     for (const pad of code) expect(bron(pad), pad).not.toMatch(/data-zijpaneel-balk/);
   });
 

@@ -102,6 +102,25 @@ async function bronTabOpnieuw() {
   await page.locator("[data-context-bron=s1]").click();
   await page.locator("[data-context-paneel=bron]").waitFor();
 }
+/** Vergroten → verkleinen → inklappen → uitklappen, met de knoppen van de kop (één per handeling, vaste volgorde). */
+async function doorloop(paneel, naam) {
+  const kop = paneel.locator("[data-kop-gereedschap]").first();
+  const knoppen = () => kop.locator("[data-paneel-knop]").evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-knop")));
+  assert.deepEqual(await knoppen(), ["vergroten", "inklappen", "sluiten"], `${naam}: de knoppen naast het gesprek`);
+  await kop.getByRole("button", { name: "Vergroten", exact: true }).click();
+  await stand("vergroot", `${naam}: vergroot`);
+  assert.deepEqual(await knoppen(), ["verkleinen", "inklappen", "sluiten"], `${naam}: de knoppen vergroot`);
+  await kop.getByRole("button", { name: "Verkleinen", exact: true }).click();
+  await stand("open", `${naam}: verkleind`);
+  await kop.getByRole("button", { name: "Paneel inklappen", exact: true }).click();
+  await stand("ingeklapt", `${naam}: ingeklapt`);
+  await page.getByRole("button", { name: "Paneel uitklappen", exact: true }).click();
+  await stand("open", `${naam}: uitgeklapt`);
+}
+async function sluit(paneel) {
+  await paneel.locator("[data-kop-gereedschap]").first().getByRole("button", { name: "Sluiten", exact: true }).click();
+  await paneel.waitFor({ state: "detached" });
+}
 async function geenScroll(width) {
   const breed = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   assert.ok(!breed, `op ${width}px geen horizontale scroll`);
@@ -231,8 +250,9 @@ try {
   await stand("ingeklapt", "Escape klapt het paneel in");
   await page.getByRole("button", { name: "Paneel uitklappen" }).click();
   assert.equal(await tabs.count(), 2, "de tabs staan er nog");
-  // Een tab sluiten: de buur wordt actief.
-  await page.getByRole("button", { name: "Sluit tab Artikel 9, lid 2" }).click();
+  // Sluiten met ✕ in de kop (de enige ✕; geen ✕ op de tabs): de buur wordt actief.
+  assert.equal(await page.locator("[data-paneel-tab] button[aria-label^='Sluit']").count(), 0, "geen ✕ op een tab");
+  await page.locator("[data-context-paneel=bron] [data-kop-gereedschap]").getByRole("button", { name: "Sluiten", exact: true }).click();
   await page.locator("[data-context-paneel=bibliotheek]").waitFor();
   assert.equal(await tabs.count(), 0, "met één open item geen tabrij: de kop is genoeg");
   // Herladen: de tabs van dit gesprek komen terug, de actieve open.
@@ -267,6 +287,13 @@ try {
   await page.locator("[data-paneel-terug]").click();
   await page.locator("[data-context-paneel=bron]").waitFor();
   await geenScroll(375);
+  // Ook op de sheet is vergroten een knop in de kop, dezelfde: de sheet over het hele scherm, en terug.
+  const sheetKop = page.locator("[data-context-paneel=bron] [data-kop-gereedschap]");
+  assert.deepEqual(await sheetKop.locator("[data-paneel-knop]").evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-knop"))),
+    ["vergroten", "sluiten"], "de sheet: vergroten en sluiten");
+  await sheetKop.getByRole("button", { name: "Vergroten", exact: true }).click();
+  await sheetKop.getByRole("button", { name: "Verkleinen", exact: true }).click();
+  await sheetKop.getByRole("button", { name: "Vergroten", exact: true }).waitFor();
 
   // --- Eén tab per bepaling (ontdubbelen PR 2): *Beoordelen* zet de annotatie aan in dezelfde tab; een ingang naar
   // dezelfde bepaling gaat daarna naar die tab, niet naar een tweede. ---
@@ -283,9 +310,18 @@ try {
   await page.locator("[data-artefact]").waitFor();
   assert.equal(await tabs.count(), voor, "dezelfde bepaling opnieuw openen gaat naar de tab in beoordeling");
 
+  // --- De hele cyclus, voor twee soorten paneel (de annotatie en de bronnen): openen → vergroten → verkleinen →
+  // inklappen → uitklappen → sluiten, steeds met dezelfde knop op dezelfde plek in de kop. ---
+  await doorloop(page.locator("[data-artefact]"), "de annotatie");
+  await sluit(page.locator("[data-artefact]"));
+  await page.locator("[data-context-paneel=bibliotheek]").waitFor();
+  await doorloop(page.locator("[data-context-paneel=bibliotheek]"), "de bronnen");
+  await sluit(page.locator("[data-context-paneel=bibliotheek]"));
+  await zijpaneel.waitFor({ state: "detached" });
+
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, de kop als enige bediening (vergroten bewaard, Verkleinen en Escape terug), Openen als pagina met een weg terug naar het gesprek, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling.");
+  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, de kop als enige bediening (vergroten bewaard, Verkleinen en Escape terug), Openen als pagina met een weg terug naar het gesprek, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten met ✕ in de kop, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling; de hele cyclus voor de annotatie en de bronnen; vergroten op de sheet.");
 } finally {
   await browser.close();
 }

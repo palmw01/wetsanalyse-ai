@@ -1,12 +1,13 @@
 "use client";
 
-import { useContext, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties, type GraafStand } from "@/components/graaf/useGraafStand";
 import { TabRij } from "@/components/ui/Tabs";
-import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
+import { usePaneel } from "@/components/ui/Paneel";
+import { isVergroot } from "@/lib/paneelBediening";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -28,8 +29,8 @@ export interface Samenhang {
  *  `BronGraaf`; zo kan het Escape laag voor laag afpellen (`escape`) voordat het zelf iets doet.
  *
  *  - De graaf laadt pas als zijn tab de eerste keer opengaat en blijft daarna gemount (de layout staat er dan nog).
- *  - In het zijpaneel is er één *Vergroten*, die van het paneel (`ZijpaneelContext`); daarbuiten (de sheet) een eigen. Op
- *    een pagina is hij altijd groot.
+ *  - Er is één *Vergroten*, die van het paneel (in de kop, `usePaneel()`); de graaf leest alleen of het paneel groot
+ *    is. Op een pagina is hij altijd groot.
  *  - Op de graaf claimt het venster Escape bij het zijpaneel (`claim`), zodat de volgorde lagen → selectie → verkleinen →
  *    verbergen blijft. */
 export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: {
@@ -41,16 +42,16 @@ export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: 
   /** Het venster staat in het zijpaneel met een sluitknop: dan pelt het zelf Escape af. */
   claim?: boolean;
 }) {
-  const zijpaneel = useContext(ZijpaneelContext);
+  const paneel = usePaneel();
   const [geopend, setGeopend] = useState(weergave === "graaf");
   if (weergave === "graaf" && !geopend) setGeopend(true);
   const stand = useGraafStand(doel, geopend && aan, weergave === "graaf", samenhang?.extra, samenhang?.graaf);
-  const [grootLokaal, setGrootLokaal] = useState(false);
-  const groot = zijpaneel ? zijpaneel.vergroot : grootLokaal;
-  const setGroot = zijpaneel ? zijpaneel.zetVergroot : setGrootLokaal;
+  // Groot is de stand van het paneel (*Vergroten* in de kop), niet van de graaf: er is één weg naar groot.
+  const groot = isVergroot(paneel.plek);
+  const zetVergroot = paneel.zetVergroot;
 
-  const claimt = Boolean(zijpaneel && claim && aan && weergave === "graaf");
-  const claimEscape = zijpaneel?.claimEscape;
+  const claimt = Boolean(claim && aan && weergave === "graaf");
+  const claimEscape = paneel.claimEscape;
   useEffect(() => {
     if (!claimEscape) return;
     claimEscape(claimt);
@@ -62,11 +63,11 @@ export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: 
     if (weergave !== "graaf" || !aan) return false;
     if (stand.lagenOpen) { stand.setLagenOpen(false); return true; }
     if (stand.selectie || actief?.id) { stand.setSelectie(null); actief?.wis(); return true; }
-    if (groot) { setGroot(false); return true; }
+    if (groot && zetVergroot) { zetVergroot(false); return true; }
     return false;
   }
 
-  return { stand, geopend: geopend && aan, groot, setGroot, inZijpaneel: !!zijpaneel, escape };
+  return { stand, geopend: geopend && aan, groot, escape };
 }
 
 export type BronGraafStand = ReturnType<typeof useBronGraaf>;
@@ -105,23 +106,14 @@ const TABS = [
 ] as const;
 
 /** De keuze Tekst | Graaf onder de kop van een venster (`PaneelKop.balk`): dezelfde tabrij als die van het paneel
- *  (`TabRij`), zonder sluitknoppen. Buiten het zijpaneel staat *Vergroten* van de graaf rechts ernaast. */
-export function WeergaveBalk({ weergave, onKies, graaf }: {
+ *  (`TabRij`). Geen eigen *Vergroten*: dat is een handeling van het paneel, in de kop. */
+export function WeergaveBalk({ weergave, onKies }: {
   weergave: Weergave;
   onKies: (w: Weergave) => void;
-  /** Voor *Vergroten* buiten het zijpaneel (de sheet); in het zijpaneel en op een pagina niet. */
-  graaf?: Pick<BronGraafStand, "groot" | "setGroot" | "inZijpaneel">;
 }) {
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-1.5" data-paneel-balk data-weergave={weergave}>
       <TabRij tabs={TABS} active={weergave} onChange={(k) => onKies(k as Weergave)} label="Weergave kiezen" soort="weergave" />
-      {weergave === "graaf" && graaf && !graaf.inZijpaneel && (
-        <button type="button" className="focus-ring rounded-knop p-2 text-muted hover:bg-surface" onClick={() => graaf.setGroot(!graaf.groot)}
-          aria-label={graaf.groot ? "Verkleinen" : "Vergroten"} title={graaf.groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-            <path d={graaf.groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
-        </button>
-      )}
     </div>
   );
 }

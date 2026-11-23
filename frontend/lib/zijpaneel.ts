@@ -11,9 +11,6 @@ export const CHAT_MIN = 300;
 export const STAP = 16;
 
 export const OPSLAG_BREEDTE = "lex.paneel.breedte";
-export const OPSLAG_INGEKLAPT = "lex.paneel.ingeklapt";
-/** Het paneel stond vergroot; telt net als ingeklapt alleen bij een herstelde inhoud. */
-export const OPSLAG_VERGROOT = "lex.paneel.vergroot";
 
 /** De grenzen voor een werkplek van `container` px breed. Op een smalle werkplek wint de ondergrens van het gesprek. */
 export function grenzen(container: number): { min: number; max: number } {

@@ -1,7 +1,7 @@
-/** De weg terug van een volle pagina naar het gesprek waaruit je hem opende (melding gebruiker 23 nov 2026: na *Open
- *  volledige pagina* in het zijpaneel was het paneel weg en kon je niet meer terug naar gesprek plus paneel).
+/** De weg terug van een volle pagina naar het gesprek waaruit je hem opende (melding gebruiker 23 nov 2026: na de pagina
+ *  vanuit het zijpaneel was het paneel weg en kon je niet meer terug naar gesprek plus paneel).
  *
- *  Eén patroon voor elk paneel: `PaneelKop` zet het gesprek als `?vanuit=` op de link naar de pagina, en de strook
+ *  Eén patroon voor elk paneel: `PaneelKop` zet het gesprek als `?vanuit=` op *Openen als pagina* (in ⋯), en de strook
  *  `TerugNaarGesprek` (in de root-layout, net als `?instellingen=`) toont op elke pagina *Terug naar het gesprek*. Het
  *  gesprek opent dan met zijn tabs: die bewaart de werkplek per gesprek (`lex.paneel.tabs.<gesprek>`), met de tab
  *  die actief was. Omdat het in de url staat, overleeft het herladen, en de terugknop van de browser werkt gewoon. */
