@@ -412,7 +412,7 @@ def _locatie(uri: str) -> tuple[str, tuple[tuple[str, str], ...]] | None:
         bwb, *rest = u[len("urn:bwb:"):].split(":")
         if len(rest) % 2:
             return None
-        paren = list(zip(rest[::2], rest[1::2]))
+        paren = list(zip(rest[::2], rest[1::2], strict=True))
     elif m := _JCI_DELEN.search(u):
         bwb = m.group(1).upper()
         paren = [tuple(d.split("=", 1)) for d in m.group(2).split("&") if "=" in d]

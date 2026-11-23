@@ -127,7 +127,7 @@ def test_bronnentabel_met_deelvragen(referentie):
     (f"urn:bwb:{BWB}:artikel:4%3A86:lid:2", {"bwb_id": BWB, "artikel": "4:86", "lid": "2"}, True),
     (f"urn:bwb:{BWB}:id:{BWB}%2FCirculaire.divisie4%2FCirculaire.divisie4.2", {"bwb_id": BWB, "artikel": "4.2"}, True),
     (f"urn:bwb:{BWB}:id:{BWB}%2FCirculaire.divisie4%2FCirculaire.divisie4.21", {"bwb_id": BWB, "artikel": "4.2"}, False),
-    (f"urn:bwb:BWBR0000002:artikel:12:lid:3", {"bwb_id": BWB, "artikel": "12", "lid": "3"}, False),
+    ("urn:bwb:BWBR0000002:artikel:12:lid:3", {"bwb_id": BWB, "artikel": "12", "lid": "3"}, False),
 ])
 def test_iri_past_bij_de_bepaling(iri, bron, past):
     assert ed._iri_past(iri, bron) is past

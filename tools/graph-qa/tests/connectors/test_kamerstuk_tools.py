@@ -516,7 +516,7 @@ def _record_xml(ident: str, *, dossiers=("99001",), nummer="342", status="Onopge
             f"<ow:indiener>A.B. de Vries</ow:indiener><ow:indiener>C.D. Jansen</ow:indiener>"
             f"<ow:ondernummer>{nummer}</ow:ondernummer><ow:vergaderjaar>2026-2027</ow:vergaderjaar>"
             + "".join(f"<ow:dossiernummer>{d}</ow:dossiernummer>" for d in dossiers)
-            + f"<ow:subrubriek>Brief regering</ow:subrubriek>"
+            + "<ow:subrubriek>Brief regering</ow:subrubriek>"
             + (f"<ow:versieinformatie>{versie}</ow:versieinformatie>" if versie else "")
             + f'<gzd:itemUrl manifestation="pdf">{url}/pdf/{ident}.pdf</gzd:itemUrl>'
             + (f'<gzd:itemUrl manifestation="xml">{url}/xml/{ident}.xml</gzd:itemUrl>' if xml else ""))

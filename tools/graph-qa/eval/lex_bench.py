@@ -269,7 +269,7 @@ def run_l1(naam: str, datum: str | None = None, map_: Path | None = None) -> Pat
 def _risicomatrix() -> dict[str, Any]:
     spec = importlib.util.spec_from_file_location("risicomatrix", WORTEL / "scripts" / "risicomatrix.py")
     mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
+    assert spec.loader is not None  # noqa: S101 – typevernauwing; eval draait nooit met -O
     spec.loader.exec_module(mod)
     return mod.matrix()
 

@@ -139,7 +139,8 @@ def classificatie_metrieken(voorspeld: list[Ref], referentie: list[Ref], status:
         for klasse, n in gelijk.items():
             matrix[(klasse, klasse)] += n
         rest_r, rest_v = list((rest_r - gelijk).elements()), list((rest_v - gelijk).elements())
-        for r, v in zip(rest_r, rest_v):
+        # Ongelijk lang is bewust: de rest aan één kant telt hieronder tegen GEEN.
+        for r, v in zip(rest_r, rest_v, strict=False):
             matrix[(r, v)] += 1
         for r in rest_r[len(rest_v):]:
             matrix[(r, GEEN)] += 1

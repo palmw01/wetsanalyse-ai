@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from agent import deelvragen
 from agent.agents import Context
@@ -119,7 +120,7 @@ def test_de_vragen_passen_in_het_api_contract():
         sys.path.pop(0)
     vragen = deelvragen.valideer({"deelvragen": [f"Vraag nummer {i}?" for i in range(20)]})
     DeelvraagVoorstellen(vragen=vragen, model="m")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DeelvraagVoorstellen(vragen=vragen + ["Te veel?"] * 5)
 
 

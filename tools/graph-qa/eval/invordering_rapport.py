@@ -5,7 +5,6 @@ import argparse
 from collections import Counter
 import hashlib
 import json
-from pathlib import Path
 from statistics import median
 
 from eval.invordering_proef import MEETMAP, ONDERZOEK, TOKENS, VARIANTEN, controleer_cases, schrijf, sha
@@ -62,7 +61,7 @@ def valideer_runs(pakket, runs, manifest, *, volledig=True):
             raise ValueError("onverwachte terugvalparse")
         nodes = {n["bron_iri"]: n for n in cases[r["casus"]]["snapshot"]["segmenten"]}
         def controleer_span(a):
-            n = nodes[a["bron_iri"]]
+            n = nodes[a["bron_iri"]]  # noqa: B023 – direct aangeroepen in dezelfde iteratie
             if not (0 <= a["start"] < a["eind"] <= len(n["tekst"])) or n["tekst"][a["start"]:a["eind"]] != a["tekst"] or a["bron_hash"] != n["bron_hash"]:
                 raise ValueError("fragment is niet brongetrouw")
         for k in r["fusie"]["kandidaten"]:

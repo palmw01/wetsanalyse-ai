@@ -102,6 +102,8 @@ def kandidaten_uit_graaf(graph: Any, kandidaten: list[dict[str, str]]) -> list[d
                  else queries.get_artikel(k["bwbId"], k["artikel"]))
             rijen = parse_select(graph.sparql(q))
         except Exception:  # noqa: BLE001 – een ongeldige of onbereikbare vindplaats is geen kandidaat
+            logger.info("kandidaat valt weg: vindplaats niet gelezen", exc_info=True, extra={
+                "bwb_id": k.get("bwbId", ""), "artikel": k.get("artikel", ""), "lid": k.get("lid", "")})
             continue
         tekst = next((r.get(v) for r in rijen for v in ("tekst", "lidtekst", "onderdeeltekst", "otekst") if r.get(v)), "")
         if tekst:

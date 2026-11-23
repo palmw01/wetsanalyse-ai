@@ -274,7 +274,7 @@ class NepSru:
         # Een CALS-tabel zoals KOOP ze schrijft: `tabel` rijen van vier kolommen, met een kop.
         rij = lambda i: "<row>" + "".join(f"<entry colname='c{k}'><al>{i}.{k} {_LANG[:60]}</al></entry>"
                                           for k in range(4)) + "</row>"
-        tab = (f"<table><title>Tabel 1</title><tgroup cols='4'>" + "".join(f"<colspec colname='c{k}'/>" for k in range(4))
+        tab = ("<table><title>Tabel 1</title><tgroup cols='4'>" + "".join(f"<colspec colname='c{k}'/>" for k in range(4))
                + "<thead>" + rij("kop") + "</thead><tbody>" + "".join(rij(i) for i in range(tabel)) + "</tbody></tgroup></table>"
                if tabel else "")
         self.xml = (f"<kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><divisie><kop><titel>Deel</titel></kop>"

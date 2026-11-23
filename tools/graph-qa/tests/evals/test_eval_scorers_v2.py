@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from eval.run_eval import GOLDEN_CONCEPT, load_golden
 from eval.scoring import (

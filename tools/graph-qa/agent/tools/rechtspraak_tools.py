@@ -31,9 +31,10 @@ from bronmodel.extern import externe_vindplaats
 from ..adapters.lido_rechtspraak import TIJDELIJK, RechtspraakFout, begindatum
 from ..graph import queries
 from ..graph.results import parse_select
-from ..resultaat import compact, fout, pagina, per_eenheid
+from ..resultaat import compact, fout, pagina
 from .zoekfilters import datum as _datum
 from .stuk_tekst import INHOUD_ARG, inhoudpagina, tekstpagina
+from ..xml_lezen import lees_xml
 
 logger = logging.getLogger(__name__)
 
@@ -739,7 +740,7 @@ def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     citaat naar r.o. 2.1 herleidbaar is. Lege alinea's tellen niet."""
     # Een regelafbreking in de bron (`<?linebreak?>`) is een processing instruction die de parser weggooit, en dan plakken
     # de zinnen aan elkaar ("bankrekeningen.In bezwaar", meting 10 nov 2026). Een spatie houdt de tekst leesbaar.
-    root = ET.fromstring(re.sub(rb"<\?linebreak\s*\?>", b" ", xml))
+    root = lees_xml(re.sub(rb"<\?linebreak\s*\?>", b" ", xml))
     meta: dict[str, str] = {}
     beschrijving = next((d for d in root.iter("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description")), None)
     if beschrijving is not None:

@@ -261,7 +261,8 @@ def padsleutel(iri: str) -> tuple:
     H IX, 4.4.4 na 4.4.1, 28 vóór 28a). Een wet-lokale `id:`-node draagt zijn divisienummer in de id."""
     delen = iri.removeprefix(queries.NS).split(queries.SEP)[1:]
     waarden = []
-    for sleutel, waarde in zip(delen[::2], delen[1::2]):
+    # Sleutel-waardeparen; een sleutel zonder waarde aan het eind telt niet mee (`strict=False` is bewust).
+    for sleutel, waarde in zip(delen[::2], delen[1::2], strict=False):
         waarde = unquote(waarde)
         if sleutel == "id":
             waarde = waarde.rsplit("divisie", 1)[-1]

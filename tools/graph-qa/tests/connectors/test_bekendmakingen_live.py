@@ -20,7 +20,7 @@ import pytest
 
 from agent import tools
 from agent.adapters.sru_bekendmakingen import SruBekendmakingen
-from agent.adapters.sru_koop import _NS, SRU_URL, lees_records
+from agent.adapters.sru_koop import SRU_URL, lees_records
 from agent.config import Settings
 from agent.tools.op_xml import lees
 

@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.main as main
-from agent import overdracht, subagent as sub
+from agent import subagent as sub
 from agent.models import ChatRequest
 from agent.nodes import subagent_vervolg as vervolg
 from agent.nodes import supervisie

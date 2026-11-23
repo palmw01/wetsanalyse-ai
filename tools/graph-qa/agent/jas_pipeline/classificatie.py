@@ -68,7 +68,8 @@ SYSTEEM_ZONDER_OPTIES = SYSTEEM.replace(
     "Heeft een kandidaat spanopties, kies dan de optie waarvan de grens de "
     "juridische functie precies draagt, of laat de optie leeg voor het kandidaatfragment zelf. ",
     "Het fragment van elke kandidaat ligt vast; laat `optie` leeg. ")
-assert SYSTEEM_ZONDER_OPTIES != SYSTEEM
+if SYSTEEM_ZONDER_OPTIES == SYSTEEM:
+    raise RuntimeError("de systeemprompt zonder spanopties moet verschillen van die met")
 
 
 def _eerste_zin(tekst: str) -> str:
@@ -98,7 +99,7 @@ def systeemprompt(kandidaten: list[Candidate], spankeuze: bool = False) -> str:
 def kandidaatregel(k: Candidate, spankeuze: bool = False) -> str:
     """De regel die het model over deze kandidaat ziet – en die het herkomstspoor als 'de vraag'
     bewaart. Eén functie, zodat spoor en prompt niet uit elkaar kunnen lopen."""
-    opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options)) if spankeuze else ""
+    opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options, strict=True)) if spankeuze else ""
     codes = ", ".join(sorted({e.code for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
     return (f'{k.label} | "{k.span.tekst}" | toegestaan: {", ".join(k.toegestane_beslissingen())}'
             f" | signalen: {codes}" + (f" | opties: {opties}" if opties else ""))
