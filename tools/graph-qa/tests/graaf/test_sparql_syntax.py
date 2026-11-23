@@ -73,6 +73,8 @@ GEVALLEN: list[tuple[str, str]] = [
     ("inhoudsopgave", q.inhoudsopgave(IW)),
     ("inhoudsopgave+vanaf+diep", q.inhoudsopgave(IW, "6", diepte=4)),
     ("inhoudsopgave+divisie", q.inhoudsopgave(LEIDRAAD, "25", diepte=1)),
+    ("structuurdeel+artikel", q.structuurdeel(IW, "9")),
+    ("structuurdeel+geneste-divisie", q.structuurdeel(LEIDRAAD, "1.1.2")),
     ("zoek_definitie", q.zoek_definitie("bestuurder")),
     ("zoek_definitie+scope", q.zoek_definitie("bestuurder", IW)),
     ("grondslagen", q.grondslagen(LEIDRAAD)),
