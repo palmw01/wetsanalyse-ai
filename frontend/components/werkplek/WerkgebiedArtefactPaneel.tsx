@@ -337,5 +337,5 @@ function RegelPaneel({ werkgebiedId, regelId, opname }: { werkgebiedId: string; 
   const stand = useRegel({ werkgebiedId, regelId, opname });
   const r = stand.regel;
   usePaneelKopVulling({ status: r && <RegelStatus regel={r} /> }, r ? `${r.status}|${r.revisie}` : "");
-  return <RegelInhoud stand={stand} weergave="paneel" />;
+  return <RegelInhoud stand={stand} />;
 }

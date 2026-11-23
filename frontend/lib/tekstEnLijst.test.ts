@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  AANDEEL_MAX, AANDEEL_MIN, AANDEEL_STANDAARD, AANDEEL_STAP, TEKST_EN_LIJST_BREED, TEKST_MAX_SMAL,
+  AANDEEL_MAX, AANDEEL_MIN, AANDEEL_STANDAARD, AANDEEL_STAP, SPLIT_DETAIL_BREED, TEKST_EN_LIJST_BREED, TEKST_MAX_SMAL,
   aandeelNaToets, aandeelUitPositie, begrensAandeel, leesAandeel,
 } from "@/lib/tekstEnLijst";
 
@@ -102,5 +102,23 @@ describe("de verdeling tussen tekst en lijst", () => {
     expect(bron("components/annotaties/NodeAnnotatiePaneel.tsx")).toMatch(/<WatDeGraafWeet\b/);
     expect(bron("components/wettekst/BronVenster.tsx")).toMatch(/<WatDeGraafWeet\b/);
     expect(bron("components/wettekst/BronVenster.tsx")).not.toMatch(/titel="Wat de graaf weet"/);
+  });
+});
+
+// Melding gebruiker 23 nov 2026: begrip, regel en annotatie in lijn. Een object met een zijkolom (`SplitDetail`) kiest net
+// als tekst en lijst op de breedte van het blok, en begrip en regel gebruiken het op elke plek.
+describe("een object met een zijkolom", () => {
+  it("gaat naast elkaar op de breedte van het blok, niet van het scherm", () => {
+    expect(css).toMatch(/\.split-detail-schil \{[^}]*container-type: inline-size/);
+    expect(css).toContain(`@container split-detail (min-width: ${SPLIT_DETAIL_BREED})`);
+    expect(bron("components/ui/Pagina.tsx")).not.toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_20rem\]/);
+  });
+
+  it("begrip en regel: dezelfde indeling op de pagina, in het paneel en vergroot", () => {
+    const regel = bron("components/werkgebieden/RegelInhoud.tsx");
+    expect(regel).toMatch(/<SplitDetail hoofd=\{hoofd\} zij=\{zij\} \/>/);
+    expect(regel).not.toMatch(/weergave === "pagina" \? <SplitDetail/);
+    const begrip = bron("components/werkgebieden/BegripInhoud.tsx");
+    expect(begrip.match(/<SplitDetail\b/g)?.length).toBe(3);
   });
 });

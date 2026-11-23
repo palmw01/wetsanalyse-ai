@@ -313,10 +313,17 @@ try {
   await page.locator('[data-regel-inhoud=r4][data-regel-status="concept"]').waitFor();
 
   // Smal scherm.
+  // Dezelfde indeling op elke plek (`SplitDetail`): breed de beoordeling in een zijkolom, smal eronder.
+  const kolommen = () => page.locator("[data-regel-inhoud=r4] [data-split-detail]").first().evaluate((el) => {
+    const [h, z] = [el.children[0].getBoundingClientRect(), el.children[1].getBoundingClientRect()];
+    return z.left >= h.right - 1 ? "naast" : "onder";
+  });
+  assert.equal(await kolommen(), "naast", "de regelpagina breed: de zijkolom ernaast");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.locator("[data-regel-inhoud=r4]").waitFor();
   await page.locator("[data-regel-inhoud=r4] [data-open-punt=op1]").waitFor();
+  assert.equal(await kolommen(), "onder", "de regelpagina op 390 px: onder elkaar");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "geen zijwaartse scroll");
   if (process.env.REGELS_SCREENSHOT) await page.screenshot({ path: `${process.env.REGELS_SCREENSHOT}/regelkaart-390.png`, fullPage: true });
 

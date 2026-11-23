@@ -45,7 +45,7 @@ export function RegelPagina({ regelId }: { regelId: string }) {
             onDownload={async () => downloadTekst(JSON.stringify(regel, null, 2), bestandsnaam(naam, "json"), "application/json")} />
         )}
       />
-      <RegelInhoud stand={stand} weergave="pagina" keten={keten} />
+      <RegelInhoud stand={stand} keten={keten} />
     </div>
   );
 }

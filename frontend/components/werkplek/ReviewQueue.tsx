@@ -9,7 +9,7 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { groeneVoorstellen, isBeslist, slotVan, type ReviewFilter } from "@/lib/annotatie";
+import { LIFECYCLE_LABEL, groeneVoorstellen, isBeslist, slotVan, type ReviewFilter } from "@/lib/annotatie";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
@@ -18,7 +18,10 @@ import { redenVoorAlternatief } from "@/lib/waarom";
 import { useVerklaringen, WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
 import { elementPad } from "@/lib/werkgebiedPaden";
-import { StatusLabel } from "@/components/ui/Lijst";
+import { KlasseLabel, PassageCitaat, StatusLabel } from "@/components/ui/Lijst";
+import { RIJ_KADER } from "@/components/ui/Pagina";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
+import { knopKlasse } from "@/components/ui/Button";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
   { waarde: "verkeerde_klasse", label: "verkeerde klasse" },
@@ -70,11 +73,11 @@ const CHIP =
  *
  *  De lifecycle-namen (`voorgesteld`/`edited`) zijn machinetaal; de jurist wil weten
  *  van wie het element komt en of hij er al iets mee deed. Het volledige spoor staat in het auditlog. */
-function statusRegel(el: AnnotatieElement): string {
-  if (el.lifecycle === "rejected") return "verworpen";
+/** Waar de markering vandaan komt, voor de metaregel. Het oordeel (akkoord, verworpen) staat als `StatusLabel` in de kop,
+ *  zoals bij een passage van een begrip; hier niet nog eens. */
+function herkomstRegel(el: AnnotatieElement): string {
   if (el.herkomst === "mens") return "door jou gemarkeerd";
   if (el.gewijzigd_door === "mens") return "door jou aangepast";
-  if (el.lifecycle === "human_approved") return "akkoord bevonden";
   return "voorstel van Lex";
 }
 
@@ -284,7 +287,8 @@ function DecisionCard({
       data-tour={tourAnker ? "review-kaart" : undefined}
       data-review-kaart={el.id}
       onClick={onKies}
-      className={`rounded-kaart border border-line border-l-4 bg-paper p-3 shadow-zacht transition ${
+      // Hetzelfde kader als een rij bij een begrip of regel (`RIJ_KADER`); de linkerrand draagt de aandacht (🟢🟡🔴).
+      className={`${RIJ_KADER} border-l-4 transition ${
         beslist ? "opacity-75" : aandacht ? `${aandacht.rand} ${aandacht.tint}` : "border-l-line"
       } ${actief ? "border-lint ring-1 ring-lint" : ""}`}
     >
@@ -323,12 +327,9 @@ function DecisionCard({
         {/* `w-full` op mobiel dwingt de wrap: de klasse krijgt zo een eigen regel ónder de meta en de
             acties. Op `sm:` valt dat weg en schuift hij ertussen. */}
         <span className="order-3 flex w-full min-w-0 sm:order-2 sm:w-auto sm:flex-1">
+          {/* Op slot de klasse als `KlasseLabel`, het label van de passages bij een begrip en een regel. */}
           {slot ? (
-            <span
-              className={`inline-flex min-h-[24px] max-w-full items-center whitespace-normal rounded px-2 py-0.5 text-left text-xs font-semibold leading-tight ${jasStyle(el.klasse)}`}
-            >
-              {el.klasse}
-            </span>
+            <KlasseLabel klasse={el.klasse}>{el.klasse}</KlasseLabel>
           ) : (
             <button
               type="button"
@@ -338,6 +339,8 @@ function DecisionCard({
                 openRij(palet ? "geen" : "klasse");
               }}
               title={el.klasse ? "Andere klasse kiezen" : "Nog geen klasse gekozen – kies er een"}
+              // Klikbaar, dus de vorm van een knop (een rechthoek), niet van een label (een pil): de vormgevingsregel van
+              // 5 nov 2026, `app/knoppen.test.ts`. Op slot is het geen knop meer en wel de pil (`KlasseLabel`).
               className={`focus-ring inline-flex min-h-[24px] max-w-full items-center whitespace-normal rounded px-2 py-0.5 text-left text-xs font-semibold leading-tight transition hover:ring-1 hover:ring-lint coarse:min-h-[44px] disabled:opacity-50 ${jasStyle(el.klasse)}`}
             >
               {el.klasse || "Kies een klasse"} <ChevronOmlaag className="ml-0.5 shrink-0 opacity-70" />
@@ -351,6 +354,10 @@ function DecisionCard({
           className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:order-3 sm:ml-0"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Het oordeel als `StatusLabel`, zoals bij een passage van een begrip of een drager van een regel. */}
+          {beslist && (
+            <StatusLabel toon={el.lifecycle === "rejected" ? "rood" : "groen"}>{LIFECYCLE_LABEL[el.lifecycle] ?? el.lifecycle}</StatusLabel>
+          )}
           {/* Het icoon-idioom (spoor I4): het vinkje wordt bij de eerste klik groen *Akkoord?*, de tweede beslist.
               Akkoord op een voorstel zonder klasse kan niet: er is nog niets om mee in te stemmen. */}
           {!slot && (
@@ -458,7 +465,7 @@ function DecisionCard({
         </div>
       )}
 
-      <p data-kaart-citaat className="mt-2 border-l-2 border-line pl-2.5 text-sm italic text-ink">“{el.tekst}”</p>
+      <PassageCitaat data-kaart-citaat tekst={el.tekst} className="mt-2" />
 
       {/* Een markering die niet in de tekst te vinden is, mag niet stilzwijgend uit de weergave
           verdwijnen. Dan lijkt hij weg terwijl hij er nog is – zeg het gewoon. */}
@@ -532,7 +539,8 @@ function DecisionCard({
           grounding. Buiten de werkplek heeft een markering geen weg, en dan geen knop. */}
       {uitgeklapt && vraag && <div className="mt-2" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
 
-      <div data-kaart-meta className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-3xs text-muted">
+      {/* De metaregel zoals onder een rij bij een begrip of regel (`LijstRij`): klein, gedempt, zonder lijn erboven. */}
+      <div data-kaart-meta className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted">
         <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
           {!uitgeklapt || notitieDicht ? null : notitie ? (
             <InlineVeld
@@ -554,7 +562,7 @@ function DecisionCard({
           )}
         </span>
         <span className="shrink-0">
-          {statusRegel(el)}
+          {herkomstRegel(el)}
           {tijdstip(el) && ` · ${tijdstip(el)}`}
         </span>
       </div>
@@ -655,36 +663,27 @@ export function ReviewQueue({
         </div>
         <Meter percentage={perc} label="Voortgang review" afgerond={afgerond} className="mt-2" />
 
-        {/* Drie knoppen in plaats van een dropdown: bij drie standen is kiezen sneller dan uitklappen. */}
-        <div className="mt-2.5 flex flex-wrap gap-1" role="group" aria-label="Filter de reviewlijst">
+        {/* Drie filters in plaats van een dropdown: bij drie standen is kiezen sneller dan uitklappen. Dezelfde
+            `FilterChip` in een `KeuzeRij` als bij de begrippen, de bronnen en de elementen. */}
+        <KeuzeRij label="Filter de reviewlijst" className="mt-2.5">
           {FILTERS.map((f) => {
             const aantal =
               f.waarde === "alles" ? totaal : f.waarde === "te_beoordelen" ? teReviewen : metAandacht;
             return (
-              <button
-                key={f.waarde}
-                type="button"
-                aria-pressed={filter === f.waarde}
-                onClick={() => onFilter(f.waarde)}
-                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
-                  filter === f.waarde
-                    ? "border-lint bg-lint text-paper"
-                    : "border-line text-muted hover:border-lint hover:text-ink"
-                }`}
-              >
+              <FilterChip key={f.waarde} gekozen={filter === f.waarde} onKies={() => onFilter(f.waarde)}>
                 {f.label} ({aantal})
-              </button>
+              </FilterChip>
             );
           })}
-          {onAkkoordGroen && groen > 0 && (
-            <BevestigKnop bevestigTekst={`${groen} akkoord?`} onBevestig={onAkkoordGroen}
-              titel="Bevestigt de voorstellen zonder twijfel; geel en rood bekijk je één voor één."
-              className="focus-ring min-h-[24px] rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs text-muted transition hover:border-lint hover:text-ink coarse:min-h-[44px]"
-              bevestigClassName="border-aandacht-groen-rand text-aandacht-groen-tekst">
-              Akkoord met de groene ({groen})
-            </BevestigKnop>
-          )}
-        </div>
+        </KeuzeRij>
+        {onAkkoordGroen && groen > 0 && (
+          <BevestigKnop bevestigTekst={`${groen} akkoord?`} onBevestig={onAkkoordGroen}
+            titel="Bevestigt de voorstellen zonder twijfel; geel en rood bekijk je één voor één."
+            className={`mt-2 ${knopKlasse("secondary", "xs")}`}
+            bevestigClassName="border-aandacht-groen-rand text-aandacht-groen-tekst">
+            Akkoord met de groene ({groen})
+          </BevestigKnop>
+        )}
 
       </div>
 

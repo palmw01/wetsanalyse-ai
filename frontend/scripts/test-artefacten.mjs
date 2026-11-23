@@ -375,6 +375,19 @@ try {
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
   if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/begrippaneel.png` });
+  // Dezelfde indeling op elke plek (`SplitDetail`, melding gebruiker 23 nov 2026): naast het gesprek onder elkaar,
+  // vergroot de beoordeling in een zijkolom ernaast.
+  const kolommen = async () => begripPaneel.locator("[data-split-detail]").first().evaluate((el) => {
+    const [h, z] = [el.children[0].getBoundingClientRect(), el.children[1].getBoundingClientRect()];
+    return z.left >= h.right - 1 ? "naast" : "onder";
+  });
+  assert.equal(await kolommen(), "onder", "het begrip naast het gesprek: onder elkaar");
+  await begripPaneel.locator("[data-kop-gereedschap]").getByRole("button", { name: "Vergroten", exact: true }).click();
+  await page.locator('[data-zijpaneel="vergroot"]').waitFor();
+  assert.equal(await kolommen(), "naast", "het begrip vergroot: de zijkolom ernaast");
+  if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/begrippaneel-vergroot.png` });
+  await begripPaneel.locator("[data-kop-gereedschap]").getByRole("button", { name: "Verkleinen", exact: true }).click();
+  await page.locator('[data-zijpaneel="open"]').waitFor();
   await begripPaneel.locator('[data-voorstel="v1"]').getByRole("button", { name: /^Overnemen/ }).click();
   await begripPaneel.getByText("Overgenomen van Lex", { exact: false }).waitFor();
   await begripPaneel.locator("[data-begrip-lees]").getByText("Het tijdvak waarbinnen betaald moet zijn.").waitFor();

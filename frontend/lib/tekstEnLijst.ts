@@ -1,10 +1,16 @@
-/** Tekst en lijst (`components/ui/TekstEnLijst.tsx`, de CSS in `app/globals.css`): wanneer ze naast elkaar staan, en
+/** Twee kolommen op de breedte van het blok (melding gebruiker 23 nov 2026): tekst en lijst (`components/ui/TekstEnLijst.tsx`)
+ *  en een object met een zijkolom (`SplitDetail` in `components/ui/Pagina.tsx`), de CSS in `app/globals.css`. Voor tekst en
+ *  lijst: wanneer ze naast elkaar staan, en
  *  hoe de verdeling te verslepen is. Puur, getest in `tekstEnLijst.test.ts`; die toetst ook dat de CSS dezelfde waarden
  *  gebruikt, want de CSS kan geen constante lezen. */
 
 /** Vanaf deze breedte van het blok zelf (niet van het scherm) twee kolommen: een vergroot paneel en de pagina wel, een
  *  paneel naast het gesprek niet (hoogstens 60% van de werkplek), tenzij je het breed sleept. */
 export const TEKST_EN_LIJST_BREED = "56rem";
+
+/** Vanaf deze breedte van het blok staat een object in twee kolommen (`SplitDetail`: inhoud plus een zijkolom van 20rem).
+ *  Lager dan `TEKST_EN_LIJST_BREED`: de zijkolom is smal en vast, de inhoud houdt dan nog 24rem. */
+export const SPLIT_DETAIL_BREED = "44rem";
 
 /** Smal staat de tekst bovenin, hoogstens zo hoog; de lijst krijgt de rest. */
 export const TEKST_MAX_SMAL = "45%";

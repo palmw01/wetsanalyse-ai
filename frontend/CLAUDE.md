@@ -1233,8 +1233,9 @@ bestaat los van de gesprekken.
     er ligt. *Specificaties* blijft gereserveerd.
   - **Het idioom staat in `components/ui/Pagina.tsx`**: `PaginaKop` (kruimelpad, titel, één zin, meta,
     hoogstens twee knoppen), `TabLinks` (links met `aria-current`; een teller hoort in de naam, "Bronnen
-    (4)"), `Kaart`, `SplitDetail`, `ObjectRij` (titel, subregel, status, chevron – geen knoppen en geen
-    IRI's in een rij) en `Teller`.
+    (4)"), `Kaart`, `SplitDetail` (inhoud plus een zijkolom van 20rem, naast elkaar zodra het **blok** 44rem breed is:
+    een containerquery, geen schermbreedte en geen plek, dus ook vergroot en in een breed paneel; zie *Tekst en lijst*),
+    `ObjectRij` (titel, subregel, status, chevron – geen knoppen en geen IRI's in een rij) en `Teller`.
   - **Een oude link met `?tab=`** gaat server-side naar zijn nieuwe plek (`oudeTabNaar`): bladwijzers en
     berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
   - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
@@ -1360,8 +1361,9 @@ bestaat los van de gesprekken.
   begrip. **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
   (`lib/useBegrip.ts`) laadt het en draagt `muteer` – dezelfde vorm als bij het werkgebied: revisie in beeld, 412 laadt
   opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`, `poort`, `element_buiten_werkgebied`)
-  verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken: op de pagina via `SplitDetail` (links
-  Betekenis, Voorbeelden en passages, rechts Beoordeling, Relaties en Historie), naast het gesprek onder elkaar.
+  verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken op elke plek via `SplitDetail` (links
+  Betekenis, Voorbeelden en passages, rechts Beoordeling, Relaties en Historie): breed naast elkaar (de pagina, vergroot),
+  smal onder elkaar, in die volgorde (23 nov 2026; daarvoor stond de beoordeling naast het gesprek vóór de passages).
   *Bewerken* staat per blok (`useBewerken`); elke bewaring is een revisie, de andere velden blijven staan, en een 412
   laat je tekst in het open blok staan. Verwijderen staat in het menu ⋯ (`BegripMenu`). De prop `context` staat er voor
   het generieke kader (ADR-006).
@@ -1598,8 +1600,8 @@ geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest,
   komt van de api (`regeltekst.markdown`, begrippen cursief, operatorbegrippen vet).
 - **`useRegel`** (`lib/useRegel.ts`) laadt één regel en draagt `muteer`, in de vorm van `useBegrip`: de revisie in beeld,
   een 412 laadt opnieuw en zegt het. `useRegelKeten` laadt de lijst en `regels/hierarchie`.
-- **De regelkaart** (`components/werkgebieden/RegelInhoud.tsx`) is gebouwd als de begripskaart: op de pagina
-  (`RegelPagina`, `/werkgebieden/[id]/regels/[regel]`) in `SplitDetail`, naast het gesprek onder elkaar. Links de regel
+- **De regelkaart** (`components/werkgebieden/RegelInhoud.tsx`) is gebouwd als de begripskaart: op elke plek in `SplitDetail`
+  (de pagina `RegelPagina`, `/werkgebieden/[id]/regels/[regel]`, vergroot en naast het gesprek), breed naast elkaar en smal onder elkaar. Links de regel
   (tekst, uitvoer, invoer, parameters), de gevallen met hun voorbeelden en het oordeel "juridisch juist?", en de grondslag
   en dragende passages (akkoord of afwijzen per drager); rechts de beoordeling (de poort van de api letterlijk, de signalen,
   accorderen met een verplichte reden, afwijzen met reden, heropenen), *In de keten* (volgt op, leidt tot) en de historie.
@@ -1903,6 +1905,9 @@ die erover gaat, zet je in `TekstEnLijst`; bouw geen eigen kolommen of eigen hoo
   `data-kaart-meta`), niets weggelaten.
 - Onder de wettekst staat ***Wat de graaf weet*** (`WatDeGraafWeet`, hetzelfde blok als in het bronvenster): een
   verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie.
+- **Eén principe voor twee kolommen**: `TekstEnLijst` (tekst en lijst, elk een eigen scroll, 56rem) en `SplitDetail`
+  (een object met een zijkolom, in de scroll van de pagina, 44rem) kiezen allebei op de breedte van het blok. Begrip en
+  regel tonen geen tekst plus lijst maar inhoud plus zijkolom; daarom `SplitDetail`, ook in het paneel.
 - De annotatie gebruikt het overal (`ArtefactInhoud`: paneel, vergroot en `/annotaties/node`). Het bronvenster niet: dat
   stroomt mee in de scroll van het paneel, en de bronpagina heeft al een eigen tweedeling (`SplitDetail`).
 - Selecteren scrolt **beide kanten** in beeld, elk in zijn eigen kolom: de markering (`WettekstBlok`, markeerlaag) en de
