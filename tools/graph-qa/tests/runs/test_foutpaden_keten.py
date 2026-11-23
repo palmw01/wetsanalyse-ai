@@ -100,7 +100,6 @@ def _graaf_weg(_query: str) -> str:
 
 def test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is(keten):
     llm = KetenLLM([
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
         response([text_block("De bepaling is nu niet te lezen.")], "end_turn"),
     ])

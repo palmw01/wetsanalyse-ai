@@ -633,8 +633,8 @@ def test_zoekresultaat_hangt_als_toolbewijs_in_de_historie():
 
 
 def _via_ophaal(vraag, doel_json, rows, api):
-    llm = FakeLLM([response([tool_block("ov", "annoteer", {"vraag": vraag})], "tool_use"),
-                   response([text_block(json.dumps(doel_json))], "end_turn")])
+    # De annoteeropdracht noemt het artikel: de code routeert (`supervisie.annoteeropdracht`), de ophaal-agent is de eerste.
+    llm = FakeLLM([response([text_block(json.dumps(doel_json))], "end_turn")])
     return run(answer_stream(vraag, llm=llm, graph=FakeGraph(result=rows), annotaties=api,
                              settings=make_settings())), llm
 
@@ -644,7 +644,7 @@ def test_genoemde_leden_van_een_artikel_staan_vooraf_aangevinkt():
                               ROWS, ReadApi(snapshot(ART)))
     kaart = _keuze(events)
     assert [(k["lid"], k.get("gekozen", False)) for k in kaart["kandidaten"]] == [("1", True), ("2", True)]
-    assert llm.index == 2 and not any(e["type"] == "element" for e in events)
+    assert llm.index == 1 and not any(e["type"] == "element" for e in events)
 
 
 def test_leidraad_subbepalingen_vooraf_aangevinkt():

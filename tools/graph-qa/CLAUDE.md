@@ -1388,6 +1388,13 @@ wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelde
    `make_settings` in de tests zet 1, omdat de gescripte `FakeLLM` op volgorde antwoordt. Het
    spaCy-model laadt bij het opstarten op een achtergrondthread, met een lock in de provider.
 
+**Een annoteeropdracht die zelf één artikel noemt, routeert de code** (`supervisie.annoteeropdracht`, route
+`annoteeropdracht`): "annoteer leidraad artikel 1.1.2", "kun je artikel 9 lid 1 IW annoteren?" gaan zonder de centrale agent
+naar de ophaal-agent en de keten. Die koos de overdracht `annoteer` niet altijd: in een gesprek waarin dezelfde bepaling al
+geannoteerd was, schreef hij "staat in de gesprekscontext", zonder tools en zonder artefact (acceptatie 23 nov 2026). Een
+opdracht zonder artikel ("annoteer lid 2", "doe hetzelfde voor lid 2") leunt op het gesprek en blijft bij de centrale agent,
+net als meer artikelen tegelijk (zijn overdracht weigert). Een regeling buiten de graaf krijgt eerst zijn melding.
+
 **Een ONDERWERP in plaats van een bepaling** ("annoteer alles over aansprakelijkheid van de bestuurder")
 levert een keuze, geen annotatie: de ophaal-agent geeft `{"kandidaten": [...]}` terug, `annoteer_node`
 emit één `kandidaten`-event en stopt. Welke bepaling de werkvoorraad in gaat, kiest de jurist.
