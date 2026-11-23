@@ -29,6 +29,11 @@ updates:
         versions: [">=1.10.0"]
     open-pull-requests-limit: 5
     groups:
+      # @vitest/coverage-v8 (de dekking van het kwaliteitsrapport) vraagt exact de versie van vitest; een major van de
+      # een zonder de ander faalt op de peer-dependency. Patch en minor zitten al samen in patch-and-minor.
+      vitest-major:
+        patterns: ["vitest", "@vitest/*"]
+        update-types: ["major"]
       patch-and-minor:
         update-types: ["patch", "minor"]
 

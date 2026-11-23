@@ -8,6 +8,13 @@ __pycache__/
 api/.venv/
 .pytest_cache/
 
+# Dekking en het kwaliteitsrapport (scripts/kwaliteit.py)
+.coverage
+.coverage.*
+coverage/
+/kwaliteit/
+/dekking/
+
 # Logs
 *.log
 

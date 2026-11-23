@@ -18,6 +18,8 @@ import pytest
 from routeboek import WORTEL
 
 POORT = WORTEL / ".github" / "workflows" / "poort.yml"
+#: Jobs die rapporteren en niets tegenhouden: `poort` wacht er bewust niet op (zie tests/poort/test_kwaliteit.py).
+RAPPORT = {"kwaliteit"}
 TEKST = POORT.read_text(encoding="utf-8")
 
 sys.path.insert(0, str(WORTEL / "scripts"))
@@ -46,7 +48,8 @@ def test_de_verplichte_check_heet_poort_en_wacht_op_alles():
     m = re.search(r"^    needs: \[(.*)\]\s*$", job, re.M)
     assert m, "`poort` mist zijn needs-lijst"
     nodig = {n.strip() for n in m.group(1).split(",")}
-    assert nodig == set(JOBS) - {"poort"}, f"`poort` wacht niet op alle jobs: mist {set(JOBS) - {'poort'} - nodig}"
+    verwacht = set(JOBS) - {"poort"} - RAPPORT
+    assert nodig == verwacht, f"`poort` wacht niet op precies de poortjobs: mist {verwacht - nodig}, te veel {nodig - verwacht}"
     assert '"raakt", "guards"' in job, "raakt en guards moeten echt slagen, niet overgeslagen"
 
 

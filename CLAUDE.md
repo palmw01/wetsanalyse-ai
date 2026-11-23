@@ -376,7 +376,7 @@ Details, inrichting en runbooks: **`deploy/azure/README.md`**.
 | `promote.yml` | tag `v*` | bouwt niets: neemt de digests over die op acceptatie draaien, toetst per image het OCI-label `org.opencontainers.image.revision` tegen de getagde commit, rolt uit naar productie, wacht op gezonde revisies, zet de GHCR-tags `prd`/`prd-vorige` en verzet de branch `release/prd`. |
 | `rollback.yml` | handmatig | toont de revisies van `api`, `frontend` of `graph-qa` in een straat; met `revisie` ingevuld zet hij het image van die revisie terug (een image-swap, geen `revision activate`) en wacht tot hij draait. Achter dezelfde environment-poort als een uitrol. |
 | `azure-infra.yml` | handmatig | de enige die resources aanmaakt, wijzigt of verwijdert (bicep) – zie hieronder. |
-| `poort.yml` | pull request naar `master` | de verplichte check `poort` – zie hieronder. |
+| `poort.yml` | pull request naar `master` | de verplichte check `poort`, en het kwaliteitsrapport – zie hieronder. |
 | `bouwwacht.yml` | elk kwartier | vergelijkt `:latest` per component met master en dispatcht bij achterstand de publish-workflow; mislukte alleen de `deploy`-job, dan draait hij die opnieuw. |
 | `ghcr-cleanup.yml` | na elke geslaagde publish, of handmatig (default dry-run) | bewaart per image de vijf nieuwste getagde builds; `latest`, `prd` en `prd-vorige` zijn uitgesloten. |
 | `geen-omgevingsgegevens.yml` | PR en push naar `master` | faalt op hostnamen, interne IP's en machinenamen in de repo. |
@@ -455,6 +455,30 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét
   token, en met een `revisionSuffix` uit de config-hash (secrets zijn niet revisie-scoped, dus een
   configwijziging rolt anders niet uit).
+
+### Het kwaliteitsrapport
+
+De poort meet ook de kwaliteit van de code, maar **als rapport, niet als poort**: de job `kwaliteit`
+(`scripts/kwaliteit.py`) houdt niets tegen: `poort` wacht er niet op (`tests/poort/test_kwaliteit.py` bewaakt dat). Hij
+meet, vergeleken met de doelbranch:
+
+- **ruff** met de regels uit `ruff.toml`: fouten (pyflakes), bugrisico's (bugbear), beveiligingsrisico's (bandit) en
+  complexiteit (mccabe), voor alle Python in de repo; geen stijlregels;
+- **testdekking** van api en graph-qa (`pytest-cov` in de shards, `[tool.coverage.run]` in hun `pyproject.toml`) en van
+  de frontend (vitest met `--coverage`), alleen voor de suites die de PR draaide; de browserregressie telt niet mee.
+
+**Wat nieuw is in je eigen wijziging, ruim je op**: de ruff-bevindingen onder *Nieuw in deze wijziging*, en de regels
+onder *Gewijzigde regels zonder test* krijgen een test (of een reden waarom niet). De bestaande schuld staat er ter
+informatie bij; die pak je alleen op als dat de taak is. Het rapport staat in de samenvatting van de run en als artefact
+`kwaliteitsrapport` (`kwaliteit.md` en `kwaliteit.json`):
+
+```bash
+run=$(gh run list --workflow poort --branch "$(git branch --show-current)" -L1 --json databaseId -q '.[0].databaseId')
+gh run download "$run" -n kwaliteitsrapport -D /tmp/kwaliteit && cat /tmp/kwaliteit/kwaliteit.md
+```
+
+Lokaal hetzelfde rapport, vóór je pusht: `uv run scripts/kwaliteit.py` (dekking alleen als je die lokaal mat; zie de
+docstring van het script).
 
 ### Infra
 
