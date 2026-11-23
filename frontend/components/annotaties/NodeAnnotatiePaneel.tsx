@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { LaadStand } from "@/components/ui/LaadStand";
@@ -20,7 +22,7 @@ import { StandMelding } from "@/components/ui/StandMelding";
 import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
+  apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, segmentLabel, verwachteRevisies,
   type NodeDoel, type NodeImpliciet, type NodeOpslag, type NodeRelatie, type NodeWeergave, type RelatieInvoer,
 } from "@/lib/annotatieNode";
 import {
@@ -32,7 +34,10 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
-import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
+import { NOG_NIET_IN_WERKING, annotatieKopTekst, vindplaatsTekst } from "@/lib/herkomst";
+import { bronPad } from "@/lib/werkgebiedPaden";
+import { WatDeGraafWeet } from "@/components/werkplek/BepalingFeiten";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { BronGraaf, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -88,13 +93,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const bronGraaf = useBronGraaf({ doel, samenhang: { extra: extraDoelen ?? [], graaf: graaf ?? {} },
     aan: samenhang && !!view, weergave: tab, claim: !!onSluit });
   const graafStand = bronGraaf.stand;
-  const { groot, setGroot } = bronGraaf;
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
   // Een fout van afronden, exporteren of verwijderen op de tab Graaf (op de tab Tekst landt hij in de inhoud).
   const [kopFout, setKopFout] = useState<string | null>(null);
   const { data: sessie } = useSession();
+  const openBron = useOpenBron();
+  const router = useRouter();
   const gebruiker = sessie?.user?.userid ?? undefined;
 
   const laad = useCallback(async () => {
@@ -253,7 +259,6 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
   function openTekst(knoop: KnoopData) {
     setTab("tekst");
-    setGroot(false);
     if (knoop.element_id) { setActiefId(knoop.element_id); return; }
     if (knoop.lid) requestAnimationFrame(() => document.querySelector(`[data-artefact] [data-lid="${CSS.escape(knoop.lid)}"]`)
       ?.scrollIntoView({ block: "center" }));
@@ -269,17 +274,21 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     if (knoop.element_id) return vraagOverElement(knoop.element_id);
     return knoop.id.startsWith("urn:bwb:") ? { soort: "bepaling", bron_iri: knoop.id, label: knoop.naam } : undefined;
   }
+  // *Wat de graaf weet* onder de wettekst (melding gebruiker 23 nov 2026): dezelfde metadata als in het bronvenster. Een
+  // verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie (die
+  // toont de stand van toen) en niet in de rondleiding.
+  const graafFeiten = basisOpslag.levend && !opname && (
+    <WatDeGraafWeet bronIri={doel.bron_iri} onOpen={(v) => openBron
+      ? openBron({ soort: "bron", bron_iri: v.iri, titel: vindplaatsTekst(v) }) : router.push(bronPad(v.iri))} />
+  );
   const kopVraag = view && !opname && (
     <VraagLexKnop onderwerp={{ soort: "bepaling", bron_iri: view.doel.bron_iri, label: view.doel.label || doel.label || "",
       annotatie: view.lagen.length > 0 }} />
   );
   // Een oude versie heeft geen graaf: de kaart toont de stand van nu.
   const toonTabs = samenhang && !!view && !opname;
-  // De tabs en *Vergroten* staan in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
-  const tabs = toonTabs && (
-    <WeergaveBalk weergave={tab} onKies={(w) => { setTab(w); if (w === "tekst" && !bronGraaf.inZijpaneel) setGroot(false); }}
-      graaf={onSluit ? bronGraaf : undefined} />
-  );
+  // Tekst | Graaf staat in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
+  const tabs = toonTabs && <WeergaveBalk weergave={tab} onKies={setTab} />;
 
   // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
   const reeksBalk = (reeks || doel.versie) && <>
@@ -292,7 +301,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined;
   const inhoud = !view || !nb || !doc ? (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
-      <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={view?.doel.label || doel.label || "Laden…"} onSluit={onSluit} onder={reeksBalk} />
+      <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={view?.doel.label || doel.label || "Laden…"} onder={reeksBalk} />
       {/* De kop (met het kruisje op dezelfde plek) staat erboven, anders zit je op een smal scherm vast achter een
           paneel dat niet opent. */}
       <div className="min-h-0 flex-1 p-5"><LaadStand wat="De annotatie" skelet="tekst" fout={laadFout} onOpnieuw={() => void laad()} /></div>
@@ -303,7 +312,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
         <>
-          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs} vraag={kopVraag}
+          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onder={reeksBalk} balk={tabs} vraag={kopVraag}
             onStatus={view.lagen.length && !opname ? status : undefined}
             onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
             onExport={opname ? undefined : exporteer} onFout={setKopFout} />
@@ -330,6 +339,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         onWisEigenMarkering={wisEigenMarkering}
         vraagOnderwerp={(el) => vraagOverElement(el.id)}
         kopVraag={kopVraag}
+        naTekst={graafFeiten}
         onStatus={view.lagen.length && !opname ? status : undefined}
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
         alleenLezen={!!opname}
@@ -359,7 +369,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   // `onEscape` is een no-op om dezelfde reden als in `ArtefactPaneel`: de inhoud pelt Escape zelf
   // laag voor laag af.
   return (
-    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot && !bronGraaf.inZijpaneel ? "fullscreen" : variant}
+    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={variant}
       onSluit={onSluit} onEscape={view ? () => {
         // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het venster dat, van binnen naar
         // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
@@ -396,7 +406,10 @@ function NodeExtra({ view, doel, onKies, historie }: {
   /** De revisiehistorie komt van de api; zonder (de rondleiding) valt er niets op te halen. */
   historie: boolean;
 }) {
-  const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
+  const labelVan = (iri: string) => {
+    const s = view.segmenten.find((seg) => seg.bron_iri === iri);
+    return (s && segmentLabel(s)) || view.doel.label || iri;
+  };
   return (
     <>
       {historie && view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}

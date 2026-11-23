@@ -147,11 +147,17 @@ export function Kaart({ titel, telling, toelichting, meer, acties, children, cla
   );
 }
 
+/** Een object in twee kolommen: links de inhoud (`hoofd`), rechts een zijkolom van 20rem (beoordeling, relaties,
+ *  historie). Breed genoeg naast elkaar, anders onder elkaar. Net als `TekstEnLijst` beslist een containerquery op het blok
+ *  zelf (`SPLIT_DETAIL_BREED` in `lib/tekstEnLijst.ts`, de CSS in `app/globals.css`), niet de schermbreedte of de plek:
+ *  op een pagina, in een vergroot paneel en in een breed gesleept paneel naast elkaar, in een smal paneel onder elkaar. */
 export function SplitDetail({ hoofd, zij }: { hoofd: React.ReactNode; zij: React.ReactNode }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="min-w-0 space-y-4">{hoofd}</div>
-      <aside className="min-w-0 space-y-4">{zij}</aside>
+    <div className="split-detail-schil">
+      <div className="split-detail" data-split-detail>
+        <div className="min-w-0 space-y-4">{hoofd}</div>
+        <aside className="min-w-0 space-y-4">{zij}</aside>
+      </div>
     </div>
   );
 }
@@ -163,6 +169,10 @@ export function ObjectRijen({ label, children, leeg }: { label: string; children
   return <ul aria-label={label} className="space-y-2">{kinderen}</ul>;
 }
 
+/** Het kader van één rij die een eigen vak is (de `itemrow` van de mock-up, spoor K): een rij naar een object
+ *  (`ObjectRij`) en een markering in de review (`ReviewQueue`). Eén vorm, zodat begrip, regel en annotatie gelijk ogen. */
+export const RIJ_KADER = "rounded-lg border border-line bg-paper px-3.5 py-3";
+
 /** Een rij naar een object: een link naar zijn pagina, of naast het gesprek (`onKies`) een knop die het in hetzelfde
  *  paneel opent. Eén vorm voor beide (generieke componenten). */
 export function ObjectRij({ href, onKies, titel, sub, status, voor, ...rest }: {
@@ -173,7 +183,7 @@ export function ObjectRij({ href, onKies, titel, sub, status, voor, ...rest }: {
   status?: React.ReactNode;
   voor?: React.ReactNode;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
-  const klasse = "focus-ring group flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-line bg-paper px-3.5 py-3 text-left transition hover:border-lint/40 hover:shadow-zacht";
+  const klasse = `focus-ring group flex min-h-[48px] w-full items-center gap-3 ${RIJ_KADER} text-left transition hover:border-lint/40 hover:shadow-zacht`;
   const inhoud = <>
     {voor !== undefined && <span className="shrink-0 text-sm tabular-nums text-muted">{voor}</span>}
     <span className="min-w-0 flex-1">

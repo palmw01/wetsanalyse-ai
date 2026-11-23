@@ -178,8 +178,6 @@ export interface TabRijItem {
   /** De tooltip: het volle label, en waar de tab geopend werd. */
   title?: string;
   icoon?: ReactNode;
-  /** Een ✕ achter de tab; zonder is de tab niet los te sluiten. */
-  onSluit?: () => void;
 }
 
 /** Alleen de tabrij, voor een paneel waarvan de inhoud elders staat (de tabs van het zijpaneel, het bronvenster PR 3b):
@@ -220,12 +218,6 @@ export function TabRij({ tabs, active, onChange, label, soort = "paneel" }: {
               {t.icoon && <span aria-hidden className="shrink-0">{t.icoon}</span>}
               <span className="truncate">{t.label}</span>
             </button>
-            {t.onSluit && (
-              <button type="button" aria-label={`Sluit tab ${t.label}`} title={`Sluit tab ${t.label}`} onClick={t.onSluit} data-tab-sluiten
-                className="focus-ring mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-knop-xs text-faint hover:bg-paper hover:text-lint coarse:h-11 coarse:w-11">
-                <svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg>
-              </button>
-            )}
           </div>
         );
       })}

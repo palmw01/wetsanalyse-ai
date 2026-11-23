@@ -919,6 +919,33 @@ def _structuur_iri(bwb_id: str, iri: str) -> str:
     return vp.bron_iri
 
 
+def _inhoud_wortel(bwb_id: str, vanaf: str | None) -> str:
+    """Het patroon dat `?node` bindt aan het deel waar de inhoudsopgave begint: een IRI, een nummer of de regeling."""
+    return (f"BIND(<{_structuur_iri(bwb_id, vanaf)}> AS ?node)" if vanaf and vanaf.startswith(NS)
+            else node_patroon(bwb_id, vanaf) if vanaf else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)')
+
+
+def structuurdeel(bwb_id: str, vanaf: str) -> str:
+    """Het deel zelf waar `inhoudsopgave(vanaf=…)` begint, met zijn directe ouder: één rij, of geen als het deel niet in
+    de regeling staat.
+
+    Nodig omdat de inhoudsopgave alleen containerniveaus volgt (`STRUCTUUR`). Onder een bepaling – een artikel van een
+    wet, een divisie als 1.1.2 van de Leidraad Invordering 2008 – hangen alleen leden en onderdelen, dus geeft de
+    inhoudsopgave daar nul rijen. Dat is geen fout maar een antwoord: dit deel is een bepaling, zijn tekst lees je met
+    `get_bepaling`/`get_artikel`. Deze vraag onderscheidt dat van een deel dat er niet is (acceptatie 23 nov 2026:
+    "bekijkt de opbouw van Leidraad Invordering 2008 · gaf een fout", terwijl 1.1.2 er gewoon stond)."""
+    typen = ", ".join(CONCRETE_TYPES)
+    return PREFIXES + f"""SELECT ?node ?soort ?nummer ?titel ?ouder ?oudersoort ?oudernummer WHERE {{
+  {_inhoud_wortel(bwb_id, vanaf)}
+  ?node a ?t . FILTER(?t IN ({typen})) BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
+  OPTIONAL {{ ?node bwb:nummer ?nummer }}
+  OPTIONAL {{ ?node bwb:titel ?titel }}
+  OPTIONAL {{ ?o {STRUCTUUR} ?node . BIND(STR(?o) AS ?ouder)
+             OPTIONAL {{ ?o bwb:nummer ?oudernummer }}
+             OPTIONAL {{ ?o a ?ot . FILTER(?ot IN ({typen})) BIND(STRAFTER(STR(?ot), "{ONTOLOGIE}") AS ?oudersoort) }} }}
+}} LIMIT 1"""
+
+
 def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 4) -> str:
     """De structuur van een regeling (of van één structuurdeel): wat zit waarin?
 
@@ -940,8 +967,7 @@ def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 4) -> str
     consument sorteert zelf numeriek.
     """
     d = max(1, min(int(diepte), 4))
-    wortel = (f"BIND(<{_structuur_iri(bwb_id, vanaf)}> AS ?node)" if vanaf and vanaf.startswith(NS)
-              else node_patroon(bwb_id, vanaf) if vanaf else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)')
+    wortel = _inhoud_wortel(bwb_id, vanaf)
     takken = []
     for n in range(1, d + 1):
         pad = " . ".join(f"?t{i} {STRUCTUUR} ?t{i + 1}" for i in range(n))

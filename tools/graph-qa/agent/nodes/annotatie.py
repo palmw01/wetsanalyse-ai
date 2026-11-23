@@ -43,10 +43,24 @@ from ..skill_regels import aan as skill_regels_aan
 logger = logging.getLogger("graph_qa.orchestrator")
 
 
+def _hergebruikte_leden(leden: list[str]) -> str:
+    """Welke leden, in woorden. Een ongenummerd onderdeel (een opsommingsstreepje: "–", "•") heeft
+    geen nummer om te noemen – "leden –, –, –" zegt niets –, dus dat telt mee als aantal."""
+    leden = [ld.strip() for ld in leden if ld.strip()]
+    genummerd = [ld for ld in leden if any(c.isalnum() for c in ld)]
+    ongenummerd = len(leden) - len(genummerd)
+    if not leden:
+        return "het artikel"
+    if not genummerd:
+        return "het onderdeel" if ongenummerd == 1 else f"{ongenummerd} onderdelen"
+    nummers = f"lid {genummerd[0]}" if len(genummerd) == 1 else "leden " + ", ".join(genummerd)
+    if not ongenummerd:
+        return nummers
+    return f"{nummers} en {ongenummerd} ongenummerd{' onderdeel' if ongenummerd == 1 else 'e onderdelen'}"
+
+
 def _hergebruik_melding(hergebruik: dict[str, Any]) -> str:
-    leden = [ld["lid"] for ld in hergebruik["leden"]]
-    wat = ("het artikel" if leden == [""] else
-           f"lid {leden[0]}" if len(leden) == 1 else "leden " + ", ".join(leden))
+    wat = _hergebruikte_leden([str(ld.get("lid", "")) for ld in hergebruik["leden"]])
     t = hergebruik["telling"]
     return (f"{wat} ongewijzigd sinds de vorige annotatie · {t['markeringen']} markeringen uit de "
             f"graaf ({t['beoordeeld']} beoordeeld, {t['te_beoordelen']} te beoordelen)")
@@ -82,11 +96,22 @@ def _opties_melding(ouder: str, opties: list[dict]) -> str:
     return f"{ouder} heeft {len(opties)} {wat}. Welk deel wil je annoteren?"
 
 
+#: De melding als de ophaalstap geen bepaling opleverde.
+GEEN_DOEL = ("Ik heb de bepaling niet gevonden om te annoteren. Noem de regeling en het artikel, bijvoorbeeld "
+             "“annoteer artikel 9 lid 1 van de Invorderingswet 1990” of “annoteer Leidraad Invordering 2008, 1.1.2”.")
+
+
 def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
     """De bron gericht ophalen, hergebruik en afronding toetsen, het `doel`-event bij volledig
     hergebruik. Geeft `{"klaar": update}` als de beurt hier eindigt, anders doel, bron, hergebruik,
     soort en aanduiding."""
     doel = _bepaal_doel(state)
+    if not (str(doel.get("bwbId") or "").strip() or str(doel.get("bron_iri") or "").strip()):
+        # Geen doel uit de ophaalstap (hij haalde niets op): geen aanroep met een leeg doel, die alleen "Ongeldig BWB-id"
+        # gaf (acceptatie 23 nov 2026), maar een melding die zegt wat er nodig is.
+        _stap(writer, "Klaar", "niet geannoteerd – de bepaling is niet gevonden")
+        writer({"type": "token", "content": GEEN_DOEL})
+        return {"klaar": {"answer": GEEN_DOEL, "voorstellen": [], "messages": [{"role": "assistant", "content": GEEN_DOEL}]}}
     geheel = bool((state.get("opgegeven_doel") or {}).get("geheel"))
     # "artikel 9 lid 1 en 3" of "9.1 en 9.5": één artikel, meerdere leden. Dan wordt het artikel
     # het doel en staan de genoemde leden vooraf aangevinkt op de kaart. Een meegestuurd doel (een

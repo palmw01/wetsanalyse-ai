@@ -192,6 +192,12 @@ export function KlasseLabel({ klasse, klein = false, children, className = "", .
   );
 }
 
+/** Een passage uit de wettekst in een rij: letterlijk, tussen aanhalingstekens, in de tekstkleur. Eén vorm voor de passages
+ *  van een begrip en de markeringen in de review (23 nov 2026); een lang citaat in een antwoord is `Citaat`. */
+export function PassageCitaat({ tekst, className = "", ...rest }: { tekst: string; className?: string } & Attrs) {
+  return <blockquote className={`text-sm text-ink [overflow-wrap:anywhere] ${className}`} {...rest}>“{tekst}”</blockquote>;
+}
+
 export function Regels({ children, className = "", ...rest }: { children: React.ReactNode; className?: string } & Attrs) {
   return <dl className={`divide-y divide-line ${className}`} {...rest}>{children}</dl>;
 }

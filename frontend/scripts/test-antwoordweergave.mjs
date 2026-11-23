@@ -149,10 +149,13 @@ try {
     ZES.map((v) => v.iri), "de lijst noemt alle zes, in de volgorde van het antwoord");
   await page.screenshot({ path: `${shots}/zes-bepalingen-lijst.png` });
   await telling.click();
-  assert.equal(await page.getByRole("tab", { name: "6 bepalingen" }).count(), 1, "een tweede klik opent geen tweede lijst");
+  // Eén open item: geen tabrij (die staat er pas bij twee of meer). Een tweede lijst zou er één laten verschijnen.
+  assert.equal(await page.locator("[data-context-paneel=bepalingen]").count(), 1, "een tweede klik opent geen tweede lijst");
+  assert.equal(await page.locator("[data-paneel-tab]").count(), 0, "en geen tweede tab");
   await page.locator(`[data-bepalingen-rij="${ZES[3].iri}"]`).click();
   await page.locator("[data-context-paneel=bron]").waitFor();
   await page.getByRole("tab", { name: /Artikel 9, lid 2/ }).first().waitFor();
+  assert.equal(await page.locator("[data-paneel-tab]").count(), 2, "de lijst en de bepaling: twee tabs");
   assert.equal(await page.getByRole("tab", { name: "6 bepalingen" }).count(), 1, "de lijst blijft als tab staan");
   await page.getByRole("tab", { name: "6 bepalingen" }).click();
   await page.locator("[data-context-paneel=bepalingen]").waitFor();

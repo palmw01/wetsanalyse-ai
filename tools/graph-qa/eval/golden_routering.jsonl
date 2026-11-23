@@ -13,6 +13,8 @@
 {"id": "bronselectie-actie", "vraag": "Bepaal de bronnen", "context": {"werkgebied_id": "w1", "actie": "bronselectie"}, "verwacht": {"route": "bronselectie", "model": false}}
 {"id": "advies", "vraag": "Klopt deze markering?", "context": {"modus": "advies", "context": {"fragment": "de ontvanger", "bwbId": "BWBR0004770"}}, "verwacht": {"route": "agent", "specialist": "duiding", "model": false}}
 {"id": "doel-annoteren", "vraag": "Annoteer dit", "context": {"doel": {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}}, "verwacht": {"route": "annoteer", "model": false}}
+{"id": "annoteeropdracht", "vraag": "annoteer leidraad artikel 1.1.2", "verwacht": {"route": "agent", "specialist": "annotatie", "model": false}}
+{"id": "annoteeropdracht-verzoek", "vraag": "Kun je artikel 9 lid 1 van de Invorderingswet 1990 annoteren?", "verwacht": {"route": "agent", "specialist": "annotatie", "model": false}}
 {"id": "duiding", "vraag": "Wat betekent artikel 9 van de Invorderingswet 1990?", "verwacht": {"model": true}}
 {"id": "begrip", "vraag": "Wat is een belastingschuld?", "verwacht": {"model": true}}
 {"id": "bepaling-zonder-regeling", "vraag": "Wat staat er in artikel 3?", "verwacht": {"model": true}}

@@ -360,15 +360,16 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`; één vaste indeling sinds 8 nov 2026, melding van
     de gebruiker: de annotatiekop stond in drie rijen met twee uitlijningen). Hoogstens twee rijen, nooit wrappend:
-    - rij 1: soort en titel (afgekapt), rechtsboven het kopgereedschap in vaste volgorde: ↗ *Open volledige pagina*
-      (een icoonknop-link, `NaarPagina`), ⋯ (`MeerMenu sm`) en ✕ (`SluitKnop`);
+    - rij 1: soort en titel (afgekapt), rechtsboven het kopgereedschap in vaste volgorde: ⋯ (`MeerMenu sm`) en dan de
+      knoppen van de plek (zie *De bediening van een paneel* hieronder). De pagina staat als *Openen als pagina*
+      (`data-naar-pagina`) bovenaan in ⋯;
     - rij 2, alleen als er iets is: de status links (`status`: een `StatusLabel`, eventueel met "revisie n") en
       hoogstens één hoofdactie rechts (`hoofdactie`, `knopKlasse("secondary", "xs")`; de annotatie: *Annotatie afronden*);
     - in het menu ⋯ (`menu`): eerst kopiëren en exporteren (`ExportRegels`), dan de zeldzame handelingen van de soort,
       onderaan rood *Verwijderen* (`MenuVerwijder`). In een paneel van 360 px passen ze niet naast de status;
     - een inhoud die zijn eigen object laadt (`WerkgebiedInhoud`, `BegripCompact`) zet zijn stand en menu in de kop met
       `usePaneelKopVulling`; de schil zet er `PaneelKopVuller` omheen. Geen kopregel in de inhoud;
-    - de slots `onder` (één regel: de reeks, de versie) en `balk` (tabs en *Vergroten*) staan eronder;
+    - de slots `onder` (één regel: de reeks, de versie) en `balk` (de weergaven Tekst | Graaf) staan eronder;
     - de annotatie heeft die kop via `AnnotatieKop` (in `ArtefactInhoud`) op de tab Tekst én op de graaf, dus hij springt
       niet bij een tabwissel; de annotatiepagina `/annotaties/node` is hetzelfde paneel. Een pagina met `PaginaKop` houdt
       `KleineActies` (Exporteren en ⋯ op één rij): daar is ruimte.
@@ -520,9 +521,13 @@ te wissen. Geen Escape: het is geen laag. Het gebruikersmenu draagt de voorwaard
     render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `useOpenBron`,
     alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
-    in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
-    bovenaan *Open volledige pagina* (`paginaVanContext`, `paginaVan`, `nodeLink`). Weg uit de werkplek is het
-    paneel weg; terug in het gesprek staan zijn tabs er weer (per browser bewaard). Browserregressie: `scripts/test-contextpaneel.mjs`.
+    in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft in ⋯
+    *Openen als pagina* (`paginaVanContext`, `paginaVan`, `nodeLink`). Weg uit de werkplek is het
+    paneel weg; terug in het gesprek staan zijn tabs er weer (per browser bewaard). **De weg terug** (melding gebruiker
+    23 nov 2026: na de pagina kon je niet meer terug naar gesprek plus paneel): `PaneelKop` zet het gesprek als `?vanuit=` op de
+    link (`usePaneel().gesprekId`, gegeven door `WerkplekClient`), en één strook in de root-layout (`TerugNaarGesprek`,
+    net als `?instellingen=`) toont op elke pagina *Terug naar het gesprek* (`data-terug-naar-gesprek`), ook na herladen;
+    het paneel staat er dan weer met dezelfde tabs, uitgeklapt. Eén patroon voor elke soort; `lib/terugNaarGesprek.ts`. Browserregressie: `scripts/test-contextpaneel.mjs`.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
@@ -1228,8 +1233,9 @@ bestaat los van de gesprekken.
     er ligt. *Specificaties* blijft gereserveerd.
   - **Het idioom staat in `components/ui/Pagina.tsx`**: `PaginaKop` (kruimelpad, titel, één zin, meta,
     hoogstens twee knoppen), `TabLinks` (links met `aria-current`; een teller hoort in de naam, "Bronnen
-    (4)"), `Kaart`, `SplitDetail`, `ObjectRij` (titel, subregel, status, chevron – geen knoppen en geen
-    IRI's in een rij) en `Teller`.
+    (4)"), `Kaart`, `SplitDetail` (inhoud plus een zijkolom van 20rem, naast elkaar zodra het **blok** 44rem breed is:
+    een containerquery, geen schermbreedte en geen plek, dus ook vergroot en in een breed paneel; zie *Tekst en lijst*),
+    `ObjectRij` (titel, subregel, status, chevron – geen knoppen en geen IRI's in een rij) en `Teller`.
   - **Een oude link met `?tab=`** gaat server-side naar zijn nieuwe plek (`oudeTabNaar`): bladwijzers en
     berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
   - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
@@ -1355,8 +1361,9 @@ bestaat los van de gesprekken.
   begrip. **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
   (`lib/useBegrip.ts`) laadt het en draagt `muteer` – dezelfde vorm als bij het werkgebied: revisie in beeld, 412 laadt
   opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`, `poort`, `element_buiten_werkgebied`)
-  verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken: op de pagina via `SplitDetail` (links
-  Betekenis, Voorbeelden en passages, rechts Beoordeling, Relaties en Historie), naast het gesprek onder elkaar.
+  verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken op elke plek via `SplitDetail` (links
+  Betekenis, Voorbeelden en passages, rechts Beoordeling, Relaties en Historie): breed naast elkaar (de pagina, vergroot),
+  smal onder elkaar, in die volgorde (23 nov 2026; daarvoor stond de beoordeling naast het gesprek vóór de passages).
   *Bewerken* staat per blok (`useBewerken`); elke bewaring is een revisie, de andere velden blijven staan, en een 412
   laat je tekst in het open blok staan. Verwijderen staat in het menu ⋯ (`BegripMenu`). De prop `context` staat er voor
   het generieke kader (ADR-006).
@@ -1593,8 +1600,8 @@ geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest,
   komt van de api (`regeltekst.markdown`, begrippen cursief, operatorbegrippen vet).
 - **`useRegel`** (`lib/useRegel.ts`) laadt één regel en draagt `muteer`, in de vorm van `useBegrip`: de revisie in beeld,
   een 412 laadt opnieuw en zegt het. `useRegelKeten` laadt de lijst en `regels/hierarchie`.
-- **De regelkaart** (`components/werkgebieden/RegelInhoud.tsx`) is gebouwd als de begripskaart: op de pagina
-  (`RegelPagina`, `/werkgebieden/[id]/regels/[regel]`) in `SplitDetail`, naast het gesprek onder elkaar. Links de regel
+- **De regelkaart** (`components/werkgebieden/RegelInhoud.tsx`) is gebouwd als de begripskaart: op elke plek in `SplitDetail`
+  (de pagina `RegelPagina`, `/werkgebieden/[id]/regels/[regel]`, vergroot en naast het gesprek), breed naast elkaar en smal onder elkaar. Links de regel
   (tekst, uitvoer, invoer, parameters), de gevallen met hun voorbeelden en het oordeel "juridisch juist?", en de grondslag
   en dragende passages (akkoord of afwijzen per drager); rechts de beoordeling (de poort van de api letterlijk, de signalen,
   accorderen met een verplichte reden, afwijzen met reden, heropenen), *In de keten* (volgt op, leidt tot) en de historie.
@@ -1768,16 +1775,29 @@ terwijl de chat ernaast bereikbaar moet zijn); Escape sluit in alle varianten. D
 
 **Het zijpaneel** (het bronvenster, PR 3a; `components/ui/Zijpaneel`, rekenkern `lib/zijpaneel.ts`) is die kolom: één
 vaste kolom rechts, naar het voorbeeld van Claude Code.
-- **De scheiding** (`role="separator"`, `data-paneel-scheiding`) versleep je tussen 320 px en 60% van de werkplek, en het
+- **De scheiding** (`components/ui/Scheiding`, de ene versleepbare scheiding van de app; `data-paneel-scheiding`) versleep je tussen 320 px en 60% van de werkplek, en het
   gesprek houdt minstens 300 px. Met de focus erop doen ←/→ een stap van 16 px en Home/End de grenzen; dubbelklik zet de
   standaard (`min(34rem,46%)`) terug.
-- ***Inklappen*** maakt er een strook van 40 px van (`data-paneel-ingeklapt`); de inhoud blijft gemount. Iets anders
-  openen (`sleutel`) klapt hem weer uit, want een klik op een ingang moet zichtbaar iets doen.
-- ***Vergroten*** legt het paneel over het gesprek; Escape verkleint eerst. Er is één *Vergroten*: in het zijpaneel leest
-  de graaf `ZijpaneelContext.vergroot`, en op de graaf claimt `NodeAnnotatiePaneel` Escape (`claimEscape`), zodat zijn
-  volgorde lagen → selectie → verkleinen → sluiten blijft. Op de sheet en op `/annotaties/node` houdt de graaf zijn knop.
-- **Per browser bewaard** (`lib/opslag.ts`, in try/catch, na het mounten): `lex.paneel.breedte`, en
-  `lex.paneel.ingeklapt`, dat alleen telt bij een herstelde inhoud (`hersteld`, de tabs per gesprek).
+- **De bediening van een paneel** (besluit gebruiker 23 nov 2026, eenduidig). **Regel voor wie een paneel toevoegt: geef
+  het een `PaneelKop` en zet het in de werkplek; bouw geen eigen knop om te vergroten, in te klappen of te sluiten, en geen
+  knop naar een pagina.** Het paneel zegt wat het is; de plek bepaalt de knoppen.
+  - `lib/paneelBediening.ts` is de bron: de tabel `HANDELINGEN` (handeling → label, titel, icoon), `knoppenVoor(plek)`
+    (de knoppen in vaste volgorde per plek: `paneel`, `vergroot`, `ingeklapt`, `sheet`, `sheet-vergroot`, `rondleiding`,
+    `pagina`) en de stand van het zijpaneel (`Weergave`: normaal, vergroot of ingeklapt, met `volgende`).
+  - `components/ui/Paneel.tsx`: de ene context (`PaneelContext`, `usePaneel()`: plek, vergroten, inklappen, sluiten, het
+    gesprek, de tabs op een telefoon) en de ene knop (`PaneelKnop`). Zonder provider is de plek `pagina`: geen bediening.
+  - Het zijpaneel en de sheet vullen de context; `PaneelKop` tekent de knoppen, de strook van een ingeklapt paneel ook.
+  - Eén knop per handeling, één ✕ (in de kop, niet ook op de tabs), één weg naar groot. `app/paneelBediening.test.ts`
+    wordt rood bij een eigen label, icoon of knop voor een handeling, of bij een tweede weg.
+- ***Inklappen*** maakt er een strook van 40 px van (`data-paneel-ingeklapt`), met dezelfde knoppen; de inhoud blijft
+  gemount. Iets anders openen (`sleutel`) klapt hem weer uit, want een klik op een ingang moet zichtbaar iets doen.
+- ***Vergroten*** is de volle weergave, binnen de werkplek: het paneel over het gesprek, met dezelfde kop; *Verkleinen*
+  op dezelfde plek en Escape zetten het terug. Op een telefoon is het de sheet over het hele scherm. De pagina (*Openen
+  als pagina* in ⋯) is een link om te delen, geen tweede knop. De graaf heeft geen eigen *Vergroten*: hij leest of het
+  paneel groot is (`isVergroot(usePaneel().plek)`), en op de graaf claimt het venster Escape (`claimEscape`), zodat de
+  volgorde lagen → selectie → verkleinen → verbergen blijft.
+- **Per browser bewaard** (`lib/opslag.ts`, in try/catch, na het mounten): `lex.paneel.breedte`, en de stand
+  (`lex.paneel.weergave`), die alleen telt bij een herstelde inhoud (`hersteld`, de tabs per gesprek).
 - In de rondleiding is het paneel `vast`: altijd uitgeklapt, niets bewaard. Browserregressie: `scripts/test-zijpaneel.mjs`.
 
 **De tabs** (het bronvenster, PR 3b; rekenkern `lib/paneelTabs.ts`, tabrij `TabRij` in `components/ui/Tabs`).
@@ -1793,18 +1813,18 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   beoordeling openstaat (`openContext`) gaat naar die tab. Er kunnen dus meer bepalingen tegelijk in beoordeling
   openstaan. Het werkgebied-artefact heeft één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens `MAX_TABS`
   (8); de oudste niet-actieve valt af.
-- **Sluiten** (✕ op de tab, of ✕ in de kop van wat open is) gaat via `sluitPaneelTab`: de buur wordt actief.
+- **Sluiten** (✕ in de kop van wat open is, de enige) gaat via `sluitPaneelTab`: de buur wordt actief.
   **Escape verbergt** en sluit geen tab (`verbergPaneel`): breed klapt het zijpaneel in (`inklapSignaal`), op een telefoon
   gaat de sheet weg (via de bewaker, want de inhoud wordt ontkoppeld), en *Paneel · n open* (`data-paneel-terug`) haalt
   hem terug. Elk paneel krijgt daarvoor `onVerberg` (de `onEscape` van zijn `Dialog`; bij de annotatie de laatste laag van
   Escape, `onEscapeEinde`). *Vraag Lex* en een gekozen onderwerp verbergen op een telefoon de sheet in plaats van te sluiten.
-- **De tabrij** staat breed in de balk van het zijpaneel en op een telefoon boven de kop van de sheet (`PaneelTabsContext`
-  in `PaneelKop`). De tooltip noemt het volle label en waar de tab geopend werd (`tabLabel`, `volgendeVanuit`: "het
-  gesprek", "een antwoord", "Bronnen in de chatkop", "het paneel"). De sluitknop heet *Sluit tab …*: een knop met
-  "Sluiten" in de naam zou in de browsertests op de sluitknop van een paneel lijken.
+- **De tabrij** staat alleen bij twee of meer open items (`tabRij` in `WerkplekClient`): breed boven de inhoud van het
+  zijpaneel, op een telefoon boven de kop van de sheet (`usePaneel().tabs` in `PaneelKop`). Met één item is de kop
+  genoeg. Een tab heeft geen eigen ✕: ✕ in de kop sluit de actieve tab. De tooltip noemt het volle label en waar de tab geopend werd (`tabLabel`, `volgendeVanuit`: "het
+  gesprek", "een antwoord", "Bronnen in de chatkop", "het paneel").
 - **Per gesprek bewaard** (`lex.paneel.tabs.<gesprek>`, `bewaarVorm`/`leesBewaard`, streng): alleen de beschrijvingen,
   zonder de kennisgraaf. Een nieuw gesprek begint leeg; er wordt pas bewaard zodra het gesprek een id heeft. Breed komt
-  de actieve tab na herladen terug (met de bewaarde ingeklapte stand); op een telefoon staat hij klaar achter
+  de actieve tab na herladen terug (met de bewaarde stand); op een telefoon staat hij klaar achter
   *Paneel · Openen*, zodat herladen niet vanzelf een sheet opent.
 
 **Het bronvenster en de ingangen** (PR 4; `app/ingangen.test.ts`).
@@ -1871,10 +1891,27 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   (`useBronHerkomst`, ook de peildatum met `?werkgebied=`); de zijkolom houdt Werkgebieden en Herleidbaarheid. ↗ in het
   paneel opent deze pagina. Geen eigen tekstkaart meer (`app/wettekst.test.ts`).
 
-Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
-niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
-de markering (`WettekstBlok`, markeerlaag) en de kaart (`ReviewQueue`), met respect voor
-`prefers-reduced-motion`.
+**Tekst en lijst** (`components/ui/TekstEnLijst`, melding gebruiker 23 nov 2026). Wettekst en reviewlijst hebben **elk
+een eigen scroll**, zodat de tekst niet uit beeld loopt als je verderop in de lijst bent. **Regel: een tekst met een lijst
+die erover gaat, zet je in `TekstEnLijst`; bouw geen eigen kolommen of eigen hoogtes.**
+- **Smal onder elkaar** (de tekst bovenin, hoogstens 45%), **breed genoeg naast elkaar**: links de tekst over de volle
+  hoogte, rechts de lijst. "Breed genoeg" is een **containerquery** op het blok zelf (56rem, `lib/tekstEnLijst.ts`, de
+  CSS in `app/globals.css`), niet de schermbreedte of de stand van het paneel: een vergroot paneel, een breed gesleept
+  paneel en de pagina krijgen twee kolommen, een paneel naast het gesprek niet. Tailwind 3 heeft geen containerquery's
+  zonder plugin; daarom gewone CSS.
+- **Te verslepen** (de ene `Scheiding`, ook met de pijltjes; dubbelklik zet 57% terug), tussen 35% en 75%, per browser
+  bewaard (`lex.tekstEnLijst.aandeel`). Alleen naast elkaar: onder elkaar is er niets te verdelen.
+- **Compacter op breed**: minder lucht in en tussen de kaartjes (`data-review-kaart`, `data-kaart-citaat`,
+  `data-kaart-meta`), niets weggelaten.
+- Onder de wettekst staat ***Wat de graaf weet*** (`WatDeGraafWeet`, hetzelfde blok als in het bronvenster): een
+  verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie.
+- **Eén principe voor twee kolommen**: `TekstEnLijst` (tekst en lijst, elk een eigen scroll, 56rem) en `SplitDetail`
+  (een object met een zijkolom, in de scroll van de pagina, 44rem) kiezen allebei op de breedte van het blok. Begrip en
+  regel tonen geen tekst plus lijst maar inhoud plus zijkolom; daarom `SplitDetail`, ook in het paneel.
+- De annotatie gebruikt het overal (`ArtefactInhoud`: paneel, vergroot en `/annotaties/node`). Het bronvenster niet: dat
+  stroomt mee in de scroll van het paneel, en de bronpagina heeft al een eigen tweedeling (`SplitDetail`).
+- Selecteren scrolt **beide kanten** in beeld, elk in zijn eigen kolom: de markering (`WettekstBlok`, markeerlaag) en de
+  kaart (`ReviewQueue`), met respect voor `prefers-reduced-motion`. Browserregressie: `scripts/test-tekst-en-lijst.mjs`.
 
 - **De kaart is compact**; toelichting, uitleg van de review, alternatieven en opmerking vouwen open
   bij selectie. Eén begrip stuurt alles: `actief`.

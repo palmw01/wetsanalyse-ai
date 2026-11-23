@@ -8,7 +8,7 @@ import { Melding } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StandMelding } from "@/components/ui/StandMelding";
-import { BepalingFeiten } from "@/components/werkplek/BepalingFeiten";
+import { WatDeGraafWeet } from "@/components/werkplek/BepalingFeiten";
 import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { nodeLink } from "@/lib/annotatieNode";
@@ -80,10 +80,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
           </ul>
         )}
       </Sectie>
-      <Sectie titel="Wat de graaf weet" niveau={3} data-blok="graaf">
-        <BepalingFeiten key={bronIri} bronIri={bronIri} onOpen={onOpenBron} />
-        {naGraaf}
-      </Sectie>
+      <WatDeGraafWeet bronIri={bronIri} onOpen={onOpenBron}>{naGraaf}</WatDeGraafWeet>
     </div>
   );
 }

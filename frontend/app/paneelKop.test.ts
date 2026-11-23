@@ -29,13 +29,22 @@ describe("de paneelkop", () => {
     for (const pad of code) expect(bron(pad), pad).not.toMatch(/<PaneelKop\b[^>]*\bacties=/s);
   });
 
-  it("zet het kopgereedschap in een vaste volgorde: pagina, menu, sluiten", () => {
+  it("zet het kopgereedschap in een vaste volgorde: eerst het menu, dan de knoppen van de plek", () => {
     const gereedschap = kop.slice(kop.indexOf("data-kop-gereedschap"));
-    const plek = (s: string) => gereedschap.indexOf(s);
-    expect(plek("data-naar-pagina")).toBeGreaterThan(0);
-    expect(plek("<MeerMenu")).toBeGreaterThan(plek("data-naar-pagina"));
-    expect(plek("<SluitKnop")).toBeGreaterThan(plek("<MeerMenu"));
-    expect(kop).toMatch(/aria-label="Open volledige pagina"/);
+    expect(gereedschap.indexOf("<MeerMenu")).toBeGreaterThan(0);
+    expect(gereedschap.indexOf("knoppenVoor(paneel.plek")).toBeGreaterThan(gereedschap.indexOf("<MeerMenu"));
+  });
+
+  it("heeft geen knop naar de pagina: Openen als pagina staat in het menu", () => {
+    expect(kop).not.toMatch(/Open volledige pagina/);
+    const menu = kop.slice(kop.indexOf("<MeerMenu label"), kop.indexOf("</MeerMenu>"));
+    expect(menu).toMatch(/<MenuLink href=\{metVanuit\(pagina, gesprek\)\}[^\n]*data-naar-pagina/);
+    expect(menu).toMatch(/Openen als pagina/);
+  });
+
+  it("het zijpaneel heeft geen eigen balk: de kop leest de plek uit usePaneel()", () => {
+    expect(kop).toMatch(/usePaneel\(\)/);
+    for (const pad of code) expect(bron(pad), pad).not.toMatch(/data-zijpaneel-balk/);
   });
 
   it("raakvlakken van 44 px op een aanraakscherm", () => {

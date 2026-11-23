@@ -289,7 +289,8 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
     - een gelezen stuk: "kst-33755-3 gelezen", "artikel 9, lid 1 (Invorderingswet 1990) gelezen";
     - niet alles opgehaald: "er is meer dan dit", bij een leestool "kst-33755-3 deels gelezen, er is meer dan dit";
     - een stuk zonder tekst (`leesbaar: false`): "ECLI:NL:GHARL:2023:5000 heeft geen tekst om te lezen";
-    - de inhoud van een stuk zonder koppen (`zonder_koppen`): "kst-30322-3 heeft geen koppen, 210 alinea’s".
+    - de inhoud van een stuk zonder koppen (`zonder_koppen`): "kst-30322-3 heeft geen koppen, 210 alinea’s";
+    - de opbouw vanaf een bepaling (`zonder_delen`): "divisie 1.1.2 heeft geen onderliggende delen".
 
     Een leestool krijgt geen aantal: dat telt rijen, geen inhoud. Het `peilmoment` van de annotatiedekking ook niet: dat
     is het moment van opvragen, dus "nu", en zei bij elke annotatie hetzelfde.
@@ -320,6 +321,10 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
         return (f"{stuk}: " if binnen and stuk else "") + telling + (", er is meer dan dit" if meer else "")
     if not leest:
         return "opgehaald" + (", er is meer dan dit" if meer else "")
+    if isinstance(data.get("zonder_delen"), str) and data["zonder_delen"]:
+        # De opbouw stopt bij een bepaling (`inhoudsopgave` vanaf een artikel of een divisie als 1.1.2): een antwoord,
+        # geen fout. Het denkproces zei eerst "gaf een fout" (acceptatie 23 nov 2026).
+        return f"{data['zonder_delen']} heeft geen onderliggende delen"
     if data.get("zonder_koppen") and aantal == 0:
         # Geen koppen is iets anders dan geen tekst: het stuk is gewoon te lezen (ronde 1 Kamerstukken, 11 nov 2026).
         n = data.get("alineas")

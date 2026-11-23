@@ -117,7 +117,7 @@ export function paginaVanContext(d: ContextDoel): string | undefined {
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
- *  1280px, anders een sheet –, met bovenaan *Open volledige pagina*. Het paneel is om te raadplegen, niet
+ *  1280px, anders een sheet –, met *Openen als pagina* in het menu ⋯ van de kop. Het paneel is om te raadplegen, niet
  *  om in te werken: beoordelen gebeurt op de pagina. Een paneel is geen vervanging van die pagina. */
 /** Hoe de graaf een bepaling noemt die zonder antwoord geopend is. */
 const BEPALING: GraafContext = { naam: "Deze bepaling", kort: "Bepaling", terug: "de bepaling", focus: "de bepaling" };
@@ -195,7 +195,6 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   /** *Bekijk in de tekst*: terug naar de tekst, de markering gekozen en het segment in beeld. */
   function naarTekst(knoop: { id: string; element_id?: string }, anker?: string) {
     setWeergave("tekst");
-    if (!graaf.inZijpaneel) graaf.setGroot(false);
     if (knoop.element_id) setGekozen(knoop.element_id);
     const iri = anker ?? knoop.id;
     requestAnimationFrame(() => document.querySelector(`[data-bronvenster] [data-segment="${CSS.escape(iri)}"]`)
@@ -203,18 +202,17 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   }
 
   return (
-    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={graaf.groot && !graaf.inZijpaneel ? "fullscreen" : variant} onSluit={onSluit}
+    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit}
       onEscape={() => { if (!graaf.escape({ id: gekozen, wis: () => setGekozen(undefined) })) (onVerberg ?? onSluit)(); }}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
+        <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)}
           status={herkomst && <HerkomstRegel herkomst={herkomst} />}
           vraag={vraagOver && <VraagLexKnop onderwerp={vraagOver} />}
           hoofdactie={doel.soort === "bron" && onBeoordelen && (
             <button type="button" data-beoordelen onClick={() => onBeoordelen(doel, opGraaf ? "graaf" : "tekst")}
               className={knopKlasse("secondary", "xs")}>Beoordelen</button>
           )}
-          balk={metGraaf && <WeergaveBalk weergave={weergave} graaf={graaf}
-            onKies={(w) => { setWeergave(w); if (w === "tekst" && !graaf.inZijpaneel) graaf.setGroot(false); }} />} />
+          balk={metGraaf && <WeergaveBalk weergave={weergave} onKies={setWeergave} />} />
         {graafDoel && (
           <BronGraaf graaf={graaf} zichtbaar={opGraaf} benaming={samenhang.van === "antwoord" ? ANTWOORD : BEPALING}
             weergave={lezing.view} actiefElementId={gekozen} onKiesElement={setGekozen} onOpenTekst={naarTekst}

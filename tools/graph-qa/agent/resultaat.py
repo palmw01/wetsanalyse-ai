@@ -72,6 +72,8 @@ REDEN_ZIN: dict[str, str] = {
     "buiten_bereik": "dit stuk valt buiten de bron",
     "onleesbaar_document": "het stuk is niet te lezen",
     "overzicht_niet_opgebouwd": "het overzicht kon niet worden opgebouwd",
+    "deel_niet_gevonden": "dat deel staat niet in de regeling",
+    "geen_opbouw": "de regeling heeft geen opbouw in de kennisgraaf",
     "onvolledig_antwoord": "gaf een onvolledig antwoord",
     "in_graaf": "staat in de kennisgraaf; daar gelezen",
     "niet_in_graaf": "staat niet in de kennisgraaf",

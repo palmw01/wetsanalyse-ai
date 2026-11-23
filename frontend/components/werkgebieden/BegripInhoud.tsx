@@ -129,16 +129,10 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     );
   }
   return (
+    // Dezelfde indeling als op de pagina (`SplitDetail`): smal onder elkaar, vergroot of breed gesleept naast elkaar.
     <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="paneel" className="space-y-5 text-sm text-ink">
       {melding}
-      {veranderd}
-      {betekenis}
-      {voorbeelden}
-      {beoordeling}
-      {passages}
-      {relaties}
-      {regels}
-      {historie}
+      <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
     </div>
   );
 }

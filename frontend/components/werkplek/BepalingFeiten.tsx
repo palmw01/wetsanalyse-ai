@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
+import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
@@ -98,5 +99,20 @@ function TellingBlok({ kop, t, open = false, onOpen, feit }: {
       </ul>
       {meer && <p className="mt-1 text-xs text-muted">{meer}</p>}
     </Blok>
+  );
+}
+
+/** Het blok *Wat de graaf weet* onder een wettekst: één plek voor de kop en de inhoud, in het bronvenster en onder de
+ *  annotatie (paneel, vergroot en pagina). `children` komt erachter (op de bronpagina: alle gegevens, ingeklapt). */
+export function WatDeGraafWeet({ bronIri, onOpen, children }: {
+  bronIri: string;
+  onOpen: (v: AntwoordVindplaats) => void;
+  children?: ReactNode;
+}) {
+  return (
+    <Sectie titel="Wat de graaf weet" niveau={3} data-blok="graaf">
+      <BepalingFeiten key={bronIri} bronIri={bronIri} onOpen={onOpen} />
+      {children}
+    </Sectie>
   );
 }
