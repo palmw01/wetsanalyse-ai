@@ -393,6 +393,8 @@ async def answer_stream(
         "corrected": False,
         "sjabloon_gevraagd": False,
         "sjabloon_nu": False,
+        "ophalen_gevraagd": False,
+        "ophalen_nu": False,
         "laatste_gehad": False,
         "nagelezen": 0,
         "afgesloten": False,

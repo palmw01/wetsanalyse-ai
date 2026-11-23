@@ -251,6 +251,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     if laatste:
         upd["laatste_gehad"] = True
     upd["sjabloon_nu"] = False
+    upd["ophalen_nu"] = False
     upd.update(telling)
     if eerder := _eerder_gelezen(state, historie):
         upd["source_trace"] = [*eerder, *(state.get("source_trace") or [])]
@@ -286,6 +287,16 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd["messages"] = [{"role": "assistant", "content": assistant_content},
                            {"role": "user", "content": sjabloon_gevraagd(sorted(gevonden), sorted(sjablonen), genoemd)}]
         upd.update(sjabloon_gevraagd=True, sjabloon_nu=True, **tel_sjabloon({**state, **upd}, "gevraagd"))
+        return upd
+    if not tool_uses and state.get("specialist") == "annotatie" and not state.get("ophalen_gevraagd") \
+            and state.get("turns", 0) + 1 < max_rondes(b.settings, state) and not ophaal_uitkomst(state, tekst):
+        # De ophaalstap van een annotatie haalde in deze beurt niets op en gaf geen doel: hij las in het gesprek dat de
+        # bepaling al geannoteerd was (acceptatie 23 nov 2026, dezelfde opdracht twee keer: "Ongeldig BWB-id"). Het gesprek
+        # is geen ophaling, en of er iets te hergebruiken is, toetst de keten zelf. Eén keer per beurt terug.
+        logger.info("ophalen gevraagd", extra={"categorie": "functioneel", "run_id": state.get("run_id", "")})
+        upd["messages"] = [{"role": "assistant", "content": assistant_content or [{"type": "text", "text": "…"}]},
+                           {"role": "user", "content": OPHALEN_GEVRAAGD}]
+        upd.update(ophalen_gevraagd=True, ophalen_nu=True)
         return upd
     if not tool_uses and state.get("regels_lezen") and "antwoord_regels" in sjablonen and not state.get("corrected"):
         # De leesroute voor afleidingsregels (laatste meting na #1797: `sjabloon.gemist` in beide runs): de tekst wordt
@@ -374,6 +385,27 @@ SJABLOON_GEVRAAGD = ("Je antwoordde met een lijst in tekst, terwijl deze beurt s
 _STUKKEN_GENOEMD = "Zet in 'stukken' de stukken die je lijst noemt, en geen andere: {ids}."
 _STUKKEN_ONBEKEND = ("Zet in 'stukken' alleen de stukken die je lijst noemt; noemt je lijst geen gevonden stukken, laat "
                      "'stukken' dan leeg.")
+
+
+#: De vraag aan de ophaalstap van een annotatie die niets ophaalde en geen doel gaf.
+OPHALEN_GEVRAAGD = (
+    "Je haalde in deze beurt niets op en gaf geen doel. Wat het gesprek zegt over een eerdere annotatie, is geen "
+    "ophaling: of de bepaling al geannoteerd is en wat er te hergebruiken valt, toetst de annotatieketen zelf. Haal de "
+    "bepaling die de vraag noemt nu op met een tool, en geef daarna alleen de JSON met het doel.")
+
+
+def ophaal_uitkomst(state: State, tekst: str) -> bool:
+    """Heeft de ophaalstap van een annotatie in deze beurt iets opgeleverd waarmee de keten verder kan: een opgehaalde
+    bepaling, of in zijn JSON een doel, kandidaten of meer artikelen? Een meegegeven doel telt ook."""
+    from ..doel import _deze_beurt, _doel_uit_json, _doel_uit_toolcalls, _heeft_opgegeven_doel, _kandidaten_uit_json
+
+    if _heeft_opgegeven_doel(state) or _doel_uit_toolcalls(_deze_beurt(state)).get("bwbId"):
+        return True
+    doel = _doel_uit_json(tekst)
+    if doel.get("bwbId") or doel.get("bron_iri") or _kandidaten_uit_json(tekst):
+        return True
+    s, e = tekst.find("{"), tekst.rfind("}")
+    return s != -1 and e > s and '"meerdere"' in tekst[s:e + 1]
 
 
 def sjabloon_gevraagd(tools: list[str], sjablonen: list[str], genoemd: list[str]) -> str:
@@ -643,6 +675,8 @@ def max_tokens(state: State) -> int:
 def route_after_agent(b: Bouw, state: State) -> str:
     if state.get("sjabloon_nu"):
         return "agent"  # één keer terug: om het sjabloon gevraagd (`_gevonden_zonder_sjabloon`)
+    if state.get("ophalen_nu"):
+        return "agent"  # één keer terug: de ophaalstap van een annotatie haalde niets op (`ophaal_uitkomst`)
     pending = state.get("pending_tools") or []
     if pending and pending[0]["name"] in SJABLONEN:
         return "sjabloon"

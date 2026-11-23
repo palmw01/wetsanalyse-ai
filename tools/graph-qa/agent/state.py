@@ -142,6 +142,10 @@ class State(TypedDict, total=False):
     # één keer per beurt, en `sjabloon_nu` stuurt de agent dan één keer naar zichzelf terug. Per beurt gereset.
     sjabloon_gevraagd: bool
     sjabloon_nu: bool
+    # De ophaalstap van een annotatie haalde niets op en gaf geen doel (`nodes.antwoord.ophaal_uitkomst`): één keer per
+    # beurt terug naar de agent met de vraag om zelf op te halen. Per beurt gereset.
+    ophalen_gevraagd: bool
+    ophalen_nu: bool
     # Een subagent kreeg zijn laatste ronde (`nodes.antwoord.laatste_ronde`): daarna komt er geen modelronde meer, ook niet
     # na een geweigerd rapport. Per beurt gereset.
     laatste_gehad: bool
