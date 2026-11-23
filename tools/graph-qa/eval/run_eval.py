@@ -435,8 +435,7 @@ def _offline_annotatie_scenario():
     )
     geen_keuze = response([text_block("Ik kies niet.")], "end_turn")
     llm = FakeLLM([
-        response([tool_block("ov", "annoteer", {"vraag": "annoteer artikel 9 lid 1 van de Invorderingswet 1990"})],
-                 "tool_use"),
+        # Geen stap van de centrale agent: de code routeert de annoteeropdracht (`supervisie.annoteeropdracht`).
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1","citeertitel":"IW 1990"}')], "end_turn"),
         geen_keuze, geen_keuze,          # classifier + één nieuwe poging

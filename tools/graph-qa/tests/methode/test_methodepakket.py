@@ -70,9 +70,10 @@ def test_advies():
 def test_volledige_ophaalroute():
     llm = _keten(_aanloop())
     _run(answer_stream('Annoteer artikel 9 lid 1', settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV)))
-    # De centrale agent geeft het annoteren met `annoteer` aan de ophaal-agent (ADR-016 §A7: geen supervisor meer).
-    for call,rol in zip(llm.calls[:3],['agent','retrieval','retrieval'], strict=True): check(call,rol)
-    assert llm.calls[3:] == _ketencalls(llm) != []
+    # Een annoteeropdracht die het artikel noemt, routeert de code (`supervisie.annoteeropdracht`): de ophaal-agent is de
+    # eerste modelaanroep, zonder stap van de centrale agent.
+    for call,rol in zip(llm.calls[:2],['retrieval','retrieval'], strict=True): check(call,rol)
+    assert llm.calls[2:] == _ketencalls(llm) != []
 
 
 def test_explicit_doel():
