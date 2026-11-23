@@ -16,6 +16,8 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+/** De link naar de volle pagina zonder het gesprek waar hij vandaan kwam (`?vanuit=`, `lib/terugNaarGesprek.ts`). */
+const zonderVanuit = (href) => href?.replace(/[?&]vanuit=[^&#]*$/, "");
 
 /** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
 const NIET_NAGEBOOTST = [
@@ -105,7 +107,7 @@ try {
   await paneel("bron").waitFor();
   await paneel("bron").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
   assert.equal(await paneel("bron").locator("mark[data-element=e1]").count(), 1, "de markering staat in de tekst");
-  assert.equal(await paneel("bron").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
+  assert.equal(zonderVanuit(await paneel("bron").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
     `/bronnen?bron_iri=${encodeURIComponent(LID)}&werkgebied=wg1`, "de pagina in het werkgebied van het gesprek");
   // De chat blijft bruikbaar ernaast.
   assert.ok(await page.getByRole("textbox").last().isVisible());
@@ -165,14 +167,14 @@ try {
   await paneel("bron").locator("mark[data-element=e1]").click();
   await paneel("element").waitFor();
   await paneel("element").getByText("Wat invorderbaar wordt.").waitFor();
-  assert.equal(await paneel("element").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/annotaties/element/e1");
+  assert.equal(zonderVanuit(await paneel("element").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")), "/annotaties/element/e1");
   assert.equal(await paneel("element").getByRole("button", { name: /Accorderen|Afwijzen/ }).count(), 0, "het paneel is om te raadplegen");
 
   // --- Bronnen in de chatkop: de bronnen van het werkgebied ---
   await page.locator("[data-chatkop-bronnen]").click();
   await paneel("bibliotheek").waitFor();
   await paneel("bibliotheek").getByText("De afwijking").waitFor();
-  assert.equal(await paneel("bibliotheek").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen");
+  assert.equal(zonderVanuit(await paneel("bibliotheek").getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")), "/werkgebieden/wg1/bronnen");
   await paneel("bibliotheek").locator("[data-context-bron=s1]").click();
   await paneel("bron").waitFor();
   await paneel("bron").locator("[data-context-element=e1]").click();
@@ -189,8 +191,10 @@ try {
   await page.locator("[data-chatkop-bronnen]").click();
   await paneel("bibliotheek").waitFor();
   await paneel("bibliotheek").getByRole("link", { name: "Open volledige pagina" }).click();
-  await page.waitForURL("**/werkgebieden/wg1/bronnen");
+  await page.waitForURL((u) => u.pathname === "/werkgebieden/wg1/bronnen");
   assert.equal(await page.locator("[data-context-paneel]").count(), 0);
+  // Met een weg terug naar het gesprek (`?vanuit=`, `lib/terugNaarGesprek.ts`).
+  await page.locator("[data-terug-naar-gesprek]").waitFor();
 
   assert.deepEqual(errors, []);
   controleerOnbekend();

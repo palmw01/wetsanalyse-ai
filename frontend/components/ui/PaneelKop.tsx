@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { icoonKnopKlasse } from "@/components/ui/Button";
 import { NaarPagina } from "@/components/ui/Icoon";
 import { MeerMenu } from "@/components/ui/MeerMenu";
+import { metVanuit } from "@/lib/terugNaarGesprek";
 
 /** Het kruisje rechtsboven in elk paneel en venster: één icoon, één lijndikte, één plek. */
 export function SluitKnop({ onSluit, label = "Sluiten", className = "" }: {
@@ -74,6 +75,10 @@ export function usePaneelKopVulling(vulling: KopVulling | null, sleutel: string)
  *  staat er geen zijpaneel met een balk, dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze. */
 export const PaneelTabsContext = createContext<React.ReactNode>(null);
 
+/** Het gesprek waarin het paneel openstaat (de werkplek geeft het). *Open volledige pagina* neemt het mee als
+ *  `?vanuit=`, zodat de pagina een weg terug naar het gesprek heeft (`lib/terugNaarGesprek.ts`). */
+export const PaneelGesprekContext = createContext<string | null>(null);
+
 export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, menu, onSluit, onder, balk }: {
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
@@ -100,6 +105,7 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
   const eigenMenu = vulling?.menu;
   const heeftMenu = Boolean(menu || eigenMenu);
   const tabs = useContext(PaneelTabsContext);
+  const gesprek = useContext(PaneelGesprekContext);
   return (
     <div data-paneel-kop className="shrink-0">
     {tabs && <div data-paneel-tabs className="flex border-b border-line px-3 py-1.5">{tabs}</div>}
@@ -111,7 +117,9 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, men
         </div>
         <div data-kop-gereedschap className="flex shrink-0 items-center gap-1.5">
           {pagina && (
-            <Link href={pagina} aria-label="Open volledige pagina" title="Open volledige pagina" data-naar-pagina
+            <Link href={metVanuit(pagina, gesprek)} aria-label="Open volledige pagina"
+              title={gesprek ? "Open volledige pagina (verlaat het gesprek; terug met Terug naar het gesprek)" : "Open volledige pagina"}
+              data-naar-pagina
               className={icoonKnopKlasse("sm")}>
               <NaarPagina />
             </Link>

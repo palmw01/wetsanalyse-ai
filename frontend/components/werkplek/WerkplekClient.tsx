@@ -24,7 +24,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
 import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Zijpaneel } from "@/components/ui/Zijpaneel";
-import { PaneelTabsContext } from "@/components/ui/PaneelKop";
+import { PaneelGesprekContext, PaneelTabsContext } from "@/components/ui/PaneelKop";
 import { TabRij } from "@/components/ui/Tabs";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
 import { bepalingSleutel, bewaarVorm, leesBewaard, openTab, opslagSleutel, sleutelVan, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
@@ -1109,6 +1109,7 @@ export function WerkplekClient({
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
     <ContextopbouwContext.Provider value={demo ? null : contextStand}>
     <ContextPaneelContext.Provider value={demo ? null : openContext}>
+    <PaneelGesprekContext.Provider value={demo ? null : gesprekId}>
     <div className="relative flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
@@ -1485,6 +1486,7 @@ export function WerkplekClient({
     {breed && paneel && <Zijpaneel label="Paneel" sleutel={String(openTeller)} hersteld={tabsHersteld} vast={Boolean(demo)} balk={tabRij}
       inklapSignaal={inklapSignaal}>{paneel}</Zijpaneel>}
     </div>
+    </PaneelGesprekContext.Provider>
     </ContextPaneelContext.Provider>
     </ContextopbouwContext.Provider>
     </VraagLexContext.Provider>

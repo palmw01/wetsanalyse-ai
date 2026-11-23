@@ -522,7 +522,11 @@ te wissen. Geen Escape: het is geen laag. Het gebruikersmenu draagt de voorwaard
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
     in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
     bovenaan *Open volledige pagina* (`paginaVanContext`, `paginaVan`, `nodeLink`). Weg uit de werkplek is het
-    paneel weg; terug in het gesprek staan zijn tabs er weer (per browser bewaard). Browserregressie: `scripts/test-contextpaneel.mjs`.
+    paneel weg; terug in het gesprek staan zijn tabs er weer (per browser bewaard). **De weg terug** (melding gebruiker
+    23 nov 2026: na ↗ kon je niet meer terug naar gesprek plus paneel): `PaneelKop` zet het gesprek als `?vanuit=` op de
+    link (`PaneelGesprekContext`, gegeven door `WerkplekClient`), en één strook in de root-layout (`TerugNaarGesprek`,
+    net als `?instellingen=`) toont op elke pagina *Terug naar het gesprek* (`data-terug-naar-gesprek`), ook na herladen;
+    het paneel staat er dan weer met dezelfde tabs, uitgeklapt. Eén patroon voor elke soort; `lib/terugNaarGesprek.ts`. Browserregressie: `scripts/test-contextpaneel.mjs`.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
@@ -1773,7 +1777,8 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   standaard (`min(34rem,46%)`) terug.
 - ***Inklappen*** maakt er een strook van 40 px van (`data-paneel-ingeklapt`); de inhoud blijft gemount. Iets anders
   openen (`sleutel`) klapt hem weer uit, want een klik op een ingang moet zichtbaar iets doen.
-- ***Vergroten*** legt het paneel over het gesprek; Escape verkleint eerst. Er is één *Vergroten*: in het zijpaneel leest
+- ***Vergroten*** legt het paneel over het gesprek, met dezelfde balk en tabs (geen *Inklappen*); *Verkleinen* op dezelfde
+  plek en Escape zetten het terug. Het is een weergave van hetzelfde paneel, geen navigatie. Escape verkleint eerst. Er is één *Vergroten*: in het zijpaneel leest
   de graaf `ZijpaneelContext.vergroot`, en op de graaf claimt `NodeAnnotatiePaneel` Escape (`claimEscape`), zodat zijn
   volgorde lagen → selectie → verkleinen → sluiten blijft. Op de sheet en op `/annotaties/node` houdt de graaf zijn knop.
 - **Per browser bewaard** (`lib/opslag.ts`, in try/catch, na het mounten): `lex.paneel.breedte`, en

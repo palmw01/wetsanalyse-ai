@@ -24,6 +24,8 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { sse } from "./nepApi.mjs";
+/** De link naar de volle pagina zonder het gesprek waar hij vandaan kwam (`?vanuit=`, `lib/terugNaarGesprek.ts`). */
+const zonderVanuit = (href) => href?.replace(/[?&]vanuit=[^&#]*$/, "");
 
 /** Open het menu ⋯ van de paneelkop in `paneel`, doe `fn` op het menu en sluit het weer (Escape). */
 async function inKopMenu(paneel, fn) {
@@ -294,7 +296,7 @@ try {
   await regels.click();
   const regelsPaneel = page.getByRole("region", { name: "Afleidingsregels", exact: true });
   await regelsPaneel.locator("[data-regel-keten-lijst]").getByText("Nog geen afleidingsregels", { exact: false }).waitFor();
-  assert.equal(await regelsPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
+  assert.equal(zonderVanuit(await regelsPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
     "/werkgebieden/wg1/artefacten/regels");
   await regelsPaneel.getByRole("button", { name: "Sluiten" }).click();
   await regelsPaneel.waitFor({ state: "detached" });
@@ -308,7 +310,7 @@ try {
   // F3e: geen Lex-knoppen in het paneel; starten en meedenken vraag je in het gesprek.
   for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
     assert.equal(await begrippenPaneel().getByRole("button", { name: naam }).count(), 0, String(naam));
-  assert.equal(await begrippenPaneel().getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
+  assert.equal(zonderVanuit(await begrippenPaneel().getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
     "/werkgebieden/wg1/artefacten/begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
@@ -354,7 +356,7 @@ try {
   await begripPaneel.locator("[data-begrip-paneel=b9]").waitFor();
   assert.equal(await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden|Zoek de brondefinitie/ }).count(), 0,
     "het paneel is voor beoordelen: geen Lex-knoppen");
-  assert.equal(await begripPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
+  assert.equal(zonderVanuit(await begripPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")),
     "/werkgebieden/wg1/begrippen/b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();

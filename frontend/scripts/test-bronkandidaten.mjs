@@ -18,6 +18,8 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+/** De link naar de volle pagina zonder het gesprek waar hij vandaan kwam (`?vanuit=`, `lib/terugNaarGesprek.ts`). */
+const zonderVanuit = (href) => href?.replace(/[?&]vanuit=[^&#]*$/, "");
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -185,7 +187,7 @@ try {
   await page.locator('button[data-artefact-soort="bronselectie"]').click();
   const paneel = page.locator("[data-artefact-soort=bronselectie][data-artefact]");
   await paneel.getByRole("link", { name: "Open volledige pagina" }).waitFor();
-  assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen");
+  assert.equal(zonderVanuit(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href")), "/werkgebieden/wg1/bronnen");
   assert.equal(await paneel.locator("[data-bronkandidaten]").count(), 0, "de bronverkenner is een pagina, geen artefact");
 
   assert.deepEqual(errors, []);

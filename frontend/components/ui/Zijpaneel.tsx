@@ -75,7 +75,10 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk
     if (vorige.current === sleutel) return;
     vorige.current = sleutel;
     setIngeklapt(false);
-  }, [sleutel]);
+    // Ook bewaren: anders kwam het paneel na herladen of terug van een volle pagina ingeklapt terug, terwijl je het
+    // open had verlaten (een eerdere *Inklappen* bleef in de opslag staan).
+    if (!vast) schrijfOpslag(OPSLAG_INGEKLAPT, undefined);
+  }, [sleutel, vast]);
 
   // Escape verkleint eerst, vóór het paneel zelf hem ziet (dat sluit anders): de capture-fase op `document`. Behalve
   // als de inhoud Escape zelf afpelt (`claimEscape`): die verkleint op haar eigen beurt.
