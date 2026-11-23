@@ -20,7 +20,7 @@ import { StandMelding } from "@/components/ui/StandMelding";
 import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
+  apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, segmentLabel, verwachteRevisies,
   type NodeDoel, type NodeImpliciet, type NodeOpslag, type NodeRelatie, type NodeWeergave, type RelatieInvoer,
 } from "@/lib/annotatieNode";
 import {
@@ -396,7 +396,10 @@ function NodeExtra({ view, doel, onKies, historie }: {
   /** De revisiehistorie komt van de api; zonder (de rondleiding) valt er niets op te halen. */
   historie: boolean;
 }) {
-  const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
+  const labelVan = (iri: string) => {
+    const s = view.segmenten.find((seg) => seg.bron_iri === iri);
+    return (s && segmentLabel(s)) || view.doel.label || iri;
+  };
   return (
     <>
       {historie && view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}

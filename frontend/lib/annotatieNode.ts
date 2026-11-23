@@ -19,6 +19,22 @@ export interface NodeSegment {
    *  hem niet. */
   status?: string;
 }
+/** Opsommingstekens die de graaf als "nummer" van een ongenummerd onderdeel draagt. */
+const OPSOMMINGSTEKENS = new Set(["–", "—", "-", "•", "·", "●"]);
+const BEGIN_TEKENS = 60;
+
+/** Het leesbare label van een segment. Een ongenummerd onderdeel heet in de graaf "Onderdeel –": dat zegt niets en is
+ *  niet te onderscheiden van zijn buren, dus het krijgt het begin van zijn tekst erbij ("Onderdeel – Onder de overige …"). */
+export function segmentLabel(s: Pick<NodeSegment, "label" | "nummer" | "tekst">): string {
+  const label = (s.label ?? "").trim();
+  const nummer = (s.nummer ?? label.split(/\s+/).pop() ?? "").trim();
+  if (!OPSOMMINGSTEKENS.has(nummer) && /[\p{L}\p{N}]/u.test(label.replace(/^Onderdeel\b/i, ""))) return label;
+  const tekst = (s.tekst ?? "").replace(/\s+/g, " ").trim();
+  if (!tekst) return label;
+  const begin = tekst.length <= BEGIN_TEKENS ? tekst : `${tekst.slice(0, BEGIN_TEKENS).replace(/\s+\S*$/, "")} …`;
+  return `${label.replace(new RegExp(`\\s*[${[...OPSOMMINGSTEKENS].join("")}]\\s*$`), "") || "Onderdeel"} – ${begin}`;
+}
+
 export interface NodeAnker { bron_iri: string; start: number; eind: number; tekst: string; bron_hash: string }
 export interface NodeElement {
   id: string; eigenaar_iri: string; laag_id: string; klasse: string; tekst: string;

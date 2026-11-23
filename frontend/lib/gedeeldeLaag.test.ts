@@ -44,8 +44,20 @@ describe("hergebruikTekst", () => {
   });
 
   it("noemt meerdere leden, en een artikel zonder leden als het artikel", () => {
-    expect(hergebruikTekst({ ...basis, leden: ["1", "3"], volledig: false })).toMatch(/^Leden 1, 3 kwam ongewijzigd/);
+    expect(hergebruikTekst({ ...basis, leden: ["1", "3"], volledig: false })).toMatch(/^Leden 1, 3 kwamen ongewijzigd/);
+    expect(hergebruikTekst({ ...basis, leden: ["1", "3"] })).toMatch(/^Leden 1, 3 waren al geannoteerd/);
     expect(hergebruikTekst({ ...basis, leden: [""] })).toMatch(/^Dit artikel was al geannoteerd/);
+  });
+
+  it("noemt ongenummerde onderdelen niet bij hun streepje, maar telt ze", () => {
+    const streepjes = Array.from({ length: 17 }, () => "–");
+    expect(hergebruikTekst({ ...basis, leden: streepjes })).toMatch(/^Alle 17 onderdelen waren al geannoteerd/);
+    expect(hergebruikTekst({ ...basis, leden: streepjes, volledig: false })).toMatch(/^17 onderdelen kwamen ongewijzigd/);
+    expect(hergebruikTekst({ ...basis, leden: ["•"] })).toMatch(/^Het onderdeel was al geannoteerd/);
+    expect(hergebruikTekst({ ...basis, leden: ["1", "–", "–"], volledig: false })).toMatch(
+      /^Lid 1 en 2 ongenummerde onderdelen kwamen ongewijzigd/,
+    );
+    expect(hergebruikTekst({ ...basis, leden: ["a", "b"] })).not.toContain("–");
   });
 
   it("enkelvoud bij één markering", () => {
