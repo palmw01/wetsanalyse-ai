@@ -300,6 +300,8 @@ enkel voorstel kent een bepaling, een begrip of een regel uit Termijnen.
 ### Prioriteit 1: meten, en wat geen gedrag van Lex verandert
 
 **V1 · Een lokale referentie voor begrippen en regels** (graph-qa `eval/`; M; geen meting nodig, het ís de meting)
+- *Gebouwd (24 nov 2026):* `tools/graph-qa/eval/extern_bibliotheek.py` met tests, het manifest in
+  `docs/wetsanalyse/referentieset-bibliotheek/`, en de nulmeting hieronder.
 - Probleem: er is geen maat. De vergelijking in dit plan is handwerk (§0, kanttekening 3).
 - Oplossing: zie §6. Eerst een nulmeting op het bestaande werkgebied, zonder Lex te laten draaien.
 - Volgorde: eerst. Alles hierna wordt hieraan afgemeten.
@@ -416,6 +418,37 @@ de methodemarkers is in deze PR doorgevoerd, zie §5a; wat een meting vraagt, st
 7. V9 en V10 als R5 van start gaat.
 
 V2, V3 en V7 raken `api/app/regel_contracts.py` of `begrip_contracts.py`: één schrijver tegelijk per bestand.
+
+## 5c. De nulmeting (V1, 24 nov 2026)
+
+Het werkgebied Termijnen op acceptatie (revisie 37) tegen de referentie, zonder model en alleen lezend. Meetlogboek:
+`docs/architectuur/metingen/README.md`. Het rapport zelf, met namen, staat lokaal.
+
+| | referentie | gedekt | anders gesneden | zonder begrip | niet gemarkeerd | alleen op naam | ontbreekt |
+|---|---|---|---|---|---|---|---|
+| begrippen | 36 | 1 | 17 | 5 | 6 | 2 | 5 |
+| waarvan ja/nee | 13 | 0 | 6 | 2 | 3 | 0 | 2 |
+
+| | referentie | gevonden | anders gesneden | ontbreekt |
+|---|---|---|---|---|
+| regels | 25 | 2 | 3 | 20 |
+
+Wat dit zegt:
+
+- **Strenger dan de handvergelijking van §3.1**, en dat is bedoeld. Daar telde een begrip met dezelfde betekenis als
+  gelijkwaardig (13 van 39); hier telt alleen een begrip dat op dezelfde formuleringen rust en niets anders draagt.
+  "Anders gesneden" is de grootste groep: één begrip in Lex (*termijn*, *vervaldag*, *aantal termijnen*, *voorlopige
+  aanslag*) draagt de formuleringen van twee tot vier begrippen uit de referentie. Dat is les 1 in getallen.
+- **Zes formuleringen zijn niet gemarkeerd**, vooral in de rekenvoorbeelden van de Leidraad (les 3, V8), en vijf zijn
+  gemarkeerd zonder begrip (V5, V6).
+- **Van de regels zijn er twee op naam terug** (aantal termijnen, termijnbedrag). De drie "anders gesneden" vallen op
+  *bepalen van de vervaldag* en *bepalen van het aantal termijnen*: de regels met meer gevallen waar de referentie
+  kleine regels heeft.
+- De analysevraag van het werkgebied is breder; de drie regels en ruim zestig begrippen die alleen in het werkgebied
+  staan, gaan grotendeels over de verrekening en zeggen hier niets.
+
+Dit is de maat waartegen V5 tot en met V9 gemeten worden: meer `gedekt`, minder `anders_gesneden` en `niet_gemarkeerd`,
+meer regels `gevonden`, zonder dat de begrippen die alleen in het werkgebied staan onterecht verdwijnen.
 
 ## 5a. Wat in de skill is doorgevoerd
 
