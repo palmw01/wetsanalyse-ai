@@ -79,7 +79,7 @@ function SamenhangGraaf({ wg, muteer, onKiesBegrip }: {
     if (!isBron(k) || k.soort === "regeling") return null;
     if (doelen.includes(k.id)) return <span className="text-2xs text-muted">Staat in dit werkgebied</span>;
     if (scope.has(k.id)) return <span className="text-2xs text-muted">Valt binnen dit werkgebied</span>;
-    if (k.soort === "extern" || !k.bwb_id) return <span className="text-2xs text-muted">Niet in de graaf, niet op te nemen</span>;
+    if (k.soort === "extern" || !k.bwb_id) return <span className="text-2xs text-muted">Niet beschikbaar in Lex, niet op te nemen</span>;
     return (
       <>
         <button type="button" className={KNOP} onClick={() => void neemOp(k.id, k.naam, "analyseren")}>

@@ -8,7 +8,7 @@ import { Melding } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StandMelding } from "@/components/ui/StandMelding";
-import { WatDeGraafWeet } from "@/components/werkplek/BepalingFeiten";
+import { OverDezeBepaling } from "@/components/werkplek/BepalingFeiten";
 import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { nodeLink } from "@/lib/annotatieNode";
@@ -34,7 +34,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
   /** De markering die in de graaf gekozen was (*Bekijk in de tekst*): extra nadruk in de wettekst. */
   gekozen?: string;
   variant?: "paneel" | "pagina";
-  /** Op de pagina: wat er onder *Wat de graaf weet* nog bij hoort (alle gegevens uit de kennisgraaf, ingeklapt). */
+  /** Op de pagina: wat er onder *Over deze bepaling* nog bij hoort (alle gegevens uit de kennisgraaf, ingeklapt). */
   naGraaf?: ReactNode;
   meldingen: readonly StandMeldingData[];
   onOpenElement: (id: string, titel: string) => void;
@@ -80,7 +80,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
           </ul>
         )}
       </Sectie>
-      <WatDeGraafWeet bronIri={bronIri} onOpen={onOpenBron}>{naGraaf}</WatDeGraafWeet>
+      <OverDezeBepaling bronIri={bronIri} onOpen={onOpenBron}>{naGraaf}</OverDezeBepaling>
     </div>
   );
 }

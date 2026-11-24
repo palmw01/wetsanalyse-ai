@@ -10,7 +10,7 @@
  *  - gekoppeld in twee richtingen: een markering in de tekst kiezen licht het kaartje uit en scrollt het in beeld, en
  *    een kaartje kiezen scrollt de markering in beeld;
  *  - de verdeling is te verslepen (de muis en de pijltjes, `Scheiding`) en blijft na herladen;
- *  - *Wat de graaf weet* staat onder de wettekst, in dezelfde kolom;
+ *  - *Over deze bepaling* staat onder de wettekst, in dezelfde kolom;
  *  - geen horizontale scroll.
  * Met `SCHERMAFBEELDINGEN=<map>` bewaart hij de stand breed en smal (voor de PR).
  */
@@ -128,7 +128,7 @@ async function verdeling(waar) {
   return scheiding;
 }
 async function graafOnderTekst(waar) {
-  const blok = page.locator('[data-tekst-kolom] [data-blok="graaf"]').first();
+  const blok = page.locator('[data-tekst-kolom] [data-blok="bepaling"]').first();
   await blok.locator('[data-bepaling-feiten="gereed"]').waitFor();
   assert.ok((await blok.innerText()).includes("Invordering in eerste aanleg"), `${waar}: de plek uit de graaf onder de wettekst`);
 }
@@ -178,7 +178,7 @@ try {
 
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: tekst en lijst naast elkaar op de pagina (1280 px) en in het vergrote paneel, onder elkaar op 700 px en naast het gesprek; tekst ↔ kaartje gekoppeld in twee richtingen; de verdeling te verslepen en bewaard; Wat de graaf weet onder de wettekst; geen horizontale scroll.");
+  console.log("Browser OK: tekst en lijst naast elkaar op de pagina (1280 px) en in het vergrote paneel, onder elkaar op 700 px en naast het gesprek; tekst ↔ kaartje gekoppeld in twee richtingen; de verdeling te verslepen en bewaard; Over deze bepaling onder de wettekst; geen horizontale scroll.");
 } finally {
   await browser.close();
 }

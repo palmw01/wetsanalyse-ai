@@ -1844,7 +1844,7 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   - de stand;
   - de wettekst;
   - de markeringen, met *Beoordelen in de annotatie*;
-  - *Wat de graaf weet* (`BepalingFeiten`: plek, geldigheid, verwijzingen, tellingen, definieert). Een verwijzing opent
+  - *Over deze bepaling* (`BepalingFeiten`: plek, geldigheid, verwijzingen, tellingen, definieert). Een verwijzing opent
     als eigen tab.
 
   Het venster heeft twee weergaven, **Tekst | Graaf** (`WeergaveBalk` in de balk van de kop, dezelfde `TabRij` als de tabs
@@ -1915,7 +1915,7 @@ die erover gaat, zet je in `TekstEnLijst`; bouw geen eigen kolommen of eigen hoo
   bewaard (`lex.tekstEnLijst.aandeel`). Alleen naast elkaar: onder elkaar is er niets te verdelen.
 - **Compacter op breed**: minder lucht in en tussen de kaartjes (`data-review-kaart`, `data-kaart-citaat`,
   `data-kaart-meta`), niets weggelaten.
-- Onder de wettekst staat ***Wat de graaf weet*** (`WatDeGraafWeet`, hetzelfde blok als in het bronvenster): een
+- Onder de wettekst staat ***Over deze bepaling*** (`OverDezeBepaling`, hetzelfde blok als in het bronvenster): een
   verwijzing opent in de werkplek als tab (`useOpenBron`), daarbuiten op de bronpagina. Niet bij een oude versie.
 - **Eén principe voor twee kolommen**: `TekstEnLijst` (tekst en lijst, elk een eigen scroll, 56rem) en `SplitDetail`
   (een object met een zijkolom, in de scroll van de pagina, 44rem) kiezen allebei op de breedte van het blok. Begrip en
