@@ -10,6 +10,7 @@ import { Leeg } from "@/components/ui/Leeg";
 import { KlasseLabel, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { TekeningVenster } from "@/components/graaf/TekeningVenster";
+import { aantal } from "@/lib/aantal";
 import { bewaar, diagramSvg, svgNaarPng, tekeningNaam } from "@/lib/tekeningExport";
 import { TekstEnLijst } from "@/components/ui/TekstEnLijst";
 import { weergaveVersie, type NodeImpliciet, type NodeWeergave } from "@/lib/annotatieNode";
@@ -145,7 +146,7 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
       </div>
       {groot && (
         <TekeningVenster titel={<>Rond {d.klasse.toLowerCase()} <span className="font-normal text-muted">“{tekst}”</span></>}
-          omschrijving={`${telWoord(data.diagram.knopen.length, "formulering", "formuleringen")} en ${telWoord(data.lijnen.length, "relatie", "relaties")} in deze bepaling${data.ontbreekt_rollen.length ? `; nog niet vastgelegd: ${data.ontbreekt_rollen.map((r) => r.label).join(", ")}` : ""}.`}
+          omschrijving={`${aantal(data.diagram.knopen.length, "formulering", "formuleringen")} en ${aantal(data.lijnen.length, "relatie", "relaties")} in deze bepaling${data.ontbreekt_rollen.length ? `; nog niet vastgelegd: ${data.ontbreekt_rollen.map((r) => r.label).join(", ")}` : ""}.`}
           onSluit={() => setGroot(false)} exporteer={{ formaten: ["svg", "png"], onDownload: async (f) => {
             const naam = tekeningNaam(["diagram", d.klasse, d.centraal], f === "png" ? "png" : "svg");
             await bewaar(async () => (f === "png" ? svgNaarPng(await diagramSvg(d.centraal)) : diagramSvg(d.centraal)), naam);
@@ -218,9 +219,4 @@ function Gekozen({ keuze, view, gebruiker, bediening, onToonInTekst, onSluit }: 
       )}
     </div>
   );
-}
-
-/** "1 formulering", "3 formuleringen". */
-function telWoord(n: number, een: string, meer: string): string {
-  return `${n} ${n === 1 ? een : meer}`;
 }
