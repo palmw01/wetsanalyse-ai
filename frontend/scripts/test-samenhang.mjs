@@ -223,7 +223,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 
 async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) {
-  const page = await browser.newPage({ viewport: { width, height } });
+  const page = await browser.newPage({ viewport: { width, height }, acceptDownloads: true });
   const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], keten: [], mutaties: [], graaf: [] };
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
@@ -578,7 +578,7 @@ async function wachtGereed(page) {
 
   // 8. Vergroten; Escape van binnen naar buiten: keuze op, dan verkleinen.
   await zoekEnKies(page, "lid 1", L1);
-  await page.getByRole("group", { name: "Beeld" }).getByRole("button", { name: "Vergroten" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Vergroten" }).click();
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "true");
   await wachtGereed(page);
   await page.waitForTimeout(300);
@@ -661,9 +661,23 @@ async function wachtGereed(page) {
   assert.equal(await lagen.count(), 0, "Escape sluit het lagenpaneel");
 
   // 10. Beeldknoppen.
-  // Alles in beeld (vizier) en, in het paneel, Vergroten; in- en uitzoomen gaat met het muiswiel (melding gebruiker 24 nov 2026).
+  // Alles in beeld (vizier) en Groot bekijken; in- en uitzoomen gaat met het muiswiel (melding gebruiker 24 nov 2026).
   assert.equal(await page.getByRole("button", { name: "Inzoomen" }).count(), 0, "geen knop Inzoomen");
   await page.getByRole("button", { name: "Alles in beeld" }).click();
+  // Groot bekijken: alleen de graaf in een venster, met Exporteren als PNG – een echte, niet-lege afbeelding.
+  await page.getByRole("group", { name: "Beeld" }).getByRole("button", { name: "Groot bekijken" }).click();
+  const grootVenster = page.locator("[data-tekening-venster]");
+  await grootVenster.getByTestId("graaf-tekenaar").waitFor();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${shots}/10a-graaf-groot.png` });
+  await grootVenster.getByRole("button", { name: "Exporteren" }).click();
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.locator('[data-export="png"]').click()]);
+  assert.ok(dl.suggestedFilename().startsWith("graaf") && dl.suggestedFilename().endsWith(".png"), dl.suggestedFilename());
+  const png = (await import("node:fs")).readFileSync(await dl.path());
+  assert.equal(png.subarray(1, 4).toString(), "PNG", "een echte PNG");
+  assert.ok(png.length > 5000, `de PNG is niet leeg (${png.length} bytes)`);
+  await page.keyboard.press("Escape");
+  await grootVenster.waitFor({ state: "detached" });
 
   // 11. Vraag Lex over een bron zet de bepaling als onderwerp met haar suggesties, zonder iets te versturen (ontdubbelen
   // PR 5: geen voorgevulde vraag meer naast het register).

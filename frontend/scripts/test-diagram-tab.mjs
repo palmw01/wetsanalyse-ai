@@ -41,7 +41,7 @@ const view = () => ({
 });
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
-const page = await (await browser.newContext({ viewport: { width: 1440, height: 1000 } })).newPage();
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true })).newPage();
 const errors = [], verzoeken = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
@@ -66,6 +66,9 @@ await page.route("**/api/**", async (route) => {
     stand.revisie += 1;
     return route.fulfill({ json: {} });
   }
+  // *Exporteren* in *Groot bekijken*: de SVG van de api (`GET /v1/annotatie/diagram?vorm=svg`).
+  if (p.endsWith("/v2/diagram") && new URL(req.url()).searchParams.get("vorm") === "svg")
+    return route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect x="10" y="10" width="180" height="80" fill="#90a2d0"/></svg>' });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   if (p.endsWith("/v2/bepaling")) return route.fulfill({ json: { beschikbaar: false } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
@@ -118,6 +121,25 @@ try {
   assert.equal(await page.locator("[data-diagram-gekozen]").count(), 0, "slepen kiest niets");
   await kaart.getByRole("button", { name: "Alles in beeld" }).click();
   assert.equal(await zoomStand(), 1, "Alles in beeld zet terug");
+
+  // *Groot bekijken*: alleen dit diagram in een venster boven de pagina, met *Exporteren* (SVG en PNG) en een kruisje.
+  await kaart.getByRole("button", { name: "Groot bekijken" }).click();
+  const grootVenster = page.locator("[data-tekening-venster]");
+  await grootVenster.locator("[data-diagram-2c]").waitFor();
+  assert.equal(await grootVenster.getByRole("button", { name: "Groot bekijken" }).count(), 0, "in het venster geen tweede Groot bekijken");
+  if (map) await page.screenshot({ path: `${map}/diagram-groot.png` });
+  for (const [formaat, ext] of [["SVG", ".svg"], ["PNG", ".png"]]) {
+    await grootVenster.getByRole("button", { name: "Exporteren" }).click();
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.locator(`[data-export="${formaat.toLowerCase()}"]`).click()]);
+    assert.ok(dl.suggestedFilename().endsWith(ext), `download ${dl.suggestedFilename()}`);
+    assert.ok(dl.suggestedFilename().startsWith("diagram-rechtsbetrekking-"), dl.suggestedFilename());
+    const inhoud = await import("node:fs").then((fs) => dl.path().then((p) => fs.readFileSync(p)));
+    if (ext === ".png") assert.equal(inhoud.subarray(1, 4).toString(), "PNG", "een echte PNG");
+    else assert.match(inhoud.toString(), /<svg/, "een echte SVG");
+  }
+  if (map) await page.screenshot({ path: `${map}/diagram-groot-export.png` });
+  await page.keyboard.press("Escape");
+  await grootVenster.waitFor({ state: "detached" });
 
   // Twee vingers knijpen, zoals in de graaf (melding gebruiker 24 nov 2026: op mobiel zoomde het diagram niet). Echte
   // touch-events via het DevTools-protocol: de browser maakt er pointer-events van, zoals op een telefoon.
