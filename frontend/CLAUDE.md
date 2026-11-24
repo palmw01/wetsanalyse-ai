@@ -160,6 +160,14 @@ stand komt uit `lib/herkomst.ts`.
   (`regelhoogte`). `spansVan` (leesvenster, graaf, bronpagina) en `laagVan` (annotatiepaneel) leveren de stukken,
   `MarkeerStuk` in `WettekstBlok` tekent ze op beide plekken. De gekozen markering krijgt een ring en de andere banen
   dimmen; een vlak dimt niet, want dan haalt de tekst het contrast niet. Geen eigen overlapregel elders.
+- **Het diagram van 2c** (Handleiding §3.4c; vraag gebruiker 24 nov 2026): het annotatiepaneel heeft een tab *Diagram*
+  (`components/annotaties/DiagramTab.tsx`) naast Tekst en Graaf, met alle diagrammen van de bepaling
+  (`GET /v1/annotatie/diagrammen`). Eén tekenaar, `Diagram2c`: hij tekent wat de api uitrekende (plaatsen, lijnstukken,
+  labels; `lib/diagram2c.ts`), dus hetzelfde plaatje als de PDF, met kiesbare knopen en lijnen; ook het ingeklapte diagram
+  onder *Relaties* op de reviewkaart gebruikt hem. Een knoop of lijn kiezen toont ernaast (`TekstEnLijst`, met een eigen
+  verdeling) het blok *Relaties* van die markering – verbinden, beoordelen en wissen gaan dus langs dezelfde weg als op de
+  kaart; een ontbrekende rol (`ontbreekt_rollen`) opent *Verbind met…* met het type voorgekozen. *Annotatie afronden*
+  opent eerst deze tab (één keer per paneel): na het afronden is een laag dicht en leg je geen relatie meer.
 
 **Eén ingang, één venster, één Vraag Lex** (ontdubbelen PR 1–5, besluit gebruiker 10 nov 2026, naar het voorbeeld van
 Claude: een citaat in de tekst, één kaart per object, en het object opent in één paneel):

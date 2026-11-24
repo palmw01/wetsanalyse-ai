@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties, type GraafStand } from "@/components/graaf/useGraafStand";
-import { TabRij } from "@/components/ui/Tabs";
+import { TabRij, type TabRijItem } from "@/components/ui/Tabs";
 import { usePaneel } from "@/components/ui/Paneel";
 import { isVergroot } from "@/lib/paneelBediening";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
@@ -100,20 +100,22 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   );
 }
 
-const TABS = [
+export const WEERGAVE_TABS = [
   { key: "tekst", label: "Tekst" },
   { key: "graaf", label: "Graaf", icoon: <GraafIcoon className="h-3.5 w-3.5" /> },
 ] as const;
 
 /** De keuze Tekst | Graaf onder de kop van een venster (`PaneelKop.balk`): dezelfde tabrij als die van het paneel
  *  (`TabRij`). Geen eigen *Vergroten*: dat is een handeling van het paneel, in de kop. */
-export function WeergaveBalk({ weergave, onKies }: {
-  weergave: Weergave;
-  onKies: (w: Weergave) => void;
+export function WeergaveBalk<W extends string = Weergave>({ weergave, onKies, tabs = WEERGAVE_TABS }: {
+  weergave: W;
+  onKies: (w: W) => void;
+  /** Standaard Tekst | Graaf; het annotatiepaneel voegt *Diagram* toe (en laat Graaf weg zonder kennisgraaf). */
+  tabs?: readonly TabRijItem[];
 }) {
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-1.5" data-paneel-balk data-weergave={weergave}>
-      <TabRij tabs={TABS} active={weergave} onChange={(k) => onKies(k as Weergave)} label="Weergave kiezen" soort="weergave" />
+      <TabRij tabs={tabs} active={weergave} onChange={(k) => onKies(k as W)} label="Weergave kiezen" soort="weergave" />
     </div>
   );
 }

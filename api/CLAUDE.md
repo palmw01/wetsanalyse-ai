@@ -499,7 +499,11 @@ spoor D (*Werkgebied als node*).
     De buurt is die van `diagramBuurt` in de werkplek (`frontend/lib/graaf/diagram.vectoren.json`). In de regels is het de
     stijl `DIAGRAM` met het model als JSON (de PDF tekent, Markdown maakt een Mermaid-blok); bijlage *Begrippendiagrammen*
     (`DIAGRAM_BEGRIPPEN`) toont hetzelfde met de begrippen, alleen als elke formulering die een begrip verwacht er een heeft.
-    `GET /v1/annotatie/diagram?element_id=&vorm=json|svg` levert hetzelfde voor elke andere plek.
+    `GET /v1/annotatie/diagram?element_id=&vorm=json|svg` levert hetzelfde voor elke andere plek, en
+    `GET /v1/annotatie/diagrammen?bron_iri=` alle diagrammen van één bepaling (de tab *Diagram* van de werkplek; dezelfde
+    keuze van wortels, maar binnen die bepaling, dus een rechtsfeit in een los lid krijgt daar wél een eigen diagram). In
+    JSON dragen beide per lijn haar stuk en label (`diagram_teken.lijnstukken`, met `relatie_id`) en `ontbreekt_rollen`
+    (type en richting uit `diagram.VERWACHT`): de werkplek tekent hetzelfde plaatje als de PDF en meet zelf niets.
   - **Relaties en regelskelet** (ADR-009, aanvulling relaties; ADR-011): `Bepaling.relaties` (elke relatie één keer, bij de bepaling
     van de drager) en per Afleidingsregel `Markering.regelskelet` (uitvoer, invoer op volgorde, operatoren met operanden, voorwaarden,
     parameters met waarde, tijd, uitzonderingen, toepassing), uit `annotatie_v2_relaties.bij_elementen`. Een afgewezen relatie staat er

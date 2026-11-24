@@ -15,22 +15,30 @@ import { AANDEEL_MAX, AANDEEL_MIN, AANDEEL_STANDAARD, OPSLAG_AANDEEL, aandeelNaT
  *
  *  De koppeling tussen tekst en lijst (een markering kiezen licht het kaartje uit, en andersom) blijft werken: elk
  *  scrollt in zijn eigen kolom naar wat gekozen is (`WettekstBlok`, `ReviewQueue`). */
-export function TekstEnLijst({ tekst, lijst }: {
+export function TekstEnLijst({ tekst, lijst, standaard = AANDEEL_STANDAARD, opslag = OPSLAG_AANDEEL,
+  label = "Verdeling tussen tekst en lijst" }: {
   /** Links (breed) of bovenin (smal). */
   tekst: ReactNode;
   /** Rechts (breed) of eronder (smal). */
   lijst: ReactNode;
+  /** Het deel voor links, standaard (procent, binnen `AANDEEL_MIN`–`AANDEEL_MAX`). Het diagram van 2c krijgt meer dan een
+   *  wettekst: een tekening wordt bij een smalle kolom onleesbaar klein. */
+  standaard?: number;
+  /** Waar de browser de eigen verdeling bewaart: een plek met een andere standaard heeft haar eigen voorkeur. */
+  opslag?: string;
+  /** Hoe de scheiding heet voor een schermlezer. */
+  label?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [aandeel, setAandeel] = useState(AANDEEL_STANDAARD);
+  const [aandeel, setAandeel] = useState(standaard);
   // Pas na het mounten: de server kent geen opslag.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAandeel(leesOpslag(OPSLAG_AANDEEL, leesAandeel) ?? AANDEEL_STANDAARD);
-  }, []);
+    setAandeel(leesOpslag(opslag, leesAandeel) ?? standaard);
+  }, [opslag, standaard]);
   const zet = (a: number) => {
     setAandeel(a);
-    schrijfOpslag(OPSLAG_AANDEEL, a === AANDEEL_STANDAARD ? undefined : a);
+    schrijfOpslag(opslag, a === standaard ? undefined : a);
   };
   const uitPositie = (x: number) => {
     const r = ref.current?.getBoundingClientRect();
@@ -42,7 +50,7 @@ export function TekstEnLijst({ tekst, lijst }: {
       <div ref={ref} className="tekst-en-lijst" data-tekst-en-lijst style={{ "--tekst-aandeel": `${aandeel}%` } as React.CSSProperties}>
         <div data-tekst-kolom>{tekst}</div>
         {/* Alleen naast elkaar te zien (de CSS); onder elkaar is er niets te verdelen. */}
-        <Scheiding label="Verdeling tussen tekst en lijst" waarde={aandeel} min={AANDEEL_MIN} max={AANDEEL_MAX}
+        <Scheiding label={label} waarde={aandeel} min={AANDEEL_MIN} max={AANDEEL_MAX}
           data-tekst-scheiding onSleep={(x) => setAandeel(uitPositie(x))} onLos={(x) => zet(uitPositie(x))}
           onToets={(toets) => {
             const nieuw = aandeelNaToets(aandeel, toets);
@@ -50,7 +58,7 @@ export function TekstEnLijst({ tekst, lijst }: {
             zet(nieuw);
             return true;
           }}
-          onStandaard={() => zet(AANDEEL_STANDAARD)} />
+          onStandaard={() => zet(standaard)} />
         <div data-lijst-kolom>{lijst}</div>
       </div>
     </div>

@@ -1,0 +1,1295 @@
+{
+ "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+ "elementen": [
+  {
+   "id": "rb",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Rechtsbetrekking",
+   "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+   "toelichting": "",
+   "lifecycle": "edited",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 0,
+     "eind": 87,
+     "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "ro",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Rechtsobject",
+   "tekst": "Een belastingaanslag",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 0,
+     "eind": 20,
+     "tekst": "Een belastingaanslag",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "ar",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Afleidingsregel",
+   "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 24,
+     "eind": 86,
+     "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "pw",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Parameter en parameterwaarde",
+   "tekst": "zes weken",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 37,
+     "eind": 46,
+     "tekst": "zes weken",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "ta",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Tijdsaanduiding",
+   "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 37,
+     "eind": 86,
+     "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "var",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Variabele en variabelewaarde",
+   "tekst": "de dagtekening van het aanslagbiljet",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 50,
+     "eind": 86,
+     "tekst": "de dagtekening van het aanslagbiljet",
+     "bron_hash": "h1"
+    }
+   ]
+  },
+  {
+   "id": "ab",
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "laag_id": "laag1",
+   "klasse": "Rechtsobject",
+   "tekst": "het aanslagbiljet",
+   "toelichting": "",
+   "lifecycle": "human_approved",
+   "herkomst": "agent",
+   "beslissingen": [],
+   "alternatieven": [],
+   "ankers": [
+    {
+     "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+     "start": 69,
+     "eind": 86,
+     "tekst": "het aanslagbiljet",
+     "bron_hash": "h1"
+    }
+   ]
+  }
+ ],
+ "relaties": [
+  {
+   "id": "R-uit",
+   "type": "uitvoer",
+   "leesvorm": "levert op",
+   "van": {
+    "soort": "element",
+    "id": "ar",
+    "bestaat": true,
+    "klasse": "Afleidingsregel",
+    "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "ta",
+    "bestaat": true,
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": null,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-in1",
+   "type": "invoer",
+   "leesvorm": "is invoer van",
+   "van": {
+    "soort": "element",
+    "id": "var",
+    "bestaat": true,
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "ar",
+    "bestaat": true,
+    "klasse": "Afleidingsregel",
+    "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": 1,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-in2",
+   "type": "invoer",
+   "leesvorm": "is invoer van",
+   "van": {
+    "soort": "element",
+    "id": "pw",
+    "bestaat": true,
+    "klasse": "Parameter en parameterwaarde",
+    "tekst": "zes weken",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "ar",
+    "bestaat": true,
+    "klasse": "Afleidingsregel",
+    "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": 2,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-tijd",
+   "type": "tijd",
+   "leesvorm": "heeft als tijdsaanduiding",
+   "van": {
+    "soort": "element",
+    "id": "rb",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "edited"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "ta",
+    "bestaat": true,
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "human_approved"
+   },
+   "lifecycle": "voorgesteld",
+   "herkomst": "agent",
+   "volgorde": null,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-u5",
+   "type": "uitzondering_op",
+   "leesvorm": "maakt een uitzondering op",
+   "van": {
+    "soort": "element",
+    "id": "u5",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+    "laag_id": "",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "rb",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "edited"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": null,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-u6",
+   "type": "uitzondering_op",
+   "leesvorm": "maakt een uitzondering op",
+   "van": {
+    "soort": "element",
+    "id": "u6",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+    "laag_id": "",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "rb",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "edited"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": null,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  },
+  {
+   "id": "R-u7",
+   "type": "uitzondering_op",
+   "leesvorm": "maakt een uitzondering op",
+   "van": {
+    "soort": "element",
+    "id": "u7",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+    "laag_id": "",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
+    "lifecycle": "human_approved"
+   },
+   "naar": {
+    "soort": "element",
+    "id": "rb",
+    "bestaat": true,
+    "klasse": "Rechtsbetrekking",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "laag_id": "laag1",
+    "actueel": true,
+    "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+    "lifecycle": "edited"
+   },
+   "lifecycle": "human_approved",
+   "herkomst": "mens",
+   "volgorde": null,
+   "veranderd": false,
+   "aangemaakt_door": "browser-test",
+   "laag_id": "laag1",
+   "toelichting": "",
+   "beslissingen": []
+  }
+ ],
+ "relatie_na": {
+  "id": "R-nieuw",
+  "type": "voorwerp",
+  "leesvorm": "heeft als voorwerp",
+  "van": {
+   "soort": "element",
+   "id": "rb",
+   "bestaat": true,
+   "klasse": "Rechtsbetrekking",
+   "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+   "laag_id": "laag1",
+   "actueel": true,
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "lifecycle": "edited"
+  },
+  "naar": {
+   "soort": "element",
+   "id": "ro",
+   "bestaat": true,
+   "klasse": "Rechtsobject",
+   "tekst": "Een belastingaanslag",
+   "laag_id": "laag1",
+   "actueel": true,
+   "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+   "lifecycle": "human_approved"
+  },
+  "lifecycle": "human_approved",
+  "herkomst": "mens",
+  "volgorde": null,
+  "veranderd": false,
+  "aangemaakt_door": "browser-test",
+  "laag_id": "laag1",
+  "toelichting": "",
+  "beslissingen": []
+ },
+ "diagrammen": {
+  "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+  "diagrammen": [
+   {
+    "diagram": {
+     "centraal": "rb",
+     "klasse": "Rechtsbetrekking",
+     "nr": 0,
+     "knopen": [
+      {
+       "id": "rb",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+       "elders": "",
+       "lifecycle": "edited",
+       "begrip": "",
+       "zone": "midden",
+       "diepte": 0
+      },
+      {
+       "id": "ta",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Tijdsaanduiding",
+       "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+       "elders": "",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u5",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+       "elders": "Artikel 9, lid 5",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u6",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+       "elders": "Artikel 9, lid 6",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u7",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+       "elders": "Artikel 9, lid 7",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "ar",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Afleidingsregel",
+       "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+       "elders": "",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 2
+      }
+     ],
+     "lijnen": [
+      {
+       "van": "rb",
+       "naar": "ta",
+       "code": "tijd",
+       "leesvorm": "heeft als tijdsaanduiding",
+       "volgorde": null,
+       "lifecycle": "voorgesteld"
+      },
+      {
+       "van": "ar",
+       "naar": "ta",
+       "code": "uitvoer",
+       "leesvorm": "levert op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u5",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u6",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u7",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      }
+     ],
+     "ontbreekt": [
+      "rechthebbende",
+      "plichthebbende",
+      "voorwerp"
+     ]
+    },
+    "plaatsing": {
+     "breedte": 612.0,
+     "hoogte": 230.0,
+     "knopen": [
+      {
+       "knoop": {
+        "id": "rb",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+        "elders": "",
+        "lifecycle": "edited",
+        "begrip": "",
+        "zone": "midden",
+        "diepte": 0
+       },
+       "x": 246.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking",
+       "regels": [
+        "Een belastingaanslag is",
+        "invorderbaar zes weken na de",
+        "dagtekening van het",
+        "aanslagbiljet."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "ta",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Tijdsaanduiding",
+        "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+        "elders": "",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 0.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 39.0,
+       "kop": "Tijdsaanduiding",
+       "regels": [
+        "zes weken na de dagtekening",
+        "van het aanslagbiljet"
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u5",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 5",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 164.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … … nog maanden",
+        "van het jaar overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u6",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 6",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 328.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
+       "regels": [
+        "In afwijking van het eerste",
+        "en het vijfde lid … … nog",
+        "maanden van het jaar",
+        "overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u7",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+        "elders": "Artikel 9, lid 7",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 492.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … termijnen als",
+        "er maanden van het jaar",
+        "zijn."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "ar",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Afleidingsregel",
+        "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+        "elders": "",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 2
+       },
+       "x": 246.0,
+       "y": 182.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Afleidingsregel",
+       "regels": [
+        "invorderbaar zes weken na de",
+        "dagtekening van het",
+        "aanslagbiljet"
+       ]
+      }
+     ]
+    },
+    "lijnen": [
+     {
+      "relatie_id": "R-tijd",
+      "van": "rb",
+      "naar": "ta",
+      "code": "tijd",
+      "lifecycle": "voorgesteld",
+      "label": [
+       "heeft als",
+       "tijdsaanduiding"
+      ],
+      "x1": 306.0,
+      "y1": 57.0,
+      "x2": 60.0,
+      "y2": 91.0,
+      "lx": 183.0,
+      "ly": 74.0,
+      "lb": 46.88,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-uit",
+      "van": "ar",
+      "naar": "ta",
+      "code": "uitvoer",
+      "lifecycle": "human_approved",
+      "label": [
+       "levert op"
+      ],
+      "x1": 306.0,
+      "y1": 182.0,
+      "x2": 60.0,
+      "y2": 130.0,
+      "lx": 183.0,
+      "ly": 156.0,
+      "lb": 27.76,
+      "lh": 9.0
+     },
+     {
+      "relatie_id": "R-u5",
+      "van": "u5",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 224.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 265.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-u6",
+      "van": "u6",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 388.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 347.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-u7",
+      "van": "u7",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 552.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 429.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     }
+    ],
+    "ontbreekt_rollen": [
+     {
+      "label": "rechthebbende",
+      "codes": [
+       "rechthebbende"
+      ],
+      "richting": "in"
+     },
+     {
+      "label": "plichthebbende",
+      "codes": [
+       "plichthebbende"
+      ],
+      "richting": "in"
+     },
+     {
+      "label": "voorwerp",
+      "codes": [
+       "voorwerp"
+      ],
+      "richting": "uit"
+     }
+    ]
+   }
+  ]
+ },
+ "diagrammen_na": {
+  "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+  "diagrammen": [
+   {
+    "diagram": {
+     "centraal": "rb",
+     "klasse": "Rechtsbetrekking",
+     "nr": 0,
+     "knopen": [
+      {
+       "id": "rb",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+       "elders": "",
+       "lifecycle": "edited",
+       "begrip": "",
+       "zone": "midden",
+       "diepte": 0
+      },
+      {
+       "id": "ro",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsobject",
+       "tekst": "Een belastingaanslag",
+       "elders": "",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "rechts",
+       "diepte": 1
+      },
+      {
+       "id": "ta",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Tijdsaanduiding",
+       "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+       "elders": "",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u5",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+       "elders": "Artikel 9, lid 5",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u6",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+       "elders": "Artikel 9, lid 6",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "u7",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Rechtsbetrekking",
+       "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+       "elders": "Artikel 9, lid 7",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 1
+      },
+      {
+       "id": "ar",
+       "soort": "element",
+       "nr": 0,
+       "klasse": "Afleidingsregel",
+       "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+       "elders": "",
+       "lifecycle": "human_approved",
+       "begrip": "",
+       "zone": "onder",
+       "diepte": 2
+      }
+     ],
+     "lijnen": [
+      {
+       "van": "rb",
+       "naar": "ta",
+       "code": "tijd",
+       "leesvorm": "heeft als tijdsaanduiding",
+       "volgorde": null,
+       "lifecycle": "voorgesteld"
+      },
+      {
+       "van": "ar",
+       "naar": "ta",
+       "code": "uitvoer",
+       "leesvorm": "levert op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u5",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u6",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "u7",
+       "naar": "rb",
+       "code": "uitzondering_op",
+       "leesvorm": "maakt een uitzondering op",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      },
+      {
+       "van": "rb",
+       "naar": "ro",
+       "code": "voorwerp",
+       "leesvorm": "heeft als voorwerp",
+       "volgorde": null,
+       "lifecycle": "human_approved"
+      }
+     ],
+     "ontbreekt": [
+      "rechthebbende",
+      "plichthebbende"
+     ]
+    },
+    "plaatsing": {
+     "breedte": 612.0,
+     "hoogte": 230.0,
+     "knopen": [
+      {
+       "knoop": {
+        "id": "rb",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+        "elders": "",
+        "lifecycle": "edited",
+        "begrip": "",
+        "zone": "midden",
+        "diepte": 0
+       },
+       "x": 246.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking",
+       "regels": [
+        "Een belastingaanslag is",
+        "invorderbaar zes weken na de",
+        "dagtekening van het",
+        "aanslagbiljet."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "ro",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsobject",
+        "tekst": "Een belastingaanslag",
+        "elders": "",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "rechts",
+        "diepte": 1
+       },
+       "x": 426.0,
+       "y": 13.5,
+       "b": 120.0,
+       "h": 30.0,
+       "kop": "Rechtsobject",
+       "regels": [
+        "Een belastingaanslag"
+       ]
+      },
+      {
+       "knoop": {
+        "id": "ta",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Tijdsaanduiding",
+        "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+        "elders": "",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 0.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 39.0,
+       "kop": "Tijdsaanduiding",
+       "regels": [
+        "zes weken na de dagtekening",
+        "van het aanslagbiljet"
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u5",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 5",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 164.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … … nog maanden",
+        "van het jaar overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u6",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 6",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 328.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
+       "regels": [
+        "In afwijking van het eerste",
+        "en het vijfde lid … … nog",
+        "maanden van het jaar",
+        "overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u7",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+        "elders": "Artikel 9, lid 7",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 1
+       },
+       "x": 492.0,
+       "y": 91.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … termijnen als",
+        "er maanden van het jaar",
+        "zijn."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "ar",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Afleidingsregel",
+        "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+        "elders": "",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "onder",
+        "diepte": 2
+       },
+       "x": 246.0,
+       "y": 182.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Afleidingsregel",
+       "regels": [
+        "invorderbaar zes weken na de",
+        "dagtekening van het",
+        "aanslagbiljet"
+       ]
+      }
+     ]
+    },
+    "lijnen": [
+     {
+      "relatie_id": "R-tijd",
+      "van": "rb",
+      "naar": "ta",
+      "code": "tijd",
+      "lifecycle": "voorgesteld",
+      "label": [
+       "heeft als",
+       "tijdsaanduiding"
+      ],
+      "x1": 306.0,
+      "y1": 57.0,
+      "x2": 60.0,
+      "y2": 91.0,
+      "lx": 183.0,
+      "ly": 74.0,
+      "lb": 46.88,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-uit",
+      "van": "ar",
+      "naar": "ta",
+      "code": "uitvoer",
+      "lifecycle": "human_approved",
+      "label": [
+       "levert op"
+      ],
+      "x1": 306.0,
+      "y1": 182.0,
+      "x2": 60.0,
+      "y2": 130.0,
+      "lx": 183.0,
+      "ly": 156.0,
+      "lb": 27.76,
+      "lh": 9.0
+     },
+     {
+      "relatie_id": "R-u5",
+      "van": "u5",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 224.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 265.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-u6",
+      "van": "u6",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 388.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 347.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-u7",
+      "van": "u7",
+      "naar": "rb",
+      "code": "uitzondering_op",
+      "lifecycle": "human_approved",
+      "label": [
+       "maakt een",
+       "uitzondering op"
+      ],
+      "x1": 552.0,
+      "y1": 91.0,
+      "x2": 306.0,
+      "y2": 57.0,
+      "lx": 429.0,
+      "ly": 74.0,
+      "lb": 46.83,
+      "lh": 16.5
+     },
+     {
+      "relatie_id": "R-nieuw",
+      "van": "rb",
+      "naar": "ro",
+      "code": "voorwerp",
+      "lifecycle": "human_approved",
+      "label": [
+       "heeft als",
+       "voorwerp"
+      ],
+      "x1": 366.0,
+      "y1": 28.5,
+      "x2": 426.0,
+      "y2": 28.5,
+      "lx": 396.0,
+      "ly": 28.5,
+      "lb": 29.27,
+      "lh": 16.5
+     }
+    ],
+    "ontbreekt_rollen": [
+     {
+      "label": "rechthebbende",
+      "codes": [
+       "rechthebbende"
+      ],
+      "richting": "in"
+     },
+     {
+      "label": "plichthebbende",
+      "codes": [
+       "plichthebbende"
+      ],
+      "richting": "in"
+     }
+    ]
+   }
+  ]
+ }
+}

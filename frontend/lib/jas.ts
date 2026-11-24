@@ -59,6 +59,12 @@ export function jasRandKleur(klasse: string): string {
   return /border-\[(#[0-9a-fA-F]{6})\]/.exec(KLASSE_STYLE[klasse?.trim()] ?? "")?.[1] ?? "#9a9a9a";
 }
 
+/** De vlakkleur van een klasse als hex (de kop van een knoop in het 2c-diagram, `lib/diagram2c.ts`). Uit dezelfde
+ *  tabel als `jasStyle`. */
+export function jasVlakKleur(klasse: string): string {
+  return /bg-\[(#[0-9a-fA-F]{6})\]/.exec(KLASSE_STYLE[klasse?.trim()] ?? "")?.[1] ?? "#edefef";
+}
+
 /** Sorteersleutel voor presentatie: index in de canonieke wa-table-volgorde;
  *  onbekende klassen achteraan. Gebruik met een stabiele sort. */
 export function jasVolgorde(klasse: string): number {

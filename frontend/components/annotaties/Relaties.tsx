@@ -1,7 +1,9 @@
 "use client";
 
 import { Leeg } from "@/components/ui/Leeg";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { Diagram2c } from "@/components/annotaties/Diagram2c";
 
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +13,9 @@ import { Waarschuwing } from "@/components/ui/Icoon";
 import { KlasseLabel, Lijst, LijstRij, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { foutTekst } from "@/lib/api";
-import { diagramUrl, weergaveVersie, type NodeEindpunt, type NodeImpliciet, type NodeRelatie, type NodeWeergave, type RelatieInvoer } from "@/lib/annotatieNode";
+import { haalDiagram, type DiagramData } from "@/lib/diagram2c";
+import { CENTRALE_KLASSEN } from "@/lib/jasRelaties";
+import { weergaveVersie, type NodeEindpunt, type NodeImpliciet, type NodeRelatie, type NodeWeergave, type RelatieInvoer } from "@/lib/annotatieNode";
 import {
   eigenRelatie, relatieAfgehandeld, relatiesBijElement, relatieStatus, typeKeuzes, verbindbaar, type RelatieRegel,
   type TypeKeuze, type Verbindbaar,
@@ -41,16 +45,27 @@ function AndereKant({ ep }: { ep: NodeEindpunt }) {
 
 /** Het blok *Relaties* op de reviewkaart (ADR-011): wat dit element met andere markeringen verbindt, gelezen vanaf dit
  *  element, en *Verbind met…* om er een te leggen. Een lijst, geen tabel; een veranderde relatie staat bovenaan. */
-export function RelatieBlok({ view, elementId, gebruiker, bediening }: {
+export function RelatieBlok({ view, elementId, gebruiker, bediening, zonderDiagram = false, voorkeur, gemarkeerd }: {
   view: NodeWeergave;
   elementId: string;
   /** De userid van wie kijkt: alleen een eigen relatie kun je wissen. */
   gebruiker?: string;
   bediening?: RelatieBediening;
+  /** Op de tab *Diagram* staat het diagram er al boven: dan niet nog eens ingeklapt eronder. */
+  zonderDiagram?: boolean;
+  /** Open *Verbind met…* meteen, met deze relatietypen voorgekozen (een ontbrekende rol in het diagram). Geef het blok
+   *  bij een andere voorkeur een andere `key`. */
+  voorkeur?: { codes: readonly string[]; sleutel: string };
+  /** De relatie die in het diagram gekozen is: bovenaan, met nadruk. */
+  gemarkeerd?: string;
 }) {
-  const [verbinden, setVerbinden] = useState(false);
+  // Met een voorkeur staat het formulier meteen open; een andere voorkeur geeft de ouder een nieuwe `key`.
+  const [verbinden, setVerbinden] = useState(!!voorkeur);
   const [fout, setFout] = useState("");
-  const regels = relatiesBijElement(view, elementId);
+  const alleRegels = relatiesBijElement(view, elementId);
+  const regels = gemarkeerd
+    ? [...alleRegels.filter((r) => r.relatie.id === gemarkeerd), ...alleRegels.filter((r) => r.relatie.id !== gemarkeerd)]
+    : alleRegels;
   const kandidaten = verbindbaar(view);
   const dit = kandidaten.find((k) => k.ref.soort === "element" && k.ref.id === elementId);
   const anderen = kandidaten.filter((k) => k !== dit && (!dit || typeKeuzes(dit, k).length > 0));
@@ -76,13 +91,15 @@ export function RelatieBlok({ view, elementId, gebruiker, bediening }: {
       {regels.length > 0 ? (
         <Lijst label="Relaties van dit element">
           {regels.map((r) => (
-            <RelatieRij key={r.relatie.id} regel={r} gebruiker={gebruiker} bediening={bediening} doe={doe} />
+            <RelatieRij key={r.relatie.id} regel={r} gebruiker={gebruiker} bediening={bediening} doe={doe}
+              nadruk={r.relatie.id === gemarkeerd} />
           ))}
         </Lijst>
       ) : !verbinden && <Leeg klein>Nog geen relaties met andere markeringen.</Leeg>}
-      {regels.length > 0 && <DiagramBlok view={view} elementId={elementId} />}
+      {regels.length > 0 && !zonderDiagram && <DiagramBlok view={view} elementId={elementId} />}
       {verbinden && bediening && dit && (
-        <Verbind dit={dit} anderen={anderen} onSluit={() => setVerbinden(false)}
+        <Verbind key={voorkeur?.sleutel ?? "vrij"} dit={dit} anderen={anderen} voorkeur={voorkeur?.codes}
+          onSluit={() => setVerbinden(false)}
           onLeg={async (invoer) => (await doe(() => bediening.leg(invoer))) && setVerbinden(false)} />
       )}
     </Sectie>
@@ -90,28 +107,37 @@ export function RelatieBlok({ view, elementId, gebruiker, bediening }: {
 }
 
 /** Het diagram van deelactiviteit 2c rond deze markering, ingeklapt onder haar relaties: hetzelfde plaatje als in het
- *  werkgebiedrapport (api `diagram`, `diagram_teken`). Het plaatje laadt pas bij openklappen, en opnieuw na een besluit.
+ *  werkgebiedrapport en op de tab *Diagram* (`Diagram2c`). Het laadt pas bij openklappen, en opnieuw na een besluit.
  *  De lijst erboven blijft leidend; het diagram vat haar samen. */
 function DiagramBlok({ view, elementId }: { view: NodeWeergave; elementId: string }) {
   const [open, setOpen] = useState(false);
+  const [data, setData] = useState<DiagramData | null>(null);
   const [fout, setFout] = useState(false);
   const klasse = view.elementen.find((e) => e.id === elementId)?.klasse ?? "";
-  const url = diagramUrl(elementId, klasse, weergaveVersie(view));
-  if (!url) return null;
+  const versie = weergaveVersie(view);
+  useEffect(() => {
+    if (!open) return;
+    let actueel = true;
+    haalDiagram(elementId).then((d) => { if (actueel) { setData(d); setFout(false); } })
+      .catch(() => { if (actueel) setFout(true); });
+    return () => { actueel = false; };
+  }, [open, elementId, versie]);
+  if (!CENTRALE_KLASSEN.includes(klasse)) return null;
   return (
     <Uitklap samenvatting="Diagram" className="mt-1" data-diagram={elementId}
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
       {open && (fout
         ? <p role="alert" className="mt-1 text-xs text-fout">Het diagram kon niet worden geladen.</p>
-        // eslint-disable-next-line @next/next/no-img-element -- een SVG van de eigen api, geen te optimaliseren beeld
-        : <img src={url} onError={() => setFout(true)} className="mt-1 w-full rounded-knop border border-line bg-paper"
-            alt={`Diagram rond deze ${klasse.toLowerCase()} met haar relaties; de lijst hierboven noemt ze allemaal.`} />)}
+        : data && <div className="mt-1 rounded-knop border border-line bg-paper p-2">
+          <Diagram2c data={data} label={`Diagram rond deze ${klasse.toLowerCase()} met haar relaties; de lijst hierboven noemt ze allemaal.`} />
+        </div>)}
     </Uitklap>
   );
 }
 
-function RelatieRij({ regel, gebruiker, bediening, doe }: {
+function RelatieRij({ regel, gebruiker, bediening, doe, nadruk = false }: {
   regel: RelatieRegel;
+  nadruk?: boolean;
   gebruiker?: string;
   bediening?: RelatieBediening;
   doe: (actie: () => Promise<void>) => Promise<boolean>;
@@ -154,7 +180,7 @@ function RelatieRij({ regel, gebruiker, bediening, doe }: {
   );
 
   return (
-    <LijstRij data-relatie={r.id}
+    <LijstRij data-relatie={r.id} data-nadruk={nadruk || undefined} actief={nadruk}
       titel={<span className="text-sm"><span className="text-muted">{zin}</span> <AndereKant ep={ander} /></span>}
       status={bediening && eigenRelatie(r, gebruiker) && (
         <IcoonBevestig soort="verwijderen" vraag="Wissen?" label={`Wis relatie: ${naam}`} disabled={bezig}
@@ -193,17 +219,23 @@ const keuzeSleutel = (k: TypeKeuze) => `${k.richting}:${k.code}`;
  *  catalogus (`typenTussen` op het klassenpaar), in beide richtingen; de zin eronder zegt welke kant van en welke naar is.
  *  Geen zoekvenster: wat niet in beeld staat, haal je via het gesprek. De velden staan onder elkaar, want de kaart is
  *  smal. */
-function Verbind({ dit, anderen, onLeg, onSluit }: {
+function Verbind({ dit, anderen: alle, voorkeur, onLeg, onSluit }: {
   dit: Verbindbaar;
   anderen: readonly Verbindbaar[];
+  /** Alleen de kanten die een van deze typen met dit element kunnen hebben, en dat type alvast gekozen. */
+  voorkeur?: readonly string[];
   onLeg: (invoer: RelatieInvoer) => Promise<unknown>;
   onSluit: () => void;
 }) {
+  const anderen = voorkeur?.length ? alle.filter((k) => typeKeuzes(dit, k).some((t) => voorkeur.includes(t.code))) : alle;
   const [anderKey, setAnderKey] = useState("");
   const [typeKey, setTypeKey] = useState("");
   const [volgorde, setVolgorde] = useState("");
   const [toelichting, setToelichting] = useState("");
   const [bezig, setBezig] = useState(false);
+  const vorm = useRef<HTMLFormElement>(null);
+  // Geopend vanuit een ontbrekende rol in het diagram: breng het formulier in beeld, het staat onder de relaties.
+  useEffect(() => { if (voorkeur?.length) vorm.current?.scrollIntoView?.({ block: "end" }); }, [voorkeur]);
   const ander = anderen.find((k) => sleutel(k) === anderKey);
   const keuzes = ander ? typeKeuzes(dit, ander) : [];
   const keuze = keuzes.find((k) => keuzeSleutel(k) === typeKey);
@@ -213,7 +245,7 @@ function Verbind({ dit, anderen, onLeg, onSluit }: {
   const kort = (k: Verbindbaar) => (k.impliciet ? k.naam : `“${k.naam.length > 50 ? `${k.naam.slice(0, 47)}…` : k.naam}”`);
 
   return (
-    <form aria-label="Verbind met een andere markering" className="space-y-2 border-t border-line pt-3" onSubmit={async (e) => {
+    <form ref={vorm} aria-label="Verbind met een andere markering" className="space-y-2 border-t border-line pt-3" onSubmit={async (e) => {
       e.preventDefault();
       if (!ander || !keuze || !plekGeldig) return;
       setBezig(true);
@@ -222,7 +254,17 @@ function Verbind({ dit, anderen, onLeg, onSluit }: {
           toelichting: toelichting.trim() });
       } finally { setBezig(false); }
     }}>
-      <Select value={anderKey} aria-label="Andere kant" onChange={(e) => { setAnderKey(e.target.value); setTypeKey(""); }}>
+      {voorkeur?.length && !anderen.length ? (
+        <Leeg klein>
+          Geen markering in deze bepaling kan die rol hebben. Markeer de formulering eerst, of voeg een impliciete partij toe.
+        </Leeg>
+      ) : null}
+      <Select value={anderKey} aria-label="Andere kant" onChange={(e) => {
+        const nieuw = anderen.find((k) => sleutel(k) === e.target.value);
+        const voor = nieuw && voorkeur?.length ? typeKeuzes(dit, nieuw).find((t) => voorkeur.includes(t.code)) : undefined;
+        setAnderKey(e.target.value);
+        setTypeKey(voor ? keuzeSleutel(voor) : "");
+      }}>
         <option value="">Kies een markering of partij…</option>
         {anderen.map((k) => (
           <option key={sleutel(k)} value={sleutel(k)}>
