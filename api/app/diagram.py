@@ -10,8 +10,14 @@ Lex), bouwt hier het `Diagram`; de tekenaars (`diagram_teken`) maken er een PDF-
   andere bepaling gaat het niet verder.
 - **Alleen wat is vastgelegd.** Een afgewezen relatie of een verworpen markering staat er niet in. Wat de methode bij
   een centrale klasse verwacht en ontbreekt, staat in `ontbreekt`: een signaal, geen oordeel.
-- **Dezelfde buurt als de werkplek.** `buurt` volgt `diagramBuurt` in `frontend/lib/graaf/weergave.ts`: beide
-  richtingen, tot `DIEPTE` relaties ver. `frontend/lib/graaf/diagram.vectoren.json` houdt de twee gelijk.
+- **De hele samenhang binnen de bepaling** (Handleiding §3.4c, p. 34–35): het vertrekpunt is de centrale formulering,
+  en wat aan de niet-centrale formuleringen hangt, staat in hetzelfde diagram – ook een afleidingsregel die een kenmerk
+  van het voorwerp oplevert, met haar invoer en operatoren. Een andere rechtsbetrekking of een ander rechtsfeit is een
+  eindpunt: die krijgt haar eigen diagram (`EIGEN_DIAGRAM`). Acceptatie 24 nov 2026, art. 9 lid 1 IW: met een vaste
+  diepte van twee kreeg de afleidingsregel (drie stappen van de rechtsbetrekking) een tweede diagram.
+- **De buurt van de graaf.** `buurt` met `DIEPTE` volgt `diagramBuurt` in `frontend/lib/graaf/weergave.ts` (beide
+  richtingen, twee relaties ver); `frontend/lib/graaf/diagram.vectoren.json` houdt die twee gelijk. Dat is de
+  diagrammodus van de graaf, een buurt over bepalingen heen; het 2c-diagram gebruikt `buurt` zonder diepte.
 - **Een vaste plaats per rol**, geen layoutmotor: dezelfde stand geeft altijd hetzelfde plaatje.
 - **Brongetrouw.** Een knoop toont het letterlijke fragment, bij een lang fragment begin en eind met een weglatingsteken;
   nooit een parafrase. Met `vorm="begrippen"` toont hij de naam van het begrip (Handleiding: het diagram met begrippen),
@@ -28,7 +34,14 @@ from pydantic import BaseModel, ConfigDict
 from .jas_relaties import CENTRALE_KLASSEN, RELATIETYPEN
 
 DIEPTE = 2
-"""Hoe ver het diagram reikt, in relaties: de centrale formulering, wat eraan hangt en wat daar weer aan hangt."""
+"""Hoe ver de diagrammodus van de graaf reikt, in relaties: de centrale formulering, wat eraan hangt en wat daar weer aan
+hangt. Het 2c-diagram heeft geen vaste diepte (`bouw`)."""
+
+#: Centrale klassen die altijd een eigen diagram krijgen. Bereikt een diagram er een, dan staat ze erin als eindpunt en
+#: gaat het daar niet verder. Een afleidingsregel en een voorwaarde hangen bij hun drager.
+EIGEN_DIAGRAM = ("Rechtsbetrekking", "Rechtsfeit")
+#: De volgorde waarin een centrale formulering wortel wordt: de methode neemt een rechtsbetrekking als vertrekpunt.
+WORTELVOLGORDE = {k: i for i, k in enumerate(("Rechtsbetrekking", "Rechtsfeit", "Afleidingsregel", "Voorwaarde"))}
 
 Zone = Literal["boven", "links", "midden", "rechts", "onder"]
 
@@ -107,7 +120,7 @@ def _sleutel(kant: dict) -> str:
     return f"{kant.get('soort', 'element')}:{kant['id']}"
 
 
-def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE,
+def buurt(centraal: str, relaties: Iterable[dict], diepte: int | None = DIEPTE,
           eindpunt: Callable[[str], bool] | None = None) -> dict[str, int]:
     """Wat er over relaties bereikbaar is vanaf `centraal` (een element-id), in beide richtingen, tot `diepte`; per knoop
     (`element:<id>` of `impliciet:<id>`) de afstand. Dezelfde regel als `diagramBuurt` in de werkplek; met `eindpunt`
@@ -116,7 +129,9 @@ def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE,
     start = f"element:{centraal}"
     afstand = {start: 0}
     rand = [start]
-    for d in range(1, diepte + 1):
+    d = 0
+    while rand and (diepte is None or d < diepte):
+        d += 1
         volgende = []
         for knoop in rand:
             if eindpunt is not None and knoop != start and eindpunt(knoop):
@@ -134,9 +149,10 @@ def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE,
 _CODEVOLGORDE = {c: i for i, c in enumerate(RELATIETYPEN)}
 
 
-def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, diepte: int = DIEPTE) -> Diagram:
+def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, diepte: int | None = None) -> Diagram:
     """Het diagram rond `centraal` (een markering: `id`, `klasse`, `tekst`, `nr`) uit relaties in de vorm van de weergave
-    (`annotatie_v2_relaties`: `van`/`naar` met `id`, `soort`, `klasse`, `tekst`, `lifecycle`)."""
+    (`annotatie_v2_relaties`: `van`/`naar` met `id`, `soort`, `klasse`, `tekst`, `lifecycle`). Zonder `diepte` de hele
+    samenhang binnen de bepaling, tot een knoop elders of een andere centrale formulering met een eigen diagram."""
     info = info or (lambda _id: {})
     # Alleen de structuur van de methode: een tekstuele relatie (`uitzondering_op`, `toepassing`, `onderdeel`; in de
     # catalogus `methodisch: false`) is geen regelstructuur (skill `relaties.md`) en hoort niet in het diagram van een
@@ -155,7 +171,10 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
         k = kanten.get(sleutel) or {}
         waar = info(k).get("waar") if k.get("soort", "element") == "element" else None
         return bool(hier_ and waar and waar != hier_)
-    afstand = buurt(centraal["id"], relaties, diepte, eindpunt=elders)
+    def eigen_diagram(sleutel: str) -> bool:
+        return (kanten.get(sleutel) or {}).get("klasse") in EIGEN_DIAGRAM
+
+    afstand = buurt(centraal["id"], relaties, diepte, eindpunt=lambda s: elders(s) or eigen_diagram(s))
     lijnen = [r for r in relaties if _sleutel(r["van"]) in afstand and _sleutel(r["naar"]) in afstand]
     lijnen.sort(key=lambda r: (_CODEVOLGORDE.get(r["type"], 99), r.get("volgorde") or 0, r.get("id", "")))
 
@@ -163,7 +182,7 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
     # verder die van de ouder.
     start = f"element:{centraal['id']}"
     zone: dict[str, Zone] = {start: "midden"}
-    for d in range(1, diepte + 1):
+    for d in range(1, max(afstand.values()) + 1):
         for r in lijnen:
             a, b = _sleutel(r["van"]), _sleutel(r["naar"])
             for ouder, kind in ((a, b), (b, a)):
@@ -202,13 +221,16 @@ def ontbreekt(d: Diagram) -> list[str]:
 
 
 def diagrammen(markeringen: Iterable[dict], relaties: list[dict], info: Info | None = None,
-               diepte: int = DIEPTE) -> list[Diagram]:
+               diepte: int | None = None) -> list[Diagram]:
     """De diagrammen bij een verzameling markeringen (een bepaling, een werkgebied), in de volgorde van de markeringen.
 
-    Eén diagram per *wortel*: eerst elke rechtsbetrekking, elk rechtsfeit en elke afleidingsregel; daarna een voorwaarde
-    die in geen van die diagrammen staat en wel een relatie heeft (een voorwaarde hoort bij haar drager). Een markering
-    die al in een eerder diagram staat, krijgt er geen eigen."""
-    centraal = [m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and m.get("lifecycle") != "rejected"]
+    Eén diagram per *wortel*, in de volgorde van de methode (`WORTELVOLGORDE`): eerst elke rechtsbetrekking en elk
+    rechtsfeit, dan een afleidingsregel die in geen van die diagrammen hangt, en tot slot zo'n voorwaarde met een relatie
+    (een voorwaarde hoort bij haar drager). Een markering die al in een eerder diagram hangt, krijgt er geen eigen; een
+    rechtsbetrekking of rechtsfeit die in een ander diagram alleen als eindpunt staat, wel."""
+    markeringen = list(markeringen)
+    centraal = sorted((m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and m.get("lifecycle") != "rejected"),
+                      key=lambda m: WORTELVOLGORDE.get(m["klasse"], 9))
     gedekt: set[str] = set()
     uit: list[Diagram] = []
     for voorwaarden in (False, True):
@@ -218,7 +240,7 @@ def diagrammen(markeringen: Iterable[dict], relaties: list[dict], info: Info | N
             d = bouw(m, relaties, info, diepte)
             if voorwaarden and len(d.knopen) == 1:
                 continue
-            gedekt |= {k.id for k in d.knopen if k.soort == "element"}
+            gedekt |= {k.id for k in d.knopen if k.soort == "element" and (k.id == d.centraal or k.klasse not in EIGEN_DIAGRAM)}
             uit.append(d)
     volgorde = {m["id"]: i for i, m in enumerate(markeringen)}
     return sorted(uit, key=lambda d: volgorde.get(d.centraal, 0))
@@ -327,11 +349,27 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
 
     naar_ouders(boven[::-1])
     naar_ouders(onder)
-    totaal = max([breedte] + [rijbreedte(r) for r in boven + onder])
-    verschuif = (totaal - breedte) / 2
+    # De middelste band: links de partijen, rechts het voorwerp, met elke verdere stap een kolom verder van het midden
+    # (Handleiding §3.4c: de variabele bij het rechtsobject, de afleidingsregel die haar oplevert, haar invoer). Een keten
+    # in één kolom gestapeld liet de lijnen door de knopen ertussen lopen (acceptatie 24 nov 2026, art. 9 lid 1 IW).
+    def kolommen(zone: str) -> list[list[Knoop]]:
+        return [[k for k in per_zone[zone] if k.diepte == dd] for dd in sorted({k.diepte for k in per_zone[zone]})]
+    rechts, links = kolommen("rechts"), kolommen("links")
+    naar_ouders([per_zone["midden"]] + rechts)
+    naar_ouders([per_zone["midden"]] + links)
+    banden = links[::-1] + [per_zone["midden"]] + rechts
+    bandbreedte = len(banden) * b + (len(banden) - 1) * TUSSEN_X
+    totaal = max([breedte, bandbreedte] + [rijbreedte(r) for r in boven + onder])
+
+    # Een rij boven of onder staat onder de centrale formulering, niet in het midden van een brede tekening (dan liep een
+    # lange schuine lijn naar haar tijdsaanduiding); ze blijft binnen de tekening.
+    if len(banden) <= 3:
+        midden_kolom = (totaal - b) / 2
+    else:
+        midden_kolom = (totaal - bandbreedte) / 2 + len(links) * (b + TUSSEN_X)
 
     def rij(knopen: list[Knoop], y: float) -> float:
-        x0 = (totaal - rijbreedte(knopen)) / 2
+        x0 = min(max(midden_kolom + b / 2 - rijbreedte(knopen) / 2, 0.0), totaal - rijbreedte(knopen))
         for j, k in enumerate(knopen):
             zet(k, x0 + j * (b + TUSSEN_X), y)
         return y + max(hoogte(k) for k in knopen) + BAND
@@ -339,13 +377,19 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
     y = 0.0
     for r in boven:
         y = rij(r, y)
-    # De middelste band: partijen links en het voorwerp rechts gestapeld, de centrale formulering verticaal in het midden.
-    midden_x = {"links": verschuif, "midden": verschuif + (breedte - b) / 2, "rechts": verschuif + breedte - b}
-    stapel = {z: sum(hoogte(k) for k in per_zone[z]) + TUSSEN_Y * max(0, len(per_zone[z]) - 1) for z in midden_x}
-    band = max(stapel.values())
-    for z, x in midden_x.items():
-        yz = y + (band - stapel[z]) / 2
-        for k in per_zone[z]:
+    # Met één kolom aan elke kant de oude verdeling over de hele breedte; met meer kolommen sluiten ze aan.
+    if len(banden) <= 3:
+        verschuif = (totaal - breedte) / 2
+        xs = {"links": verschuif, "midden": verschuif + (breedte - b) / 2, "rechts": verschuif + breedte - b}
+        kolom_x = ([xs["links"]] if links else []) + [xs["midden"]] + ([xs["rechts"]] if rechts else [])
+    else:
+        x0 = (totaal - bandbreedte) / 2
+        kolom_x = [x0 + j * (b + TUSSEN_X) for j in range(len(banden))]
+    stapel = [sum(hoogte(k) for k in kol) + TUSSEN_Y * max(0, len(kol) - 1) for kol in banden]
+    band = max(stapel)
+    for kol, x, h in zip(banden, kolom_x, stapel):
+        yz = y + (band - h) / 2
+        for k in kol:
             yz += zet(k, x, yz) + TUSSEN_Y
     y += band + BAND
     for r in onder:
