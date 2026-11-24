@@ -21,7 +21,7 @@ import {
 import { datumTijd } from "@/lib/datum";
 import {
   DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
-  VOORBEELD_OORDEEL_LABEL, begripNaam, bronLink, buren, dragerTekst, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldWaarden, voorbeeldenBij,
+  VOORBEELD_OORDEEL_LABEL, begripNaam, bronLink, buren, dragerTekst, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldTabel, voorbeeldenBij,
   type Regel, type RegelDrager, type RegelKeten, type RegelRevisie, type VoorbeeldOordeel,
 } from "@/lib/regels";
 import type { RegelStand } from "@/lib/useRegel";
@@ -35,7 +35,7 @@ const OORDEEL_TOON: Record<VoorbeeldOordeel, "groen" | "rood" | "geel" | "neutra
 export function RegelStatus({ regel }: { regel: Regel }) {
   return <>
     <StatusLabel toon={REGEL_STATUS_TOON[regel.status]}>{REGEL_STATUS_LABEL[regel.status]}</StatusLabel>
-    <span className="text-xs text-muted">{REGEL_SOORT_LABEL[regel.inhoud.soort]}{regel.inhoud.brontype === "beleid" ? " · beleidsregel" : ""} · revisie {regel.revisie}</span>
+    <span className="text-xs text-muted">{REGEL_SOORT_LABEL[regel.inhoud.soort]}{regel.inhoud.brontype === "beleid" ? " · beleidsregel" : ""}{regel.inhoud.eigenaar ? ` · eigenaar ${regel.inhoud.eigenaar}` : ""} · revisie {regel.revisie}</span>
   </>;
 }
 
@@ -115,6 +115,41 @@ function RegelTekst({ regel }: { regel: Regel }) {
 const OORDELEN: VoorbeeldOordeel[] = ["juist", "onjuist", "kan_niet"];
 const OORDEEL_KNOP: Record<VoorbeeldOordeel, string> = { open: "Terug naar open", juist: "Juist", onjuist: "Niet juist", kan_niet: "Kan niet" };
 
+/** De voorbeelden als tabel (V3): een kolom per voorbeeld, de invoer per begrip, de uitkomst en het oordeel. In een
+ *  eigen vak dat zijwaarts scrollt; de lijst eronder houdt de knoppen om te beoordelen. */
+function VoorbeeldTabel({ regel, voorbeelden }: { regel: Regel; voorbeelden: Regel["inhoud"]["voorbeelden"] }) {
+  const t = voorbeeldTabel(regel, voorbeelden);
+  if (!t) return null;
+  return (
+    <div className="mt-2 overflow-x-auto rounded-md border border-line" data-voorbeeld-tabel>
+      <table className="w-max min-w-full text-xs">
+        <thead className="bg-surface text-muted">
+          <tr><th scope="col" className="px-2 py-1 text-left font-medium">Voorbeeld</th>
+            {t.kolommen.map((nr) => <th key={nr} scope="col" className="px-2 py-1 text-left font-medium">{nr}</th>)}</tr>
+        </thead>
+        <tbody>
+          {t.rijen.map((r) => (
+            <tr key={r.begrip} className="border-t border-line">
+              <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">{r.begrip}</th>
+              {r.waarden.map((w, j) => <td key={j} className="whitespace-nowrap px-2 py-1 text-ink">{w || "–"}</td>)}
+            </tr>
+          ))}
+          <tr className="border-t border-line">
+            <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">Uitkomst</th>
+            {voorbeelden.map((v, j) => <td key={j} className="px-2 py-1 text-ink">{v.uitkomst}</td>)}
+          </tr>
+          <tr className="border-t border-line">
+            <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">Oordeel</th>
+            {voorbeelden.map((v, j) => (
+              <td key={j} className="px-2 py-1"><StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel></td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** De gevallen met hun voorbeelden: één rij per geval, de voorbeelden met het oordeel "juridisch juist?". Een voorbeeld
  *  dat nog open is, beoordeel je hier: dat is een besluit op het artefact, apart van het maken (de api zet geen oordeel
  *  bij een wijziging van de regel). */
@@ -134,6 +169,7 @@ function Gevallen({ stand, regel }: { stand: RegelStand; regel: Regel }) {
             <LijstRij key={g.label || i} data-regel-geval={g.label}
               titel={enkel ? undefined : <span className="font-medium">Geval {g.label}{g.voorrang ? " (gaat voor)" : ""}</span>}
               meta={!enkel && tekst && <span className="whitespace-pre-line">{tekst}</span>}>
+              {voorbeelden.length > 0 && <VoorbeeldTabel regel={regel} voorbeelden={voorbeelden} />}
               {voorbeelden.length ? (
                 <ul className="mt-2 space-y-1.5">
                   {voorbeelden.map((v, j) => {
@@ -144,9 +180,6 @@ function Gevallen({ stand, regel }: { stand: RegelStand; regel: Regel }) {
                           <span className="min-w-0 text-ink">{v.invoer} <span className="text-muted">→</span> {v.uitkomst}</span>
                           <StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel>
                         </div>
-                        {(v.waarden?.length ?? 0) > 0 && (
-                          <p className="text-xs text-muted" data-voorbeeld-waarden>{voorbeeldWaarden(regel, v).join(" · ")}</p>
-                        )}
                         {(v.door || v.beoordeeld_door) && (
                           <p className="text-xs text-muted">
                             {v.door && <>Gemaakt door {v.door}</>}{v.door && v.beoordeeld_door && " · "}

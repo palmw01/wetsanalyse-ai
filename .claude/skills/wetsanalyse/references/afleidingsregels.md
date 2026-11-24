@@ -161,6 +161,8 @@ Bij het regelobject:
   uitvoeringsbeleid.
 - `voorwaarde_zonder_markering`: een voorwaarde rust op geen markering en verwijst naar geen geval van een andere
   regel; ze is dan niet naar de tekst te herleiden.
+- `voorwaarde_zonder_begrip`: een voorwaarde noemt geen invoerbegrip van de regel en verwijst naar geen geval van een
+  andere regel; wat ze toetst, is een begrip met een eigen regel, of een invoer die ontbreekt.
 - `verwijzing_niet_geldig`: een voorwaarde verwijst naar een regel of geval dat niet meer geldt (afgewezen, vervangen).
 - `verwijzing_zonder_invoer`: een voorwaarde verwijst naar een andere regel, maar de uitvoer daarvan is geen invoer;
   neem haar op als invoer, anders ziet de keten het verband niet.
@@ -168,4 +170,6 @@ Bij het regelobject:
 
 In de keten van het werkgebied:
 - `zelfde_uitvoer`: meer regels leiden hetzelfde begrip af; hun gevallen moeten elkaar uitsluiten.
+- `voorwaarde_herhaald`: dezelfde voorwaarde (dezelfde markeringen) staat in meer regels; maak er één begrip met een eigen
+  regel van.
 - `regelbegrip_meer_uitvoeren`: één regelbegrip hoort bij regels met verschillende uitvoeren.

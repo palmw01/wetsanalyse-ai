@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 #: De eerste twaalf tekens van de sha256 van de bron.
-REGELGATEN_VERSIE = 'c8425ba72d91'
+REGELGATEN_VERSIE = '65eeb363a7ea'
 
 #: Waar een gat zit: het skelet, het regelobject of de keten.
 PLEKKEN = ('skelet', 'regel', 'keten')
@@ -64,6 +64,12 @@ GATEN = {'uitvoer_ontbreekt': {'plek': 'skelet',
                                  'melding': 'De voorwaarde "{tekst}" ({geval}) rust op geen markering en '
                                             'verwijst naar geen geval van een andere regel: waarop staat ze '
                                             'in de tekst?'},
+ 'voorwaarde_zonder_begrip': {'plek': 'regel',
+                              'herkomst': 'methode',
+                              'melding': 'De voorwaarde "{tekst}" ({geval}) noemt geen invoerbegrip van de '
+                                         'regel en verwijst naar geen geval van een andere regel: wat ze '
+                                         'toetst, is een begrip met een eigen regel, of een invoer die '
+                                         'ontbreekt.'},
  'verwijzing_niet_geldig': {'plek': 'regel',
                             'herkomst': 'methode',
                             'melding': 'De voorwaarde "{tekst}" ({geval}) verwijst naar een regel of geval '
@@ -80,6 +86,10 @@ GATEN = {'uitvoer_ontbreekt': {'plek': 'skelet',
                     'herkomst': 'regelspecialist',
                     'melding': 'Meer regels leiden hetzelfde begrip af: hun gevallen moeten elkaar '
                                'uitsluiten, of het is één regel met meer gevallen.'},
+ 'voorwaarde_herhaald': {'plek': 'keten',
+                         'herkomst': 'methode',
+                         'melding': 'Dezelfde voorwaarde staat in meer regels: maak er één begrip met een '
+                                    'eigen regel van, en laat de regels daarnaar verwijzen.'},
  'regelbegrip_meer_uitvoeren': {'plek': 'keten',
                                 'herkomst': 'methode',
                                 'melding': 'Eén regelbegrip hoort bij regels met verschillende uitvoeren; '

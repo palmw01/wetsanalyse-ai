@@ -267,6 +267,21 @@ def _namen(rows) -> dict[str, dict[str, str]]:
     return {i: {n.strip().casefold(): n for j, n in alle.items() if j != i and n} for i in alle}
 
 
+def klasse_van(inhoud: dict, koppelingen: list[dict]) -> dict:
+    """De klasse van een begrip (V2): afgeleid uit de klassen van de dragende passages (de meest voorkomende, bij gelijk
+    aantal in JAS-volgorde), en de keuze van de analist als die afwijkt. `klasse` is wat geldt. Geen passage: leeg."""
+    from .jas_klassen import JAS_KLASSEN_VOLGORDE
+    tel: dict[str, int] = {}
+    for k in koppelingen:
+        if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen" and (kl := (k.get("bewijs") or {}).get("klasse")):
+            tel[kl] = tel.get(kl, 0) + 1
+    volgorde = {kl: i for i, kl in enumerate(JAS_KLASSEN_VOLGORDE)}
+    afgeleid = min(tel, key=lambda kl: (-tel[kl], volgorde.get(kl, 99))) if tel else ""
+    keuze = inhoud.get("klasse_keuze") or None
+    return {"klasse": (keuze or {}).get("klasse") or afgeleid, "afgeleid": afgeleid, "uit_passages": tel,
+            "gekozen": (keuze or {}).get("klasse", ""), "reden": (keuze or {}).get("reden", "")}
+
+
 def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict:
     p = poort(row.inhoud, koppelingen)
     o = (opvolging or {}).get(row.id, {})
@@ -278,7 +293,7 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
             "geaccordeerd_door": row.geaccordeerd_door,
             "geaccordeerd_op": db.aware(row.geaccordeerd_op).isoformat() if row.geaccordeerd_op else None,
             "geaccordeerd_revisie": row.geaccordeerd_revisie,
-            "koppelingen": koppelingen, "accorderen": p,
+            "koppelingen": koppelingen, "accorderen": p, "klasse": klasse_van(row.inhoud or {}, koppelingen),
             "aandachtspunten": [] if row.status == "vervangen" else _aandacht(row.status, p, koppelingen),
             # Opvolging (fase F2): door welk begrip dit vervangen is, en welke dit vervangt.
             "vervangen_door": o.get("vervangen_door"), "vervangt": o.get("vervangt", [])}
@@ -442,6 +457,10 @@ async def lijst(werkgebied_id: str) -> list[dict]:
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         alle = await _koppelingen_van(conn, werkgebied_id)
         opvolging = await _opvolging(conn, werkgebied_id)
+        # V11: het begrip dat een regel benoemt ("bepalen …") staat in de lijst bij de regels, niet tussen de begrippen.
+        r = db.regels
+        regelbegrippen = {(x.inhoud or {}).get("regelbegrip_id") for x in (await conn.execute(
+            select(r.c.inhoud).where(r.c.werkgebied_id == werkgebied_id))).all()}
     uit = []
     namen = _namen(rows)
     for row in rows:
@@ -451,7 +470,7 @@ async def lijst(werkgebied_id: str) -> list[dict]:
             volledig["aandachtspunten"] = [*volledig["aandachtspunten"],
                                            *eenduidigheid(row.inhoud, ks, namen.get(row.id, {}))]
         uit.append({**{k: v for k, v in volledig.items() if k != "koppelingen"},
-                    "aantal_koppelingen": len(ks),
+                    "aantal_koppelingen": len(ks), "regelbegrip": row.id in regelbegrippen,
                     "element_ids": sorted({k["element_id"] for k in ks})})
     return uit
 
@@ -793,8 +812,10 @@ async def _wijzig_inhoud(conn, werkgebied_id: str | None, begrip_id: str, row, s
         await _toets_term(conn, nieuw.get("naam", ""), begrip_id)
     # Herkomst en `definitie_door` volgen uit de definitie en zijn dus geen eigen wijziging (een
     # begrip van vóór fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
+    # Leeg en afwezig zijn hetzelfde: een begrip van vóór waardebereik, klassekeuze en eigenaar (V2, V4) krijgt geen
+    # revisie omdat een PATCH die velden leeg meestuurt.
     detail["velden"] = sorted(k for k in nieuw if k not in ("definitie_door", "definitie_herkomst")
-                              and nieuw.get(k) != oud.get(k))
+                              and (nieuw.get(k) or None) != (oud.get(k) or None))
     stand["inhoud"] = nieuw
     stand["geen_wijziging"] = not detail["velden"]
 

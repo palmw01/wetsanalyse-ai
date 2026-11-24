@@ -10,7 +10,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Herkomst(str, Enum):
@@ -46,6 +46,64 @@ class Voorbeeld(BaseModel):
     oordeel: Oordeel
 
 
+#: De soorten waarde die een begrip kan hebben (plan lessen Termijnen-bibliotheek, V2; D5 van het plan afleidingsregels).
+WaardeSoort = Literal["ja_nee", "datum", "bedrag", "aantal", "duur", "tekst", "opsomming"]
+
+
+class Waardebereik(BaseModel):
+    """Wat voor waarde een variabele of parameter heeft: zonder waardebereik is een voorbeeld niet te toetsen en een regel
+    niet te bouwen. Alles behalve de soort is optioneel; `waarden` alleen bij een opsomming."""
+    model_config = ConfigDict(extra="forbid")
+
+    soort: WaardeSoort
+    eenheid: str = Field(default="", max_length=80)          # "euro", "dagen", "maanden"
+    decimalen: int | None = Field(default=None, ge=0, le=10)
+    minimum: str = Field(default="", max_length=40)          # als tekst: een datum, een bedrag of een aantal
+    maximum: str = Field(default="", max_length=40)
+    waarden: list[str] = Field(default_factory=list, max_length=100)
+    toelichting: str = Field(default="", max_length=1000)     # "naar boven afgerond op hele euro's"
+
+    @field_validator("waarden")
+    @classmethod
+    def _waarden(cls, v: list[str]) -> list[str]:
+        uit = [w.strip() for w in v if w.strip()]
+        if len({w.casefold() for w in uit}) != len(uit):
+            raise ValueError("elke toegestane waarde één keer")
+        return uit
+
+    @model_validator(mode="after")
+    def _opsomming(self) -> "Waardebereik":
+        if self.soort == "opsomming" and not self.waarden:
+            raise ValueError("een opsomming noemt haar toegestane waarden")
+        if self.soort != "opsomming" and self.waarden:
+            raise ValueError("toegestane waarden horen alleen bij een opsomming")
+        return self
+
+
+class KlasseKeuze(BaseModel):
+    """De klasse van het begrip als de analist afwijkt van wat de markeringen zeggen: wat de tekst als rechtsobject noemt,
+    kan in de regels een ja/nee-kenmerk zijn. Altijd met een reden."""
+    model_config = ConfigDict(extra="forbid")
+
+    klasse: str = Field(min_length=1, max_length=80)
+    reden: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("klasse")
+    @classmethod
+    def _klasse(cls, v: str) -> str:
+        from .jas_klassen import GELDIGE_JAS_KLASSEN
+        if v not in GELDIGE_JAS_KLASSEN:
+            raise ValueError("een van de dertien JAS-klassen")
+        return v
+
+    @field_validator("reden")
+    @classmethod
+    def _reden(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("reden is verplicht")
+        return v.strip()
+
+
 class BegripInhoud(BaseModel):
     """Alles optioneel behalve de naam: een begrip groeit. De accorderingspoort vraagt de rest."""
 
@@ -66,6 +124,11 @@ class BegripInhoud(BaseModel):
     # NL-SBB `rdfs:comment`: in eenvoudige taal (B1), gericht op begrijpen.
     uitleg: str = Field(default="", max_length=8000)
     voorbeelden: list[Voorbeeld] = Field(default_factory=list, max_length=100)
+    # V2 en V4 (plan lessen Termijnen-bibliotheek, besluit gebruiker 24 nov 2026: P15 bijgesteld). Optioneel: een begrip
+    # groeit, en de poort vraagt ze niet. De afgeleide klasse rekent de api bij het lezen (`begrip_store.klasse_van`).
+    waardebereik: Waardebereik | None = None
+    klasse_keuze: KlasseKeuze | None = None
+    eigenaar: str = Field(default="", max_length=200)        # wie het begrip beheert (een organisatieonderdeel)
 
     @field_validator("naam")
     @classmethod
