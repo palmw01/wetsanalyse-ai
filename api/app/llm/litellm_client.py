@@ -10,9 +10,12 @@ tegen Pydantic.
 from __future__ import annotations
 
 import json
+import logging
 
 from .base import LlmConfig, LLMError, LLMResult, PromptTooLargeError, parse_json_strict
 from .throttle import llm_slot
+
+logger = logging.getLogger(__name__)
 
 _REPAREER = (
     "Je vorige antwoord was geen geldige JSON. Geef UITSLUITEND geldig JSON terug dat exact "
@@ -59,8 +62,8 @@ class LiteLLMClient:
             mx = info.get("max_input_tokens") if info else None
             if mx:
                 return int(mx * 0.95)
-        except Exception:  # noqa: BLE001 – onbekend model/uitval → geen limiet afdwingen
-            pass
+        except Exception as exc:  # noqa: BLE001 – onbekend model/uitval → geen limiet afdwingen
+            logger.debug("llm: geen modelinfo, geen promptlimiet", extra={"fout": type(exc).__name__})
         return None
 
     def _system_message(self, system: str) -> dict:

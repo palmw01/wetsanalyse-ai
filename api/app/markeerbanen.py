@@ -23,6 +23,7 @@ De regels, deterministisch bij een gegeven volgorde van de invoer:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 from typing import Hashable, Sequence
 
 
@@ -79,7 +80,7 @@ def markeerbanen(lengte: int, spans: Sequence[tuple[Hashable, int, int]]) -> Ban
     vlak_ids = {v[0] for v in vlak}
     grenzen = sorted({0, lengte, *(x[2] for x in norm), *(x[3] for x in norm)})
     stukken: list[Stuk] = []
-    for a, b in zip(grenzen, grenzen[1:]):
+    for a, b in pairwise(grenzen):
         dekking = [x for x in norm if x[2] <= a and x[3] >= b]
         v = next((x[1] for x in dekking if x[0] in vlak_ids), None)
         banen = tuple((x[1], baan_van[x[0]]) for x in sorted((x for x in dekking if x[0] in baan_van),

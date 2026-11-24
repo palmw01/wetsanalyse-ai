@@ -227,7 +227,7 @@ def main() -> None:
     else:
         print("→ Deployment gestart (10–15 minuten; PostgreSQL is de trage stap)…", file=sys.stderr)
 
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd)  # noqa: S603 – vaste az-aanroep als lijst, zonder shell; de argumenten komen van de eigen CLI
     params_path.unlink(missing_ok=True)
     print(f"\n✓ {params_path} verwijderd.", file=sys.stderr)
 

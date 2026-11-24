@@ -383,7 +383,7 @@ def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
         definitie = definities.pop() if len(definities) == 1 else None
         vindplaats = _definitie_vindplaats(metdef[0]) if definitie else ""
     if o.met_definitie and definitie:
-        inhoud.update(zip(("definitie", "definitie_herkomst"), definitie))
+        inhoud.update(zip(("definitie", "definitie_herkomst"), definitie, strict=True))
     else:
         vindplaats = ""
     if not inhoud.get("context") and manifest:

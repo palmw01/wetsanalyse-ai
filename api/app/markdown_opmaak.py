@@ -16,9 +16,15 @@ _BEGIN = re.compile(r"^(\s*)(#{1,6}\s|[-+]\s)")
 _NUMMER = re.compile(r"^(\s*\d+)([.)]\s)")
 
 
+def _ontsnapt(tekst: str) -> str:
+    """De tekens die Markdown leest, met een backslash ervoor (een functie, geen backslash in een f-string: die kan
+    pas vanaf Python 3.12, en de api vraagt 3.11)."""
+    return _TEKENS.sub(r"\\\1", tekst)
+
+
 def _veilig(tekst: str) -> str:
     """Eén regel: tekens die Markdown leest, en een begin dat een kop, lijst of citaat zou worden."""
-    uit = _BEGIN.sub(lambda m: m[1] + "\\" + m[2], _TEKENS.sub(r"\\\1", tekst))
+    uit = _BEGIN.sub(lambda m: m[1] + "\\" + m[2], _ontsnapt(tekst))
     return _NUMMER.sub(lambda m: m[1] + "\\" + m[2], uit)
 
 
@@ -45,7 +51,7 @@ def _gemarkeerd(tekst: str, spans: list) -> str:
         if moet_vet and not vet:
             delen.append("**")
             vet = True
-        delen.append(_TEKENS.sub(r"\\\1", tekst[stuk.start:stuk.eind]))
+        delen.append(_ontsnapt(tekst[stuk.start:stuk.eind]))
         met_baan = {n for n, _b in stuk.banen}
         dicht = [n for n in stuk.eindigt if n in met_baan]
         delen += [f"⁽{str(n).translate(_SUPER)}⁾" for n in sorted(stuk.eindigt) if n not in met_baan]
@@ -80,7 +86,7 @@ def markdown(regels: list[tuple[str, str]]) -> str:
         if stijl.startswith(TITELBLAD):
             veld = stijl.removeprefix(TITELBLAD)
             if veld == "titel":
-                uit.append(f"# {_TEKENS.sub(r'\\\1', tekst)}")
+                uit.append(f"# {_ontsnapt(tekst)}")
             elif veld == "rij":
                 label, _, waarde = tekst.partition(": ")
                 rij = f"- **{_veilig(label)}:** {_veilig(waarde)}"
@@ -100,7 +106,7 @@ def markdown(regels: list[tuple[str, str]]) -> str:
         elif stijl == INHOUD:
             uit.append("\n".join(f"- {_veilig(t)}" for s, t in regels if s == "Heading1"))
         elif stijl in _KOP:
-            uit.append(f"{_KOP[stijl]} {_TEKENS.sub(r'\\\1', tekst)}")
+            uit.append(f"{_KOP[stijl]} {_ontsnapt(tekst)}")
         elif stijl == "Citaat" and spans:
             uit.append(_gemarkeerd(tekst, spans))
             spans = None

@@ -407,7 +407,7 @@ async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
     einde = regels.index(("Heading1", "Bijlage B. Begrippendiagrammen"))
     kopjes = ["Definitie", "Uitleg", "Toelichting", "Voorbeelden", "Waarop de definitie rust", "Passages", "Relaties", "Nog open", "Beoordeling"]
     assert len(begin) == 2
-    for van, tot in zip(begin, [*begin[1:], einde]):
+    for van, tot in zip(begin, [*begin[1:], einde], strict=True):
         assert [t for s, t in regels[van:tot] if s == "Heading4"] == kopjes
 
 

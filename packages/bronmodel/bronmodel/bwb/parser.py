@@ -133,7 +133,8 @@ class ToestandParser:
 
     def _load_schema(self) -> etree.XMLSchema:
         if self._schema is None:
-            assert self._schema_path is not None
+            if self._schema_path is None:  # geen assert: die valt weg onder `python -O`
+                raise RuntimeError("Geen XSD-pad: roep _load_schema alleen aan als validatie aan staat")
             self._schema = etree.XMLSchema(etree.parse(str(self._schema_path)))
         return self._schema
 

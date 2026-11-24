@@ -916,7 +916,8 @@ def _op_volgorde(label: str, d: Skeletdeel, regel: RelatieEind | None = None) ->
 def regelskelet_regels(m: Markering) -> list[Regel]:
     """Het regelskelet van een afleidingsregel, als lijst: wat ontbreekt staat er met zoveel woorden bij."""
     k = m.regelskelet
-    assert k is not None
+    if k is None:  # geen assert: die valt weg onder `python -O`
+        raise ValueError("regelskelet_regels vraagt een markering met een regelskelet")
     nummer = f"{m.nr} · " if m.nr else ""
     zelf = RelatieEind(nr=m.nr, klasse=m.klasse, tekst=m.tekst, lifecycle=m.lifecycle)
     uit: list[Regel] = [*BLOK, ("Heading4", f"Regelskelet bij {nummer}“{m.tekst}”"),
@@ -1265,7 +1266,7 @@ def register_regels(v: Voorblad, ver: Verantwoording) -> list[Regel]:
     uit: list[Regel] = [("Heading2", "Regelingen")]
     if not v.regelingen:
         uit.append(("Meta", "Er zijn geen regelingen in dit werkgebied."))
-    for r, regel in zip(v.regelingen, bronstand_regels(v)[1:]):
+    for r, regel in zip(v.regelingen, bronstand_regels(v)[1:], strict=True):
         uit += [*BLOK, ("BodyText", regel[1])]
         if r.url:
             uit.append(("Meta", "Op wetten.overheid.nl: " + r.url))
@@ -1355,6 +1356,7 @@ def rapport_regels(r: Rapport) -> list[Regel]:
            (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen),
            *leeswijzer_regels(), *dossier_regels(r.dossier), *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst),
            *begrippenlijst_regels(r.begrippen), *open_punten_regels(r.open_punten)]
-    for letter, naam in zip("ABCDEFGH", BIJLAGEN):
+    for i, naam in enumerate(BIJLAGEN):
+        letter = chr(ord("A") + i)
         uit += [(PAGINA, ""), ("Heading1", f"Bijlage {letter}. {naam}"), *bijlagen[naam]]
     return uit

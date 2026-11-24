@@ -18,6 +18,7 @@ mag volgt uit het account. De twee scopes kruisen niet: `verify()` kijkt alleen 
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 from uuid import uuid4
@@ -27,9 +28,11 @@ from sqlalchemy import insert, select, update
 from . import db, users
 from .user import _utcnow
 
+logger = logging.getLogger(__name__)
+
 # Herkenbaar prefix + 256 bits entropie (token_urlsafe(32)). Het volledige token verlaat de server
 # alleen bij aanmaken; daarna leeft alleen de hash in de DB.
-TOKEN_PREFIX = "wa_admin_"
+TOKEN_PREFIX = "wa_admin_"  # noqa: S105 – het herkenbare voorvoegsel van een token, geen geheim
 GEBRUIKER_PREFIX = "wa_pat_"
 SCOPE_ADMIN = "admin"
 SCOPE_GEBRUIKER = "gebruiker"
@@ -122,8 +125,8 @@ async def _touch_last_used(token_id: str) -> None:
             await conn.execute(
                 update(db.api_tokens).where(db.api_tokens.c.id == token_id).values(last_used=_utcnow())
             )
-    except Exception:  # noqa: BLE001 – puur metadata; stil falen
-        pass
+    except Exception as exc:  # noqa: BLE001 – puur metadata: loggen, niet falen
+        logger.warning("api-token: last_used niet bijgewerkt", extra={"categorie": "technisch", "fout": type(exc).__name__})
 
 
 async def verify(presented: str | None) -> str | None:
@@ -151,8 +154,8 @@ async def verify(presented: str | None) -> str | None:
     admin_id = f"apitoken:{row['label'] or row['id'][:8]}"
     try:
         await _touch_last_used(row["id"])
-    except Exception:  # noqa: BLE001 – dubbele vangnet; de touch is nooit auth-bepalend
-        pass
+    except Exception as exc:  # noqa: BLE001 – dubbel vangnet; de touch is nooit auth-bepalend
+        logger.warning("api-token: last_used niet bijgewerkt", extra={"categorie": "technisch", "fout": type(exc).__name__})
     return admin_id
 
 
