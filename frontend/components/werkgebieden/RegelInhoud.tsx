@@ -122,7 +122,7 @@ function VoorbeeldTabel({ regel, voorbeelden }: { regel: Regel; voorbeelden: Reg
   if (!t) return null;
   return (
     <div className="mt-2 overflow-x-auto rounded-md border border-line" data-voorbeeld-tabel>
-      <table className="min-w-full text-xs">
+      <table className="w-max min-w-full text-xs">
         <thead className="bg-surface text-muted">
           <tr><th scope="col" className="px-2 py-1 text-left font-medium">Voorbeeld</th>
             {t.kolommen.map((nr) => <th key={nr} scope="col" className="px-2 py-1 text-left font-medium">{nr}</th>)}</tr>
@@ -130,16 +130,16 @@ function VoorbeeldTabel({ regel, voorbeelden }: { regel: Regel; voorbeelden: Reg
         <tbody>
           {t.rijen.map((r) => (
             <tr key={r.begrip} className="border-t border-line">
-              <th scope="row" className="px-2 py-1 text-left font-normal text-muted">{r.begrip}</th>
-              {r.waarden.map((w, j) => <td key={j} className="px-2 py-1 text-ink">{w || "–"}</td>)}
+              <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">{r.begrip}</th>
+              {r.waarden.map((w, j) => <td key={j} className="whitespace-nowrap px-2 py-1 text-ink">{w || "–"}</td>)}
             </tr>
           ))}
           <tr className="border-t border-line">
-            <th scope="row" className="px-2 py-1 text-left font-normal text-muted">Uitkomst</th>
+            <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">Uitkomst</th>
             {voorbeelden.map((v, j) => <td key={j} className="px-2 py-1 text-ink">{v.uitkomst}</td>)}
           </tr>
           <tr className="border-t border-line">
-            <th scope="row" className="px-2 py-1 text-left font-normal text-muted">Oordeel</th>
+            <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-normal text-muted">Oordeel</th>
             {voorbeelden.map((v, j) => (
               <td key={j} className="px-2 py-1"><StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel></td>
             ))}

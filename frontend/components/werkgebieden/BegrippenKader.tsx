@@ -134,7 +134,7 @@ export function BegrippenKader({ id }: { id: string }) {
       {/* V11: een begrip dat een afleidingsregel benoemt ("bepalen …"), staat bij de regels, niet tussen de begrippen. */}
       {lijst !== null && getoond.some((b) => b.regelbegrip) && (
         <Uitklap vorm="sectie" samenvatting={`Regelbegrippen (${getoond.filter((b) => b.regelbegrip).length})`} data-regelbegrippen="">
-          <Groep kop="Regelbegrippen" label="Begrippen die een afleidingsregel benoemen"
+          <Groep kop="Begrippen die een regel benoemen" label="Begrippen die een afleidingsregel benoemen" className="mt-2"
             sub="Het begrip van een regel staat bij de regel; je opent het hier of op de regelkaart.">
             {getoond.filter((b) => b.regelbegrip).map((b) => <BegripRij key={b.id} id={id} begrip={b}
               aandacht={b.aandachtspunten[0]} />)}
