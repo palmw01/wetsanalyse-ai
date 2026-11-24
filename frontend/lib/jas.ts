@@ -71,3 +71,13 @@ export function jasVolgorde(klasse: string): number {
   const i = (JAS_KLASSEN as readonly string[]).indexOf(klasse?.trim());
   return i === -1 ? JAS_KLASSEN.length : i;
 }
+
+/** De subtypes per klasse, met de lijst van `JAS_SUBTYPEN` in `api/app/jas_klassen.py` (bewaakt door
+ *  api/tests/test_jas_kleuren_drift.py). Bij een Tijdsaanduiding zegt het subtype welke klasse zij verbijzondert, en
+ *  daarmee welke relaties zij mag aangaan (H2:107; de relatiecatalogus, `VERBIJZONDERINGEN` in `lib/jasRelaties.ts`). */
+export const JAS_SUBTYPEN: Record<string, readonly string[]> = {
+  "Variabele en variabelewaarde": ["variabele", "variabelewaarde"],
+  "Parameter en parameterwaarde": ["parameter", "parameterwaarde"],
+  Tijdsaanduiding: ["verbijzondert parameter", "verbijzondert variabele"],
+  "Delegatiebevoegdheid en delegatie-invulling": ["delegatiebevoegdheid", "delegatie-invulling"],
+};

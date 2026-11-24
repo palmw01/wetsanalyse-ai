@@ -66,7 +66,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..jas_relaties import BRON, toegestaan
+from ..jas_relaties import BRON, als_klassen, toegestaan
 from .detectoren.syntactisch import _VOORWAARDELIJK
 from .fusie import Fusie
 from .kandidaten import Candidate
@@ -262,12 +262,15 @@ def _in(ouder: _El, kind: _El, genest: set[tuple[str, str]]) -> bool:
 # --- 2. waarde -----------------------------------------------------------------------------------------------------
 
 def _waardeouder(waarde: _El, ouder: _El) -> bool:
-    if waarde.klasse == PAR and waarde.subtype == "parameterwaarde":
-        return ((ouder.klasse == TIJD and ouder.subtype == "verbijzondert parameter")
-                or (ouder.klasse == PAR and ouder.subtype in ("parameter", "")))
-    if waarde.klasse == VAR and waarde.subtype == "variabelewaarde":
-        return ouder.klasse == VAR and ouder.subtype in ("variabele", "")
-    return False
+    """Een parameterwaarde hoort bij een parameter, een variabelewaarde bij een variabele; een tijdsaanduiding die er
+    een verbijzondert telt als die klasse (`als_klassen`, de catalogus)."""
+    if waarde.subtype == "parameterwaarde" and waarde.klasse == PAR:
+        soort = (PAR, "parameter")
+    elif waarde.subtype == "variabelewaarde" and waarde.klasse == VAR:
+        soort = (VAR, "variabele")
+    else:
+        return False
+    return any(k == soort[0] and s in (soort[1], "") for k, s in als_klassen(ouder.klasse, ouder.subtype))
 
 
 def _waarde(els: list[_El], genest: set[tuple[str, str]]) -> list[dict[str, Any]]:

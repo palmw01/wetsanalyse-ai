@@ -40,20 +40,34 @@ def type_van(code: str) -> dict | None:
     return RELATIETYPEN.get(code)
 
 
-def toegestaan(code: str, van_klasse: str, naar_klasse: str, van_subtype: str = "", naar_subtype: str = "") -> bool:
-    """Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar
-    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een hele bepaling (`BRON`) mag
-    alleen aan de kant naar, bij een type met `eindpunt_bron` (M-1-1)."""
-    t = RELATIETYPEN.get(code)
-    if t is None or van_klasse == BRON:
-        return False
-    if naar_klasse == BRON:
-        return t["eindpunt_bron"] and van_klasse in t["van"]
+def als_klassen(klasse: str, subtype: str = "") -> list[tuple[str, str]]:
+    """De klassen waarvan een markering de relaties mag aangaan: haar eigen klasse, en bij een verbijzondering ook de
+    klasse die zij verbijzondert, met het subtype dat zij daar heeft (een tijdsaanduiding die een variabele
+    verbijzondert, is ook een variabele; H2:107, M01 h.4 §12)."""
+    v = VERBIJZONDERINGEN.get(klasse, {}).get(subtype)
+    return [(klasse, subtype)] + ([(v["klasse"], v["subtype"])] if v else [])
+
+
+def _past(t: dict, van_klasse: str, naar_klasse: str, van_subtype: str, naar_subtype: str) -> bool:
     if t["paren"]:
         return any(p["van"] == van_klasse and p["naar"] == naar_klasse
                    and p.get("van_subtype", van_subtype) == van_subtype
                    and p.get("naar_subtype", naar_subtype) == naar_subtype for p in t["paren"])
     return van_klasse in t["van"] and naar_klasse in t["naar"]
+
+
+def toegestaan(code: str, van_klasse: str, naar_klasse: str, van_subtype: str = "", naar_subtype: str = "") -> bool:
+    """Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar
+    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een kant met een verbijzondering
+    telt ook als de klasse die zij verbijzondert (`als_klassen`). Een hele bepaling (`BRON`) mag alleen aan de kant
+    naar, bij een type met `eindpunt_bron` (M-1-1)."""
+    t = RELATIETYPEN.get(code)
+    if t is None or van_klasse == BRON:
+        return False
+    if naar_klasse == BRON:
+        return t["eindpunt_bron"] and any(k in t["van"] for k, _ in als_klassen(van_klasse, van_subtype))
+    return any(_past(t, vk, nk, vs, ns) for vk, vs in als_klassen(van_klasse, van_subtype)
+               for nk, ns in als_klassen(naar_klasse, naar_subtype))
 
 
 def drager_kant(code: str) -> str:
@@ -64,17 +78,30 @@ def drager_kant(code: str) -> str:
 
 #: Dezelfde regel als `toegestaan` in de api; `frontend/lib/jasRelaties.vectoren.json` toetst beide kanten.
 _TS_FUNCTIES = """
-/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
- * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
-export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
-  const t = RELATIETYPEN[code];
-  if (!t || vanKlasse === BRON) return false;
-  if (naarKlasse === BRON) return t.eindpunt_bron && t.van.includes(vanKlasse);
+/** De klassen waarvan een markering de relaties mag aangaan: haar eigen klasse, en bij een verbijzondering ook de klasse
+ * die zij verbijzondert, met het subtype dat zij daar heeft (zoals `als_klassen` in de api). */
+export function alsKlassen(klasse: string, subtype = ""): [string, string][] {
+  const v = VERBIJZONDERINGEN[klasse]?.[subtype];
+  return v ? [[klasse, subtype], [v.klasse, v.subtype]] : [[klasse, subtype]];
+}
+
+function past(t: RelatieType, vanKlasse: string, naarKlasse: string, vanSubtype: string, naarSubtype: string): boolean {
   if (t.paren.length) {
     return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
       && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);
   }
   return t.van.includes(vanKlasse) && t.naar.includes(naarKlasse);
+}
+
+/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
+ * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een kant met een verbijzondering telt ook als
+ * de klasse die zij verbijzondert (zoals `toegestaan` in de api). */
+export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
+  const t = RELATIETYPEN[code];
+  if (!t || vanKlasse === BRON) return false;
+  if (naarKlasse === BRON) return t.eindpunt_bron && alsKlassen(vanKlasse, vanSubtype).some(([k]) => t.van.includes(k));
+  return alsKlassen(vanKlasse, vanSubtype).some(([vk, vs]) =>
+    alsKlassen(naarKlasse, naarSubtype).some(([nk, ns]) => past(t, vk, nk, vs, ns)));
 }
 
 /** De typen die tussen deze twee klassen passen, in deze richting: de keuzelijst bij *Verbind met…*. */
@@ -99,6 +126,7 @@ def lees(bron: Path = BRON) -> dict:
         "centrale_klassen": data["centrale_klassen"],
         "impliciet_toegestaan": data["impliciet_toegestaan"],
         "kardinaliteit": data["kardinaliteit"],
+        "verbijzonderingen": data["verbijzonderingen"],
     }
 
 
@@ -115,6 +143,8 @@ def api_bron(catalogus: dict) -> str:
             + blok("CENTRALE_KLASSEN", tuple(catalogus["centrale_klassen"]), "De klassen waaromheen een 2c-diagram staat.")
             + blok("IMPLICIET_TOEGESTAAN", tuple(catalogus["impliciet_toegestaan"]),
                    "De klassen van een impliciete partij (besluit gebruiker, 7 nov 2026).")
+            + blok("VERBIJZONDERINGEN", catalogus["verbijzonderingen"],
+                   "klasse → subtype → de klasse die zij verbijzondert en haar subtype daar (H2:107, M01 h.4 §12).")
             + blok("KARDINALITEIT", catalogus["kardinaliteit"], "Diagnostisch, nooit in het schrijfpad.").rstrip("\n")
             + "\n" + _API_FUNCTIES)
 
@@ -134,7 +164,10 @@ def frontend_bron(catalogus: dict) -> str:
             f"export const BRON = {j(BRON_KLASSE)};\n\n"
             f"export const RELATIETYPEN: Record<string, RelatieType> = {j(catalogus['typen'])};\n\n"
             f"export const CENTRALE_KLASSEN: readonly string[] = {j(catalogus['centrale_klassen'])};\n\n"
-            f"export const IMPLICIET_TOEGESTAAN: readonly string[] = {j(catalogus['impliciet_toegestaan'])};\n"
+            f"export const IMPLICIET_TOEGESTAAN: readonly string[] = {j(catalogus['impliciet_toegestaan'])};\n\n"
+            "/** klasse → subtype → de klasse die zij verbijzondert en haar subtype daar (H2:107, M01 h.4 §12). */\n"
+            "export const VERBIJZONDERINGEN: Record<string, Record<string, { klasse: string; subtype: string; bron: readonly string[] }>> = "
+            f"{j(catalogus['verbijzonderingen'])};\n"
             + _TS_FUNCTIES)
 
 

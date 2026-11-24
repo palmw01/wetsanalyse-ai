@@ -729,6 +729,30 @@ async def test_akkoord_vraagt_eerst_een_klasse_en_een_edit_kiest_hem():
     assert r["element"]["klasse"] == "Rechtsfeit" and r["element"]["id"] == eid
 
 
+async def test_de_jurist_kiest_welke_klasse_een_tijdsaanduiding_verbijzondert():
+    """H2:107; M01 h.4 §12: de analyse legt vast of een tijdsaanduiding een parameter of een variabele verbijzondert.
+    De jurist kiest het subtype bij een bewerking; een subtype van een andere klasse is een 422, en wisselt de klasse,
+    dan vervalt een subtype dat niet meer past."""
+    snap = snapshot(ONE)
+    tijd = {**element(snap), "klasse": "Tijdsaanduiding", "jas_subtype": "verbijzondert parameter"}
+    eid = (await store.batch(request(snap, [tijd]), snap, "lex"))["elementen"][0]["id"]
+
+    def edit(revisie: int, **wijziging):
+        return store.beslis(eid, Beslissing(type="edit", snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: revisie},
+                                            wijziging=wijziging), snap, "jurist")
+
+    r = await edit(1, jas_subtype="verbijzondert variabele")
+    assert r["element"]["jas_subtype"] == "verbijzondert variabele"
+    assert r["element"]["beslissingen"][-1]["voor"] == {"jas_subtype": "verbijzondert parameter"}
+    with pytest.raises(HTTPException) as exc:
+        await edit(2, jas_subtype="parameterwaarde")
+    assert exc.value.status_code == 422 and exc.value.detail["fout"] == "subtype_past_niet"
+    r = await edit(2, klasse="Rechtsobject")
+    assert r["element"]["jas_subtype"] == ""
+    r = await edit(3, klasse="Variabele en variabelewaarde", jas_subtype="variabele")
+    assert (r["element"]["klasse"], r["element"]["jas_subtype"]) == ("Variabele en variabelewaarde", "variabele")
+
+
 async def test_een_latere_klassekeuze_vervangt_de_onbeoordeelde_terugval():
     snap = snapshot(ONE)
     eid = (await store.batch(request(snap, [{**element(snap), **TERUGVAL}], batch_id="r1"), snap, "lex"))["elementen"][0]["id"]

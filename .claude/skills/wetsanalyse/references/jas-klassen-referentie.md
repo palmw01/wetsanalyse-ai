@@ -49,8 +49,9 @@ een parameterwaarde de *concrete waarde* — maar beide krijgen hetzelfde label.
 Deze bronvelden zijn herkenningshulp; uitdrukkingswijzen zijn geen contextloze
 beslisregels. De ordening in H3 rechtvaardigt geen algemene 'diepste klasse wint'.
 Alleen de expliciete tijd/plaats-voorrang boven variabele/parameter geldt bij dezelfde
-functie; een duur of hoeveelheid in een tijdsaanduiding houdt de parameter vast als subtype
-*verbijzondert parameter* (zie §10, *Verbijzondering*). Andere samenloop: onderscheid overlap van
+functie; de tijdsaanduiding legt dan met haar subtype vast welke klasse zij verbijzondert:
+*verbijzondert parameter* (een duur, een vaste datum) of *verbijzondert variabele* (een moment dat per geval
+verschilt), en zij neemt de relaties van die klasse over (zie §10, *Verbijzondering*). Andere samenloop: onderscheid overlap van
 concurrerende interpretaties.
 Lees [fragmentgrenzen](markeren-fragmentgrenzen.md) en de [markeringslijst](markeringslijst.md) voor de
 projectregels, en [voorbeelden](voorbeelden.md) voor een uitgewerkte bepaling.
@@ -377,7 +378,9 @@ catalogus: `kenmerk`, `waarde`, `invoer`, `uitvoer`.
   rechtsfeit verschillen, dan is het een variabele (H2:80); is zij voor allen gelijk over een bepaalde of onbepaalde
   periode, dan een parameter (H2:89).
 - *Tijdsaanduiding* en *Plaatsaanduiding* — kan een formulering zowel tijd of plaats als variabele zijn, dan krijgt zij
-  de specifiekere klasse: de tijds- of plaatsaanduiding (H2:107, H2:116).
+  de specifiekere klasse: de tijds- of plaatsaanduiding (H2:107, H2:116). De variabele gaat daarbij niet verloren: een
+  datum die per geval verschilt ("de dagtekening van het aanslagbiljet") is één element Tijdsaanduiding met het subtype
+  *verbijzondert variabele*, niet nog eens een Variabele; zij is dan wel kenmerk van het rechtsobject (§10).
 - *Rechtsobject* — een bedrag of toeslag is voorwerp als het recht of de plicht erover gaat ("recht op een toeslag"),
   en een variabele als het een kenmerk met een waarde is ("de hoogte van de toeslag").
 
@@ -514,34 +517,48 @@ specialisaties daarvan zoals kalenderjaar.
 tijdsaanduiding als tot de klasse parameter of variabele behoren. Als dat zich voordoet, kiezen we
 bij de analyse voor de meest specifieke klasse, dus de tijdsaanduiding."
 
-**Verbijzondering** (projectkeuze, 7 nov 2026; steunt op `H2:107` en op het boek, hoofdstuk over de
-tijdsaanduiding, relatie met andere klassen) — Volgens dezelfde bronregel kan een tijdsaanduiding
-ook een parameter(waarde) of variabele zijn. De voorrang beslist over de *klasse*; dat de
-tijdsaanduiding ook een parameter is, gaat daarmee niet verloren maar wordt een eigenschap van
-hetzelfde element:
+**Verbijzondering** (`H2:107`; M01 h.4 §12, *Relatie met andere klassen*; de vorm als subtype is een projectkeuze
+van 7 nov 2026, aangevuld 24 nov 2026) — Volgens dezelfde bronregel kan een tijdsaanduiding ook een parameter(waarde)
+of een variabele zijn. De voorrang beslist over de *klasse*: het is één element Tijdsaanduiding. Het boek vraagt
+daarnaast dat de analyse vastlegt of de tijdsaanduiding een parameter of een variabele verbijzondert, en zegt dat zij
+de relaties overneemt van de klasse die zij verbijzondert. Dat legt het subtype vast. De toets is die van §7 en §8: is
+de tijdsaanduiding voor iedereen gelijk, dan verbijzondert zij een parameter; kan zij per rechtssubject, rechtsobject,
+rechtsbetrekking of rechtsfeit verschillen, dan een variabele.
 
 - Een **duur of hoeveelheid** in de tijdsaanduiding ('zes weken', 'één maand', 'binnen 48 uur') is
-  één element Tijdsaanduiding met het subtype **verbijzondert parameter**. Markeer dezelfde
-  formulering niet nog eens als Parameter.
+  één element Tijdsaanduiding met het subtype **verbijzondert parameter**: een termijn is voor iedereen gelijk. Markeer
+  dezelfde formulering niet nog eens als Parameter.
+- Een **vaste datum of peildatum** ('1 september 2009', 'het einde van het kalenderjaar') verbijzondert ook een
+  **parameter**: zij is voor ieder geval dezelfde. Het boek noemt zo'n datum een tijdsaanduiding als parameterwaarde
+  (M01 h.4 §12, de voorbeelden bij art. 23 Wet MRB 1994 en art. 8.17 Wet IB 2001).
+- Een **moment dat per geval verschilt** ('de dagtekening van het aanslagbiljet', 'het einde van de belastingplicht')
+  is één element Tijdsaanduiding met het subtype **verbijzondert variabele**: welke datum het is, hangt af van het
+  aanslagbiljet of van de belastingplichtige. Markeer het niet nog eens als Variabele. Het boek gebruikt hetzelfde
+  onderscheid bij de ouderenkorting: het einde van het kalenderjaar is de parameter, het einde van de belastingplicht
+  de variabele (M01 h.4 §12).
 - Een **los getal** in de tijdsaanduiding (de '48' in 'binnen 48 uur') is een eigen, geneste
   markering Parameter en parameterwaarde, subtype parameterwaarde: het is de concrete waarde, de
   tijdsaanduiding is de omschrijving waarin die waarde staat. Een telwoord in woorden ('zes' in 'zes
   weken') is deel van de duur en geen los getal.
-- Een datum of een periode zonder hoeveelheid ('de overige dagen', 'het kalenderjaar') krijgt geen
-  subtype: of zij een parameter of een variabele verbijzondert, hangt van de context af en wordt
-  niet geraden.
+- Zegt de context niet of het moment per geval verschilt ('de overige dagen', 'het kalenderjaar' zonder meer), dan
+  blijft het subtype leeg en noteer je de twijfel. Raad het niet. De annotatieketen zet daarom alleen bij een duur of
+  hoeveelheid zelf een subtype; bij een datum of moment is het een oordeel over de context, dat de jurist maakt.
 
-**Samenhang** (M01 h.4 §12, *Relatie met andere klassen*) — Een tijdsaanduiding neemt de verbanden over van de klasse
-die zij verbijzondert: als parameter is zij invoer van een regel of deel van een voorwaarde, als variabele een kenmerk.
-Daarnaast zegt zij wanneer een rechtsbetrekking geldt of een rechtsfeit plaatsvindt. In de catalogus: `tijd`, en via
-de verbijzondering `invoer`, `operand`, `waarde`.
+**Samenhang** (M01 h.4 §12, *Relatie met andere klassen*) — Een tijdsaanduiding neemt de relaties over van de klasse
+die zij verbijzondert. Met *verbijzondert parameter* mag zij wat een Parameter mag: invoer van een regel, operand, en
+de plek waar een parameterwaarde hoort (`waarde`). Met *verbijzondert variabele* mag zij wat een Variabele mag:
+kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit (`kenmerk`), invoer, operand, en de plek
+waar een variabelewaarde hoort. Haar eigen relaties houdt zij daarnaast: zij zegt wanneer een rechtsbetrekking geldt
+of een rechtsfeit plaatsvindt (`tijd`). Zonder subtype heeft zij alleen die eigen relaties. De catalogus legt dit
+vast in `verbijzonderingen` (`relaties.json`); de api toetst bij elke relatie het subtype.
 
 **Afbakening**
 
 - *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — kan een formulering zowel tijdsaanduiding als
   parameter of variabele zijn, dan krijgt zij de specifiekere klasse: de tijdsaanduiding (H2:107). Zij verbijzondert
-  dan die parameter of variabele: een duur als "zes weken" is één element met het subtype *verbijzondert parameter*;
-  een los getal in cijfers erin is een geneste parameterwaarde.
+  dan die parameter of variabele: een duur als "zes weken" is één element met het subtype *verbijzondert parameter*,
+  een datum die per geval verschilt ("de dagtekening van het aanslagbiljet") één met het subtype *verbijzondert
+  variabele*; een los getal in cijfers erin is een geneste parameterwaarde.
 - *Rechtsfeit* — de termijn is de tijdsaanduiding; dat zij verstrijkt en daardoor iets verandert, is het rechtsfeit.
   De startgebeurtenis ("na de dagtekening") hoort bij de tijdsaanduiding.
 

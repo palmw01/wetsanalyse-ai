@@ -118,7 +118,11 @@ TOELICHTING: dict[str, dict[str, object]] = {'Rechtssubject': {'samenhang': 'Een
                                                  '(H2:89).',
                                                  'Tijdsaanduiding en Plaatsaanduiding — kan een formulering zowel tijd '
                                                  'of plaats als variabele zijn, dan krijgt zij de specifiekere klasse: '
-                                                 'de tijds- of plaatsaanduiding (H2:107, H2:116).',
+                                                 'de tijds- of plaatsaanduiding (H2:107, H2:116). De variabele gaat '
+                                                 'daarbij niet verloren: een datum die per geval verschilt ("de '
+                                                 'dagtekening van het aanslagbiljet") is één element Tijdsaanduiding '
+                                                 'met het subtype verbijzondert variabele, niet nog eens een '
+                                                 'Variabele; zij is dan wel kenmerk van het rechtsobject (§10).',
                                                  'Rechtsobject — een bedrag of toeslag is voorwerp als het recht of de '
                                                  'plicht erover gaat ("recht op een toeslag"), en een variabele als '
                                                  'het een kenmerk met een waarde is ("de hoogte van de toeslag").']},
@@ -153,17 +157,22 @@ TOELICHTING: dict[str, dict[str, object]] = {'Rechtssubject': {'samenhang': 'Een
                              'Voorwaarde — de vergelijking is de operator, de hele eis de voorwaarde. Een voegwoord '
                              'dat een voorwaarde inleidt ("indien", "tenzij") is geen operator; "en" tussen twee '
                              'woorden van één naamwoordgroep ook niet.']},
- 'Tijdsaanduiding': {'samenhang': 'Een tijdsaanduiding neemt de verbanden over van de klasse die zij verbijzondert: '
-                                  'als parameter is zij invoer van een regel of deel van een voorwaarde, als variabele '
-                                  'een kenmerk. Daarnaast zegt zij wanneer een rechtsbetrekking geldt of een '
-                                  'rechtsfeit plaatsvindt. In de catalogus: tijd, en via de verbijzondering invoer, '
-                                  'operand, waarde.',
+ 'Tijdsaanduiding': {'samenhang': 'Een tijdsaanduiding neemt de relaties over van de klasse die zij verbijzondert. Met '
+                                  'verbijzondert parameter mag zij wat een Parameter mag: invoer van een regel, '
+                                  'operand, en de plek waar een parameterwaarde hoort (waarde). Met verbijzondert '
+                                  'variabele mag zij wat een Variabele mag: kenmerk van een rechtssubject, '
+                                  'rechtsobject, rechtsbetrekking of rechtsfeit (kenmerk), invoer, operand, en de plek '
+                                  'waar een variabelewaarde hoort. Haar eigen relaties houdt zij daarnaast: zij zegt '
+                                  'wanneer een rechtsbetrekking geldt of een rechtsfeit plaatsvindt (tijd). Zonder '
+                                  'subtype heeft zij alleen die eigen relaties. De catalogus legt dit vast in '
+                                  'verbijzonderingen (relaties.json); de api toetst bij elke relatie het subtype.',
                      'afbakening': ['Variabele en variabelewaarde, Parameter en parameterwaarde — kan een formulering '
                                     'zowel tijdsaanduiding als parameter of variabele zijn, dan krijgt zij de '
                                     'specifiekere klasse: de tijdsaanduiding (H2:107). Zij verbijzondert dan die '
                                     'parameter of variabele: een duur als "zes weken" is één element met het subtype '
-                                    'verbijzondert parameter; een los getal in cijfers erin is een geneste '
-                                    'parameterwaarde.',
+                                    'verbijzondert parameter, een datum die per geval verschilt ("de dagtekening van '
+                                    'het aanslagbiljet") één met het subtype verbijzondert variabele; een los getal in '
+                                    'cijfers erin is een geneste parameterwaarde.',
                                     'Rechtsfeit — de termijn is de tijdsaanduiding; dat zij verstrijkt en daardoor '
                                     'iets verandert, is het rechtsfeit. De startgebeurtenis ("na de dagtekening") '
                                     'hoort bij de tijdsaanduiding.']},

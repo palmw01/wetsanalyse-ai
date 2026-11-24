@@ -12,6 +12,16 @@
     {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "parameter", "verwacht": false},
     {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Tijdsaanduiding", "van_subtype": "parameterwaarde", "naar_subtype": "verbijzondert parameter", "verwacht": true},
     {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Tijdsaanduiding", "van_subtype": "parameterwaarde", "verwacht": false},
-    {"type": "waarde", "van": "Variabele en variabelewaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "variabelewaarde", "verwacht": false}
+    {"type": "waarde", "van": "Variabele en variabelewaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "variabelewaarde", "verwacht": false},
+    {"type": "kenmerk", "van": "Tijdsaanduiding", "naar": "Rechtsobject", "van_subtype": "verbijzondert variabele", "verwacht": true},
+    {"type": "kenmerk", "van": "Tijdsaanduiding", "naar": "Rechtsobject", "van_subtype": "verbijzondert parameter", "verwacht": false},
+    {"type": "kenmerk", "van": "Tijdsaanduiding", "naar": "Rechtsobject", "verwacht": false},
+    {"type": "waarde", "van": "Variabele en variabelewaarde", "naar": "Tijdsaanduiding", "van_subtype": "variabelewaarde", "naar_subtype": "verbijzondert variabele", "verwacht": true},
+    {"type": "waarde", "van": "Variabele en variabelewaarde", "naar": "Tijdsaanduiding", "van_subtype": "variabelewaarde", "naar_subtype": "verbijzondert parameter", "verwacht": false},
+    {"type": "waarde", "van": "Tijdsaanduiding", "naar": "Parameter en parameterwaarde", "van_subtype": "verbijzondert parameter", "verwacht": false},
+    {"type": "tijd", "van": "Tijdsaanduiding", "naar": "Tijdsaanduiding", "van_subtype": "verbijzondert variabele", "verwacht": true},
+    {"type": "tijd", "van": "Rechtsfeit", "naar": "Tijdsaanduiding", "naar_subtype": "verbijzondert variabele", "verwacht": true},
+    {"type": "plaats", "van": "Tijdsaanduiding", "naar": "Plaatsaanduiding", "van_subtype": "verbijzondert parameter", "verwacht": true},
+    {"type": "plaats", "van": "Tijdsaanduiding", "naar": "Plaatsaanduiding", "verwacht": false}
   ]
 }

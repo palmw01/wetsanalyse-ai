@@ -56,7 +56,10 @@ extern onderzoek en je maakt geen volledigheidsclaim over de regeling. Wil ieman
   daarnaast hun eigen markering.
 - **Een los gezegde draagt geen rekenregel.** "Bedraagt" alleen is geen afleidingsregel; neem invoer, bewerking en
   uitkomst mee voor zover de tekst ze noemt.
-- **Een termijn is één Tijdsaanduiding.** Geef hem niet ook een Parameter omdat de duur voor iedereen gelijk is.
+- **Een termijn is één Tijdsaanduiding die een parameter verbijzondert.** Geef hem niet ook een markering Parameter:
+  het subtype *verbijzondert parameter* legt vast dat de duur voor iedereen gelijk is, en de tijdsaanduiding neemt de
+  relaties van een parameter over (H2:107; M01 h.4 §12). Een datum die per geval verschilt ("de dagtekening van het
+  aanslagbiljet") is evenzo één Tijdsaanduiding, met het subtype *verbijzondert variabele*.
 - **Een recht met voorwaarden blijft een Rechtsbetrekking.** Draagt dezelfde zin daarnaast een afleiding (een aantal,
   een bedrag of een keuze, zoals "zoveel … als …" of "in gelijke termijnen"), dan markeer je die ook, als
   Afleidingsregel. Levert één stuk tekst twee waarden op, dan zijn het twee afleidingsregels, die mogen overlappen. Of

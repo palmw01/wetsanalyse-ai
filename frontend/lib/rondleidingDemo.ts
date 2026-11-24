@@ -270,7 +270,7 @@ interface BeslissingLichaam {
   type: BeslissingType;
   comment?: string;
   review_reason?: Beslissing["review_reason"];
-  wijziging?: { klasse?: string; toelichting?: string; tekst?: string; ankers?: NodeAnker[]; optie?: number };
+  wijziging?: { klasse?: string; jas_subtype?: string; toelichting?: string; tekst?: string; ankers?: NodeAnker[]; optie?: number };
 }
 
 /** Een beslissing op de weergave, zoals de api hem zou verwerken. Pure functie. */
@@ -283,6 +283,7 @@ export function pasDemoBeslissingToe(view: NodeWeergave, elementId: string, body
     wijziging = {
       ...(w.klasse ? { klasse: w.klasse } : {}),
       ...(w.toelichting != null ? { toelichting: w.toelichting } : {}),
+      ...(w.jas_subtype != null ? { jas_subtype: w.jas_subtype } : {}),
       ...(w.ankers?.length ? { ankers: w.ankers, tekst: w.tekst ?? el.tekst } : {}),
       gewijzigd_door: "mens",
     };

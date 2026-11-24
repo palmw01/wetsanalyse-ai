@@ -171,6 +171,13 @@ describe("beslissingNaarNode", () => {
       .toEqual({ type: "reject", review_reason: "tekst" });
   });
 
+  it("geeft het subtype door, ook leeg (onbepaald)", () => {
+    expect(beslissingNaarNode({ type: "edit", wijziging: { jas_subtype: "verbijzondert variabele" } }, nb))
+      .toEqual({ type: "edit", wijziging: { jas_subtype: "verbijzondert variabele" } });
+    expect(beslissingNaarNode({ type: "edit", wijziging: { jas_subtype: "" } }, nb))
+      .toEqual({ type: "edit", wijziging: { jas_subtype: "" } });
+  });
+
   it("maakt van een fragmentcorrectie met anker een set bronnode-ankers", () => {
     const start = nb.bron.indexOf("dwangbevel");
     const eind = start + "dwangbevel".length;

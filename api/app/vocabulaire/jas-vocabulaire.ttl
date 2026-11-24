@@ -973,7 +973,6 @@
     jas:inverseLeesvorm "heeft als waarde"@nl ;
     jas:methodisch true ;
     jas:naarKlasse <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
-        <urn:jas-ns:klasse:Tijdsaanduiding>,
         <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
     jas:vanKlasse <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
         <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
@@ -1140,6 +1139,15 @@
     skos:prefLabel "verbijzondert parameter"@nl ;
     skos:related <urn:jas-ns:klasse:ParameterEnParameterwaarde> ;
     jas:subtype "verbijzondert parameter" .
+
+<urn:jas-ns:subtype:VerbijzondertVariabele> a skos:Concept,
+        jas:Subtype ;
+    dcterms:source "H2:107" ;
+    skos:broader <urn:jas-ns:klasse:Tijdsaanduiding> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "verbijzondert variabele"@nl ;
+    skos:related <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
+    jas:subtype "verbijzondert variabele" .
 
 <urn:jas-ns:twijfel:CENTRALE_NORM_AFGEWEZEN> a jas:Twijfelreden ;
     skos:definition "Een normhypothese is afgewezen terwijl objecten of tijdsaanduidingen resteren. Gerichte beoordeling kan de afwijzing bevestigen."@nl ;
@@ -1495,19 +1503,6 @@
     jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
     jas:volgorde 8 .
 
-<urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:80",
-        "uitdrukkingswijze H2:82",
-        "vraag H2:81" ;
-    skos:definition "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Variabele en variabelewaarde"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
-    jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
-    jas:volgorde 6 .
-
 <urn:jas-ns:klasse:Rechtsbetrekking> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:44",
@@ -1520,6 +1515,19 @@
     jas:herkenningsvraag "Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie(s) hebben twee rechtssubjecten met elkaar?"@nl ;
     jas:uitdrukkingswijze "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, ‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij een plicht: ‘heeft de plicht om’, ‘draagt de last om’."@nl ;
     jas:volgorde 2 .
+
+<urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:80",
+        "uitdrukkingswijze H2:82",
+        "vraag H2:81" ;
+    skos:definition "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Variabele en variabelewaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
+    jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
+    jas:volgorde 6 .
 
 <urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
         jas:Klasse ;
@@ -1564,5 +1572,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "b92ecd1bd6c1" .
+    jas:vocabulaireVersie "ca7b64a5da77" .
 

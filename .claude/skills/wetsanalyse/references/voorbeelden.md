@@ -33,8 +33,8 @@ dagtekening van het aanslagbiljet* bepaalt wanneer de toestand intreedt. Let op:
 | E01 | Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet. | Rechtsfeit | Dragende normzin: het verstrijken van de termijn brengt de invorderbaarheid teweeg (tijdsverloop als rechtsfeit). | Rechtsbetrekking, als je invorderbaarheid leest als de bevoegdheid van de ontvanger om in te vorderen; ter beoordeling. |
 | E02 | Een belastingaanslag | Rechtsobject | Het voorwerp waarover de norm gaat. | — |
 | E03 | invorderbaar | Variabele en variabelewaarde | Booleaanse eigenschap van de aanslag (wel of niet invorderbaar). | — |
-| E04 | zes weken na de dagtekening van het aanslagbiljet | Tijdsaanduiding | Subtype *verbijzondert parameter*: de duur is voor iedereen gelijk, maar de functie is temporeel, dus geen tweede markering Parameter. | — |
-| E05 | de dagtekening | Variabele en variabelewaarde | Een datum die per aanslagbiljet verschilt: het startmoment van de termijn. | — |
+| E04 | zes weken na de dagtekening van het aanslagbiljet | Tijdsaanduiding | Subtype *verbijzondert parameter*: de termijn van zes weken is voor iedereen gelijk, maar de functie is temporeel, dus geen tweede markering Parameter. | — |
+| E05 | de dagtekening | Tijdsaanduiding | Subtype *verbijzondert variabele*: een datum die per aanslagbiljet verschilt, het startmoment van de termijn. Tijd gaat voor variabele (H2:107), dus geen markering Variabele; als variabele is zij wel kenmerk van het aanslagbiljet (M01 h.4 §12). | Variabele en variabelewaarde, zoals vóór 24 nov 2026; dat laat de tijdsfunctie weg. |
 | E06 | het aanslagbiljet | Rechtsobject | Het stuk waarop de dagtekening staat. | — |
 
 E02 tot en met E06 liggen binnen E01: dat is overlap met verschillende functies, geen dubbeling.
@@ -46,6 +46,7 @@ E02 tot en met E06 liggen binnen E01: dat is overlap met verschillende functies,
 | R01 | E01 (rechtsfeit) | voorwerp | E02 | Het rechtsfeit raakt de aanslag. |
 | R02 | E03 (variabele) | kenmerk | E02 | Invorderbaar is een eigenschap van de aanslag. |
 | R03 | E01 | tijd | E04 | Wanneer het rechtsfeit intreedt. |
+| R04 | E05 (tijdsaanduiding, verbijzondert variabele) | kenmerk | E06 | De dagtekening is een eigenschap van het aanslagbiljet; een tijdsaanduiding neemt die relatie over van de variabele die zij verbijzondert. |
 
 **De partij die lid 1 niet noemt.** Wie vordert in? Lid 1 zegt het niet. Zoek eerst waar de regeling haar wel noemt
 (de definities, de bepaling die de bevoegdheid toekent) en koppel daaraan. Vind je haar daar, noem haar dan als
