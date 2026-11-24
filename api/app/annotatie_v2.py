@@ -286,9 +286,6 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
     if e.get("klasse") not in CENTRALE_KLASSEN:
         raise HTTPException(422, {"fout": "geen_centrale_klasse",
                                   "melding": "Een diagram staat rond een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde."})
-    if not diagram_mod.beoordeeld({"soort": "element", "lifecycle": e.get("lifecycle")}):
-        raise HTTPException(422, {"fout": "niet_beoordeeld",
-                                  "melding": "Een diagram staat rond een goedgekeurde markering: beoordeel deze eerst."})
     # De hele samenhang binnen de bepaling (`diagram.bouw`): steeds de relaties van wat er bij kwam, zolang dat in dezelfde
     # bepaling staat; een knoop elders is een eindpunt. Begrensd, zodat een kapotte graaf geen eindeloze lus wordt.
     gezien: set[str] = set()
