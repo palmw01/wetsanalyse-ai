@@ -130,6 +130,11 @@ def waar(stand: dict[str, dict[str, Any]] | None) -> str:
     return bronnen_tekst([s["label"] for s in (stand or {}).values() if s.get("aan")])
 
 
+def eigen(stand: dict[str, dict[str, Any]] | None, connectors) -> dict[str, dict[str, Any]]:
+    """De connectors uit de stand die aanstaan en die een agent kan gebruiken (`connectors` uit zijn profiel)."""
+    return {n: s for n, s in (stand or {}).items() if s.get("aan") and n in set(connectors or ())}
+
+
 def keuze_regel(stand: dict[str, dict[str, Any]]) -> str:
     """De statusregel in het denkproces als de bronkeuze per vraag (`agent/bronkeuze.py`) bronnen weglaat: welke bronnen
     deze vraag gebruikt, en dat de andere niet nodig zijn – niet uit."""

@@ -72,7 +72,9 @@ WETGEVING = Spoorbron(
     naam="wetgeving", label="Wetgeving",
     werkwoorden={
         "get_artikel": ("leest {bepaling}",), "get_lid": ("leest {bepaling}",), "get_bepaling": ("leest {bepaling}",),
-        "get_bronnode": ("leest {bepaling}",),
+        # De code legt de tekst vast waarop de annotatie ankert (de bronboom met hashes), na de lezing van het model:
+        # "leest" zei twee keer hetzelfde (acceptatie 24 nov 2026, "annoteer artikel 9 lid 1").
+        "get_bronnode": ("legt de tekst van {bepaling} vast om te annoteren",),
         "get_context": ("bekijkt de samenhang rond {bepaling}",),
         "follow_verwijzingen": ("volgt de verwijzingen in {bepaling}",),
         "verwijst_naar_deze": ("zoekt wat naar {bepaling} verwijst",),
@@ -266,7 +268,42 @@ def stuk_van(tool: str, invoer: dict[str, Any]) -> str:
     if any(str(invoer.get(k) or "").strip() for k in ("artikel", "nummer", "bwb_id")):
         afgeleid = _afgeleid(invoer)
         return afgeleid["bepaling"] if (invoer.get("artikel") or invoer.get("nummer")) else afgeleid["regeling"]
+    if str(invoer.get("bron_iri") or "").strip():
+        # Alleen een bronnode (de annotatietools vanuit de code): het label van zijn vindplaats. Zonder dit stond er
+        # twee keer "Annotaties · gelezen", voor de dekking en de weergave (acceptatie 24 nov 2026).
+        from .narratie import doel_in_woorden
+        return doel_in_woorden({"bron_iri": str(invoer["bron_iri"]).strip()})
     return ""
+
+
+def _markeringen(n: int) -> str:
+    return f"{_getal(n)} {'markering' if n == 1 else 'markeringen'}"
+
+
+def _dekking(stuk: str, data: dict[str, Any]) -> str:
+    """Wat de dekking zegt, niet dat ze gelezen is: "artikel 9, lid 1 (…): al geannoteerd"."""
+    bereik = data.get("bereik")
+    if not isinstance(bereik, list):
+        return ""
+    stand = "nog niet geannoteerd" if not bereik else "al geannoteerd" if data.get("voltooid") else "deels geannoteerd"
+    return f"{stuk}: {stand}" if stuk else stand
+
+
+def _weergave(stuk: str, data: dict[str, Any]) -> str:
+    """Hoeveel markeringen er liggen: "artikel 9, lid 1 (…): 9 markeringen gelezen"."""
+    elementen = data.get("elementen")
+    if not isinstance(elementen, list):
+        return ""
+    wat = f"{_markeringen(len(elementen))} gelezen" if elementen else "nog geen markeringen"
+    return f"{stuk}: {wat}" if stuk else wat
+
+
+def _bronnode(stuk: str, data: dict[str, Any]) -> str:
+    return f"tekst van {stuk} vastgelegd om te annoteren" if stuk else "tekst vastgelegd om te annoteren"
+
+
+#: Leestools waarvan "gelezen" niet zegt wat ze opleverden: hun uitkomst uit hun resultaat. Leeg = de gewone regel.
+EIGEN_UITKOMST = {"get_annotatiedekking": _dekking, "get_annotatieweergave": _weergave, "get_bronnode": _bronnode}
 
 
 def zoekt_binnen(tool: str, invoer: dict[str, Any]) -> bool:
@@ -305,6 +342,8 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
     stuk = stuk_van(tool, invoer)
     voor = f"{stuk} " if stuk else ""
     leest = bron is not None and tool in bron.leestools
+    if (eigen := EIGEN_UITKOMST.get(tool)) and (regel := eigen(stuk, data)):
+        return regel + (", er is meer dan dit" if meer else "")
     binnen = leest and zoekt_binnen(tool, invoer)
     if (not leest or binnen) and isinstance(aantal, int):
         if aantal == 0 and not meer:

@@ -202,3 +202,15 @@ def telling(markeringen: list[dict[str, str]]) -> dict[str, int]:
         else:
             uit["te_beoordelen"] += 1
     return uit
+
+
+def telling_tekst(t: dict[str, int], *, nog: bool = False) -> str:
+    """De review-stand in woorden, sluitend op het aantal markeringen: "7 beoordeeld, 1 afgewezen en 1 te beoordelen".
+    Afgewezen viel eerst weg, en dan telde "9 markeringen (7 beoordeeld, 1 te beoordelen)" niet op (acceptatie 24 nov
+    2026). Een categorie zonder markeringen valt weg; zijn er geen, dan "geen"."""
+    delen = [f"{t.get(sleutel, 0)} {woord}" for sleutel, woord in (
+        ("beoordeeld", "beoordeeld"), ("afgewezen", "afgewezen"),
+        ("te_beoordelen", "nog te beoordelen" if nog else "te beoordelen")) if t.get(sleutel, 0)]
+    if not delen:
+        return "geen"
+    return delen[0] if len(delen) == 1 else f"{', '.join(delen[:-1])} en {delen[-1]}"
