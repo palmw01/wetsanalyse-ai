@@ -64,9 +64,11 @@ export interface GraafContext {
 }
 export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
 
-export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, vraagOnderwerp,
+export function Graaf({ stand, zichtbaar, groot, onVergroot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, vraagOnderwerp,
   benaming = ANTWOORD, bijKnoop, herkomst }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
+  /** Het paneel groot of terug (`GraafBeeld`); zonder (een pagina die al groot is) ontbreekt de knop. */
+  onVergroot?: () => void;
   /** Hoe het doel gekozen is: `eerste_bron` = Lex noemde geen bepaling (`antwoordDoelen`). */
   herkomst?: string;
   actiefElementId?: string;
@@ -289,7 +291,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
               onWissel={(l) => setLagen((oud) => ({ ...oud, [l]: !oud[l] }))}
               dekking={ongedekt.size > 0} begrippen={heeftBegrippen} relaties={heeftRelaties} markering={{ waarde: markering, onKies: setMarkering }} />
             <GraafHint klaar={aangeraakt} terug={benaming.terug} />
-            <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)}
+            <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onVergroot={onVergroot} vergroot={groot}
               onNaarAntwoord={focus ? naarAntwoord : undefined} terug={benaming.terug} />
           </div>
         </div>}

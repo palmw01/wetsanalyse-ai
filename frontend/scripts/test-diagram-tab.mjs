@@ -98,10 +98,14 @@ try {
   const zoomStand = async () => Number(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"));
   const viewBox = async () => (await svg.getAttribute("viewBox")).split(" ").map(Number);
   assert.equal(await zoomStand(), 1, "alles in beeld");
-  await kaart.getByRole("button", { name: "Inzoomen" }).click();
-  assert.ok(await zoomStand() > 1.3, "de knop zoomt in");
-  if (map) await page.screenshot({ path: `${map}/diagram-ingezoomd.png` });
+  // Geen knoppen voor in- en uitzoomen (melding gebruiker 24 nov 2026): dat gaat met het muiswiel en twee vingers.
+  assert.equal(await kaart.getByRole("button", { name: "Inzoomen" }).count(), 0, "geen knop Inzoomen");
+  assert.equal(await kaart.getByTestId("graaf-hint").count(), 0, "geen uitleg in het diagram");
   const s = await svg.boundingBox();
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+  await page.mouse.wheel(0, -400);
+  await page.waitForFunction(() => Number(document.querySelector("[data-diagram-zoom]").getAttribute("data-diagram-zoom")) > 1.3);
+  if (map) await page.screenshot({ path: `${map}/diagram-ingezoomd.png` });
   await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
   const voorWiel = await zoomStand();
   await page.mouse.wheel(0, -400);

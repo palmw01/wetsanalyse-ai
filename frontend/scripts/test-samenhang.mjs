@@ -578,7 +578,7 @@ async function wachtGereed(page) {
 
   // 8. Vergroten; Escape van binnen naar buiten: keuze op, dan verkleinen.
   await zoekEnKies(page, "lid 1", L1);
-  await page.getByRole("button", { name: "Vergroten" }).click();
+  await page.getByRole("group", { name: "Beeld" }).getByRole("button", { name: "Vergroten" }).click();
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "true");
   await wachtGereed(page);
   await page.waitForTimeout(300);
@@ -590,7 +590,7 @@ async function wachtGereed(page) {
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "false");
 
   // 8a. In de smalle zijkolom van de vergrote graaf loopt geen label over zijn waarde.
-  await page.getByRole("button", { name: "Vergroten" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Vergroten" }).click();
   await wachtGereed(page);
   await zoekEnKies(page, "artikel 9", ART);
   await detail(page).getByTestId("graaf-feiten").waitFor();
@@ -622,14 +622,14 @@ async function wachtGereed(page) {
   await page.getByTestId("graaf-zijbalk-keuze").waitFor();
   await page.screenshot({ path: `${shots}/8a-zijbalk-ingeklapt.png` });
   // Onthouden: verkleinen en weer vergroten (de graaf remount) houdt hem ingeklapt.
-  await page.getByRole("button", { name: "Verkleinen" }).click();
-  await page.getByRole("button", { name: "Vergroten" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Verkleinen" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Vergroten" }).click();
   await wachtGereed(page);
   assert.equal(await graaf(page).getAttribute("data-zijbalk"), "in", "de ingeklapte stand blijft");
   await page.getByRole("button", { name: "Zijbalk uitklappen" }).click();
   await page.waitForTimeout(400);
   assert.equal(Math.round((await zijbalk.boundingBox()).width), Math.round(breed), "uitgeklapt weer op breedte");
-  await page.getByRole("button", { name: "Verkleinen" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Verkleinen" }).click();
 
   // 8b. Laag Dekking: het lid met een zinsdeel zonder detectortreffer toont dat in de inspector.
   await zoekEnKies(page, "lid 2", L2);
@@ -661,7 +661,9 @@ async function wachtGereed(page) {
   assert.equal(await lagen.count(), 0, "Escape sluit het lagenpaneel");
 
   // 10. Beeldknoppen.
-  for (const naam of ["Inzoomen", "Uitzoomen", "Alles in beeld"]) await page.getByRole("button", { name: naam }).click();
+  // Alles in beeld (vizier) en, in het paneel, Vergroten; in- en uitzoomen gaat met het muiswiel (melding gebruiker 24 nov 2026).
+  assert.equal(await page.getByRole("button", { name: "Inzoomen" }).count(), 0, "geen knop Inzoomen");
+  await page.getByRole("button", { name: "Alles in beeld" }).click();
 
   // 11. Vraag Lex over een bron zet de bepaling als onderwerp met haar suggesties, zonder iets te versturen (ontdubbelen
   // PR 5: geen voorgevulde vraag meer naast het register).
@@ -781,7 +783,9 @@ async function wachtGereed(page) {
   await page.waitForTimeout(900);
   const uitgezoomd = await labels();
   await page.screenshot({ path: `${shots}/5a-kennisgraaf-uitgezoomd.png` });
-  for (let i = 0; i < 4; i++) { await page.getByRole("button", { name: "Inzoomen" }).click(); await page.waitForTimeout(350); }
+  const doek = await page.getByTestId("graaf-tekenaar").boundingBox();
+  await page.mouse.move(doek.x + doek.width / 2, doek.y + doek.height / 2);
+  for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, -250); await page.waitForTimeout(350); }
   await page.waitForTimeout(600);
   const ingezoomd = await labels();
   await page.screenshot({ path: `${shots}/5a-kennisgraaf-ingezoomd.png` });
@@ -917,7 +921,7 @@ async function wachtGereed(page) {
     return detail(page).evaluate((el) => Math.max(...[el, ...el.querySelectorAll("*")].map((k) => k.scrollTop)));
   };
   assert.ok(await mobielScroll() > 0, "mobiel scrolt de inspector");
-  await page.getByRole("button", { name: "Vergroten" }).click();
+  await page.locator("[data-kop-gereedschap]").getByRole("button", { name: "Vergroten" }).click();
   await wachtGereed(page);
   await detail(page).getByTestId("graaf-feiten").waitFor();
   maat = await mobielBreed();

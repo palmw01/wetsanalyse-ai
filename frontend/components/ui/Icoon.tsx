@@ -92,7 +92,7 @@ export function Lagen({ className = "" }: IcoonProps) {
   return svg(<><path d="M8 2.5 14 5.5 8 8.5 2 5.5Z" /><path d="m2 8.5 6 3 6-3" /><path d="m2 11 6 3 6-3" /></>, className);
 }
 
-/** Alles in beeld: vier hoeken naar buiten. */
+/** Vergroten: vier hoeken naar buiten (de tekening groot in het venster). */
 export function Passend({ className = "" }: IcoonProps) {
   return svg(<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />, className);
 }
@@ -124,7 +124,12 @@ export function Min({ className = "" }: IcoonProps) {
   return svg(<path d="M3 8h10" />, className);
 }
 
-/** Centreren: vizier. */
+/** Verkleinen: vier hoeken naar binnen (terug uit het vergrote venster). */
+export function Verkleinen({ className = "" }: IcoonProps) {
+  return svg(<path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5" />, className);
+}
+
+/** Centreren en alles in beeld: vizier. */
 export function Richten({ className = "" }: IcoonProps) {
   return svg(<><circle cx="8" cy="8" r="4.5" /><circle cx="8" cy="8" r="1" /><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2" /></>, className);
 }

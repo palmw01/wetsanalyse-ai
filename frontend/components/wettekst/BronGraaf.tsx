@@ -66,7 +66,9 @@ export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: 
     return false;
   }
 
-  return { stand, geopend: geopend && aan, groot, escape };
+  /** *Vergroten* in de tekening (`GraafBeeld`): dezelfde stand als in de kop van het paneel. */
+  const wisselVergroot = zetVergroot && (() => zetVergroot(!groot));
+  return { stand, geopend: geopend && aan, groot, escape, wisselVergroot };
 }
 
 export type BronGraafStand = ReturnType<typeof useBronGraaf>;
@@ -93,6 +95,7 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   return (
     <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf>
       <Graaf stand={graaf.stand as GraafStand} herkomst={herkomst} zichtbaar={zichtbaar} groot={graaf.groot || pagina}
+        onVergroot={pagina ? undefined : graaf.wisselVergroot}
         actiefElementId={actiefElementId} weergave={weergave} dekking={dekking} onKiesElement={onKiesElement ?? (() => {})}
         onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} vraagOnderwerp={vraagOnderwerp} benaming={benaming} bijKnoop={bijKnoop} />
     </div>
