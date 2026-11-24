@@ -121,11 +121,20 @@ def test_de_toestand_van_een_datumregel_is_een_variabele(parser, tekst):
     """Voorbeelden.md E03: 'invorderbaar' is een booleaanse eigenschap van de aanslag, en de uitvoer van de regel. Op
     acceptatie (run 367e895d, art. 9 lid 1) had geen detector het woord: het ontbrak, ook als de regel bleef staan."""
     k, = _met(GevolgDetector(), tekst, parser, "STATE_PROPERTY")
-    assert k.span.tekst == "invorderbaar"
+    # De toestand met haar koppelwerkwoord (besluit jurist 24 nov 2026); de kale toestand is een optie.
+    assert k.span.tekst == "is invorderbaar"
+    assert [o.span.tekst for o in k.span_options] == ["invorderbaar"]
     assert k.possible_classes == ("Variabele en variabelewaarde",)
     regel, = _met(GevolgDetector(), tekst, parser, "DATE_ASSIGNMENT")
     uitkomst = json.loads(regel.evidence[0].detail)["uitkomst"]
     assert (uitkomst["start"], uitkomst["eind"]) == (k.span.start, k.span.eind)
+
+
+def test_de_toestandsvariabele_zonder_koppelwerkwoord_ervoor_is_de_toestand(parser):
+    """Lid 2 heeft inversie ('is een navorderingsaanslag … invorderbaar'): het koppelwerkwoord staat ver weg, en een
+    markering is één fragment. Dan alleen de toestand, zonder optie."""
+    k, = _met(GevolgDetector(), LID_2, parser, "STATE_PROPERTY")
+    assert k.span.tekst == "invorderbaar" and not k.span_options
 
 
 @pytest.mark.parametrize("tekst", [

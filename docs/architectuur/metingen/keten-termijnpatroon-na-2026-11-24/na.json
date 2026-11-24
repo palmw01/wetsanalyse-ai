@@ -1,0 +1,1641 @@
+{
+ "set": [
+  {
+   "id": "IW 9.1",
+   "soort": "patroon",
+   "kandidaten": 9,
+   "afleidingsregel": 1,
+   "variabele_op_toestand": 1,
+   "verwacht_variabele": 1,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een belastingaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "is invorderbaar",
+     "klassen": [
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "STATE_PROPERTY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "DATE_ASSIGNMENT"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "zes weken",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "PRIORITY_APPLIED",
+      "TEMPORAL_VALUE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.2",
+   "soort": "patroon",
+   "kandidaten": 19,
+   "afleidingsregel": 1,
+   "variabele_op_toestand": 1,
+   "verwacht_variabele": 2,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "een navorderingsaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "een conserverende navorderingsaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "invorderbaar één maand na de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "DATE_ASSIGNMENT"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "invorderbaar",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "ENUMERATED_NP",
+      "STATE_PROPERTY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "ACCEPTED:Tijdsaanduiding"
+    },
+    {
+     "label": "C007",
+     "tekst": "één maand",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "de dagtekening van het aanslagbiljet en een naheffingsaanslag",
+     "klassen": [
+      "Rechtsfeit",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C010",
+     "tekst": "de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "PRIORITY_APPLIED",
+      "TEMPORAL_VALUE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C011",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C012",
+     "tekst": "en",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "PHRASE_COORDINATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C013",
+     "tekst": "een naheffingsaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C014",
+     "tekst": "invorderbaar",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C015",
+     "tekst": "veertien dagen na de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C016",
+     "tekst": "veertien dagen",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C017",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C018",
+     "tekst": "de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "PRIORITY_APPLIED",
+      "TEMPORAL_VALUE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C019",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "IW 52.1",
+   "soort": "patroon",
+   "kandidaten": 13,
+   "afleidingsregel": 1,
+   "variabele_op_toestand": 1,
+   "verwacht_variabele": 1,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Het bedrag, vermeld in een beschikking als bedoeld in artikel 49, eerste lid, is invorderbaar zes weken na de dagtekening van de beschikking.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Het bedrag",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "een beschikking",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "is invorderbaar",
+     "klassen": [
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "STATE_PROPERTY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "DATE_ASSIGNMENT"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "zes weken na de dagtekening van de beschikking",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "zes weken",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "de dagtekening van de beschikking",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "PRIORITY_APPLIED",
+      "TEMPORAL_VALUE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C010",
+     "tekst": "de beschikking",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C011",
+     "tekst": "De artikelen 9, tiende lid, 11, 12, 13, 14 en 19 zijn van overeenkomstige toepassing.",
+     "klassen": [
+      "Rechtsbetrekking"
+     ],
+     "codes": [
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C012",
+     "tekst": "De artikelen",
+     "klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "SUBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C013",
+     "tekst": "overeenkomstige toepassing",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "IW 63b.5",
+   "soort": "patroon",
+   "kandidaten": 15,
+   "afleidingsregel": 1,
+   "variabele_op_toestand": 1,
+   "verwacht_variabele": 1,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een door de ontvanger opgelegde bestuurlijke boete is invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd, met overeenkomstige toepassing van de regels die gelden voor de invordering van de belastingaanslag in verband waarmee deze is opgelegd.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een door de ontvanger opgelegde bestuurlijke boete",
+     "klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "SUBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "de ontvanger",
+     "klassen": [
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "ROLE_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "is invorderbaar",
+     "klassen": [
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "STATE_PROPERTY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "DATE_ASSIGNMENT"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "ACCEPTED:Tijdsaanduiding"
+    },
+    {
+     "label": "C007",
+     "tekst": "zes weken",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "de beschikking",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C010",
+     "tekst": "overeenkomstige toepassing van de regels die gelden voor de invordering van de belastingaanslag in verband waarmee deze is opgelegd",
+     "klassen": [
+      "Rechtsfeit",
+      "Voorwaarde"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C011",
+     "tekst": "de regels die gelden voor de invordering van de belastingaanslag in verband waarmee deze is opgelegd",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C012",
+     "tekst": "de regels",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C013",
+     "tekst": "de invordering van de belastingaanslag in verband waarmee deze is opgelegd",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C014",
+     "tekst": "de invordering van de belastingaanslag in verband",
+     "klassen": [
+      "Rechtsfeit",
+      "Voorwaarde"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C015",
+     "tekst": "de belastingaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.5",
+   "soort": "controle",
+   "kandidaten": 23,
+   "afleidingsregel": 2,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "een voorlopige aanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "de inkomstenbelasting",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "of",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "PHRASE_COORDINATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "de vennootschapsbelasting",
+     "klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "ENUMERATED_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "en",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "PHRASE_COORDINATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "een voorlopige conserverende aanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "de inkomstenbelasting",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C010",
+     "tekst": "een dagtekening",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C011",
+     "tekst": "in het jaar",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C012",
+     "tekst": "het jaar waarover deze is vastgesteld",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C013",
+     "tekst": "het jaar",
+     "klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "OBJECT_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C014",
+     "tekst": "invorderbaar",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C015",
+     "tekst": "in zoveel gelijke termijnen",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "CALCULATION_DIVISION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C016",
+     "tekst": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "CALCULATION_QUANTITY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C017",
+     "tekst": "zoveel gelijke termijnen",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C018",
+     "tekst": "er na de maand",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C019",
+     "tekst": "na de maand",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C020",
+     "tekst": "de dagtekening van het aanslagbiljet",
+     "klassen": [
+      "Rechtsfeit",
+      "Voorwaarde",
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_VALUE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C021",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C022",
+     "tekst": "nog maanden",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C023",
+     "tekst": "het jaar",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.7",
+   "soort": "controle",
+   "kandidaten": 15,
+   "afleidingsregel": 2,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "een voorlopige aanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "het aanslagbiljet",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "een dagtekening",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "voor het jaar",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "het jaar waarover deze is vastgesteld",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "het jaar",
+     "klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "OBJECT_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "invorderbaar",
+     "klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "ENUMERATED_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C010",
+     "tekst": "in zoveel gelijke termijnen",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "CALCULATION_DIVISION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C011",
+     "tekst": "zoveel gelijke termijnen als er maanden van het jaar zijn",
+     "klassen": [
+      "Afleidingsregel"
+     ],
+     "codes": [
+      "CALCULATION_QUANTITY"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C012",
+     "tekst": "zoveel gelijke termijnen",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C013",
+     "tekst": "als er maanden van het jaar zijn",
+     "klassen": [
+      "Voorwaarde"
+     ],
+     "codes": [
+      "CONDITIONAL_CLAUSE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C014",
+     "tekst": "maanden",
+     "klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "SUBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C015",
+     "tekst": "het jaar",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "synthetisch: geen moment",
+   "soort": "controle",
+   "kandidaten": 2,
+   "afleidingsregel": 0,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een belastingaanslag is invorderbaar.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een belastingaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "synthetisch: ontkend",
+   "soort": "controle",
+   "kandidaten": 6,
+   "afleidingsregel": 0,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een belastingaanslag die een bedrag behelst is niet invorderbaar zolang het adres ontbreekt.",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "LEGAL_EFFECT_PREDICATE",
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een belastingaanslag die een bedrag behelst",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "Een belastingaanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "een bedrag",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "zolang het adres ontbreekt",
+     "klassen": [
+      "Voorwaarde"
+     ],
+     "codes": [
+      "CONDITIONAL_CLAUSE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "het adres",
+     "klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "SUBJECT_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "synthetisch: bijvoeglijk",
+   "soort": "controle",
+   "kandidaten": 6,
+   "afleidingsregel": 0,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Het invorderbare bedrag wordt binnen zes weken na de dagtekening betaald",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "NORM_IN_PRESENT_TENSE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Het invorderbare bedrag",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "binnen zes weken na de dagtekening betaald",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "TEMPORAL_DURATION"
+     ],
+     "besluit": "ACCEPTED:Tijdsaanduiding"
+    },
+    {
+     "label": "C004",
+     "tekst": "zes weken",
+     "klassen": [
+      "Tijdsaanduiding"
+     ],
+     "codes": [
+      "DURATION_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_KERNEL"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "na",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "DURATION_OFFSET"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "de dagtekening",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "AWR 13.2",
+   "soort": "controle",
+   "kandidaten": 7,
+   "afleidingsregel": 0,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een voorlopige aanslag tot een negatief bedrag die voor of in de loop van het tijdvak wordt vastgesteld, wordt aangeduid als voorlopige teruggaaf.",
+     "klassen": [
+      "Brondefinitie"
+     ],
+     "codes": [
+      "DEFINITION_DESIGNATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een voorlopige aanslag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "een negatief bedrag die voor of in de loop van het tijdvak wordt vastgesteld",
+     "klassen": [
+      "Voorwaarde",
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "RESTRICTIVE_RELATIVE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "een negatief bedrag",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "het tijdvak",
+     "klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "OBJECT_NP",
+      "PRIORITY_APPLIED",
+      "TEMPORAL_PERIOD_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "wordt aangeduid als voorlopige teruggaaf",
+     "klassen": [
+      "Rechtsbetrekking",
+      "Rechtsfeit"
+     ],
+     "codes": [
+      "NORM_IN_PRESENT_TENSE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "voorlopige teruggaaf",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  },
+  {
+   "id": "Awb 4:13.1",
+   "soort": "controle",
+   "kandidaten": 9,
+   "afleidingsregel": 0,
+   "variabele_op_toestand": 0,
+   "verwacht_variabele": 0,
+   "parameter": 0,
+   "rijen": [
+    {
+     "label": "C001",
+     "tekst": "Een beschikking dient te worden gegeven binnen de bij wettelijk voorschrift bepaalde termijn of, bij het ontbreken van zulk een termijn, binnen een redelijke termijn na ontvangst van de aanvraag.",
+     "klassen": [
+      "Rechtsbetrekking"
+     ],
+     "codes": [
+      "NORMATIVE_PREDICATE"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C002",
+     "tekst": "Een beschikking",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C003",
+     "tekst": "de bij wettelijk voorschrift bepaalde termijn",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C004",
+     "tekst": "wettelijk voorschrift",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "codes": [
+      "OBJECT_NP"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C005",
+     "tekst": "of",
+     "klassen": [
+      "Operator"
+     ],
+     "codes": [
+      "PHRASE_COORDINATION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C006",
+     "tekst": "het ontbreken van zulk een termijn",
+     "klassen": [
+      "Rechtsfeit",
+      "Voorwaarde"
+     ],
+     "codes": [
+      "NOMINALIZED_ACTION"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C007",
+     "tekst": "zulk een termijn",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C008",
+     "tekst": "een redelijke termijn",
+     "klassen": [
+      "Variabele en variabelewaarde",
+      "Rechtsobject"
+     ],
+     "codes": [
+      "PROPERTY_NOUN"
+     ],
+     "besluit": "model"
+    },
+    {
+     "label": "C009",
+     "tekst": "de aanvraag",
+     "klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "codes": [
+      "THING_NP"
+     ],
+     "besluit": "model"
+    }
+   ]
+  }
+ ]
+}
