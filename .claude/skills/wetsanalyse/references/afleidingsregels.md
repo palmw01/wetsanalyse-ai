@@ -153,6 +153,8 @@ In het skelet van de Afleidingsregel-markering:
 Bij het regelobject:
 - `uitvoer_zonder_begrip`: de uitvoerformulering draagt geen begrip.
 - `regelbegrip_zonder_bepalen`: het regelbegrip heet niet "bepalen <uitvoer>".
+- `regelbegrip_bepalen_van`: het regelbegrip heet "bepalen van de …" of "bepalen van het …"; de vorm is "bepalen
+  <uitvoer>", zonder lidwoord en voorzetsel.
 - `parameter_zonder_tijdvak`: een parameter heeft geen waarde met een tijdvak.
 - `parameterwaarde_in_definitie`: de definitie van een parameter noemt een waarde.
 - `rust_op_contextbron`: de regel rust op een bron met de rol context; misschien wordt het een bron om te analyseren.

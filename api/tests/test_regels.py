@@ -54,7 +54,7 @@ async def _opzet(client):
     ids = await _annoteer()
     wg = await _nieuw(client)
     wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
-    begrippen = {"regel": await _begrip(client, wg, "bepalen van het termijnbedrag", ids["ar"]),
+    begrippen = {"regel": await _begrip(client, wg, "bepalen termijnbedrag", ids["ar"]),
                  "uit": await _begrip(client, wg, "termijnbedrag", ids["var"]),
                  "in": await _begrip(client, wg, "aantal termijnen", ids["rs"])}
     return wg, ids, begrippen
@@ -107,7 +107,7 @@ async def test_van_aanmaken_tot_accorderen(client):
     assert r.status_code == 201, r.text
     regel = r.json()
     assert (regel["status"], regel["revisie"], regel["herkomst"]) == ("concept", 1, "lex")
-    assert regel["naam"] == "bepalen van het termijnbedrag" and regel["uitvoer"] == "termijnbedrag"
+    assert regel["naam"] == "bepalen termijnbedrag" and regel["uitvoer"] == "termijnbedrag"
     assert regel["regeltekst"]["tekst"] == ("Het termijnbedrag moet berekend worden als het bedrag gedeeld door het "
                                             "aantal termijnen.")
     assert {d["rol"]: d["bewijs"]["tekst"] for d in regel["dragers"]} == {"grondslag": "Alfa", "invoer": "Beta"}
@@ -115,7 +115,7 @@ async def test_van_aanmaken_tot_accorderen(client):
 
     # De poort zegt wat er openstaat, ook de dragers die nog niet beoordeeld zijn (B2).
     redenen = " ".join(regel["accorderen"]["redenen"])
-    for stuk in ("Nog niet geaccordeerd: bepalen van het termijnbedrag, termijnbedrag, aantal termijnen",
+    for stuk in ("Nog niet geaccordeerd: bepalen termijnbedrag, termijnbedrag, aantal termijnen",
                  "grondslag is nog niet beoordeeld", "2 dragende formuleringen zijn nog niet beoordeeld",
                  "geen voorbeeld met een juridisch juiste uitkomst"):
         assert stuk in redenen, redenen
@@ -276,7 +276,7 @@ async def test_het_overzicht_over_werkgebieden_heen(client):
                                               "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
     alles = (await client.get("/v1/regels")).json()
     rij = next(x for x in alles["resultaten"] if x["id"] == regel["id"])
-    assert rij["naam"] == "bepalen van het termijnbedrag" and rij["uitvoer"] == "termijnbedrag"
+    assert rij["naam"] == "bepalen termijnbedrag" and rij["uitvoer"] == "termijnbedrag"
     assert rij["werkgebied_id"] == wg["id"] and rij["werkgebied_naam"] == wg["naam"]
     assert rij["regeltekst"].startswith("Het termijnbedrag moet berekend worden als")
     assert alles["per_status"].get("concept", 0) >= 1

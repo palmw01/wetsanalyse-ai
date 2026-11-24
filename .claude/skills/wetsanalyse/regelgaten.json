@@ -20,6 +20,8 @@
       "melding": "De uitvoerformulering van de regel draagt geen begrip."},
     "regelbegrip_zonder_bepalen": {"plek": "regel", "herkomst": "methode", "bron": ["M01 h.3 stap 3b"],
       "melding": "Het regelbegrip heet niet \"bepalen <uitvoer>\"."},
+    "regelbegrip_bepalen_van": {"plek": "regel", "herkomst": "methode", "bron": ["M01 h.3 stap 3b"],
+      "melding": "Het regelbegrip \"{naam}\" heet \"{voorstel}\": \"bepalen\" met de uitvoer erachter, zonder \"van de\" of \"van het\"."},
     "parameter_zonder_tijdvak": {"plek": "regel", "herkomst": "regelspecialist", "bron": ["M04 H2 Parameter"],
       "melding": "De parameter {naam} heeft geen waarde met een tijdvak."},
     "parameterwaarde_in_definitie": {"plek": "regel", "herkomst": "methode", "bron": ["M04 H2 Parameter"],
