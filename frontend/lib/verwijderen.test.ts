@@ -21,6 +21,6 @@ describe("verwijderen", () => {
   it("één knoptekst per soort, en de annotatie houdt haar oude uitleg", () => {
     expect(verwijderLabel("annotatie")).toBe("Annotatie verwijderen");
     expect(verwijderLabel("werkgebied")).toBe("Werkgebied verwijderen");
-    expect(VERWIJDER_UITLEG.annotatie).toBe("Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf");
+    expect(VERWIJDER_UITLEG.annotatie).toBe("Zet alle markeringen en beoordelingen van deze bepaling in de prullenbak en verwijdert ze uit de kennisgraaf. Terugzetten kan zolang er geen nieuwe annotatie staat.");
   });
 });
