@@ -3,6 +3,7 @@
 import { useRef } from "react";
 
 import { GraafBeeld } from "@/components/graaf/GraafBeeld";
+import { GraafHint } from "@/components/graaf/GraafHint";
 import {
   MAAT, RAND_CENTRAAL, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
   type DiagramLijn,
@@ -18,7 +19,7 @@ import { useBeeld, type Beeld } from "@/lib/useBeeld";
  *  knijpen, en rechtsonder staan dezelfde knoppen (`GraafBeeld`: *Alles in beeld*, inzoomen, uitzoomen). Geen scrollbalken: het
  *  venster heeft de verhouding van de tekening en zoomen verandert alleen wat erin te zien is. Een klik zonder slepen
  *  kiest nog steeds een knoop of lijn. Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. */
-export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, label }: {
+export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, onTerug, label }: {
   data: DiagramData;
   /** `knoopSleutel` van de gekozen knoop. */
   gekozenKnoop?: string;
@@ -26,6 +27,9 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   gekozenLijn?: string;
   onKiesKnoop?: (knoop: DiagramKnoop) => void;
   onKiesLijn?: (lijn: DiagramLijn) => void;
+  /** Zolang er een keuze is: de keuze opheffen. Dan staat de knop *Terug* bij de beeldknoppen, en een klik op de
+   *  achtergrond doet hetzelfde, zoals in de graaf. */
+  onTerug?: () => void;
   label: string;
 }) {
   const { diagram, plaatsing, lijnen } = data;
@@ -34,6 +38,7 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   const alles: Beeld = { x: -rand, y: -rand, b: plaatsing.breedte + 2 * rand, h: plaatsing.hoogte + 2 * rand };
   const svg = useRef<SVGSVGElement>(null);
   const { beeld, zoom, pasIn, sleept, handlers } = useBeeld(alles, svg);
+  const terug = onTerug && (() => { onTerug(); pasIn(); });
 
   return (
     <div className="relative" data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
@@ -42,7 +47,10 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
       className={`block w-full select-none touch-none ${sleept ? "cursor-grabbing" : "cursor-grab"}`}
       // Het venster heeft de verhouding van de hele tekening, en wordt nooit hoger dan 60% van het scherm.
       style={{ fontFamily: "inherit", aspectRatio: `${alles.b} / ${alles.h}`, maxHeight: "60vh", minHeight: "8rem" }}
-      {...handlers}>
+      {...handlers}
+      // Een klik op de achtergrond (niet op een knoop of lijn) is terug, zoals in de graaf. Na slepen komt die klik
+      // niet aan (`useBeeld`).
+      onClick={(e) => { if (terug && !(e.target as Element).closest("[role=button]")) terug(); }}>
       {lijnen.map((l) => {
         const gekozen = !!gekozenLijn && l.relatie_id === gekozenLijn;
         const voorstel = l.lifecycle === "voorgesteld";
@@ -106,9 +114,11 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
         );
       })}
     </svg>
-      {/* Dezelfde knoppen als de graaf, rechtsonder in het venster. */}
-      <div className="pointer-events-none absolute bottom-2 right-2 flex">
-        <GraafBeeld onPasIn={pasIn} onZoom={(f) => zoom(f)} />
+      {/* Dezelfde bediening als de graaf: de uitleg onderin (één keer), de knoppen rechtsonder, met *Terug* bij een keuze. */}
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
+        {kiesbaar && <GraafHint klaar={sleept || !!gekozenKnoop || !!gekozenLijn} terug="het hele diagram" sleutel="wa_diagram_hint" />}
+        {/* Rechts, ook als de uitleg weg is. */}
+        <div className="ml-auto"><GraafBeeld onPasIn={pasIn} onZoom={(f) => zoom(f)} onNaarAntwoord={terug} terug="het hele diagram" /></div>
       </div>
     </div>
   );

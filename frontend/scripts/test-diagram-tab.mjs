@@ -137,6 +137,20 @@ try {
   assert.equal(await eerste.getAttribute("data-nadruk"), "true");
   assert.equal(await gekozen.locator("[data-diagram]").count(), 0, "geen tweede diagram in het blok");
   if (map) await page.screenshot({ path: `${map}/diagram-lijn-gekozen.png` });
+  // Dezelfde knoppen als de graaf: bij een keuze staat *Terug* bij de beeldknoppen, en de achtergrond is ook terug.
+  const knoppen = await kaart.getByRole("group", { name: "Beeld" }).boundingBox();
+  const venster = await svg.boundingBox();
+  assert.ok(knoppen.x + knoppen.width > venster.x + venster.width - 30, "de knoppen staan rechtsonder, zoals in de graaf");
+  await kaart.getByRole("button", { name: "Naar het hele diagram" }).click();
+  await gekozen.waitFor({ state: "detached" });
+  assert.equal(await kaart.getByRole("button", { name: "Naar het hele diagram" }).count(), 0, "zonder keuze geen Terug");
+  await svg.locator('[data-diagram-lijn="R-tijd"]').click();
+  await gekozen.waitFor();
+  const vlak = await svg.boundingBox();
+  await page.mouse.click(vlak.x + 4, vlak.y + 4);
+  await gekozen.waitFor({ state: "detached" });
+  await svg.locator('[data-diagram-lijn="R-tijd"]').click();
+  await gekozen.waitFor();
 
   // + voorwerp: Verbind met… opent, alleen met wat een voorwerp kan zijn, en het type voorgekozen.
   await kaart.getByRole("button", { name: "+ voorwerp" }).click();
