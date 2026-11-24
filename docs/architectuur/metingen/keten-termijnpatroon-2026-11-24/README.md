@@ -23,6 +23,30 @@ Lokaal gereproduceerd met de echte parser (`spacy:nl_core_news_md`): dezelfde 8 
 
 De fragmentgrenzen waren niet het probleem: de duur en de tijdsaanduiding lagen als twee kandidaten klaar.
 
+### De referentie voor deze meting (hoofdsessie, 24 nov 2026)
+
+Na de bijsturing van de hoofdsessie, op grond van H2-JAS en het boek (hoofdstuk Tijdsaanduiding), geldt voor art. 9
+lid 1 als referentie:
+
+- "zes weken": Tijdsaanduiding met subtype *verbijzondert parameter*, **geen** Parameter;
+- "de dagtekening van het aanslagbiljet": Tijdsaanduiding die een variabele verbijzondert, geen Variabele (het subtype
+  *verbijzondert variabele* komt uit een aparte sessie);
+- "zes weken na de dagtekening van het aanslagbiljet": de Tijdsaanduiding van het tijdsverloop;
+- "invorderbaar": Variabele (ja/nee);
+- de Afleidingsregel met de operator "na": verdedigbaar, niet verplicht. Zonder telt niet als gemist, met is winst;
+- de hele zin: Rechtsfeit (de keuze van de skill); Rechtsbetrekking alleen met impliciete partijen.
+
+Daartegen gelezen:
+
+| Referentie | Lex vóór | Lex na deze wijziging |
+|---|---|---|
+| "invorderbaar" Variabele | ontbreekt: geen kandidaat | kandidaat, het model beslist (nog niet live gemeten) |
+| "zes weken" Tijdsaanduiding, *verbijzondert parameter* | **ontbreekt**: de kern is een kandidaat (`TEMPORAL_KERNEL`), maar `besluit.ontdubbel_tijd` laat bij een korte en een lange T voor dezelfde functie alleen de lange staan (fusie v3, `annotatieketen.md` *Tweede validatie*) | ongewijzigd: buiten deze wijziging, zie *Wat deze meting niet zegt* |
+| "zes weken na de dagtekening …" Tijdsaanduiding | aanwezig, met *verbijzondert parameter* | ongewijzigd |
+| "de dagtekening …" Tijdsaanduiding | aanwezig, zonder subtype | ongewijzigd (subtype: andere sessie) |
+| Afleidingsregel (optioneel) | kandidaat, in deze run afgewezen | ongewijzigd; met de Variabele krijgt hij nu een `uitvoer` |
+| Rechtsfeit voor de zin | aanwezig | ongewijzigd |
+
 ## De wijziging
 
 - **Gevolgdetector versie 6** (`detectoren/syntactisch.py`, `_toestand_met_moment`): waar de datumregel ontstaat (een
@@ -80,7 +104,10 @@ Nog niet gedaan: acceptatie draait pas na de merge naar `master` de nieuwe code.
 - Of het model de nieuwe kandidaat kiest: dat meet pas de run na de uitrol.
 - Juridische juistheid: de referentie is de skill en de door de jurist beoordeelde versie van art. 9 lid 1, geen
   vastgestelde gold.
-- Twee gaten die blijven, buiten deze wijziging:
+- Drie gaten die blijven, buiten deze wijziging:
+  - de kern "zes weken" als eigen Tijdsaanduiding (referentie hierboven): `ontdubbel_tijd` beschouwt kern en
+    tijdsverloop als dezelfde tijdfunctie en houdt de lange. Dat anders doen raakt elke duur in elke bepaling, en vraagt
+    een eigen besluit en meting;
   - de tweede toestand in IW 9.2 ("en een naheffingsaanslag invorderbaar veertien dagen na …") krijgt geen eigen
     datumregel: de parser hangt hem als voorwerp, niet als nevenschikking met een koppelwerkwoord;
   - de dekking telt een AR van de gevolgdetector niet bij `berekening/afleiding` (`aangetroffen` is 0 op IW 9.1, 52.1
