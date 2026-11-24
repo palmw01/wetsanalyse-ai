@@ -1,19 +1,24 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { GraafBeeld } from "@/components/graaf/GraafBeeld";
 import {
   MAAT, RAND_CENTRAAL, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
   type DiagramLijn,
 } from "@/lib/diagram2c";
 
+/** Wat in beeld is, in de eenheden van de tekening (de `viewBox`). */
+interface Beeld { x: number; y: number; b: number; h: number }
+
 /** Het 2c-diagram rond één centrale formulering (Handleiding §3.4c), getekend uit wat de api uitrekende: hetzelfde
  *  plaatje als in het werkgebiedrapport, maar met knopen en lijnen die je kunt kiezen. Kleur draagt nooit alleen: elke
  *  knoop noemt zijn klasse, elke lijn haar relatie; een voorstel is gestippeld, een impliciete partij ook (haar rand).
  *
- *  Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. Standaard past de hele tekening in de breedte en groeit ze mee
- *  met het venster (`viewBox`); inzoomen (−, +, *Passend*) maakt haar breder dan haar kader, en dan schuif je erin: met de
- *  muis (vastpakken en slepen) of met de scrollbalk. Een klik zonder te slepen kiest nog steeds een knoop of lijn. */
+ *  De bediening is die van de graaf (melding gebruiker 24 nov 2026): het muiswiel zoomt rond de cursor, slepen verschuift,
+ *  en rechtsonder staan dezelfde knoppen (`GraafBeeld`: *Alles in beeld*, inzoomen, uitzoomen). Geen scrollbalken: het
+ *  venster heeft de verhouding van de tekening en zoomen verandert alleen wat erin te zien is. Een klik zonder slepen
+ *  kiest nog steeds een knoop of lijn. Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. */
 export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, label }: {
   data: DiagramData;
   /** `knoopSleutel` van de gekozen knoop. */
@@ -27,50 +32,79 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   const { diagram, plaatsing, lijnen } = data;
   const rand = 3;
   const kiesbaar = !!(onKiesKnoop || onKiesLijn);
-  const [zoom, setZoom] = useState(1);
-  const kader = useRef<HTMLDivElement>(null);
-  const sleep = useRef<{ x: number; y: number; links: number; boven: number; bewogen: boolean } | null>(null);
+  const alles: Beeld = { x: -rand, y: -rand, b: plaatsing.breedte + 2 * rand, h: plaatsing.hoogte + 2 * rand };
+  const [beeld, setBeeld] = useState<Beeld>(alles);
+  const sleutel = `${alles.b}x${alles.h}`;
+  // Een nieuwe tekening (na een besluit) begint weer met alles in beeld.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setBeeld({ x: -rand, y: -rand, b: plaatsing.breedte + 2 * rand, h: plaatsing.hoogte + 2 * rand }), [sleutel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const svg = useRef<SVGSVGElement>(null);
+  const sleep = useRef<{ x: number; y: number; beeld: Beeld; schaal: number; bewogen: boolean } | null>(null);
   const [sleept, setSleept] = useState(false);
-  const knop = "focus-ring flex h-6 min-w-6 items-center justify-center rounded-knop-xs border border-line bg-paper px-1.5 text-xs font-medium text-lint hover:bg-surface disabled:cursor-default disabled:text-faint";
+
+  /** Pixels per eenheid van de tekening, zoals ze nu in beeld is (de viewBox staat op `meet`). */
+  const schaal = useCallback(() => {
+    const r = svg.current?.getBoundingClientRect();
+    return r ? Math.min(r.width / beeld.b, r.height / beeld.h) : 1;
+  }, [beeld]);
+
+  /** Zoom met `factor` (< 1: inzoomen) rond een punt in de tekening; hoogstens 6× in, niet verder uit dan alles. */
+  const zoom = useCallback((factor: number, rond?: { x: number; y: number }) => {
+    setBeeld((v) => {
+      const b = Math.min(alles.b * 1.2, Math.max(alles.b / 6, v.b * factor));
+      const f = b / v.b;
+      const c = rond ?? { x: v.x + v.b / 2, y: v.y + v.h / 2 };
+      return { x: c.x - (c.x - v.x) * f, y: c.y - (c.y - v.y) * f, b, h: v.h * f };
+    });
+  }, [alles.b]);
+
+  // Het muiswiel zoomt rond de cursor. Een eigen luisteraar, niet `onWheel`: React registreert die passief, en dan scrolt
+  // de pagina mee.
+  useEffect(() => {
+    const el = svg.current;
+    if (!el) return;
+    const wiel = (e: WheelEvent) => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      const s = Math.min(r.width / beeld.b, r.height / beeld.h);
+      // De tekening staat gecentreerd in het venster (`xMidYMid meet`).
+      const ox = (r.width - beeld.b * s) / 2, oy = (r.height - beeld.h * s) / 2;
+      const punt = { x: beeld.x + (e.clientX - r.left - ox) / s, y: beeld.y + (e.clientY - r.top - oy) / s };
+      zoom(Math.exp(e.deltaY * 0.0015), punt);
+    };
+    el.addEventListener("wheel", wiel, { passive: false });
+    return () => el.removeEventListener("wheel", wiel);
+  }, [beeld, zoom]);
+
   return (
-    <div data-diagram-zoom={zoom}>
-      {/* Boven de tekening, niet erover: anders dekt het een knoop af. */}
-      <div className="mb-1 flex justify-end gap-1" role="group" aria-label="Zoomen">
-        <button type="button" className={knop} aria-label="Uitzoomen" title="Uitzoomen" disabled={zoom <= 1}
-          onClick={() => setZoom((z) => vorigeZoom(z))}>−</button>
-        <button type="button" className={knop} aria-label="Inzoomen" title="Inzoomen" disabled={zoom >= ZOOM[ZOOM.length - 1]}
-          onClick={() => setZoom((z) => volgendeZoom(z))}>+</button>
-        {zoom > 1 && <button type="button" className={knop} onClick={() => setZoom(1)}>Passend</button>}
-      </div>
-      <div ref={kader} className={`overflow-auto ${zoom > 1 ? (sleept ? "cursor-grabbing" : "cursor-grab") : ""}`}
-        style={{ maxHeight: zoom > 1 ? "70vh" : undefined }} data-diagram-kader
-        // Vastpakken en slepen (alleen ingezoomd, alleen de muis: aanraken scrolt al vanzelf).
-        onPointerDown={(e) => {
-          if (zoom <= 1 || e.button !== 0 || e.pointerType !== "mouse" || !kader.current) return;
-          sleep.current = { x: e.clientX, y: e.clientY, links: kader.current.scrollLeft, boven: kader.current.scrollTop, bewogen: false };
-        }}
-        onPointerMove={(e) => {
-          const s = sleep.current;
-          if (!s || !kader.current) return;
-          const dx = e.clientX - s.x, dy = e.clientY - s.y;
-          if (!s.bewogen && Math.abs(dx) + Math.abs(dy) < 4) return;
-          if (!s.bewogen) { s.bewogen = true; setSleept(true); }
-          kader.current.scrollLeft = s.links - dx;
-          kader.current.scrollTop = s.boven - dy;
-        }}
-        onPointerUp={() => { if (sleep.current && !sleep.current.bewogen) sleep.current = null; }}
-        onPointerLeave={() => { if (sleep.current?.bewogen) { sleep.current = null; setSleept(false); } }}
-        // Na echt slepen is de klik die volgt geen keuze.
-        onClickCapture={(e) => {
-          if (sleep.current?.bewogen) { e.stopPropagation(); e.preventDefault(); }
-          sleep.current = null;
-          setSleept(false);
-        }}>
-    <svg role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
-      viewBox={`${-rand} ${-rand} ${plaatsing.breedte + 2 * rand} ${plaatsing.hoogte + 2 * rand}`}
-      className="block h-auto select-none"
-      // Passend: de hele tekening in de breedte van haar kader; ingezoomd breder, en dan schuift het kader.
-      style={{ fontFamily: "inherit", width: `${zoom * 100}%`, maxWidth: "none" }}>
+    <div className="relative" data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
+    <svg ref={svg} role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
+      viewBox={`${beeld.x} ${beeld.y} ${beeld.b} ${beeld.h}`} preserveAspectRatio="xMidYMid meet"
+      className={`block w-full select-none touch-none ${sleept ? "cursor-grabbing" : "cursor-grab"}`}
+      // Het venster heeft de verhouding van de hele tekening, en wordt nooit hoger dan 60% van het scherm.
+      style={{ fontFamily: "inherit", aspectRatio: `${alles.b} / ${alles.h}`, maxHeight: "60vh", minHeight: "8rem" }}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        sleep.current = { x: e.clientX, y: e.clientY, beeld, schaal: schaal(), bewogen: false };
+      }}
+      onPointerMove={(e) => {
+        const s = sleep.current;
+        if (!s) return;
+        const dx = e.clientX - s.x, dy = e.clientY - s.y;
+        if (!s.bewogen && Math.abs(dx) + Math.abs(dy) < 4) return;
+        if (!s.bewogen) { s.bewogen = true; setSleept(true); svg.current?.setPointerCapture?.(e.pointerId); }
+        setBeeld({ ...s.beeld, x: s.beeld.x - dx / s.schaal, y: s.beeld.y - dy / s.schaal });
+      }}
+      onPointerUp={(e) => {
+        if (sleep.current?.bewogen) svg.current?.releasePointerCapture?.(e.pointerId);
+        else sleep.current = null;
+        setSleept(false);
+      }}
+      // Na echt slepen is de klik die volgt geen keuze.
+      onClickCapture={(e) => {
+        if (sleep.current?.bewogen) { e.stopPropagation(); e.preventDefault(); }
+        sleep.current = null;
+      }}>
       {lijnen.map((l) => {
         const gekozen = !!gekozenLijn && l.relatie_id === gekozenLijn;
         const voorstel = l.lifecycle === "voorgesteld";
@@ -134,15 +168,13 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
         );
       })}
     </svg>
+      {/* Dezelfde knoppen als de graaf, rechtsonder in het venster. */}
+      <div className="pointer-events-none absolute bottom-2 right-2 flex">
+        <GraafBeeld onPasIn={() => setBeeld(alles)} onZoom={(f) => zoom(f)} />
       </div>
     </div>
   );
 }
-
-/** De zoomstappen: 1 is passend. */
-const ZOOM = [1, 1.5, 2, 3, 4] as const;
-const volgendeZoom = (z: number) => ZOOM.find((s) => s > z) ?? z;
-const vorigeZoom = (z: number) => [...ZOOM].reverse().find((s) => s < z) ?? 1;
 
 let meetDoek: CanvasRenderingContext2D | null | undefined;
 
