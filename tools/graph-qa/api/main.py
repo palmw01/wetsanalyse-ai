@@ -641,6 +641,23 @@ async def catalogus_onderdeel(soort: str, naam: str, _auth: None = Depends(_chec
     return d
 
 
+def _verwijzingen_voluit(resultaat: object) -> None:
+    """Zet in een leesresultaat elke verwijzing van een rij (`verwijst_naar`, bij de leestool een lijst id's) om naar
+    `{id, label, link}`, met label en link uit de code: dezelfde vorm als het antwoordblok `extern`. Het venster tekent
+    een verwijzing als knop naar dat stuk; met alleen het id viel het om (24 nov 2026). Een id dat geen externe
+    vindplaats is, valt weg. Lex zelf krijgt het leesresultaat onveranderd: dit raakt alleen het venster."""
+    from bronmodel.extern import externe_vindplaats
+
+    if not isinstance(resultaat, dict):
+        return
+    for rij in resultaat.get("resultaten") or []:
+        if not isinstance(rij, dict) or "verwijst_naar" not in rij:
+            continue
+        naar = rij["verwijst_naar"] if isinstance(rij["verwijst_naar"], list) else []
+        rij["verwijst_naar"] = [{"id": vp.id, "label": vp.label, "link": vp.uri} for i in naar
+                                if isinstance(i, str) and (vp := externe_vindplaats(i)) is not None]
+
+
 @app.get("/v1/bronnen/{connector}/stukken/{stuk_id}")
 async def bron_stuk(connector: str, stuk_id: str, offset: int = 0, tabel: int | None = None,
                     _auth: None = Depends(_check_auth)) -> dict:
@@ -679,6 +696,7 @@ async def bron_stuk(connector: str, stuk_id: str, offset: int = 0, tabel: int | 
         resultaat = json.loads(ruw)
     except ValueError:
         resultaat = {"status": "fout", "reden": "onleesbaar", "melding": str(ruw)[:500]}
+    _verwijzingen_voluit(resultaat)
     return {"connector": {"naam": c.naam, "label": c.label, "groep": c.groep, "brontype": c.brontype,
                           "id_prefixen": list(c.id_prefixen),
                           "metadata": [{"sleutel": m.sleutel, "label": m.label} for m in c.metadata]},

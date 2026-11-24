@@ -16,6 +16,19 @@ describe("bronStuk", () => {
     expect(parseStuk({ connector: { naam: "x" }, resultaat: {} })).toBeUndefined();
   });
 
+  it("brengt de verwijzingen van een voetnoot in één vorm: een kaal id valt het venster niet om", () => {
+    const a = parseStuk({ connector: BESCHRIJVING, resultaat: { status: "ok", stuk: STUK, resultaten: [
+      { nr: 1, soort: "voetnoot", tekst: "x", verwijst_naar: ["kst-33410-15", "", 7, { label: "zonder id" }] },
+      { nr: 2, soort: "voetnoot", tekst: "y", verwijst_naar: [{ id: "kst-1-2", label: "Kamerstukken 1, nr. 2", link: "https://zoek.officielebekendmakingen.nl/kst-1-2" }] },
+      { nr: 3, tekst: "z", verwijst_naar: "kst-1-3" }, "geen rij"] } });
+    expect(a!.deel.resultaten).toHaveLength(3);
+    expect(a!.deel.resultaten![0].verwijst_naar).toEqual([{ id: "kst-33410-15", label: "kst-33410-15", link: "" }]);
+    expect(a!.deel.resultaten![2].verwijst_naar).toEqual([]);
+    const v = stukVerwijzingen(a!.deel.resultaten!);
+    expect(v.map((x) => x.label)).toEqual(["kst-33410-15", "Kamerstukken 1, nr. 2"]);
+    expect(v.every((x) => hoortBij(a!.beschrijving, x.id))).toBe(true);
+  });
+
   it("maakt de kop uit de beschrijving en de metadata, niet uit een connectornaam", () => {
     const h = stukHerkomst(BESCHRIJVING, STUK, "terugval");
     expect([h.bepaling, h.regeling, h.plek]).toEqual(["Kamerstukken 32140, nr. 342", "Parlementaire stukken", "Brief · 4 mei 2026"]);
