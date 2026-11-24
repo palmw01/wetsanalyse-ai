@@ -114,7 +114,11 @@ export interface Regel {
   geaccordeerd_revisie: number | null;
 }
 
-export interface KetenSignaal { soort: "zelfde_uitvoer" | "kring"; regel_ids: string[]; begrip_id?: string; melding: string }
+/** De signalen van de keten (api `regel_store.keten`). De werkplek toont `melding`; een soort die ze niet kent, telt gewoon mee. */
+export interface KetenSignaal {
+  soort: "zelfde_uitvoer" | "regelbegrip_meer_uitvoeren" | "voorwaarde_herhaald" | "kring";
+  code?: string; regel_ids: string[]; begrip_id?: string; element_ids?: string[]; melding: string;
+}
 export interface RegelKeten {
   regels: { id: string; naam: string; uitvoer: string; status: RegelStatus; soort: RegelSoort; gevallen: number; brontype: "wet" | "beleid" }[];
   /** Van onder naar boven: een regel staat na alles waarvan hij de uitkomst gebruikt. */
