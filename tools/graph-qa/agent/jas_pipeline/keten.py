@@ -41,6 +41,7 @@ from .review import beoordeel
 from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer, VERSIE as FUSIE_VERSIE
+from . import voorbeeld
 from .kandidaten import Candidate, CandidateStatus
 from .taal import maak_provider
 from .taal.grenzen import VERSIE as GRENS_VERSIE
@@ -243,6 +244,10 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                                 else f"gedegradeerd voor {len(gedegradeerd)} bronnode(s): alleen lexicale detectoren"))
     resultaten = [r for t in teksten for r in detecteer_alles(t)]
     fusie = fuseer(resultaten)
+    # Een rekenvoorbeeld is geen norm maar wel bron (skill, markeringslijst): vóór de besluiten, zonder model.
+    voorbeelden = [v for t in teksten for v in voorbeeld.herken(t.bron_iri, t.tekst, t.analyse)]
+    if voorbeelden:
+        fusie = fusie.model_copy(update={"kandidaten": voorbeeld.pas_toe(fusie.kandidaten, voorbeelden)})
     detectoren = len({r.detector for r in resultaten})
     fasen.klaar("Detectie", f"{len(fusie.kandidaten)} kandidaten uit {detectoren} detectoren")
     meting: dict[str, Any] = {"llm_calls": 0, "kandidaten": len(fusie.kandidaten),
@@ -255,6 +260,11 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                                   "bron_iri": r.bron_iri, "kandidaten": len(r.kandidaten),
                                   "overgeslagen": r.overgeslagen, "reden": r.reden} for r in resultaten],
                               "classifier_prompt": promptversie(settings.classifier_spankeuze)}
+    if voorbeelden:   # alleen dan: een bepaling zonder voorbeeld houdt dezelfde meting
+        meting["voorbeelden"] = {"versie": voorbeeld.VERSIE, "aantal": len(voorbeelden),
+                                 "afgewezen": sum(k.status is CandidateStatus.REJECTED
+                                                  and any(e.code in voorbeeld.AFWIJZINGSCODES for e in k.evidence)
+                                                  for k in fusie.kandidaten)}
 
     beslissingen: list[Beslissing] = []
     naar_model: list[Candidate] = []
