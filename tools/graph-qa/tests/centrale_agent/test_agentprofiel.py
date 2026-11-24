@@ -6,6 +6,9 @@ validator weigert; het register dat de profielen laadt komt in stap A1.
 from __future__ import annotations
 
 import pytest
+
+from pydantic import ValidationError
+
 from bronmodel import agentprofiel as ap
 from bronmodel.validatie import ValidatieFout
 
@@ -43,7 +46,7 @@ def test_het_bestand_wordt_een_getypeerd_profiel():
         tools=("zoek_definitie", "get_artikel"), connectors=("kamerstukken",), sjablonen=("antwoord_bepaling",),
         max_rondes=8, budget=50_000)
     assert ap.toets(p, GRENZEN) == [] and ap.valideer(p, GRENZEN) is p
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         p.naam = "anders"  # type: ignore[misc]
 
 

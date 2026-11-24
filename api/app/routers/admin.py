@@ -235,7 +235,7 @@ async def upsert_profiel(name: str, body: ProfileIn, admin_id: str = Depends(req
             is_default=body.is_default,
         )
     except SecretsCryptoError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return _to_out(p)
 
 
@@ -245,9 +245,9 @@ async def verwijder_profiel(name: str):
         await profiles.delete_profile(name)
     except profiles.ProfielInGebruik as e:
         raise HTTPException(status_code=409, detail={"fout": "in_gebruik", "melding": str(e),
-                                                     "gebruikt_door": e.gebruikt_door})
+                                                     "gebruikt_door": e.gebruikt_door}) from e
     except profiles.ProfileError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.post("/profiles/{name}/default", response_model=ProfileOut)
@@ -255,7 +255,7 @@ async def maak_default(name: str):
     try:
         p = await profiles.set_default(name)
     except profiles.ProfileError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return _to_out(p)
 
 
@@ -277,7 +277,7 @@ async def test_profiel(name: str, admin_id: str = Depends(require_admin)):
             schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
         )
     except SecretsCryptoError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001 – geef een gesaniteerde melding, lek geen requestdetails
         # De ruwe provider-exceptie kan endpoint-URL's, headers of (delen van) de key
         # bevatten; die hoort in het server-log, niet in de API-respons.
@@ -373,7 +373,7 @@ async def maak_user(body: UserCreateIn):
     try:
         user, temp = await users.create_user(body.userid, body.email, role=body.role)
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     out = _user_to_out(user)
     return UserCreated(**out.model_dump(), temp_password=temp)
 
@@ -385,7 +385,7 @@ async def wijzig_user(userid: str, body: UserPatchIn):
         # waarbij twee losse checks de laatste actieve beheerder alsnog laten verdwijnen).
         user = await users.patch_user(userid, role=body.role, active=body.active)
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     # Deactiveren moet meteen bijten, niet pas als de actief-cache verloopt.
     vergeet_actief(userid)
     return _user_to_out(user)
@@ -396,7 +396,7 @@ async def reset_user_wachtwoord(userid: str):
     try:
         user, temp = await users.reset_password(userid)
     except users.UserError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return TempPassword(userid=user.userid, temp_password=temp)
 
 
@@ -406,7 +406,7 @@ async def reset_user_2fa(userid: str, door: str = Depends(beheerder_met_2fa)):
     try:
         user = await users.reset_2fa(userid, door=door)
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     vergeet_actief(user.userid)
     logger.warning(
         "2FA gereset door een beheerder",
@@ -438,7 +438,7 @@ async def verwijder_user(userid: str) -> dict[str, list[str]]:
     try:
         gesprekken = await users.delete_user(userid)
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     vergeet_actief(userid)
     return {"gesprekken": gesprekken}
 
@@ -510,7 +510,7 @@ async def zet_budget(body: BudgetIn, door: str = Depends(beheerder_met_2fa)):
             periode_dagen=body.periode_dagen, actief=body.actief, anker=body.anker, actor=door,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     logger.info(
         "budgetbeleid gewijzigd",
         extra={"categorie": "security", "actie": "budget_gewijzigd",
@@ -601,7 +601,7 @@ async def lijst_registraties(status_filter: str | None = Query(default=None, ali
     try:
         rijen = await registraties.lijst(status_filter)
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return [_registratie_to_out(r) for r in rijen]
 
 
@@ -614,7 +614,7 @@ async def keur_registratie_goed(
             aanvraag_id, userid=body.userid, role=body.role, actor=admin_id
         )
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     logger.info(
         "registratie goedgekeurd",
         extra={"categorie": "security", "actie": "registratie_goedgekeurd",
@@ -632,7 +632,7 @@ async def wijs_registratie_af(
     try:
         aanvraag = await registraties.wijs_af(aanvraag_id, reden=body.reden, actor=admin_id)
     except users.UserError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
     # De rij bestaat hierna niet meer, dus dit log ís het spoor: wie het was en waarom.
     logger.info(
         "registratie afgewezen en verwijderd",
@@ -670,7 +670,7 @@ async def verwijder_registratie(aanvraag_id: int, admin_id: str = Depends(requir
     try:
         await registraties.verwijder(aanvraag_id)
     except users.UserError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     logger.info(
         "registratie verwijderd",
         extra={"categorie": "security", "actie": "registratie_verwijderd",
@@ -733,7 +733,7 @@ async def maak_api_token(body: ApiTokenCreateIn, admin_id: str = Depends(require
         try:
             record, plaintext = await api_tokens.create_gebruiker(body.label, body.userid, created_by=admin_id)
         except api_tokens.ApiTokenError as e:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
     logger.info("API-token aangemaakt", extra={
         "categorie": "security", "token_id": record["id"], "label": record["label"], "door": admin_id,
         "voor": record["userid"],
@@ -746,7 +746,7 @@ async def trek_api_token_in(token_id: str, admin_id: str = Depends(require_admin
     try:
         await api_tokens.revoke(token_id)
     except api_tokens.ApiTokenError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     logger.info("API-token ingetrokken", extra={
         "categorie": "security", "token_id": token_id, "door": admin_id,
     })
@@ -900,7 +900,8 @@ async def get_ongelezen_feedback_aantal(userid: str = Depends(huidige_beheerder)
 
 @router.post("/feedback/markeer-gezien", status_code=status.HTTP_204_NO_CONTENT)
 async def post_markeer_feedback_gezien(
-    body: MarkeerGezienIn = MarkeerGezienIn(), userid: str = Depends(huidige_beheerder)
+    body: MarkeerGezienIn = MarkeerGezienIn(),  # noqa: B008 – een lege body is geldig; de instantie wordt alleen gelezen
+    userid: str = Depends(huidige_beheerder),
 ):
     await feedback_svc.markeer_feedback_gezien(userid, tot=body.tot)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

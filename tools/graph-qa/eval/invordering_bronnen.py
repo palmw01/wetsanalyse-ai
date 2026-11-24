@@ -35,7 +35,7 @@ def haal(graph, vervang=False):
         controles.update({"AWB-4:17-1": ("BWBR0005537", "4:17", "1", ""),
                           "IW04": ("BWBR0004770", "34", "6", "")})
     for cid, (bwb, artikel, lid, onderdeel) in controles.items():
-        def lees_node(iri):
+        def lees_node(iri, bwb=bwb, cid=cid):
             q = bron_query(bwb).replace("  ?node a ?type .", f"  VALUES ?node {{ <{iri}> }}\n  ?node a ?type .")
             rows = parse_rows(query(q))
             if len(rows) != 1:
@@ -95,7 +95,7 @@ SELECT DISTINCT ?node WHERE {{ GRAPH <urn:bwb:graph:{bwb}> {{
             context.append(lees_node(eerste[0]["node"]))
         toestand = info[0].get("geldigVanaf") or snap.get("toestand") or "onbekend"
         status = info[0].get("soort") or "onbekend"
-        def passage(n):
+        def passage(n, toestand=toestand, status=status, snap=snap):
             return {"bron_iri": n["bron_iri"], "tekst": n["tekst"], "bron_hash": n["bron_hash"],
                     "herkomst": "graaf", "toestand": toestand, "juridische_status": status,
                     "functie": "ouderaanhef" if n in snap["voorouders"] else "expliciete hoofdregel"}

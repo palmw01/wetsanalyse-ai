@@ -29,7 +29,7 @@ import pytest_shard  # noqa: E402
 def _jobs() -> dict[str, str]:
     _, _, rest = TEKST.partition("\njobs:\n")
     delen = re.split(r"^  ([A-Za-z0-9_-]+):\s*$", rest, flags=re.M)
-    return dict(zip(delen[1::2], delen[2::2]))
+    return dict(zip(delen[1::2], delen[2::2], strict=True))
 
 
 JOBS = _jobs()

@@ -263,7 +263,8 @@ class KennisgroepenBron:
             return met_herhaling(doe, beleid=STANDAARD, host=kg.HOST, slaap=self._slaap, logger=logger,
                                  gebeurtenis="kennisgroepen_verzoek_mislukt")
         except httpx.HTTPError as exc:
-            raise KennisgroepenFout("onbereikbaar", f"de site van de kennisgroepen is niet te bereiken ({type(exc).__name__})")
+            raise KennisgroepenFout(
+                "onbereikbaar", f"de site van de kennisgroepen is niet te bereiken ({type(exc).__name__})") from exc
 
     def _item(self, wp_id: int) -> tuple[dict[str, Any], bool]:
         with self._lock:

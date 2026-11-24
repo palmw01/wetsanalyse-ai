@@ -65,7 +65,7 @@ def test_een_specialist_draagt_precies_de_secties_van_zijn_rol(naam: str):
     assert cat.onderdeel(bc.oid("rol", rol)).versie == vingerafdruk(rol)
     system = specialists.get(naam).system
     eigen = set(PAKKET["rollen"][rol])
-    for sectie, s in PAKKET["secties"].items():
+    for sectie in PAKKET["secties"]:
         assert (f"[{sectie}]\n" in system) == (sectie in eigen), f"{naam}: sectie {sectie}"
 
 

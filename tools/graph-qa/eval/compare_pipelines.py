@@ -141,7 +141,7 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
                if g["annotation_status"] != "debatable"]
 
         def telt(p: Ref) -> bool:
-            return (p.bron, p.start, p.eind) not in betwist
+            return (p.bron, p.start, p.eind) not in betwist  # noqa: B023 – direct aangeroepen in dezelfde iteratie
 
         per_ronde, onbetwist, uitslagen, geel = [], [], [], []
         for ronde in sorted({r["ronde"] for r in runs}):

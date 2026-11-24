@@ -93,7 +93,7 @@ def test_zonder_graafconfiguratie_start_hij_niet(monkeypatch):
     monkeypatch.setattr(
         mcp_server.Settings, "from_env", classmethod(lambda cls: make_settings(graphdb_mcp_url=""))
     )
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="Graaf niet geconfigureerd"):
         mcp_server._bouw_server()
 
 
@@ -128,13 +128,13 @@ def _harnas():
     from test_resultaatcontract import ARGS, CONNECTOR_ARGS, NEPBRONNEN, WorstCaseGraaf, _aanroep, _connector, nepgraaf
 
     for naam, args in ARGS.items():
-        yield naam, lambda n, a, g=WorstCaseGraaf(): _aanroep(n, a, g), args
+        yield naam, lambda n, a, g=WorstCaseGraaf(): _aanroep(n, a, g), args  # noqa: B008 – één graaf per tool, bewust
     for naam, lijst in CONNECTOR_ARGS.items():
         c = _connector(naam)
         for args, _ in lijst:
             bron = NEPBRONNEN[c](1001, alineas=300)
             inst = make_settings(**{f"connector_{c}": True})
-            yield naam, lambda n, a, b=bron, i=inst, c=c, g=nepgraaf(c): tools.dispatch(n, g, a, i, **{c: b}), args
+            yield naam, lambda n, a, b=bron, i=inst, c=c, g=nepgraaf(c): tools.dispatch(n, g, a, i, **{c: b}), args  # noqa: B008 – per connector vastgelegd
 
 
 def test_structured_content_voldoet_aan_het_schema_voor_elke_contracttool():

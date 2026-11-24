@@ -186,7 +186,6 @@ _VOORLEESVORMEN = [(c.leestool, c.lees_argument, c.voorbeeld_id) for c in bm.CON
 def test_een_doorgelezen_stuk_geeft_een_spoorregel(tool, arg, ident):
     """Iteratie bekendmakingen ronde 4, B21: de voorlezing las een stuk in zeven pagina's, en het spoor zei zes keer
     "deels gelezen, er is meer dan dit". Nu één regel per stuk, voor elke connector; één pagina meldt zich zoals eerst."""
-    import json
     from types import SimpleNamespace
     from unittest.mock import patch
 

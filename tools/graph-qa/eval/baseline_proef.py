@@ -81,7 +81,7 @@ def plan(baseline: Path) -> dict:
                 if f'{c["id"]}/{v}' not in identiek:
                     pogingen.append({"ronde": ronde, "casus": c["id"], "variant": v})
     return {"schema_versie": 1, "model": MODEL, "herhalingen": HERHALINGEN,
-            "varianten": {k: dict(zip(("code", "granulariteit", "context"), v)) for k, v in VARIANTEN.items()},
+            "varianten": {k: dict(zip(("code", "granulariteit", "context"), v, strict=True)) for k, v in VARIANTEN.items()},
             "code": {"baseline": codehash(baseline), "variant": codehash(ROOT)},
             "casussen_sha256": p["casussen_sha256"], "identiek_aan": identiek,
             "primaire_pogingen": len(pogingen), "pogingen": pogingen,
@@ -202,7 +202,7 @@ def run(baseline: Path, parallel: int):
             for x in manifest["pogingen"]:
                 if x["ronde"] == ronde:
                     per_casus.setdefault(x["casus"], []).append(x["variant"])
-            futures = [pool.submit(lambda c=c, vs=vs: [poging(ronde, c, v) for v in vs])
+            futures = [pool.submit(lambda r=ronde, c=c, vs=vs: [poging(r, c, v) for v in vs])
                        for c, vs in per_casus.items()]
             for f in futures:
                 f.result()

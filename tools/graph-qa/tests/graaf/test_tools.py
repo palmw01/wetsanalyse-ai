@@ -6,7 +6,6 @@ import pytest
 import json
 
 from agent import tools
-from agent.graph import schema
 from agent.mcp_client import MCPError
 from fakes import FakeGraph, make_settings
 
@@ -71,7 +70,7 @@ def _lid3(*rijen: tuple[str, str, str, int | None]) -> FakeGraph:
 def test_een_slottekst_staat_na_de_onderdelen_zoals_in_de_wet():
     """Acceptatie 7 nov 2026: Iw 22 lid 3 stond als aanhef, slotzin, a, b. De query sorteerde op `bwb:volgnummer`, maar
     de handler sorteerde daarna op de IRI, en een slottekst heeft geen `:o:` in zijn IRI."""
-    slot = f"urn:bwb:BWBR0004770:id:BWBR0004770%2FLid3%2FSlottekst1"
+    slot = "urn:bwb:BWBR0004770:id:BWBR0004770%2FLid3%2FSlottekst1"
     g = _lid3((slot, "", "indien de vruchten zich op de bodem bevinden.", 9),
               (f"{_LID3}:o:a", "a.", "de beslaglegging ter zake van naheffingsaanslagen in:", 1),
               (f"{_LID3}:o:a:o:1", "1°.", "de loonbelasting;", 2),

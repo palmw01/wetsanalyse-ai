@@ -94,10 +94,10 @@ def test_csv_houdt_de_oude_kolommen_voorop_en_maakt_formules_onschadelijk():
     kop = rijen[0]
     assert kop[:12] == ["soort", "id", "eigenaar_iri", "klasse", "tekst", "lifecycle", "snapshot_id", "ankers",
                         "beslissingen", "herkomst", "provenance", "laagstatus"]
-    rij = dict(zip(kop, rijen[1]))
+    rij = dict(zip(kop, rijen[1], strict=True))
     assert rij["besloten_door"] == "model" and rij["regels"] == "Termijn; ONBEKEND"
     assert rij["gedegradeerd"] == "ja" and rij["aandacht"] == "groen"
-    assert dict(zip(kop, rijen[2]))["tekst"] == "'=SOM(A1)"
+    assert dict(zip(kop, rijen[2], strict=True))["tekst"] == "'=SOM(A1)"
     assert all(len(r) == len(kop) for r in rijen)
 
 
@@ -220,7 +220,7 @@ async def test_een_relatie_staat_in_csv_pdf_en_json_v4(database):
     kop = rijen[0]
     assert kop[:12] == export._OUDE_KOLOMMEN and kop[-8:] == export._RELATIEKOLOMMEN
     assert all(len(x) == len(kop) for x in rijen)
-    [rij] = [dict(zip(kop, x)) for x in rijen if x[0] == "relatie"]
+    [rij] = [dict(zip(kop, x, strict=True)) for x in rijen if x[0] == "relatie"]
     assert rijen[-1][0] == "relatie"
     assert (rij["id"], rij["relatietype"], rij["leesvorm"], rij["lifecycle"], rij["herkomst"], rij["veranderd"]) == (
         r["id"], "voorwaarde", "geldt onder voorwaarde", "human_approved", "mens", "nee")
@@ -244,7 +244,7 @@ def test_een_veranderde_relatie_met_volgorde_en_een_formule_in_de_csv():
            "naar": {"soort": "element", "id": "e1", "bestaat": True, "klasse": "Afleidingsregel", "tekst": "Alfa"}}
     view = {**_view([_element()]), "relaties": [rel], "impliciet": []}
     rijen = list(csv.reader(io.StringIO(export.csv_export(view, V, lambda e: {}).decode("utf-8-sig"))))
-    rij = dict(zip(rijen[0], rijen[-1]))
+    rij = dict(zip(rijen[0], rijen[-1], strict=True))
     assert (rij["volgorde"], rij["veranderd"], rij["van_tekst"]) == ("2", "ja", "'=SOM(A1)")
     teksten = [t for _s, t in export.pdf_regels(view, V)]
     assert any(t.endswith("· plek 2 (voorgesteld)") for t in teksten)

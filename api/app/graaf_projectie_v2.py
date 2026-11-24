@@ -531,6 +531,11 @@ async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict, dict]:
     return elementen, {iri: m for iri, (_t, m) in dekking.items()}, relaties
 
 
+def _turtle(laag: dict, elements: list, dekking: dict, relaties: dict) -> bytes:
+    """De graph van één laag als Turtle; rekenwerk voor een thread."""
+    return bouw_graaf(laag, elements, dekking=dekking, relaties=relaties).serialize(format="turtle").encode()
+
+
 #: Hoe vaak een projectie opnieuw begint als de laag tijdens het schrijven veranderde. Daarna neemt de lus hem mee.
 POGINGEN = 3
 
@@ -553,8 +558,7 @@ async def projecteer(laag_id: str) -> bool:
                 laag = dict(row)
                 elements, dekking, relaties = await laag_invoer(conn, laag)
             # rdflib is pure Python: in een thread, want deze lus deelt de event loop met elk verzoek.
-            data = await asyncio.to_thread(
-                lambda: bouw_graaf(laag, elements, dekking=dekking, relaties=relaties).serialize(format="turtle").encode())
+            data = await asyncio.to_thread(_turtle, laag, elements, dekking, relaties)
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
                                      content=data,

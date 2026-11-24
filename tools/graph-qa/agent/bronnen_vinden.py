@@ -482,7 +482,7 @@ def _werkgebied_kiest(graph: GraphPort, deelvragen: list[dict[str, Any]], regeli
     llm, modelnaam, meting = model
     wetten = wetten or [[] for _ in deelvragen]
     per = [_kandidaten_bij(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis, wet)
-           for d, wet in zip(deelvragen, wetten)]
+           for d, wet in zip(deelvragen, wetten, strict=True)]
     kand = deelvraag_keuze.kandidaten_werkgebied(per)
     return deelvraag_keuze.kies_werkgebied(llm, modelnaam, [d.get("vraag", "") for d in deelvragen], dossier, kand,
                                            meting)

@@ -31,7 +31,7 @@ from datetime import date
 from typing import Any, Protocol
 from urllib.parse import quote
 
-from bronmodel.bwb.boom import Plek, artikelen, divisies, divisies_met_plek, onderdelen
+from bronmodel.bwb.boom import Plek, artikelen, divisies_met_plek, onderdelen
 from bronmodel.bwb.models import Artikel, Bijlage, Divisie, Onderdeel
 from bronmodel.connectors import WETGEVING_LIVE
 from bronmodel.extern import bwbt_delen

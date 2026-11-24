@@ -148,7 +148,7 @@ def test_regeling_info_bundelt_meerwaardige_velden():
     for veld in ("?afkorting", "?ondertekenaar", "?organisatie", "?alternatieveTitel"):
         naam = veld.lstrip("?")
         assert f"AS {veld}" in sparql, f"{veld} moet een geaggregeerde projectie zijn"
-        assert f"GROUP_CONCAT(DISTINCT" in sparql and naam in sparql, (
+        assert "GROUP_CONCAT(DISTINCT" in sparql and naam in sparql, (
             f"{veld} is meerwaardig en moet met GROUP_CONCAT worden gebundeld"
         )
     assert "SAMPLE(" in sparql, "enkelwaardige velden horen ook geaggregeerd, anders groepeert niets"

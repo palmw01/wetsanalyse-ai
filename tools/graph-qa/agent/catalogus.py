@@ -13,7 +13,6 @@ Of er een model aan te pas komt, wordt afgeleid, niet met de hand gezet:
 """
 from __future__ import annotations
 
-import re
 from dataclasses import replace
 from functools import cache
 from pathlib import Path
@@ -294,7 +293,7 @@ def _regelset(pad: Path, map_: str) -> Onderdeel:
 def _profielen(paden: list[Path]) -> Onderdeel:
     teksten = [p.read_text(encoding="utf-8") for p in paden]
     profielen = []
-    for p, t in zip(paden, teksten):
+    for p, t in zip(paden, teksten, strict=True):
         d = yaml.safe_load(t)
         profielen.append({"bestand": p.name, "klasse": d.get("jas_class"), "bron": d.get("bron"),
                           "regels": [r.get("id") for r in d.get("candidate_rules") or [] if isinstance(r, dict)]})

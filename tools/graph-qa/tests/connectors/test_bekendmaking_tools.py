@@ -27,7 +27,7 @@ from agent.tools.op_xml import lees
 from bronmodel.connectors import BEKENDMAKINGEN, genoemde_stukken
 from bronmodel.extern import externe_vindplaats, koop_id_uit_bron
 
-from fakes import tool_block, FakeGraph
+from fakes import FakeGraph
 
 
 @pytest.fixture(autouse=True)
@@ -587,7 +587,6 @@ def test_een_lange_reeks_splitst_de_code_zelf():
     keer, en het model splitste telkens een stap verder (450k tokens). Een reeks binnen het totaal neemt de code nu in één
     keer; pas boven het totaal volgt één weigering met het aantal."""
     from agent.sjablonen import extern
-    from agent.sjablonen.vullen import Onvulbaar
 
     eerste = roep("get_bekendmaking", {"id": "stb-2009-610"})
     trace = [("get_bekendmaking", json.dumps(eerste, ensure_ascii=False))]

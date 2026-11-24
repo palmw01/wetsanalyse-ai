@@ -601,7 +601,7 @@ def vergelijk_relaties(relaties: list[dict[str, Any]], elementen: list[dict[str,
         def gedekt(k: dict[str, Any]) -> bool | None:
             if k.get("letterlijk", "ja") != "ja":
                 return None
-            return any(e.get("klasse") == k["klasse"] and _zelfde_plek(e.get("tekst", ""), k["label"]) for e in hier)
+            return any(e.get("klasse") == k["klasse"] and _zelfde_plek(e.get("tekst", ""), k["label"]) for e in hier)  # noqa: B023 – direct aangeroepen in dezelfde iteratie
 
         stand = {kid: gedekt(k) for kid, k in b["knopen"].items()}
         knoopstand += [{"bron": bron_sleutel(b["bron"]), "klasse": k["klasse"], "label": k["label"],
@@ -838,7 +838,7 @@ def regelskelet(relaties: list[dict[str, Any]], prels: list[dict[str, Any]],
         vertaald, _, _ = _vertaal(b, mapping)
 
         def meetbaar(a: str, z: str) -> bool:
-            return _meetbaar(b["knopen"][a]) and _meetbaar(b["knopen"][z])
+            return _meetbaar(b["knopen"][a]) and _meetbaar(b["knopen"][z])  # noqa: B023 – direct aangeroepen in dezelfde iteratie
         for rid, k in b["knopen"].items():
             if k["klasse"] != "Afleidingsregel":
                 continue

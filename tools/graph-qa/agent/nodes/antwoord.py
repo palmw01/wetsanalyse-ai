@@ -167,6 +167,11 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # achter de toolresultaten in het laatste bericht. Dat staat na de cachepunten, dus het voorvoegsel blijft gelijk;
         # de tools beperken of `tool_choice` zouden de cache breken of op de nieuwste modellen een 400 geven.
         venster = met_laatste_ronde(venster, laatste)
+    elif laatste_beurtronde(b, state):
+        # De laatste ronde van de beurt zelf (`max_turns`): de code zegt het, zoals bij een subagent. Zonder deze melding
+        # vroeg het model nog een tool, die het vangnet hieronder liet vallen, en werd zijn tussenzin het antwoord
+        # (acceptatie 24 nov 2026, 20 rondes: "Laat me de overige halen.").
+        venster = met_laatste_ronde(venster, "rondegrens", tekst=AFRONDEN_OP_DE_GRENS)
     final = agent.ronde(b.llm, b.settings, systeem=systeem, berichten=venster, berichtpunten=berichtpunten,
                         bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader,
                         werkgebied=bool(state.get("werkgebied_id")))
@@ -642,9 +647,24 @@ def voorbij_laatste(b: Any, state: State) -> bool:
         or verbruikt(b.llm) >= max_tokens(state))
 
 
-def met_laatste_ronde(venster: list[dict[str, Any]], reden: str) -> list[dict[str, Any]]:
+#: Wat het model hoort in de laatste ronde van een gewone beurt (`laatste_beurtronde`).
+AFRONDEN_OP_DE_GRENS = ("LAATSTE RONDE (de rondegrens, van de code): je kunt niets meer lezen of opzoeken. Geef nu je "
+                        "antwoord met wat je al las: met een sjabloon als dat past, anders in tekst. Is het onvolledig, "
+                        "zeg dan wat je vond en wat je niet meer kon nalezen. Schrijf niet dat je nog iets gaat ophalen, "
+                        "en roep geen andere tool aan dan een sjabloon.")
+
+
+def laatste_beurtronde(b: Any, state: State) -> bool:
+    """De laatste modelronde van een gewone beurt: niet een subagent (die heeft `laatste_ronde`) en niet de ophaalstap van
+    een annotatie (die geeft JSON, geen antwoord)."""
+    if state.get("opdracht") or state.get("specialist") == "annotatie":
+        return False
+    return state.get("turns", 0) >= max_rondes(b.settings, state) - 1
+
+
+def met_laatste_ronde(venster: list[dict[str, Any]], reden: str, tekst: str = "") -> list[dict[str, Any]]:
     """Het venster met de melding van de laatste ronde achter het laatste bericht (een user-bericht met toolresultaten)."""
-    tekst = (f"LAATSTE RONDE ({LAATSTE_RONDE.get(reden, reden)}, van de code): je kunt niets meer lezen. Rond nu af met "
+    tekst = tekst or (f"LAATSTE RONDE ({LAATSTE_RONDE.get(reden, reden)}, van de code): je kunt niets meer lezen. Rond nu af met "
              "het sjabloon rapport, met wat je al hebt: status klaar als het genoeg is, status vraag als je niet verder "
              "kunt zonder een antwoord van de gebruiker (met je vragen en wat je al vond), anders niet_gelukt met wat "
              "je vond en wat ontbreekt. Roep geen andere tool aan.")

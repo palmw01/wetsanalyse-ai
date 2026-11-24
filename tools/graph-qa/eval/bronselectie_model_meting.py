@@ -120,7 +120,7 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
     deelvraag vindt (`_pool`, de woordenroute vóór de rangschikking) samen met de pool rond de gebeurtenis; *bij de 40*
     is wat het model te zien kreeg; *gekozen* wat het koos. Uit het spoor van de eerste modelronde, of van een variant:
     met de vlag `wetstermen` zoekt *gevonden* ook op de termen die de variant bij die deelvraag gebruikte."""
-    from agent import deelvraag_zoeken, zoekvragen, zoektermen
+    from agent import deelvraag_zoeken, zoekvragen
     from eval.bronselectie_eval import _pool, _raakt
 
     per_vraag = {e["vraag"]: e for e in spoor if e["set"] == s["naam"]}
@@ -142,7 +142,7 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
             if v["deelvraag"] != i or v["rol"] not in ("kern", "afhankelijkheid"):
                 continue
             iri = v["bron_iri"]
-            raakt = lambda lijst: any(_raakt(c, iri) for c in lijst)  # noqa: E731
+            raakt = lambda lijst: any(_raakt(c, iri) for c in lijst)  # noqa: E731, B023 – direct aangeroepen in dezelfde iteratie
             fase = (FASEN[3] if raakt(e["gekozen"]) else FASEN[2] if raakt(e["kandidaten"])
                     else FASEN[1] if raakt(gevonden) else FASEN[0])
             tel[fase] += 1
@@ -174,7 +174,7 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
     lijst`. 0 tokens buiten de wetstermen, die de gedeelde cache al heeft."""
     from dataclasses import replace
 
-    from agent import deelvraag_keuze, deelvraag_zoeken, zoekvragen, zoektermen
+    from agent import deelvraag_keuze, deelvraag_zoeken, zoekvragen
     from agent.bronnen_vinden import artikel_van
     from eval.bronselectie_eval import _dossier, _raakt, wetstermen_voor
 
@@ -213,7 +213,7 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
                 continue
 
             def plaats(lijst: list[str]) -> int | None:
-                return next((n for n, c in enumerate(lijst, 1) if _raakt(c, iri)), None)
+                return next((n for n, c in enumerate(lijst, 1) if _raakt(c, iri)), None)  # noqa: B023 – direct aangeroepen in dezelfde iteratie
 
             pw, pp = plaats(woorden), plaats(uit_pool)
             buur = next((c for c in kand if c != iri and artikel_van(c) == artikel_van(iri)), "")

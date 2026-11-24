@@ -52,8 +52,8 @@ def past(patroon: str, pad: str) -> bool:
     a, b = patroon.strip("/").split("/"), pad.strip("/").split("/")
     if "{*}" in a:
         i = a.index("{*}")
-        return len(b) >= i + 1 and all(x == "{}" or y == "{}" or x == y for x, y in zip(a[:i], b[:i]))
-    return len(a) == len(b) and all(x == "{}" or y == "{}" or x == y for x, y in zip(a, b))
+        return len(b) >= i + 1 and all(x == "{}" or y == "{}" or x == y for x, y in zip(a[:i], b[:i], strict=True))
+    return len(a) == len(b) and all(x == "{}" or y == "{}" or x == y for x, y in zip(a, b, strict=True))
 
 
 def gewicht(patroon: str) -> int:

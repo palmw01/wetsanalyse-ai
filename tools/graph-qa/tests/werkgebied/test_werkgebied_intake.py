@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from agent import werkgebied_intake as wi
 from agent.models import ChatRequest
@@ -648,7 +649,7 @@ def test_een_klik_gaat_nooit_een_harde_route_in():
     r = ChatRequest(question="Stel begrippen voor", werkgebied_id="wg1",
                     intake_actie={"intake_id": "ik1", "stap": "naam", "tekst": "Stel begrippen voor"})
     assert r.intake_actie is not None
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ChatRequest(question="x", intake_actie={"intake_id": "ik 1", "stap": "naam"})
 
 

@@ -686,7 +686,7 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     gewicht = {t: math.log((n + 1) / (df[t] + 1)) / (per_woord[brug[t]] if t in brug else 1) for t in termen if df[t]}
     bonus = max(gewicht.values(), default=1.0) or 1.0
     gescoord = []
-    for i, (k, tekst) in enumerate(zip(kandidaten, teksten)):
+    for i, (k, tekst) in enumerate(zip(kandidaten, teksten, strict=True)):
         g = _raakt(termen, tekst, True, heel)
         past = _past_vraagvorm(k, zoekvraag, [w for w in g if w not in brug],
                                bool(profiel is not None and profiel.vraagvorm_eigen_woord))

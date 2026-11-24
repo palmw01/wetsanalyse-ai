@@ -159,7 +159,7 @@ async def delete_conversations(conversation_ids: list[str], *, settings: Setting
             try:
                 await setup()
             except Exception:  # noqa: BLE001 – MemorySaver e.d. hebben geen tabellen
-                pass
+                logger.debug("checkpointer-setup overgeslagen", exc_info=True)
         for conversation_id in conversation_ids:
             await saver.adelete_thread(conversation_id)
 

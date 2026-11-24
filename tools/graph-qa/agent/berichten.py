@@ -6,6 +6,7 @@ node-modules ze kunnen gebruiken.
 """
 from __future__ import annotations
 
+import itertools
 from collections.abc import Iterable
 from typing import Any
 
@@ -195,7 +196,7 @@ def _beurten(messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     if not begins:
         return [list(messages)] if messages else []
     grenzen = [0, *begins[1:], len(messages)]
-    return [list(messages[a:b]) for a, b in zip(grenzen, grenzen[1:])]
+    return [list(messages[a:b]) for a, b in itertools.pairwise(grenzen)]
 
 
 def _omvang(beurten: list[list[dict[str, Any]]]) -> int:

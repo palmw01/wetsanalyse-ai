@@ -149,3 +149,21 @@ def test_binnen_de_antwoordketen_stuurt_alleen_finalize_een_token(bestand: str):
     plekken = [f.name for f in ast.walk(boom) if isinstance(f, ast.FunctionDef)
                for n in ast.walk(f) if isinstance(n, ast.Constant) and n.value == "token"]
     assert set(plekken) <= {"finalize_node"}
+
+
+def test_de_laatste_ronde_van_de_beurt_hoort_dat_hij_moet_afronden():
+    """Zonder de melding vroeg het model in zijn laatste ronde nog een tool, en werd zijn tussenzin het antwoord
+    (acceptatie 24 nov 2026: "Laat me de overige halen."). Alleen de laatste ronde krijgt hem."""
+    from agent.nodes.antwoord import AFRONDEN_OP_DE_GRENS
+
+    settings = make_settings(enable_planning=False, max_turns=2)
+    graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'x' .")
+    llm = FakeLLM([
+        response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+        response([text_block("Wat ik las, zegt dit.")], "end_turn"),
+    ])
+    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
+    eerste, tweede = (str(c.get("messages")) for c in llm.calls)
+    assert "LAATSTE RONDE" not in eerste
+    assert AFRONDEN_OP_DE_GRENS in tweede
+    assert _tekst(events, "token") == "Wat ik las, zegt dit."

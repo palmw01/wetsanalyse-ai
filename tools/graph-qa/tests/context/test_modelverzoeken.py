@@ -97,7 +97,7 @@ def _vergelijk(naam: str, calls: list[dict[str, Any]]) -> None:
     if tekst != verwacht:
         oud, nieuw = json.loads(verwacht), json.loads(tekst)
         assert len(nieuw) == len(oud), f"{naam}: {len(nieuw)} aanroepen in plaats van {len(oud)}"
-        for i, (o, n) in enumerate(zip(oud, nieuw)):
+        for i, (o, n) in enumerate(zip(oud, nieuw, strict=True)):
             for sleutel in sorted(set(o["verzoek"]) | set(n["verzoek"])):
                 assert n["verzoek"].get(sleutel) == o["verzoek"].get(sleutel), \
                     f"{naam}: aanroep {i + 1} wijkt af in '{sleutel}'"

@@ -19,6 +19,7 @@ from typing import Any
 from bronmodel.extern import externe_vindplaats
 
 from ..resultaat import compact
+from ..xml_lezen import lees_xml
 
 #: Elementen die geen lopende tekst zijn; ze worden geteld en genoemd, nooit stil weggelaten.
 #: De XML van KOOP gebruikt CALS-tabellen (`table`): zonder die sleutel kwamen tabelcellen als losse alinea's mee, zoals
@@ -81,6 +82,20 @@ def _is_inhoudsopgave(tabel: ET.Element) -> bool:
     return eerste.lower() == "inhoudsopgave"
 
 
+def _cals_rij(rij: ET.Element, n: int, index: dict[str, int], noten: list[ET.Element]) -> tuple[list[str], int]:
+    """(cellen, samengevoegde cellen) van één CALS-rij; `n` kolommen, `index` van kolomnaam naar positie."""
+    cellen, vrij, samen = [""] * n, 0, 0
+    for cel in (e for e in rij if e.tag == "entry"):
+        begin = index.get(cel.get("namest") or cel.get("colname") or "", vrij)
+        eind = index.get(cel.get("nameend") or "", begin)
+        if eind > begin or (cel.get("morerows") or "0") != "0":
+            samen += 1
+        if begin < n:
+            cellen[begin] = " ".join(_platte_tekst(cel, {}, noten).split())
+        vrij = eind + 1
+    return cellen, samen
+
+
 def _cals(tabel: ET.Element, noten: list[ET.Element]) -> tuple[list[str], list[list[str]], int]:
     """(kolomkoppen, rijen met cellen, aantal samengevoegde cellen) van een CALS-tabel, zoals KOOP ze schrijft.
 
@@ -96,23 +111,14 @@ def _cals(tabel: ET.Element, noten: list[ET.Element]) -> tuple[list[str], list[l
         n = max(int(groep.get("cols") or 0), len(specs))
         index = {c.get("colname"): i for i, c in enumerate(specs) if c.get("colname")}
 
-        def rij_van(rij: ET.Element) -> list[str]:
-            nonlocal samen
-            cellen, vrij = [""] * n, 0
-            for cel in (e for e in rij if e.tag == "entry"):
-                begin = index.get(cel.get("namest") or cel.get("colname") or "", vrij)
-                eind = index.get(cel.get("nameend") or "", begin)
-                if eind > begin or (cel.get("morerows") or "0") != "0":
-                    samen += 1
-                if begin < n:
-                    cellen[begin] = " ".join(_platte_tekst(cel, {}, noten).split())
-                vrij = eind + 1
-            return cellen
-
-        kop = [rij_van(r) for d in groep if d.tag == "thead" for r in d if r.tag == "row"]
+        gelezen = {deel: [_cals_rij(r, n, index, noten) for d in groep if d.tag == deel for r in d if r.tag == "row"]
+                   for deel in ("thead", "tbody")}
+        samen += sum(s for rij in gelezen.values() for _, s in rij)
+        kop = [cellen for cellen, _ in gelezen["thead"]]
         if kop and not kolommen:
-            kolommen = [" ".join(c for c in kolom if c) for kolom in zip(*kop)]
-        rijen += [c for d in groep if d.tag == "tbody" for r in d if r.tag == "row" if any(c := rij_van(r))]
+            # Elke kopregel heeft `n` cellen, dus `strict`: een ongelijke lengte is een fout in `_cals_rij`.
+            kolommen = [" ".join(c for c in kolom if c) for kolom in zip(*kop, strict=True)]
+        rijen += [cellen for cellen, _ in gelezen["tbody"] if any(cellen)]
     return kolommen, rijen, samen
 
 
@@ -140,7 +146,7 @@ def lees(xml: bytes, *, met_onderdeel: bool = False) -> tuple[dict[str, str], li
 
     Met `met_onderdeel` draagt een rij in een wijzigingsonderdeel (`wijzig-lid`) het veld `onderdeel`: zo kiest een
     leestool de onderdelen die één artikel wijzigen."""
-    root = ET.fromstring(xml)
+    root = lees_xml(xml)
     stuk = next((w for w in (root if root.tag in _WORTELS else None, *(root.find(f".//{n}") for n in _WORTELS))
                  if w is not None), None)
     if stuk is None:

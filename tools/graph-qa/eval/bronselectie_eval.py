@@ -583,7 +583,7 @@ def meet_intake(graaf: Any, s: dict[str, Any], routes: dict[str, Any] | None = N
         overzicht._REGELINGEN_CACHE.clear()
         per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
         if hasattr(route, "profiel"):
-            for i, (p, vraag) in enumerate(zip(per, s["deelvragen"])):
+            for i, (p, vraag) in enumerate(zip(per, s["deelvragen"], strict=True)):
                 p.update(scoor_pool(s, i, _pool(graaf, s, vraag, route.profiel)))
         # Hoeveel opties bij meer dan één deelvraag staan: als het dossier elk kaartje vult, stijgt dit (spoor K).
         tel: dict[str, int] = {}

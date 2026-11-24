@@ -197,7 +197,7 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
             uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "graph_ontbreekt"})
             continue
         echt = await _haal_graph(client, str(bp.graph_iri(wid)))
-        verschil = await asyncio.to_thread(lambda: _vergelijk(bp.bouw_graaf(inv), echt))
+        verschil = await asyncio.to_thread(lambda inv=inv, echt=echt: _vergelijk(bp.bouw_graaf(inv), echt))
         if verschil is not None:
             uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "inhoud_wijkt_af", "detail": verschil})
         if shacl:
@@ -251,7 +251,7 @@ def relatie_diagnose(invoer: dict[str, tuple[list[dict], dict, dict]]) -> dict[s
         for eid, e in sorted(elementen.items()):
             if e.get("klasse") != klasse:
                 continue
-            def raakt(r: dict, kant: str) -> bool:
+            def raakt(r: dict, kant: str, eid: str = eid) -> bool:
                 return r[kant] == {"soort": "element", "id": eid}
             # De kant van de regel volgt uit het type: bij `uitvoer` is de regel `van`, bij `invoer` `naar`.
             telling = {type_: sum(1 for r in relaties if r["type"] == type_

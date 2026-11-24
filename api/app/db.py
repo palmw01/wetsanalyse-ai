@@ -1276,7 +1276,7 @@ async def _na_kolom(conn, tabel, col) -> None:
     # Bestaande rijen hebben NULL (de DEFAULT geldt alleen voor nieuwe rijen op sommige versies);
     # allebei de gevallen meenemen.
     await conn.execute(text(
-        f"UPDATE gesprek_berichten SET run_id = {haal} WHERE run_id IS NULL OR run_id = ''"))
+        f"UPDATE gesprek_berichten SET run_id = {haal} WHERE run_id IS NULL OR run_id = ''"))  # noqa: S608 – `haal` is een vaste expressie per dialect, geen invoer
 
 
 def aware(dt: datetime | None) -> datetime | None:

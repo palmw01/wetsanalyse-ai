@@ -306,7 +306,7 @@ class MCPClient:
         try:
             self._client.close()
         except Exception:  # noqa: BLE001 – sluiten mag nooit de afhandeling breken
-            pass
+            logger.debug("MCP-client niet netjes gesloten", exc_info=True)
 
     def __enter__(self) -> "MCPClient":
         return self

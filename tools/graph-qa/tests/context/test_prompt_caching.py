@@ -8,10 +8,10 @@ Zet je die volgorde om, dan is de cache stil waardeloos: geen fout, alleen de vo
 from __future__ import annotations
 
 import asyncio
-import json
 
 import anthropic
 import pytest
+from pydantic import ValidationError
 
 from agent.adapters.anthropic_llm import _MIN_CACHE_TEKENS, AnthropicLLM
 from agent.agent import answer_stream
@@ -234,7 +234,7 @@ def test_de_meetvlag_zet_de_beurtcontext_terug_in_de_systeemprompt():
     from agent.models import ChatRequest
 
     assert ChatRequest(question="x").beurtcontext_plek == "vraag"
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ChatRequest(question="x", beurtcontext_plek="ergens")
 
     def draai(plek: str) -> dict:
