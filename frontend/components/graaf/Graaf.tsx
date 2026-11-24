@@ -291,8 +291,7 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weerg
               onWissel={(l) => setLagen((oud) => ({ ...oud, [l]: !oud[l] }))}
               dekking={ongedekt.size > 0} begrippen={heeftBegrippen} relaties={heeftRelaties} markering={{ waarde: markering, onKies: setMarkering }} />
             <GraafHint klaar={aangeraakt} terug={benaming.terug} />
-            <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onGroot={onGroot}
-              onNaarAntwoord={focus ? naarAntwoord : undefined} terug={benaming.terug} />
+            <GraafBeeld onTerug={() => { kies(null); bediening.current?.pasIn(); }} onGroot={onGroot} />
           </div>
         </div>}
       </div>
