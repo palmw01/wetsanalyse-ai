@@ -8,7 +8,9 @@ Lex), bouwt hier het `Diagram`; de tekenaars (`diagram_teken`) maken er een PDF-
 - **Alleen de structuur.** Methodische relaties (partijen, voorwerp, voorwaarden, invoer en uitvoer, …); een tekstuele
   relatie zoals "maakt een uitzondering op" staat in de lijst Relaties, niet in het diagram. Van een knoop in een
   andere bepaling gaat het niet verder.
-- **Alleen wat is vastgelegd.** Een afgewezen relatie of een verworpen markering staat er niet in. Wat de methode bij
+- **Alleen wat is vastgelegd.** Alleen goedgekeurde markeringen (`BEOORDEELD`) en impliciete partijen; een voorstel
+  van Lex dat nog niet beoordeeld is, een verworpen markering en een afgewezen relatie staan er niet in. Een
+  voorgestelde relatie tussen goedgekeurde markeringen wel, gestippeld. Wat de methode bij
   een centrale klasse verwacht en ontbreekt, staat in `ontbreekt`: een signaal, geen oordeel.
 - **De hele samenhang binnen de bepaling** (Handleiding §3.4c, p. 34–35): het vertrekpunt is de centrale formulering,
   en wat aan de niet-centrale formuleringen hangt, staat in hetzelfde diagram – ook een afleidingsregel die een kenmerk
@@ -31,6 +33,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from .annotatie_v2_contracts import BEOORDEELD
 from .jas_relaties import CENTRALE_KLASSEN, RELATIETYPEN
 
 DIEPTE = 2
@@ -112,8 +115,23 @@ leeg dict mag. Staat een knoop in een andere bepaling dan de centrale formulerin
 nummer: dat nummer hoort bij een andere lijst."""
 
 
+def beoordeeld(kant: dict) -> bool:
+    """Mag deze kant in het diagram: een markering die de jurist goedkeurde (`BEOORDEELD`: goedgekeurd, aangepast of
+    gepubliceerd), of een impliciete partij (die legt alleen de jurist vast). Een voorstel van Lex dat nog niet is
+    beoordeeld, staat er niet in: het diagram is de samenhang van wat is vastgesteld (melding gebruiker 24 nov 2026)."""
+    return kant.get("soort", "element") != "element" or kant.get("lifecycle") in BEOORDEELD
+
+
 def _actief(r: dict) -> bool:
+    """Een relatie die in de buurt van de graaf meetelt: niet afgewezen of vervangen, en geen verworpen kant. De graaf
+    toont ook voorstellen; het 2c-diagram is strenger (`_vastgesteld`)."""
     return r.get("lifecycle") not in _WEG and r["van"].get("lifecycle") != "rejected" and r["naar"].get("lifecycle") != "rejected"
+
+
+def _vastgesteld(r: dict) -> bool:
+    """Een relatie in het 2c-diagram: actief en tussen twee goedgekeurde kanten (`beoordeeld`). Een voorgestelde
+    relatie tussen goedgekeurde markeringen staat er gestippeld in, om haar in het diagram te beoordelen."""
+    return _actief(r) and beoordeeld(r["van"]) and beoordeeld(r["naar"])
 
 
 def _sleutel(kant: dict) -> str:
@@ -158,7 +176,7 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
     # catalogus `methodisch: false`) is geen regelstructuur (skill `relaties.md`) en hoort niet in het diagram van een
     # centrale klasse (Handleiding §3.4c: partijen, voorwerp, voorwaarden en wat daar aan hangt). Ze blijft in de lijst
     # Relaties, die leidend is.
-    relaties = [r for r in relaties if _actief(r) and RELATIETYPEN.get(r["type"], {}).get("methodisch", True)]
+    relaties = [r for r in relaties if _vastgesteld(r) and RELATIETYPEN.get(r["type"], {}).get("methodisch", True)]
     kanten: dict[str, dict] = {f"element:{centraal['id']}": {"id": centraal["id"], "soort": "element", **centraal}}
     for r in relaties:
         for k in (r["van"], r["naar"]):
@@ -229,7 +247,7 @@ def diagrammen(markeringen: Iterable[dict], relaties: list[dict], info: Info | N
     (een voorwaarde hoort bij haar drager). Een markering die al in een eerder diagram hangt, krijgt er geen eigen; een
     rechtsbetrekking of rechtsfeit die in een ander diagram alleen als eindpunt staat, wel."""
     markeringen = list(markeringen)
-    centraal = sorted((m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and m.get("lifecycle") != "rejected"),
+    centraal = sorted((m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and beoordeeld(m)),
                       key=lambda m: WORTELVOLGORDE.get(m["klasse"], 9))
     gedekt: set[str] = set()
     uit: list[Diagram] = []
