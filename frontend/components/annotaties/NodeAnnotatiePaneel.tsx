@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 
 import { aantal } from "@/lib/aantal";
-import { datumTijd } from "@/lib/datum";
 import { LaadStand } from "@/components/ui/LaadStand";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
@@ -11,6 +10,8 @@ import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
+import { PrullenbakBlok } from "@/components/annotaties/Prullenbak";
+import type { PrullenbakInhoud } from "@/lib/annotatiePrullenbak";
 import { DiagramTab } from "@/components/annotaties/DiagramTab";
 import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/components/annotaties/Relaties";
 import { ongedektPerBron } from "@/lib/dekking";
@@ -231,8 +232,19 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     })));
     setActiefId(undefined);
     setMelding(uit?.graaf === "volgt"
-      ? "Annotatie verwijderd. De kennisgraaf volgt binnen een minuut."
-      : "Annotatie verwijderd.");
+      ? "Annotatie verwijderd en in de prullenbak gezet. De kennisgraaf volgt binnen een minuut."
+      : "Annotatie verwijderd en in de prullenbak gezet.");
+  }
+
+  /** Wat verwijderen kost, voor de bevestiging; zonder opslag die het kent (de rondleiding) een bevestiging zonder telling. */
+  const verwijderImpact = view && opslag.verwijderImpact
+    ? () => opslag.verwijderImpact!({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id }) : undefined;
+
+  /** Terugzetten uit de prullenbak; daarna opnieuw laden. Een 409 (intussen een nieuwe annotatie) blijft een melding. */
+  async function terugzetten(id: string) {
+    await metSpoor("annotatie_terugzetten", () => muteer(() => opslag.terugzetten!(id)));
+    graafStand.ververs();
+    setMelding("Annotatie teruggezet uit de prullenbak.");
   }
 
   // --- Relaties en impliciete partijen (ADR-011). De revisie is die van de dragerlaag; ligt die niet in beeld, dan
@@ -342,7 +354,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         <>
           <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onder={reeksBalk} balk={tabs} vraag={kopVraag}
             onStatus={view.lagen.length && !opname ? status : undefined}
-            onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
+            onVerwijder={view.lagen.length && !opname ? verwijder : undefined} verwijderImpact={verwijderImpact}
             onExport={opname ? undefined : exporteer} onFout={setKopFout} />
           {kopFout && <div className="px-4 pt-3"><Melding type="fout" compact>{kopFout}</Melding></div>}
         </>
@@ -379,6 +391,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         naTekst={graafFeiten}
         onStatus={view.lagen.length && !opname ? status : undefined}
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
+        verwijderImpact={verwijderImpact}
         alleenLezen={!!opname}
         onSluiten={onSluit}
         onEscapeEinde={onVerberg}
@@ -387,7 +400,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         kopBalk={tabs || undefined}
         onExport={opname ? undefined : exporteer}
         extra={<>
-          <NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />
+          <NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend}
+            prullenbak={!opname && opslag.terugzetten ? { haalItem: opslag.prullenbakItem, terugzetten } : undefined} />
           <ImplicietePartijen partijen={view.impliciet ?? []} gebruiker={gebruiker}
             onMaak={!opname && opslag.maakImpliciet && laagOpen(view.lagen.find((l) => l.bron_iri === view.doel.bron_iri)?.id) ? maakImpliciet : undefined}
             onWis={!opname && opslag.wisImpliciet ? wisImpliciet : undefined} />
@@ -439,10 +453,12 @@ function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: No
 
 /** Wat alleen een bronnode-annotatie kent: een gewijzigde bronstand, markeringen die over deze
  *  bepaling heen lopen, en de voortgang per laag als de bepaling er meer dan één draagt. */
-function NodeExtra({ view, doel, onKies, historie }: {
+function NodeExtra({ view, doel, onKies, historie, prullenbak }: {
   view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void;
   /** De revisiehistorie komt van de api; zonder (de rondleiding) valt er niets op te halen. */
   historie: boolean;
+  /** Terugzetten en vergelijken; zonder (de rondleiding, een oude versie) alleen lezen. */
+  prullenbak?: { haalItem?: (id: string) => Promise<PrullenbakInhoud>; terugzetten: (id: string) => Promise<void> };
 }) {
   const labelVan = (iri: string) => {
     const s = view.segmenten.find((seg) => seg.bron_iri === iri);
@@ -453,11 +469,8 @@ function NodeExtra({ view, doel, onKies, historie }: {
       {historie && view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
       <DekkingOverzicht dekking={view.dekking} labelVan={labelVan}
         volgorde={[...view.segmenten].sort((a, b) => a.volgorde - b.volgorde).map((x) => x.bron_iri)} />
-      {view.verwijderd && (
-        <Melding type="uitleg" compact>
-          Deze annotatie is verwijderd op {datumTijd(view.verwijderd.op)}. Vraag Lex om de bepaling opnieuw te annoteren, of markeer zelf.
-        </Melding>
-      )}
+      <PrullenbakBlok prullenbak={view.prullenbak} verwijderd={view.verwijderd} elementenNu={view.elementen}
+        haalItem={prullenbak?.haalItem} onTerugzetten={prullenbak?.terugzetten} />
       {doel.snapshot_id && doel.snapshot_id !== view.snapshot_id && (
         <Melding type="uitleg" compact>
           De wettekst is gewijzigd sinds deze annotatie werd gemaakt. Je ziet de huidige versie;

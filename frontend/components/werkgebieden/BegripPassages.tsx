@@ -1,6 +1,7 @@
 "use client";
 
 import { aantal } from "@/lib/aantal";
+import { BronVerwijderdRegel } from "@/components/annotaties/BronVerwijderdRegel";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useMemo, useState } from "react";
@@ -151,7 +152,8 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
         </p>
       )}
       {geraakt && <Herbeoordeling id={id} begrip={begrip} geraakt={geraakt} muteer={muteer} />}
-      {!geraakt && (k.actualiteit !== "actueel" || !k.annotatie_beoordeeld) && (
+      {!geraakt && k.bron_verwijderd && <BronVerwijderdRegel b={k.bron_verwijderd} />}
+      {!geraakt && !k.bron_verwijderd && (k.actualiteit !== "actueel" || !k.annotatie_beoordeeld) && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
           {[k.actualiteit !== "actueel" && ACTUALITEIT_LABEL[k.actualiteit],
             k.actualiteit === "actueel" && !k.annotatie_beoordeeld && "annotatie nog niet door een jurist beoordeeld"]

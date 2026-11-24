@@ -22,9 +22,17 @@ const segment = (lid) => ({ bron_iri: `urn:lid${lid}`, parent_iri: "urn:artikel9
   tekst: lid === 1 ? "A😀 ontvanger" : "UITSLUITEND TWEE", bron_hash: `hash${lid}`, volgorde: lid });
 // Bepalingen waarvan de annotatie in deze run is verwijderd (POST weergave/verwijder).
 const verwijderd = new Set();
+// Een verwijderde annotatie ligt in de prullenbak en is terug te zetten (`prullenbak/<id>/terugzetten`).
+const prullenbak = (iri) => ({ id: `p-${iri}`, weergave_iri: iri, bron_iris: [iri], door: "jurist-b", op: "2026-09-25T10:00:00+00:00",
+  bewaard_tot: "2026-10-25T10:00:00+00:00", markeringen: 9, beoordeeld: 7, lagen: 2, terugzetbaar: true, bezet: [] });
 const view = (iri) => verwijderd.has(iri)
-  ? { ...volledigeView(iri), lagen: [], elementen: [], verwijderd: { op: "2026-09-25T10:00:00+00:00" } }
+  ? { ...volledigeView(iri), lagen: [], elementen: [], verwijderd: { op: "2026-09-25T10:00:00+00:00", door: "jurist-b" },
+      prullenbak: prullenbak(iri) }
   : volledigeView(iri);
+// Wat verwijderen kost: de bevestiging noemt het.
+const IMPACT = { lagen: 2, markeringen: 9, beoordeeld: 7, historie: 0, relaties: 0, bewaartermijn_dagen: 30,
+  begrippen: [{ id: "b1", naam: "belastingschuldige", werkgebied_id: "w" }, { id: "b2", naam: "aanslag", werkgebied_id: "w" }],
+  regels: [{ id: "r1", naam: "verschuldigde belasting", werkgebied_id: "w" }] };
 function volledigeView(iri) {
   const ids = iri === "urn:artikel9" ? [1, 2] : [iri === "urn:lid2" ? 2 : 1];
   return { schema_versie: 2, doel: iri === "urn:artikel9"
@@ -147,9 +155,17 @@ await page.route("**/api/**", async (route) => {
   else if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
   else if (url.pathname.includes("/verbruik")) body = { actief: false, geblokkeerd: false };
   else if (url.pathname.endsWith("/elementen")) body = { id: "nieuw" };
+  if (url.pathname.endsWith("/weergave/verwijder-impact")) return route.fulfill({ json: IMPACT });
   if (url.pathname.endsWith("/weergave/verwijder")) {
-    verwijderd.add(req.postDataJSON().bron_iri);
-    return route.fulfill({ json: { verwijderd: { lagen: 2, elementen: 1 }, graaf: "verwijderd" } });
+    const iri = req.postDataJSON().bron_iri;
+    verwijderd.add(iri);
+    return route.fulfill({ json: { verwijderd: { lagen: 2, elementen: 1 }, graaf: "verwijderd",
+      prullenbak: { id: `p-${iri}`, bewaartermijn_dagen: 30 } } });
+  }
+  const terug = url.pathname.match(/\/prullenbak\/p-([^/]+)\/terugzetten$/);
+  if (terug) {
+    verwijderd.delete(decodeURIComponent(terug[1]));
+    return route.fulfill({ json: { teruggezet: { lagen: 2, elementen: 1, relaties: 0, impliciet: 0 } } });
   }
   if (url.pathname.endsWith("/weergave/export")) return route.fulfill({ contentType: "application/json", body: "{}" });
   return route.fulfill({ status: 200, json: body });
@@ -165,6 +181,20 @@ async function selecteer(van, tot) {
     window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
     blokken[tot[0]].dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
   }, [van, tot]);
+}
+// Met PRULLENBAK_SCREENSHOT=<map>: een beeld van de bevestiging en de prullenbak, breed en op 390 px (voor de PR).
+async function schermBreedEnSmal(naam, inBeeld) {
+  const map = process.env.PRULLENBAK_SCREENSHOT;
+  if (!map) return;
+  await page.waitForTimeout(600);  // de animatie van het venster
+  if (inBeeld) await inBeeld.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${map}/${naam}-desktop.png` });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(600);
+  if (inBeeld) await inBeeld.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${map}/${naam}-390.png` });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForTimeout(300);
 }
 // Wacht op een vastgelegde request; `waitForResponse` na de klik mist een gemockt antwoord dat al binnen is.
 async function verzoek(pred, aantal = 1) {
@@ -263,13 +293,32 @@ try {
   assert.equal(await page.getByTestId("dekking-gevonden").first().textContent(), "Gevonden: actor 1 · niets: tijd");
   await page.getByTestId("dekking-balk").getByRole("button", { name: "Verbergen" }).click();
   assert.equal(await wettekst().locator("[data-ongedekt]").count(), 0);
-  // Verwijderen: onderaan in het menu ⋯, tweede klik bevestigt, alle lagen in beeld met hun revisie.
+  // Verwijderen: onderaan in het menu ⋯; een venster noemt wat er verloren gaat, en pas *Verwijderen* daarin doet het,
+  // voor alle lagen in beeld met hun revisie.
   await page.locator("[data-paneel-kop] [data-meer-knop]").first().click();
   await page.getByRole("menuitem", { name: "Annotatie verwijderen", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Verwijderen?", exact: true }).click();
+  const bevestiging = page.getByRole("dialog", { name: "Annotatie verwijderen" });
+  await bevestiging.locator("[data-verwijder-verlies]").getByText("9 markeringen, waarvan 7 beoordeeld", { exact: false }).waitFor();
+  assert.equal((await bevestiging.locator("[data-verwijder-verwijzers]").textContent()).trim(),
+    "2 begrippen (“belastingschuldige” en “aanslag”) en 1 afleidingsregel (“verschuldigde belasting”) verwijzen ernaar; "
+    + "daar staat dan “bron verwijderd”.");
+  await bevestiging.getByText("Je kunt de annotatie 30 dagen terugzetten", { exact: false }).waitFor();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder-impact"))).body,
+    { bron_iri: "urn:artikel9", snapshot_id: "snapshot" });
+  await schermBreedEnSmal("bevestiging");
+  // Annuleren verwijdert niets.
+  await bevestiging.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await bevestiging.waitFor({ state: "detached" });
+  assert.equal(requests.filter((r) => r.path.endsWith("/weergave/verwijder")).length, 0);
+  await page.locator("[data-paneel-kop] [data-meer-knop]").first().click();
+  await page.getByRole("menuitem", { name: "Annotatie verwijderen", exact: true }).click();
+  await bevestiging.locator("[data-verwijder-bevestig]").click();
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"))).body,
     { bron_iri: "urn:artikel9", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid1": 1, "urn:lid2": 1 } });
-  await page.getByText("Deze annotatie is verwijderd op", { exact: false }).waitFor();
+  const inBak = page.locator('[data-prullenbak="terugzetbaar"]');
+  await inBak.getByText("Deze annotatie is verwijderd op 25 sep 2026 door jurist-b", { exact: false }).waitFor();
+  await inBak.getByText("9 markeringen, waarvan 7 beoordeeld", { exact: false }).waitFor();
+  await schermBreedEnSmal("prullenbak", inBak);
   // Een verwijderde annotatie is niet nog eens te verwijderen (het menu houdt alleen de export).
   const meer = page.locator("[data-paneel-kop] [data-meer-knop]:visible");
   if (await meer.count()) {
@@ -279,6 +328,11 @@ try {
     await page.keyboard.press("Escape");
   }
   assert.equal(await page.getByRole("button", { name: "Annotatie afronden", exact: true }).count(), 0);
+  // Terugzetten: het item uit de prullenbak, en de annotatie staat er weer.
+  await inBak.locator("[data-terugzetten]").click();
+  await verzoek((r) => r.path.endsWith("/prullenbak/p-urn%3Aartikel9/terugzetten") || r.path.endsWith("/prullenbak/p-urn:artikel9/terugzetten"));
+  await inBak.waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Annotatie afronden", exact: true }).first().waitFor();
   await page.goto(`${base}/workbench?gesprek=g1`);
   // Na herladen staat wat Lex over de annotatie zei boven de kaart; in een gesprek is de header compact.
   // `textContent`, niet `innerText`: de rij kan buiten beeld staan, en `content-visibility: auto`
@@ -345,10 +399,19 @@ try {
   await page.goto(`${base}/annotaties?weergave=alles`);
   const kaart = page.locator("article", { hasText: "art. 9 lid 2" });
   await kaart.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
-  await kaart.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  // Dezelfde bevestiging als in het paneel, met wat er verloren gaat.
+  const lijstBevestiging = page.getByRole("dialog", { name: "Annotatie verwijderen" });
+  await lijstBevestiging.locator("[data-verwijder-verwijzers]").waitFor();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder-impact"), 2)).body,
+    { bron_iri: "urn:lid2", snapshot_id: "snapshot" });
+  await lijstBevestiging.locator("[data-verwijder-bevestig]").click();
   await kaart.waitFor({ state: "detached" });
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"), 2)).body,
     { bron_iri: "urn:lid2", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid2": 1 } });
+  // De melding biedt *Terugzetten*; de kaart komt terug.
+  await page.locator("[data-verwijderd-melding] [data-terugzetten]").click();
+  await kaart.waitFor();
+  await page.getByText(/^De annotatie van .* is teruggezet\.$/).waitFor();
 
   // Relaties (ADR-011): het blok in de kaart, een veranderde relatie bovenaan, beslissen, een 412 met opnieuw lezen,
   // een impliciete partij en verbinden in beide richtingen.
@@ -410,5 +473,5 @@ try {
   await toetsToegankelijkheid(page, "annotatiepaneel met relaties");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: relaties in het paneel (zien, beslissen, 412, impliciete partij, verbinden); vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract, samenvatting van Lex na herladen en verwijderen vanuit de lijst.");
+  console.log("Browser OK: relaties in het paneel (zien, beslissen, 412, impliciete partij, verbinden); vertrouwd paneel op bronnodes, verwijderen met bevestiging (wat er verloren gaat) en terugzetten, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract, samenvatting van Lex na herladen en verwijderen en terugzetten vanuit de lijst.");
 } finally { await browser.close(); }

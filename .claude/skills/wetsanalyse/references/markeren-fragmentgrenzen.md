@@ -70,11 +70,19 @@ klassen om dezelfde functie, noteer een alternatief met reden. De hiërarchie in
 geen algemene beslisboom die grotere elementen verwijdert. Alleen de expliciete
 voorrang van tijd/plaats boven variabele/parameter geldt bij dezelfde functie.
 
-Bij een duur of hoeveelheid in een tijdsaanduiding ('zes weken na …', 'binnen 48 uur')
-markeer je de tijdsaanduiding één keer, met het subtype *verbijzondert parameter*; geen
-tweede markering Parameter op dezelfde formulering. Een getal in cijfers daarin ('48') is
-wel een eigen, geneste parameterwaarde: een andere functie (de waarde) binnen de
-omschrijving. Zie jas-klassen-referentie.md §10, *Verbijzondering*.
+Kan een formulering zowel tijdsaanduiding als parameter of variabele zijn, dan markeer je haar één keer, als
+Tijdsaanduiding (H2:107), en leg je met het subtype vast welke klasse zij verbijzondert (M01 h.4 §12, *Relatie met
+andere klassen*):
+
+- een duur of hoeveelheid ('zes weken na …', 'binnen 48 uur') of een vaste datum: *verbijzondert parameter*, want
+  zij is voor iedereen gelijk; geen tweede markering Parameter op dezelfde formulering;
+- een moment dat per geval verschilt ('de dagtekening van het aanslagbiljet'): *verbijzondert variabele*; geen
+  tweede markering Variabele.
+
+Zij neemt de relaties over van de klasse die zij verbijzondert: als variabele is zij bijvoorbeeld kenmerk van het
+aanslagbiljet. Zegt de context niet of het moment per geval verschilt, laat het subtype dan leeg en noteer de twijfel.
+Een getal in cijfers in de tijdsaanduiding ('48') is wel een eigen, geneste parameterwaarde: een andere functie (de
+waarde) binnen de omschrijving. Zie jas-klassen-referentie.md §10, *Verbijzondering*.
 
 ## Verwijzende formuleringen
 

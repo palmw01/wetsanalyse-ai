@@ -286,9 +286,6 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
     if e.get("klasse") not in CENTRALE_KLASSEN:
         raise HTTPException(422, {"fout": "geen_centrale_klasse",
                                   "melding": "Een diagram staat rond een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde."})
-    if not diagram_mod.beoordeeld({"soort": "element", "lifecycle": e.get("lifecycle")}):
-        raise HTTPException(422, {"fout": "niet_beoordeeld",
-                                  "melding": "Een diagram staat rond een goedgekeurde markering: beoordeel deze eerst."})
     # De hele samenhang binnen de bepaling (`diagram.bouw`): steeds de relaties van wat er bij kwam, zolang dat in dezelfde
     # bepaling staat; een knoop elders is een eindpunt. Begrensd, zodat een kapotte graaf geen eindeloze lus wordt.
     gezien: set[str] = set()
@@ -480,8 +477,34 @@ class VerwijderInvoer(BaseModel):
 
 @router.post("/weergave/verwijder")
 async def post_verwijder(req: VerwijderInvoer, actor: str = Depends(actieve_userid)):
-    """Verwijder de annotatie van de bepaling in beeld – uit Postgres én uit de graaf. Elke gebruiker
+    """Verwijder de annotatie van de bepaling in beeld – naar de prullenbak, en uit de graaf. Elke gebruiker
     mag dit; het staat in de audit. Zie `annotatie_v2_store.verwijder_weergave` voor wat er meegaat."""
+    return await store.verwijder_weergave(await _verwijder_snapshot(req), req.verwachte_revisies, actor)
+
+
+@router.post("/weergave/verwijder-impact")
+async def post_verwijder_impact(req: VerwijderInvoer, actor: str = Depends(actieve_userid)):
+    """Wat verwijderen kost, voor de bevestiging: markeringen (waarvan beoordeeld), relaties, en de begrippen en
+    afleidingsregels die ernaar verwijzen. Verandert niets."""
+    return await store.verwijder_impact(await _verwijder_snapshot(req))
+
+
+@router.get("/prullenbak/{prullenbak_id}")
+async def get_prullenbak(prullenbak_id: str, actor: str = Depends(actieve_userid)):
+    """Een verwijderde annotatie met haar markeringen, om te vergelijken met wat er nu ligt."""
+    from . import annotatie_prullenbak
+    return await annotatie_prullenbak.lees(prullenbak_id)
+
+
+@router.post("/prullenbak/{prullenbak_id}/terugzetten")
+async def post_terugzetten(prullenbak_id: str, actor: str = Depends(actieve_userid)):
+    """Zet een verwijderde annotatie terug, met haar elementen, relaties en versies; elke gebruiker mag dit, net als
+    verwijderen. 409 `nieuwe_laag` als er intussen een nieuwe annotatie op dezelfde bepaling staat."""
+    from . import annotatie_prullenbak
+    return await annotatie_prullenbak.zet_terug(prullenbak_id, actor)
+
+
+async def _verwijder_snapshot(req: VerwijderInvoer) -> dict:
     # De bewaarde snapshot eerst: verwijderen hoort niet te hangen aan de bereikbaarheid van de
     # brongraaf. Alleen als deze stand nooit is weggeschreven, vragen we hem opnieuw op.
     # De bewaarde bronboom kan bij een ander doel zijn weggeschreven (het artikel, terwijl nu een lid in
@@ -498,7 +521,7 @@ async def post_verwijder(req: VerwijderInvoer, actor: str = Depends(actieve_user
         snapshot = await resolve_bron({"bron_iri": req.bron_iri})
         if snapshot["snapshot_id"] != req.snapshot_id:
             raise HTTPException(409, "Bronstand gewijzigd; laad opnieuw vóór verwijderen.")
-    return await store.verwijder_weergave(snapshot, req.verwachte_revisies, actor)
+    return snapshot
 
 
 class ExportInvoer(BaseModel):

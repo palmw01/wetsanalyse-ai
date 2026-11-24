@@ -55,8 +55,11 @@ def test_de_verbijzondering_is_een_subtype_en_geen_begrip():
     assert (s, RDF.type, URIRef(JAS_NS + "Begrip")) not in g
     assert g.value(s, SKOS.broader) == projectie.klasse_iri("Tijdsaanduiding")
     assert g.value(s, SKOS.related) == projectie.klasse_iri("Parameter en parameterwaarde")
+    [v] = g.subjects(URIRef(JAS_NS + "subtype"), Literal("verbijzondert variabele"))
+    assert g.value(v, SKOS.broader) == projectie.klasse_iri("Tijdsaanduiding")
+    assert g.value(v, SKOS.related) == projectie.klasse_iri("Variabele en variabelewaarde")
     tijd = next(k for k in projectie.verklaringen()["klassen"] if k["naam"] == "Tijdsaanduiding")
-    assert [v["subtype"] for v in tijd["verbijzonderingen"]] == ["verbijzondert parameter"]
+    assert [v["subtype"] for v in tijd["verbijzonderingen"]] == ["verbijzondert parameter", "verbijzondert variabele"]
 
 
 def test_versie_in_ttl_en_json_is_dezelfde():

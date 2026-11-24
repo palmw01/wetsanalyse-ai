@@ -8,9 +8,9 @@ Lex), bouwt hier het `Diagram`; de tekenaars (`diagram_teken`) maken er een PDF-
 - **Alleen de structuur.** Methodische relaties (partijen, voorwerp, voorwaarden, invoer en uitvoer, …); een tekstuele
   relatie zoals "maakt een uitzondering op" staat in de lijst Relaties, niet in het diagram. Van een knoop in een
   andere bepaling gaat het niet verder.
-- **Alleen wat is vastgelegd.** Alleen goedgekeurde markeringen (`BEOORDEELD`) en impliciete partijen; een voorstel
-  van Lex dat nog niet beoordeeld is, een verworpen markering en een afgewezen relatie staan er niet in. Een
-  voorgestelde relatie tussen goedgekeurde markeringen wel, gestippeld. Wat de methode bij
+- **Alles behalve afgewezen.** Een voorstel van Lex, een goedgekeurde en een aangepaste markering staan erin, net als in
+  de graaf; een afgewezen of vervangen markering en een afgewezen relatie niet (besluit eigenaar 24 nov 2026). Een
+  voorstel is gestippeld, zodat je het in het diagram kunt beoordelen. Wat de methode bij
   een centrale klasse verwacht en ontbreekt, staat in `ontbreekt`: een signaal, geen oordeel.
 - **De hele samenhang binnen de bepaling** (Handleiding §3.4c, p. 34–35): het vertrekpunt is de centrale formulering,
   en wat aan de niet-centrale formuleringen hangt, staat in hetzelfde diagram – ook een afleidingsregel die een kenmerk
@@ -33,7 +33,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from .annotatie_v2_contracts import BEOORDEELD
 from .jas_relaties import CENTRALE_KLASSEN, RELATIETYPEN
 
 DIEPTE = 2
@@ -115,23 +114,8 @@ leeg dict mag. Staat een knoop in een andere bepaling dan de centrale formulerin
 nummer: dat nummer hoort bij een andere lijst."""
 
 
-def beoordeeld(kant: dict) -> bool:
-    """Mag deze kant in het diagram: een markering die de jurist goedkeurde (`BEOORDEELD`: goedgekeurd, aangepast of
-    gepubliceerd), of een impliciete partij (die legt alleen de jurist vast). Een voorstel van Lex dat nog niet is
-    beoordeeld, staat er niet in: het diagram is de samenhang van wat is vastgesteld (melding gebruiker 24 nov 2026)."""
-    return kant.get("soort", "element") != "element" or kant.get("lifecycle") in BEOORDEELD
-
-
 def _actief(r: dict) -> bool:
-    """Een relatie die in de buurt van de graaf meetelt: niet afgewezen of vervangen, en geen verworpen kant. De graaf
-    toont ook voorstellen; het 2c-diagram is strenger (`_vastgesteld`)."""
     return r.get("lifecycle") not in _WEG and r["van"].get("lifecycle") != "rejected" and r["naar"].get("lifecycle") != "rejected"
-
-
-def _vastgesteld(r: dict) -> bool:
-    """Een relatie in het 2c-diagram: actief en tussen twee goedgekeurde kanten (`beoordeeld`). Een voorgestelde
-    relatie tussen goedgekeurde markeringen staat er gestippeld in, om haar in het diagram te beoordelen."""
-    return _actief(r) and beoordeeld(r["van"]) and beoordeeld(r["naar"])
 
 
 def _sleutel(kant: dict) -> str:
@@ -176,7 +160,7 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
     # catalogus `methodisch: false`) is geen regelstructuur (skill `relaties.md`) en hoort niet in het diagram van een
     # centrale klasse (Handleiding §3.4c: partijen, voorwerp, voorwaarden en wat daar aan hangt). Ze blijft in de lijst
     # Relaties, die leidend is.
-    relaties = [r for r in relaties if _vastgesteld(r) and RELATIETYPEN.get(r["type"], {}).get("methodisch", True)]
+    relaties = [r for r in relaties if _actief(r) and RELATIETYPEN.get(r["type"], {}).get("methodisch", True)]
     kanten: dict[str, dict] = {f"element:{centraal['id']}": {"id": centraal["id"], "soort": "element", **centraal}}
     for r in relaties:
         for k in (r["van"], r["naar"]):
@@ -247,7 +231,7 @@ def diagrammen(markeringen: Iterable[dict], relaties: list[dict], info: Info | N
     (een voorwaarde hoort bij haar drager). Een markering die al in een eerder diagram hangt, krijgt er geen eigen; een
     rechtsbetrekking of rechtsfeit die in een ander diagram alleen als eindpunt staat, wel."""
     markeringen = list(markeringen)
-    centraal = sorted((m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and beoordeeld(m)),
+    centraal = sorted((m for m in markeringen if m.get("klasse") in CENTRALE_KLASSEN and m.get("lifecycle") != "rejected"),
                       key=lambda m: WORTELVOLGORDE.get(m["klasse"], 9))
     gedekt: set[str] = set()
     uit: list[Diagram] = []
@@ -328,7 +312,12 @@ def labelregels(tekst: str) -> list[str]:
 def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "begrippen"] = "formuleringen") -> Plaatsing:
     """Een vaste plaats per rol: voorwaarden en uitzonderingen boven, partijen links, het voorwerp rechts, de rest eronder, de centrale
     formulering in het midden. Binnen een zone de volgorde van `Diagram.knopen`."""
-    b = min(KNOOP_B, (breedte - 2 * TUSSEN_X) / 3)
+    # De ruimte tussen twee kolommen draagt het breedste label op een lijn, met marge: een label als "is invoer van (1)"
+    # is breder dan de vaste ruimte en viel anders onder de blokken (melding gebruiker 24 nov 2026). Bij drie kolommen
+    # worden de blokken smaller, zodat de tekening binnen de breedte blijft.
+    from .diagram_teken import _labelmaat, _labeltekst
+    tussen = max([TUSSEN_X] + [_labelmaat(_labeltekst(lijn))[0] + 8 for lijn in d.lijnen])
+    b = min(KNOOP_B, (breedte - 2 * tussen) / 3)
     per_zone: dict[str, list[Knoop]] = {z: [] for z in ("boven", "links", "midden", "rechts", "onder")}
     for k in d.knopen:
         per_zone["midden" if k.id == d.centraal and k.soort == "element" else k.zone].append(k)
@@ -376,15 +365,15 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
     naar_ouders([per_zone["midden"]] + rechts)
     naar_ouders([per_zone["midden"]] + links)
     banden = links[::-1] + [per_zone["midden"]] + rechts
-    bandbreedte = len(banden) * b + (len(banden) - 1) * TUSSEN_X
+    bandbreedte = len(banden) * b + (len(banden) - 1) * tussen
     totaal = max([breedte, bandbreedte] + [rijbreedte(r) for r in boven + onder])
 
     # Een rij boven of onder staat onder de centrale formulering, niet in het midden van een brede tekening (dan liep een
     # lange schuine lijn naar haar tijdsaanduiding); ze blijft binnen de tekening.
-    if len(banden) <= 3:
+    if len(banden) <= 3 and (breedte - 3 * b) / 2 >= tussen:
         midden_kolom = (totaal - b) / 2
     else:
-        midden_kolom = (totaal - bandbreedte) / 2 + len(links) * (b + TUSSEN_X)
+        midden_kolom = (totaal - bandbreedte) / 2 + len(links) * (b + tussen)
 
     def rij(knopen: list[Knoop], y: float) -> float:
         x0 = min(max(midden_kolom + b / 2 - rijbreedte(knopen) / 2, 0.0), totaal - rijbreedte(knopen))
@@ -396,13 +385,13 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
     for r in boven:
         y = rij(r, y)
     # Met één kolom aan elke kant de oude verdeling over de hele breedte; met meer kolommen sluiten ze aan.
-    if len(banden) <= 3:
+    if len(banden) <= 3 and (breedte - 3 * b) / 2 >= tussen:
         verschuif = (totaal - breedte) / 2
         xs = {"links": verschuif, "midden": verschuif + (breedte - b) / 2, "rechts": verschuif + breedte - b}
         kolom_x = ([xs["links"]] if links else []) + [xs["midden"]] + ([xs["rechts"]] if rechts else [])
     else:
         x0 = (totaal - bandbreedte) / 2
-        kolom_x = [x0 + j * (b + TUSSEN_X) for j in range(len(banden))]
+        kolom_x = [x0 + j * (b + tussen) for j in range(len(banden))]
     stapel = [sum(hoogte(k) for k in kol) + TUSSEN_Y * max(0, len(kol) - 1) for kol in banden]
     band = max(stapel)
     for kol, x, h in zip(banden, kolom_x, stapel):

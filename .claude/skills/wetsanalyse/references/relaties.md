@@ -18,6 +18,9 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
   - Een voorwaarde vergelijkt operanden: wat vergeleken wordt (een variabele, een tijdsaanduiding) is invoer van
     de voorwaarde, ook als er geen aparte operator gemarkeerd is (M04 H2:62).
   - Een variabele is een kenmerk van een subject, object, betrekking of feit.
+  - Een tijdsaanduiding neemt de relaties over van de klasse die zij verbijzondert (M01 h.4 §12): met het subtype
+    *verbijzondert variabele* is zij bijvoorbeeld kenmerk van het aanslagbiljet, met *verbijzondert parameter* krijgt
+    zij een parameterwaarde. De catalogus legt dat vast in `verbijzonderingen`.
   - Een voorwaarde en een afleidingsregel bestaan uit operanden en operatoren.
 
   Dat zijn de rollen in de catalogus (M01 h.4, M05).
@@ -32,7 +35,7 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
 1. **Begin bij de centrale klasse.** Neem de rechtsbetrekking, het rechtsfeit, de afleidingsregel of de
    voorwaarde, en zoek de markeringen die eraan hangen.
 2. **Kies het type uit de catalogus.** Het klassenpaar moet passen (`van`, `naar`; bij `waarde` ook het
-   subtype). Past geen type, dan leg je geen relatie. Een waarde of tak hoort in de toelichting, niet in het type.
+   subtype, en bij een tijdsaanduiding telt het subtype als de klasse die zij verbijzondert). Past geen type, dan leg je geen relatie. Een waarde of tak hoort in de toelichting, niet in het type.
 3. **Een eindpunt mag in een andere bepaling liggen.** Een uitzondering in lid 5 kan naar een regel in lid 1
    wijzen, en een begrip uit een andere regeling kan de invoer zijn.
 4. **Volgorde telt bij `invoer` en `operand`.** "A verminderd met B" is iets anders dan "B verminderd met A".

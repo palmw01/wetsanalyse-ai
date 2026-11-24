@@ -39,6 +39,13 @@ def _subtypes() -> set[str]:
 KLASSEN = _klassen()
 
 
+def _bron_bestaat(ref: str) -> bool:
+    """Een H2-verwijzing valt binnen de rijksspecificatie, een M- of P-code staat in het bronregister."""
+    if m := re.fullmatch(r"H2:(\d+)", ref):
+        return 1 <= int(m.group(1)) <= len(H2) and bool(H2[int(m.group(1)) - 1].strip())
+    return bool(re.fullmatch(r"[MP]\d+", ref) and re.search(rf"^\| {ref} \|", REGISTER, re.M))
+
+
 def test_de_lijsten_bovenaan_noemen_bestaande_klassen():
     assert set(CATALOGUS["centrale_klassen"]) <= KLASSEN
     # Besluit gebruiker (7 nov 2026): een impliciete partij is alleen een rechtssubject.
@@ -64,10 +71,7 @@ def test_elke_bron_bestaat(code):
     bronnen = TYPEN[code]["bron"]
     assert bronnen
     for ref in bronnen:
-        if m := re.fullmatch(r"H2:(\d+)", ref):
-            assert 1 <= int(m.group(1)) <= len(H2) and H2[int(m.group(1)) - 1].strip(), ref
-        else:
-            assert re.fullmatch(r"[MP]\d+", ref) and re.search(rf"^\| {ref} \|", REGISTER, re.M), ref
+        assert _bron_bestaat(ref), ref
     # Een projectkeuze draagt de projectbron; een methodisch type draagt een bron uit de methode.
     if not TYPEN[code]["methodisch"]:
         assert "P18" in bronnen, code
@@ -109,6 +113,21 @@ def test_de_paren_van_waarde_vallen_binnen_het_type_en_het_contract():
             if kant in paar:
                 assert paar[kant] in subtypes, paar
     assert all("paren" not in TYPEN[c] for c in TYPEN if c != "waarde")
+
+
+def test_een_verbijzondering_noemt_een_bestaande_klasse_en_subtype():
+    """Een tijdsaanduiding verbijzondert een parameter of een variabele en neemt diens relaties over (H2:107; M01 h.4
+    §12, *Relatie met andere klassen*). Het subtype staat in het contract van de api; de klasse waarvan zij overneemt
+    bestaat, en het subtype dat zij daar heeft ook."""
+    subtypes = _subtypes()
+    verbijzonderingen = CATALOGUS["verbijzonderingen"]
+    assert set(verbijzonderingen["Tijdsaanduiding"]) == {"verbijzondert parameter", "verbijzondert variabele"}
+    for klasse, per_subtype in verbijzonderingen.items():
+        assert klasse in KLASSEN, klasse
+        for subtype, v in per_subtype.items():
+            assert subtype in subtypes and v["subtype"] in subtypes, (klasse, subtype)
+            assert v["klasse"] in KLASSEN and v["klasse"] != klasse, (klasse, subtype)
+            assert v["bron"] and all(_bron_bestaat(b) for b in v["bron"]), (klasse, subtype)
 
 
 def test_kardinaliteit_gaat_over_typen_die_de_klasse_raken():

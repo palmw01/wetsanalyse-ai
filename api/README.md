@@ -267,6 +267,7 @@ wint. Op Azure staan alle secrets als bestand onder `/run/secrets/`.
 | `GRAPHDB_URL` | leeg | GraphDB voor bronboom en projectie; leeg = beide uit |
 | `GRAPHDB_REPOSITORY` | `inning` | |
 | `JAS_PROJECTIE_INTERVAL` | `60` (s) | Interval van de reconcile-lus van de projectie |
+| `ANNOTATIE_PRULLENBAK_DAGEN` | `30` | Hoe lang een verwijderde annotatie minstens in de prullenbak blijft; daarna mag een beheerder hem legen |
 | `API_TOKEN_LOGIN` | uit | Inloggen met een accounttoken (`1` of `true`); alleen op acceptatie aan, en ook nodig op de frontend |
 | `CORS_ORIGINS` | leeg | Toegestane browser-origins; leeg = geen cross-origin toegang |
 | `LOG_LEVEL` / `LOG_FORMAT` | `info` / `json` | `text` is prettiger lokaal |

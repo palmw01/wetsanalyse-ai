@@ -119,9 +119,9 @@ def test_een_tekstuele_relatie_staat_niet_in_het_diagram():
     """Termijnen, art. 9 lid 1 (24 nov 2026): de uitzonderingen uit lid 5–7 en een "vindt toepassing" haalden andere leden
     in het diagram. Die relaties zijn tekstueel (catalogus `methodisch: false`, skill `relaties.md`: geen regelstructuur);
     het diagram van een centrale klasse toont haar structuur (Handleiding §3.4c). Ze blijven in de lijst Relaties."""
-    uitz = {"id": "uitz", "klasse": "Rechtsbetrekking", "tekst": "In afwijking van het eerste lid", "lifecycle": "human_approved"}
-    ta = {"id": "ta", "klasse": "Tijdsaanduiding", "tekst": "zes weken na", "lifecycle": "human_approved"}
-    ar = {"id": "ar", "klasse": "Afleidingsregel", "tekst": "invorderbaar", "lifecycle": "human_approved"}
+    uitz = {"id": "uitz", "klasse": "Rechtsbetrekking", "tekst": "In afwijking van het eerste lid"}
+    ta = {"id": "ta", "klasse": "Tijdsaanduiding", "tekst": "zes weken na"}
+    ar = {"id": "ar", "klasse": "Afleidingsregel", "tekst": "invorderbaar"}
     d = diagram.bouw(RB, [_r(uitz, RB, "uitzondering_op"), _r(ar, RB, "toepassing"), _r(RB, ta, "tijd"), _r(ar, ta, "uitvoer")])
     assert {k.id for k in d.knopen} == {"rb", "ta", "ar"}
     assert {l.code for l in d.lijnen} == {"tijd", "uitvoer"}
@@ -130,10 +130,10 @@ def test_een_tekstuele_relatie_staat_niet_in_het_diagram():
 def test_van_een_knoop_in_een_andere_bepaling_gaat_het_niet_verder():
     """Een knoop in een andere bepaling toont de samenhang (een partij of voorwaarde mag elders staan); wat daar weer aan
     hangt, hoort in het diagram van die bepaling. In deze bepaling gaat het wel twee stappen ver."""
-    vw5 = {"id": "vw5", "klasse": "Voorwaarde", "tekst": "indien de aanslag", "lifecycle": "human_approved"}
-    var5 = {"id": "var5", "klasse": "Variabele en variabelewaarde", "tekst": "de aanslag", "lifecycle": "human_approved"}
-    ta = {"id": "ta", "klasse": "Tijdsaanduiding", "tekst": "zes weken na", "lifecycle": "human_approved"}
-    ar = {"id": "ar", "klasse": "Afleidingsregel", "tekst": "invorderbaar", "lifecycle": "human_approved"}
+    vw5 = {"id": "vw5", "klasse": "Voorwaarde", "tekst": "indien de aanslag"}
+    var5 = {"id": "var5", "klasse": "Variabele en variabelewaarde", "tekst": "de aanslag"}
+    ta = {"id": "ta", "klasse": "Tijdsaanduiding", "tekst": "zes weken na"}
+    ar = {"id": "ar", "klasse": "Afleidingsregel", "tekst": "invorderbaar"}
     waar = {"rb": "lid1", "ta": "lid1", "ar": "lid1", "vw5": "lid5", "var5": "lid5"}
     d = diagram.bouw(RB, [_r(RB, vw5, "voorwaarde"), _r(var5, vw5, "operand"), _r(RB, ta, "tijd"), _r(ar, ta, "uitvoer")],
                      info=lambda k: {"waar": waar[k["id"]], "waar_label": waar[k["id"]]})
@@ -233,21 +233,37 @@ def test_de_buurt_van_de_graaf_blijft_twee_relaties_ver():
     assert sorted(diagram.buurt("a", relaties, None)) == ["element:a", "element:b", "element:c", "element:d"]
 
 
-def test_alleen_goedgekeurde_markeringen_staan_in_het_diagram():
-    """Melding gebruiker 24 nov 2026: het diagram koppelt alleen goedgekeurde markeringen. Een voorstel van Lex (ook als
-    centrale formulering) staat er niet in; een voorgestelde relatie tussen goedgekeurde markeringen wel, gestippeld.
-    Een impliciete partij legt alleen de jurist vast en telt mee."""
-    rb = _m("rb", "Rechtsbetrekking", 1)
+def test_het_diagram_toont_alles_behalve_afgewezen():
+    """Besluit eigenaar 24 nov 2026: graaf en diagram tonen voorstellen, goedgekeurde en aangepaste markeringen, maar
+    geen afgewezen. Een voorgestelde centrale formulering krijgt dus ook een diagram."""
+    rb = _m("rb", "Rechtsbetrekking", 1, lifecycle="voorgesteld")
     obj = _m("obj", "Rechtsobject", 2)
-    voorstel = _m("ta", "Tijdsaanduiding", 3, lifecycle="voorgesteld")
-    aangepast = _m("var", "Variabele en variabelewaarde", 4, lifecycle="edited")
-    rf_voorstel = _m("rf", "Rechtsfeit", 5, lifecycle="voorgesteld")
-    partij = {"id": "I1", "soort": "impliciet", "klasse": "Rechtssubject", "tekst": "de ontvanger"}
-    relaties = [_r(rb, obj, "voorwerp", lifecycle="voorgesteld"), _r(rb, voorstel, "tijd"), _r(aangepast, obj, "kenmerk"),
-                {"id": "p", "type": "rechthebbende", "lifecycle": "human_approved", "volgorde": None,
-                 "van": partij, "naar": {**rb, "soort": "element"}}]
-    ds = diagram.diagrammen([rb, obj, voorstel, aangepast, rf_voorstel], relaties)
-    assert [d.centraal for d in ds] == ["rb"]                    # het voorgestelde rechtsfeit krijgt geen diagram
-    assert {k.id for k in ds[0].knopen} == {"rb", "obj", "var", "I1"}
-    assert {(l.code, l.lifecycle) for l in ds[0].lijnen} == {("voorwerp", "voorgesteld"), ("kenmerk", "human_approved"),
-                                                             ("rechthebbende", "human_approved")}
+    ta = _m("ta", "Tijdsaanduiding", 3, lifecycle="edited")
+    weg = _m("weg", "Rechtssubject", 4, lifecycle="rejected")
+    vw = _m("vw", "Voorwaarde", 5)
+    relaties = [_r(rb, obj, "voorwerp", lifecycle="voorgesteld"), _r(rb, ta, "tijd"), _r(weg, rb, "rechthebbende"),
+                _r(rb, vw, "voorwaarde", lifecycle="rejected")]
+    ds = diagram.diagrammen([rb, obj, ta, weg, vw], relaties)
+    assert [d.centraal for d in ds] == ["rb"]
+    assert {k.id for k in ds[0].knopen} == {"rb", "obj", "ta"}
+    assert {l.code for l in ds[0].lijnen} == {"voorwerp", "tijd"}
+
+
+def test_geen_label_op_een_lijn_valt_onder_een_blok():
+    """Melding gebruiker 24 nov 2026: "is invoer van (1)" is breder dan de vaste ruimte tussen twee kolommen en viel
+    onder de blokken. De ruimte tussen de kolommen draagt nu het breedste label."""
+    from app.diagram_teken import lijnstukken
+    rb, obj = _m("rb", "Rechtsbetrekking", 1), _m("obj", "Rechtsobject", 2)
+    var, ar = _m("var", "Variabele en variabelewaarde", 3), _m("ar", "Afleidingsregel", 4)
+    t1, t2, op = _m("t1", "Tijdsaanduiding", 5), _m("t2", "Tijdsaanduiding", 6), _m("op", "Operator", 7)
+    p1 = {"id": "p1", "soort": "impliciet", "klasse": "Rechtssubject", "tekst": "de ontvanger"}
+    relaties = [_r(rb, obj, "voorwerp"), _r(var, obj, "kenmerk"), _r(ar, var, "uitvoer"), _r(t1, ar, "invoer", volgorde=1),
+                _r(t2, ar, "invoer", volgorde=2), _r(op, ar, "operator_in"),
+                {"id": "r", "type": "rechthebbende", "lifecycle": "human_approved", "volgorde": None,
+                 "van": p1, "naar": {**rb, "soort": "element"}}]
+    d = diagram.diagrammen([rb, obj, var, ar, t1, t2, op], relaties)[0]
+    p = diagram.plaats(d)
+    vakken = [(k.x, k.y, k.b, k.h) for k in p.knopen]
+    for lijn, _, (lx, ly, w, h) in lijnstukken(d, p):
+        x, y = lx - w / 2, ly - h / 2
+        assert not any(x < vx + vb and vx < x + w and y < vy + vh and vy < y + h for vx, vy, vb, vh in vakken), lijn.leesvorm

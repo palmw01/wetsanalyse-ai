@@ -17,15 +17,17 @@ eerlijke "onbepaald", een verkeerd subtype is een stille fout.
 | klasse | subtype | bewijs (detectiecodes) |
 |---|---|---|
 | Variabele en variabelewaarde | variabelewaarde | een concrete waarde: bedrag, percentage, datum (H2:82) |
-| Variabele en variabelewaarde | variabele | een eigenschap-naamwoord ('de hoogte van …') (H2:80) |
+| Variabele en variabelewaarde | variabele | een eigenschap-naamwoord ('de hoogte van …'), een toestand als uitvoer ('invorderbaar') (H2:80) |
 | Parameter en parameterwaarde | parameterwaarde | bedrag, percentage, veelvoud, getal in een duur (H2:91) |
 | Parameter en parameterwaarde | parameter | een parameterwoord ('tarief', 'drempel') (H2:89) |
 | Delegatiebevoegdheid en delegatie-invulling | delegatiebevoegdheid | de delegatieformule (H2:127) |
 | Tijdsaanduiding | verbijzondert parameter | een duur of hoeveelheid als kern van de tijdtreffer (H2:107) |
 
 Delegatie-invulling vraagt de graaf (de bovenliggende grondslag) en blijft hier leeg. Een datum of een
-relatieve periode ('de overige dagen') zegt niet eenduidig of hij een parameter of een variabele
-verbijzondert, en blijft leeg.
+relatieve periode ('de overige dagen', 'de dagtekening van het aanslagbiljet') zegt niet eenduidig of hij een
+parameter of een variabele verbijzondert, en blijft leeg: of een moment per geval verschilt, vraagt de context. Het
+subtype *verbijzondert variabele* zet de keten dus nooit zelf; de jurist kiest het in de werkplek. Welke relaties
+een verbijzondering overneemt, zegt de relatiecatalogus (`jas_relaties.VERBIJZONDERINGEN`).
 """
 from __future__ import annotations
 
@@ -36,6 +38,7 @@ VAR, PAR, DEL = ("Variabele en variabelewaarde", "Parameter en parameterwaarde",
                  "Delegatiebevoegdheid en delegatie-invulling")
 TIJD = "Tijdsaanduiding"
 VERBIJZONDERT_PARAMETER = "verbijzondert parameter"
+VERBIJZONDERT_VARIABELE = "verbijzondert variabele"
 
 #: Tijdcodes waarvan de kern een duur of hoeveelheid is (`{TELWOORD} {PERIODE}`, zie `regels/tijd.yaml`).
 #: `TEMPORAL_RELATIVE_PERIOD` hoort er niet bij: zijn telwoord is optioneel ('de overige dagen').
@@ -44,7 +47,7 @@ DUURCODES = frozenset({"TEMPORAL_DURATION", "TEMPORAL_PERIOD_OF", "TEMPORAL_RECU
 #: klasse → [(subtype, codes die het aanwijzen)]
 REGELS: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {
     VAR: (("variabelewaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "TEMPORAL_DATE"})),
-          ("variabele", frozenset({"PROPERTY_NOUN"}))),
+          ("variabele", frozenset({"PROPERTY_NOUN", "STATE_PROPERTY"}))),
     PAR: (("parameterwaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "MULTIPLIER",
                                          "DURATION_NUMBER"})),
           ("parameter", frozenset({"PARAMETER_NOUN"}))),
@@ -56,11 +59,13 @@ REGELS: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {
 #: graaf). De api (`annotatie_v2_contracts`) en de zoektool staan precies deze waarden toe;
 #: `tests/test_contract_drift.py` bewaakt dat, `tests/test_subtype.py` dat REGELS er binnen blijft.
 ALLE_SUBTYPEN: tuple[str, ...] = ("variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                                  "delegatiebevoegdheid", "delegatie-invulling", VERBIJZONDERT_PARAMETER)
+                                  "delegatiebevoegdheid", "delegatie-invulling", VERBIJZONDERT_PARAMETER,
+                                  VERBIJZONDERT_VARIABELE)
 
 #: Subtypen die geen eigen officieel begrip zijn maar een verbijzondering:
 #: subtype → (klasse, verbijzonderde klasse, bron). De vocabulaire maakt er een eigen concept van.
-VERBIJZONDERINGEN: dict[str, tuple[str, str, str]] = {VERBIJZONDERT_PARAMETER: (TIJD, PAR, "H2:107")}
+VERBIJZONDERINGEN: dict[str, tuple[str, str, str]] = {VERBIJZONDERT_PARAMETER: (TIJD, PAR, "H2:107"),
+                                                      VERBIJZONDERT_VARIABELE: (TIJD, VAR, "H2:107")}
 
 
 def codes_van(evidence: Iterable) -> list[str]:

@@ -409,6 +409,9 @@ export interface AgentHergebruik {
 
 export interface Wijziging {
   klasse?: string | null;
+  // Hoort bij de klasse (`JAS_SUBTYPEN` in `lib/jas.ts`); "" is onbepaald. De api weigert een subtype van een andere
+  // klasse, en laat een subtype vallen dat na een klassewissel niet meer past.
+  jas_subtype?: string | null;
   tekst?: string | null;
   toelichting?: string | null;
   lid?: string | null;
@@ -1124,6 +1127,8 @@ export interface Koppeling {
   toegevoegd: string;
   /** Bij het lezen bepaald, tegen het element zoals het nu is. */
   actualiteit: Actualiteit;
+  /** Bij `verdwenen`: de annotatie werd verwijderd – wanneer, door wie, en of ze nog in de prullenbak ligt. */
+  bron_verwijderd?: import("./annotatiePrullenbak").BronVerwijderd;
   lifecycle_nu: string | null;
   annotatie_beoordeeld: boolean;
   /** Herbeoordeling (fase F1): de analist zag de veranderde passage en het begrip klopt nog. Het

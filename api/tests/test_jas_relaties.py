@@ -45,6 +45,23 @@ def test_waarde_eist_het_subtype_van_het_paar():
     assert not rel.toegestaan("waarde", "Variabele en variabelewaarde", par, "variabelewaarde")
 
 
+def test_een_tijdsaanduiding_neemt_de_relaties_over_van_wat_zij_verbijzondert():
+    """H2:107; M01 h.4 §12: de analyse legt vast of de tijdsaanduiding een parameter of een variabele verbijzondert, en
+    zij neemt de relaties van die klasse over. Art. 9 lid 1 Iw 1990: "de dagtekening van het aanslagbiljet" is een
+    datum die per aanslag verschilt, dus kenmerk van het aanslagbiljet."""
+    tijd, ro, var, par = "Tijdsaanduiding", "Rechtsobject", "Variabele en variabelewaarde", "Parameter en parameterwaarde"
+    assert rel.als_klassen(tijd, "verbijzondert variabele") == [(tijd, "verbijzondert variabele"), (var, "variabele")]
+    assert rel.als_klassen(tijd, "") == [(tijd, "")]
+    assert rel.toegestaan("kenmerk", tijd, ro, "verbijzondert variabele")
+    assert not rel.toegestaan("kenmerk", tijd, ro, "verbijzondert parameter")
+    assert not rel.toegestaan("kenmerk", tijd, ro)
+    assert rel.toegestaan("waarde", var, tijd, "variabelewaarde", "verbijzondert variabele")
+    assert not rel.toegestaan("waarde", par, tijd, "parameterwaarde", "verbijzondert variabele")
+    # De eigen relaties van een tijdsaanduiding blijven.
+    assert rel.toegestaan("tijd", "Rechtsfeit", tijd, "", "verbijzondert parameter")
+    assert rel.toegestaan("invoer", tijd, "Afleidingsregel", "verbijzondert variabele")
+
+
 def test_volgorde_alleen_bij_invoer_en_operand():
     assert {c for c, t in rel.RELATIETYPEN.items() if t["volgorde"]} == {"invoer", "operand"}
 

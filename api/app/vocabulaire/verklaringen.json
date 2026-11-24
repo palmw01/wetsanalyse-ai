@@ -268,6 +268,10 @@
       "naam": "Rol of instantie",
       "uitleg": "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."
     },
+    "STATE_PROPERTY": {
+      "naam": "Toestand als uitvoer",
+      "uitleg": "De toestand van een rechtsgevolg met een moment ('is invorderbaar zes weken na …'): een kenmerk van het onderwerp dat per geval wel of niet geldt, en de uitvoer van de regel die het moment afleidt."
+    },
     "SUBJECT_NP": {
       "naam": "Onderwerp bij een recht of plicht",
       "uitleg": "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."
@@ -525,6 +529,11 @@
           "bron": "H2:107",
           "subtype": "verbijzondert parameter",
           "verbijzondert": "Parameter en parameterwaarde"
+        },
+        {
+          "bron": "H2:107",
+          "subtype": "verbijzondert variabele",
+          "verbijzondert": "Variabele en variabelewaarde"
         }
       ],
       "vraag": "Wanneer, op welk moment? Sinds wanneer of tot wanneer, vanaf welk moment of tot welk moment?"
@@ -1055,5 +1064,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "b92ecd1bd6c1"
+  "vocabulaire_versie": "59e95542eb98"
 }

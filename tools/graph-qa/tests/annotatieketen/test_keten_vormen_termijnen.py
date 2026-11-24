@@ -109,6 +109,42 @@ def test_geen_datumregel_zonder_moment_of_met_ontkenning(parser, tekst):
                 if k.span.tekst.lower().startswith("invorderba")]
 
 
+# --- keten-termijnpatroon (24 nov 2026): de toestand van de datumregel is een Variabele ------------------------------
+
+@pytest.mark.parametrize("tekst", [
+    LID_1,
+    "Het bedrag, vermeld in een beschikking, is invorderbaar zes weken na de dagtekening van de beschikking.",
+    "Een door de ontvanger opgelegde bestuurlijke boete is invorderbaar zes weken na de dagtekening van de beschikking "
+    "waarbij deze is opgelegd, met overeenkomstige toepassing van de regels die gelden voor de invordering.",
+])
+def test_de_toestand_van_een_datumregel_is_een_variabele(parser, tekst):
+    """Voorbeelden.md E03: 'invorderbaar' is een booleaanse eigenschap van de aanslag, en de uitvoer van de regel. Op
+    acceptatie (run 367e895d, art. 9 lid 1) had geen detector het woord: het ontbrak, ook als de regel bleef staan."""
+    k, = _met(GevolgDetector(), tekst, parser, "STATE_PROPERTY")
+    assert k.span.tekst == "invorderbaar"
+    assert k.possible_classes == ("Variabele en variabelewaarde",)
+    regel, = _met(GevolgDetector(), tekst, parser, "DATE_ASSIGNMENT")
+    uitkomst = json.loads(regel.evidence[0].detail)["uitkomst"]
+    assert (uitkomst["start"], uitkomst["eind"]) == (k.span.start, k.span.eind)
+
+
+@pytest.mark.parametrize("tekst", [
+    "Een belastingaanslag die een bedrag behelst is niet invorderbaar zolang het adres ontbreekt.",
+    "Het invorderbare bedrag wordt binnen zes weken na de dagtekening betaald.",
+    "Een belastingaanslag is invorderbaar.",
+    LID_7,
+])
+def test_geen_toestandsvariabele_zonder_datumregel(parser, tekst):
+    """Alleen naast een datumregel: zonder moment, ontkend, als bijvoeglijk naamwoord of bij een telling niet."""
+    assert not _met(GevolgDetector(), tekst, parser, "STATE_PROPERTY")
+
+
+def test_de_toestandsvariabele_krijgt_het_subtype_variabele(parser):
+    from agent.jas_pipeline.subtype import bepaal, codes_van
+    k, = _met(GevolgDetector(), LID_1, parser, "STATE_PROPERTY")
+    assert bepaal("Variabele en variabelewaarde", codes_van(k.evidence)) == "variabele"
+
+
 # --- L-2-5: een tijdstip als waarde ----------------------------------------------------------------------------------
 
 def test_de_dagtekening_van_iets_is_een_waarde(parser):

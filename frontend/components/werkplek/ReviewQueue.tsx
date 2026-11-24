@@ -13,7 +13,7 @@ import { LIFECYCLE_LABEL, groeneVoorstellen, isBeslist, slotVan, type ReviewFilt
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
-import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
+import { JAS_KLASSEN, JAS_SUBTYPEN, jasStyle } from "@/lib/jas";
 import { redenVoorAlternatief } from "@/lib/waarom";
 import { useVerklaringen, WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
@@ -406,6 +406,25 @@ function DecisionCard({
         </span>
       </div>
 
+      {/* Het subtype hoort bij de klasse (`JAS_SUBTYPEN`): bij een Tijdsaanduiding zegt het of zij een parameter of een
+          variabele verbijzondert, en daarmee welke relaties zij mag aangaan (H2:107; de relatiecatalogus). In het palet
+          te kiezen, met dezelfde chips als de filters; een tweede klik op het gekozen subtype maakt het weer onbepaald. */}
+      {el.jas_subtype && !(palet && !slot) && (
+        <p className="mt-1 text-3xs text-muted">Subtype: <span className="text-ink">{el.jas_subtype}</span></p>
+      )}
+      {palet && !slot && (JAS_SUBTYPEN[el.klasse] ?? []).length > 0 && (
+        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <KeuzeRij label="Subtype">
+            <span className="self-center text-3xs text-muted">Subtype</span>
+            {JAS_SUBTYPEN[el.klasse].map((st) => (
+              <FilterChip key={st} gekozen={el.jas_subtype === st} disabled={bezig}
+                onKies={() => void wijzig({ jas_subtype: el.jas_subtype === st ? "" : st })}>
+                {st}
+              </FilterChip>
+            ))}
+          </KeuzeRij>
+        </div>
+      )}
       {palet && !slot && (
         <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
           {JAS_KLASSEN.filter((k) => k !== el.klasse).map((k) => (

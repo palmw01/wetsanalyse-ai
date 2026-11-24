@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 #: De eerste twaalf tekens van de sha256 van de bron.
-CATALOGUS_VERSIE = '86825c97b971'
+CATALOGUS_VERSIE = '6834a2fd062c'
 
 #: De pseudoklasse van een eindpunt dat een hele bepaling is (soort bron, M-1-1).
 BRON = 'Bron'
@@ -260,17 +260,13 @@ RELATIETYPEN = {'beeindigt': {'leesvorm': 'beëindigt',
  'waarde': {'leesvorm': 'is waarde van',
             'invers': 'heeft als waarde',
             'van': ['Variabele en variabelewaarde', 'Parameter en parameterwaarde'],
-            'naar': ['Variabele en variabelewaarde', 'Parameter en parameterwaarde', 'Tijdsaanduiding'],
+            'naar': ['Variabele en variabelewaarde', 'Parameter en parameterwaarde'],
             'paren': [{'van': 'Variabele en variabelewaarde',
                        'van_subtype': 'variabelewaarde',
                        'naar': 'Variabele en variabelewaarde'},
                       {'van': 'Parameter en parameterwaarde',
                        'van_subtype': 'parameterwaarde',
-                       'naar': 'Parameter en parameterwaarde'},
-                      {'van': 'Parameter en parameterwaarde',
-                       'van_subtype': 'parameterwaarde',
-                       'naar': 'Tijdsaanduiding',
-                       'naar_subtype': 'verbijzondert parameter'}],
+                       'naar': 'Parameter en parameterwaarde'}],
             'drager': 'naar',
             'volgorde': False,
             'tekstueel': False,
@@ -295,6 +291,14 @@ CENTRALE_KLASSEN = ('Rechtsbetrekking', 'Rechtsfeit', 'Afleidingsregel', 'Voorwa
 #: De klassen van een impliciete partij (besluit gebruiker, 7 nov 2026).
 IMPLICIET_TOEGESTAAN = ('Rechtssubject',)
 
+#: klasse → subtype → de klasse die zij verbijzondert en haar subtype daar (H2:107, M01 h.4 §12).
+VERBIJZONDERINGEN = {'Tijdsaanduiding': {'verbijzondert parameter': {'klasse': 'Parameter en parameterwaarde',
+                                                 'subtype': 'parameter',
+                                                 'bron': ['H2:107', 'M01']},
+                     'verbijzondert variabele': {'klasse': 'Variabele en variabelewaarde',
+                                                 'subtype': 'variabele',
+                                                 'bron': ['H2:107', 'M01']}}}
+
 #: Diagnostisch, nooit in het schrijfpad.
 KARDINALITEIT = {'Afleidingsregel': {'uitvoer': {'min': 1, 'max': 1}, 'invoer': {'min': 1}}}
 
@@ -304,20 +308,34 @@ def type_van(code: str) -> dict | None:
     return RELATIETYPEN.get(code)
 
 
-def toegestaan(code: str, van_klasse: str, naar_klasse: str, van_subtype: str = "", naar_subtype: str = "") -> bool:
-    """Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar
-    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een hele bepaling (`BRON`) mag
-    alleen aan de kant naar, bij een type met `eindpunt_bron` (M-1-1)."""
-    t = RELATIETYPEN.get(code)
-    if t is None or van_klasse == BRON:
-        return False
-    if naar_klasse == BRON:
-        return t["eindpunt_bron"] and van_klasse in t["van"]
+def als_klassen(klasse: str, subtype: str = "") -> list[tuple[str, str]]:
+    """De klassen waarvan een markering de relaties mag aangaan: haar eigen klasse, en bij een verbijzondering ook de
+    klasse die zij verbijzondert, met het subtype dat zij daar heeft (een tijdsaanduiding die een variabele
+    verbijzondert, is ook een variabele; H2:107, M01 h.4 §12)."""
+    v = VERBIJZONDERINGEN.get(klasse, {}).get(subtype)
+    return [(klasse, subtype)] + ([(v["klasse"], v["subtype"])] if v else [])
+
+
+def _past(t: dict, van_klasse: str, naar_klasse: str, van_subtype: str, naar_subtype: str) -> bool:
     if t["paren"]:
         return any(p["van"] == van_klasse and p["naar"] == naar_klasse
                    and p.get("van_subtype", van_subtype) == van_subtype
                    and p.get("naar_subtype", naar_subtype) == naar_subtype for p in t["paren"])
     return van_klasse in t["van"] and naar_klasse in t["naar"]
+
+
+def toegestaan(code: str, van_klasse: str, naar_klasse: str, van_subtype: str = "", naar_subtype: str = "") -> bool:
+    """Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar
+    dat een subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een kant met een verbijzondering
+    telt ook als de klasse die zij verbijzondert (`als_klassen`). Een hele bepaling (`BRON`) mag alleen aan de kant
+    naar, bij een type met `eindpunt_bron` (M-1-1)."""
+    t = RELATIETYPEN.get(code)
+    if t is None or van_klasse == BRON:
+        return False
+    if naar_klasse == BRON:
+        return t["eindpunt_bron"] and any(k in t["van"] for k, _ in als_klassen(van_klasse, van_subtype))
+    return any(_past(t, vk, nk, vs, ns) for vk, vs in als_klassen(van_klasse, van_subtype)
+               for nk, ns in als_klassen(naar_klasse, naar_subtype))
 
 
 def drager_kant(code: str) -> str:

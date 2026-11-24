@@ -83,7 +83,10 @@ describe("de inhoud van een paneel bouwt geen eigen kopregel", () => {
     expect(knop).toMatch(/knopKlasse\("secondary", "xs"\)/);
     expect(a).not.toMatch(/<ExportKnop\b|<VerwijderKnop\b/);
     expect(a).toMatch(/<ExportRegels\b/);
-    expect(a).toMatch(/<MenuVerwijder\b/);
+    // Verwijderen staat onderaan als `MenuKnop gevaar`: het opent de eigen bevestiging, die noemt wat er verloren gaat
+    // (`VerwijderBevestiging`), zoals een gesprek eerst archiveren aanbiedt.
+    expect(a).toMatch(/<MenuKnop gevaar[\s\S]{0,80}ariaLabel=\{verwijderLabel\("annotatie"\)\}/);
+    expect(a).toMatch(/<VerwijderBevestiging\b/);
     // De tab Graaf krijgt dezelfde kop, zodat hij bij een tabwissel niet springt.
     expect(bron("components/annotaties/NodeAnnotatiePaneel.tsx")).toMatch(/<AnnotatieKop\b/);
   });

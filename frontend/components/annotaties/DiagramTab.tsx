@@ -79,8 +79,8 @@ export function DiagramTab({ view, haal, gebruiker, bediening, impliciet, afrond
       {fout && <Melding type="fout" compact>{fout}</Melding>}
       {set.diagrammen.length === 0 ? (
         <Leeg>
-          Er is nog geen goedgekeurde rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde: het diagram toont
-          alleen wat je hebt goedgekeurd (deelactiviteit 2c). Beoordeel eerst de markeringen op de tab Tekst.
+          Deze bepaling heeft nog geen rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde: er is geen diagram
+          (deelactiviteit 2c).
         </Leeg>
       ) : set.diagrammen.map((d) => (
         <DiagramKaart key={d.diagram.centraal} data={d} view={view} keuze={actief?.diagram === d.diagram.centraal ? actief : undefined}

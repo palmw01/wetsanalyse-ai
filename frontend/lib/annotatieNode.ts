@@ -100,7 +100,10 @@ export interface NodeWeergave {
   dekking: NodeDekking;
   /** Gezet als deze bepaling geannoteerd was en die annotatie is verwijderd (en er sindsdien geen
    *  nieuwe laag is). Zo leest een heropend gesprek "verwijderd" in plaats van een leeg paneel. */
-  verwijderd?: { op: string } | null;
+  verwijderd?: { op: string; door?: string } | null;
+  /** Het nieuwste item in de prullenbak dat deze bepaling raakt (`lib/annotatiePrullenbak.ts`): terug te zetten, of –
+   *  als er al een nieuwe annotatie ligt – te vergelijken. Een oudere api stuurt het niet. */
+  prullenbak?: import("./annotatiePrullenbak").PrullenbakItem | null;
   /** De agent-rondes met hun meting, elk één keer (`run_sleutel` in de api); een element draagt zijn ronde zonder. */
   runs?: Record<string, import("./types").AgentRun>;
   /** De relaties met een eindpunt in beeld of de drager in een van de lagen (ADR-011). Een oudere api heeft ze niet. */
@@ -246,7 +249,12 @@ export interface NodeOpslag {
   markeer(body: Record<string, unknown>): Promise<{ element?: { id?: string } } | undefined>;
   wis(elementId: string, verwachteRevisie: number): Promise<unknown>;
   status(laagId: string, body: { status: string; verwachte_revisie: number }): Promise<unknown>;
-  verwijder(body: Record<string, unknown>): Promise<{ graaf?: string } | undefined>;
+  verwijder(body: Record<string, unknown>): Promise<{ graaf?: string; prullenbak?: { id: string; bewaartermijn_dagen: number } } | undefined>;
+  /** Wat verwijderen kost, voor de bevestiging. Weglaten (de rondleiding, een oude versie): een bevestiging zonder telling. */
+  verwijderImpact?(body: { bron_iri: string; snapshot_id: string }): Promise<import("./annotatiePrullenbak").VerwijderImpact>;
+  /** De prullenbak: een item lezen (de vergelijking) en terugzetten. Weglaten: geen *Terugzetten*. */
+  prullenbakItem?(id: string): Promise<import("./annotatiePrullenbak").PrullenbakInhoud>;
+  terugzetten?(id: string): Promise<unknown>;
   exporteer(body: { bron_iri: string; snapshot_id: string; formaat: ExportFormaat }): Promise<void>;
   /** Relaties en impliciete partijen (ADR-011). Weglaten (de rondleiding, een oude versie) maakt het blok
    *  *Relaties* alleen-lezen. */
@@ -292,6 +300,9 @@ export const apiOpslag: NodeOpslag = {
   wis: (id, revisie) => nodeRequest(`elementen/${encodeURIComponent(id)}?verwachte_revisie=${revisie}`, {}, "DELETE"),
   status: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/status`, body),
   verwijder: (body) => nodeRequest("weergave/verwijder", body),
+  verwijderImpact: (body) => nodeRequest("weergave/verwijder-impact", body),
+  prullenbakItem: (id) => nodeRequest(`prullenbak/${pathSegment(id)}`),
+  terugzetten: (id) => nodeRequest(`prullenbak/${pathSegment(id)}/terugzetten`, {}),
   legRelatie: (body) => nodeRequest("relaties", body),
   beslisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/beslissing`, body),
   wisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/wis`, body),

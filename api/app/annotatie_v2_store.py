@@ -18,8 +18,10 @@ from bronmodel import BronFout, anker_actueel, element_actueel, valideer_ankers
 
 from . import db
 from .auth import huidige_client
+from .config import get_settings
 from .annotatie_v2_contracts import (AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten, Lifecycle,
                                       is_vervangen)
+from .jas_klassen import JAS_SUBTYPEN, subtype_past
 from .validation import GELDIGE_JAS_KLASSEN
 
 
@@ -666,7 +668,14 @@ async def weergave(snapshot: dict) -> dict:
                 "dekking": await dekking(snapshot, conn),
                 # Een lege weergave kan twee dingen zijn: nooit geannoteerd, of verwijderd. Het tweede
                 # hoort de jurist te lezen (zoals een verwijderd document in v1).
-                "verwijderd": None if lagen else await _verwijderd(conn, scope)}
+                "verwijderd": None if lagen else await _verwijderd(conn, scope),
+                # Wat van deze bepaling in de prullenbak ligt: terug te zetten, of (bij een nieuwe laag) te vergelijken.
+                "prullenbak": await _prullenbak_bij(conn, scope, layers)}
+
+
+async def _prullenbak_bij(conn, scope: set[str], layers: dict) -> dict | None:
+    from .annotatie_prullenbak import bij_weergave
+    return await bij_weergave(conn, scope, layers)
 
 
 async def details(element_ids: list[str]) -> dict[str, dict]:
@@ -750,6 +759,23 @@ def _grens_wijziging(element: dict, wijziging: dict, nodes: dict) -> dict:
                         "bron_hash": node["bron_hash"]}], "tekst": tekst}
 
 
+def _herzien_subtype(oud: dict, wijziging: dict) -> dict:
+    """Het subtype hoort bij de klasse (`jas_klassen.JAS_SUBTYPEN`). De jurist kiest het mee (een tijdsaanduiding die
+    een parameter of een variabele verbijzondert, H2:107); een subtype dat niet bij de klasse past, is een 422. Wisselt
+    de klasse zonder eigen subtype en past het oude niet meer, dan vervalt het: een verbijzondering van een andere
+    klasse zegt over de nieuwe niets. De beslissing bewaart het oude in `voor`."""
+    klasse = wijziging.get("klasse", oud.get("klasse", "")) or ""
+    if "jas_subtype" in wijziging:
+        if not subtype_past(klasse, wijziging["jas_subtype"] or ""):
+            raise HTTPException(422, {"fout": "subtype_past_niet", "melding":
+                                      f"Het subtype ‘{wijziging['jas_subtype']}’ hoort niet bij de klasse {klasse or '(geen)'}; "
+                                      f"kies uit: {', '.join(JAS_SUBTYPEN.get(klasse, ())) or 'geen subtype'}."})
+        return {"jas_subtype": wijziging["jas_subtype"] or ""}
+    if not subtype_past(klasse, oud.get("jas_subtype") or ""):
+        return {"jas_subtype": ""}
+    return {}
+
+
 def _herzien_toelichting(oud: dict, wijziging: dict) -> dict:
     """Een klassewissel zonder nieuwe toelichting: de oude ging over de vorige klasse ("Een rechtsobject is…" bij een
     Rechtsfeit). Ze wijkt voor een zin die zegt wat er gebeurde; de beslissing bewaart haar in `voor`. Een nieuwe grens
@@ -792,13 +818,13 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
     if req.type in {"edit", "grens"}:
         if req.type == "grens":
             wijziging = _grens_wijziging(old, req.wijziging, nodes)
-        elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
+        elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers", "jas_subtype"}:
             raise HTTPException(422, "Niet-toegestane correctievelden.")
         elif not req.wijziging:
             # Termijnen e2e (20 nov 2026): `klasse` naast `wijziging` in plaats van erin gaf 200, lifecycle edited en
             # geen wijziging. Een bewerking zonder iets te wijzigen is geen oordeel.
             raise HTTPException(422, "Een bewerking zonder wijziging: zet de velden in `wijziging`.")
-        wijziging = {**wijziging, **_herzien_toelichting(old, wijziging)}
+        wijziging = {**wijziging, **_herzien_toelichting(old, wijziging), **_herzien_subtype(old, wijziging)}
         candidate = Element.model_validate({**old, **wijziging})
         value.update(valideer(candidate, snapshot, set(nodes)))
         owner = value["eigenaar_iri"]
@@ -952,6 +978,9 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
     met hun elementen en hun dekking. Elke gebruiker mag dit; het staat in de
     audit (`laag-verwijderd`, append-only – die regels blijven).
 
+    Niet definitief: wat weggaat, gaat eerst naar de prullenbak (`annotatie_prullenbak.bewaar`), en is terug te zetten
+    zolang er geen nieuwe laag op dezelfde bronnodes staat. Uit de graaf gaat het wel meteen.
+
     Wat er níét onder valt: een element van een ruimere laag (een voorouder) dat met één anker in deze
     bepaling valt – dat is een verwijzing, geen eigendom van deze weergave.
 
@@ -970,15 +999,29 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
             if verwacht.get(iri) != layer["revisie"]:
                 raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": layer["revisie"]})
         ids = [layer["id"] for layer in doelen.values()]
-        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.id, db.annotatie_v2_elementen.c.laag_id)
-                                   .where(db.annotatie_v2_elementen.c.laag_id.in_(ids)))).all()
+        el_rijen = [dict(r) for r in (await conn.execute(select(db.annotatie_v2_elementen).where(
+            db.annotatie_v2_elementen.c.laag_id.in_(ids)))).mappings().all()]
+        rows = [(r["id"], r["laag_id"]) for r in el_rijen]
         per_laag: dict[str, list[str]] = {}
         for element_id, laag_id in rows:
             per_laag.setdefault(laag_id, []).append(element_id)
+        # Wat hierna weggaat, eerst in de prullenbak: de relaties en impliciete partijen zoals ze vóór `wis_bij` stonden.
+        rel_voor = {r["id"]: dict(r) for r in (await conn.execute(select(db.annotatie_v2_relaties))).mappings().all()}
+        imp_voor = [dict(r) for r in (await conn.execute(select(db.annotatie_v2_impliciet).where(
+            db.annotatie_v2_impliciet.c.laag_id.in_(ids)))).mappings().all()]
         # Relaties met een eindpunt hier of een drager hier, en de impliciete partijen van deze lagen, gaan mee
         # (ADR-011). Een dragerlaag buiten deze weergave krijgt een revisie.
         from .annotatie_v2_relaties import wis_bij
         gewist = await wis_bij(conn, actor, layers, element_ids={e for e, _ in rows}, laag_ids=set(ids))
+        sleutels = sorted({f"annotatie:{iri}" for iri in {snapshot["doel"]["bron_iri"], *doelen}})
+        from . import annotatie_prullenbak
+        bak = await annotatie_prullenbak.bewaar(
+            conn, actor, snapshot["doel"]["bron_iri"], doelen, el_rijen,
+            [rel_voor[i] for i in gewist["relaties"] if i in rel_voor], imp_voor,
+            [dict(r) for r in (await conn.execute(select(db.annotatie_v2_dekking).where(
+                db.annotatie_v2_dekking.c.bron_iri.in_(sorted(scope))))).mappings().all()],
+            [dict(r) for r in (await conn.execute(select(db.artefact_versies).where(
+                db.artefact_versies.c.sleutel.in_(sleutels)))).mappings().all()])
         await conn.execute(delete(db.annotatie_v2_elementen).where(db.annotatie_v2_elementen.c.laag_id.in_(ids)))
         await conn.execute(delete(db.annotatie_v2_lagen).where(db.annotatie_v2_lagen.c.id.in_(ids)))
         for row in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all():
@@ -995,29 +1038,49 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
         for iri, layer in sorted(doelen.items()):
             await _audit(conn, actor, "laag-verwijderd", {
                 "bron_iri": iri, "laag_id": layer["id"], "revisie": layer["revisie"], "status": layer["status"],
-                "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], []))},
-                laag_id=layer["id"])
-        # De versies van de annotatie (artefact_versies) gaan mee: echt wissen, zoals bij een werkgebied.
+                "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], [])),
+                "prullenbak_id": bak["id"]}, laag_id=layer["id"])
+        # De versies van de annotatie (artefact_versies) gaan mee, naar de prullenbak (zie hierboven).
         from .artefact_versies import wis_sleutel
-        for iri in {snapshot["doel"]["bron_iri"], *doelen}:
-            await wis_sleutel(conn, f"annotatie:{iri}")
+        for sleutel in sleutels:
+            await wis_sleutel(conn, sleutel)
         await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(
             revisie=db.annotatie_v2_state.c.revisie + 1))
     from .graaf_projectie_v2 import verwijder_projecties
     graaf = await verwijder_projecties(ids)
     return {"verwijderd": {"lagen": len(ids), "elementen": len(rows), "relaties": len(gewist["relaties"]),
-                           "impliciet": len(gewist["impliciet"])}, "graaf": graaf}
+                           "impliciet": len(gewist["impliciet"])}, "graaf": graaf,
+            "prullenbak": {"id": bak["id"], "bewaartermijn_dagen": get_settings().annotatie_prullenbak_dagen}}
+
+
+async def verwijder_impact(snapshot: dict) -> dict:
+    """Wat er verloren gaat als je de bepaling in beeld verwijdert, voor de bevestiging: de markeringen (en hoeveel
+    beoordeeld), de relaties, en de begrippen en afleidingsregels die ernaar verwijzen. Alleen lezen."""
+    scope = bereik_van(snapshot)
+    async with leestransactie() as conn:
+        layers = await _lagen(conn)
+        ids = sorted(l["id"] for iri, l in layers.items() if iri in scope)
+        elementen = [dict(v) for v in (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
+            db.annotatie_v2_elementen.c.laag_id.in_(ids)))).scalars().all()] if ids else []
+        element_ids = {e["id"] for e in elementen}
+        relaties = sum(1 for r in (await conn.execute(select(db.annotatie_v2_relaties.c.inhoud))).scalars().all()
+                       if r.get("laag_id") in ids or {r["van"].get("id"), r["naar"].get("id")} & element_ids)
+        from . import annotatie_prullenbak
+        return {"lagen": len(ids), **annotatie_prullenbak.telling(elementen), "relaties": relaties,
+                **await annotatie_prullenbak.verwijzers(conn, element_ids),
+                "bewaartermijn_dagen": get_settings().annotatie_prullenbak_dagen}
 
 
 async def _verwijderd(conn, scope: set[str]) -> dict | None:
     """Is de annotatie in deze scope verwijderd (en sindsdien niet opnieuw gemaakt – dan was er een
     laag)? Dan zegt de werkplek dat, in plaats van een leeg paneel te tonen."""
-    rows = (await conn.execute(select(db.annotatie_v2_audit.c.detail, db.annotatie_v2_audit.c.tijdstip)
+    rows = (await conn.execute(select(db.annotatie_v2_audit.c.detail, db.annotatie_v2_audit.c.tijdstip,
+                                      db.annotatie_v2_audit.c.actor)
                                .where(db.annotatie_v2_audit.c.actie == "laag-verwijderd")
                                .order_by(db.annotatie_v2_audit.c.id.desc()))).all()
-    for detail, tijdstip in rows:
+    for detail, tijdstip, actor in rows:
         if (detail or {}).get("bron_iri") in scope:
-            return {"op": db.aware(tijdstip).isoformat()}
+            return {"op": db.aware(tijdstip).isoformat(), "door": actor}
     return None
 
 

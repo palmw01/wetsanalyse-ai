@@ -8,15 +8,16 @@ import { useCallback, useEffect, useState } from "react";
 import { AnnotatieKaart } from "@/components/annotaties/AnnotatieKaart";
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { foutTekst, isApiError, lijstLagen } from "@/lib/api";
-import { verwijderAnnotatie } from "@/lib/annotatieNode";
+import { apiOpslag, verwijderAnnotatie } from "@/lib/annotatieNode";
+import { VerwijderBevestiging } from "@/components/annotaties/Prullenbak";
 import { metSpoor } from "@/lib/uiSpoor";
 import {
   WEERGAVEN, groepeerPerRegeling, inWeergave, legeWeergave, sorteerTeBeoordelen, uitlegWeergave, zoek,
-  type Weergave,
+  type Weergave, naamVan,
 } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
 
@@ -39,6 +40,10 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
   // Onder `lg` is de sidebar een drawer. Zonder deze state was er op een smal scherm géén sidebar
   // én geen manier om er een te openen: geen gesprekken, geen account, geen uitloggen.
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // De bevestiging (welke kaart), en na verwijderen de weg terug.
+  const [teVerwijderen, setTeVerwijderen] = useState<DocumentSamenvatting | null>(null);
+  const [verwijderd, setVerwijderd] = useState<{ id: string; naam: string } | null>(null);
+  const [teruggezet, setTeruggezet] = useState("");
 
   const laad = useCallback(async () => {
     setFout(null);
@@ -55,16 +60,25 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
     laad();
   }, [laad]);
 
-  /** Verwijderen vanuit de lijst: de kaart gaat meteen weg en komt bij een fout terug. */
+  /** Verwijderen vanuit de lijst, na de bevestiging die noemt wat er verloren gaat. De kaart gaat daarna weg; een fout
+   *  blijft in het venster staan. Daarna kun je het in een melding terugzetten. */
   async function verwijder(doc: DocumentSamenvatting) {
-    const voor = docs;
+    const doel = { bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id };
+    const uit = await metSpoor("annotatie_verwijderen", () => verwijderAnnotatie(doel));
     setDocs((d) => d?.filter((x) => x.slug !== doc.slug) ?? d);
+    setTeruggezet("");
+    setVerwijderd(uit?.prullenbak ? { id: uit.prullenbak.id, naam: naamVan(doc) } : null);
+  }
+
+  async function zetTerug(item: { id: string; naam: string }) {
+    setFout(null);
     try {
-      await metSpoor("annotatie_verwijderen", () =>
-        verwijderAnnotatie({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id }));
+      await apiOpslag.terugzetten!(item.id);
+      setVerwijderd(null);
+      setTeruggezet(item.naam);
+      await laad();
     } catch (e) {
-      setDocs(voor);
-      setFout(foutTekst(e, "De annotatie is niet verwijderd."));
+      setFout(foutTekst(e, "De annotatie is niet teruggezet."));
     }
   }
 
@@ -128,6 +142,18 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                 {fout}
               </Melding>
             )}
+            {verwijderd && (
+              <Melding type="bevestiging" className="mb-4" data-verwijderd-melding>
+                De annotatie van {verwijderd.naam} staat in de prullenbak.{" "}
+                <MeldingActie onClick={() => void zetTerug(verwijderd)} data-terugzetten>Terugzetten</MeldingActie>
+              </Melding>
+            )}
+            {teruggezet && <Melding type="bevestiging" className="mb-4">De annotatie van {teruggezet} is teruggezet.</Melding>}
+            {teVerwijderen && (
+              <VerwijderBevestiging bepaling={naamVan(teVerwijderen)}
+                haalImpact={() => apiOpslag.verwijderImpact!({ bron_iri: teVerwijderen.bron_iri ?? "", snapshot_id: teVerwijderen.snapshot_id ?? "" })}
+                onVerwijder={() => verwijder(teVerwijderen)} onSluit={() => setTeVerwijderen(null)} />
+            )}
 
             {docs === null ? (
               <OverzichtSkelet />
@@ -140,7 +166,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             ) : weergave === "te-beoordelen" ? (
               <OverzichtRaster>
                 {sorteerTeBeoordelen(getoond).map((d) => (
-                  <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
+                  <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => setTeVerwijderen(d)} />
                 ))}
               </OverzichtRaster>
             ) : (
@@ -157,7 +183,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                     </div>
                     <OverzichtRaster>
                       {regeling.documenten.map((d) => (
-                        <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
+                        <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => setTeVerwijderen(d)} />
                       ))}
                     </OverzichtRaster>
                   </section>

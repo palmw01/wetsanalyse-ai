@@ -1474,7 +1474,10 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   delegatiebevoegdheid, en op een Tijdsaanduiding "verbijzondert parameter") wordt alleen gezet bij
   eenduidig bewijs uit de detectiecodes, anders leeg. Het reist via het contract naar de api, de graaf
   (`jas:subtype`) en de exports. De toegestane waarden staan in `ALLE_SUBTYPEN`; de api-patroon en de
-  zoektool moeten daar precies mee overeenkomen (`test_contract_drift.py`).
+  zoektool moeten daar precies mee overeenkomen (`test_contract_drift.py`). "verbijzondert variabele" (een moment dat
+  per geval verschilt, H2:107, M01 h.4 §12) zet de keten nooit: dat kiest de jurist. Een verbijzondering telt in de
+  relatiecatalogus ook als de klasse die zij verbijzondert (`jas_relaties.als_klassen`, de sleutel `verbijzonderingen` in
+  `relaties.json`); de relatievoorstellen gebruiken dat, ook voor de ouder van een waarde (`relaties._waardeouder`).
 - **Een duur is één Tijdsaanduiding** (JAS-PRIORITY-001) met subtype "verbijzondert parameter"; alleen een
   getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
   code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem

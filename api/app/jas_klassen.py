@@ -64,3 +64,21 @@ JAS_KLASSE_KLEUREN: dict[str, tuple[str, str]] = {
 }
 
 JAS_TEKSTKLEUR = "#1A1A1A"
+
+
+# De subtypes per klasse (ADR-001 §10.1): het onderscheid binnen een samengevoegde klasse, en bij een
+# Tijdsaanduiding de klasse die zij verbijzondert (H2:107; M01 h.4 §12: de analyse legt vast of zij een parameter of
+# een variabele verbijzondert). Een subtype buiten de lijst van zijn klasse is een fout. `frontend/lib/jas.ts` draagt
+# dezelfde lijst (de keuze in de werkplek), `tests/test_jas_kleuren_drift.py` bewaakt dat; het patroon van `jas_subtype`
+# in `annotatie_v2_contracts` noemt dezelfde waarden.
+JAS_SUBTYPEN: dict[str, tuple[str, ...]] = {
+    "Variabele en variabelewaarde": ("variabele", "variabelewaarde"),
+    "Parameter en parameterwaarde": ("parameter", "parameterwaarde"),
+    "Tijdsaanduiding": ("verbijzondert parameter", "verbijzondert variabele"),
+    "Delegatiebevoegdheid en delegatie-invulling": ("delegatiebevoegdheid", "delegatie-invulling"),
+}
+
+
+def subtype_past(klasse: str, subtype: str) -> bool:
+    """Leeg past altijd (onbepaald); anders moet het subtype bij de klasse horen."""
+    return not subtype or subtype in JAS_SUBTYPEN.get(klasse, ())

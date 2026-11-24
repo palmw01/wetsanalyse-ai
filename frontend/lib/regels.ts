@@ -77,6 +77,8 @@ export interface RegelDrager {
   motivering?: string;
   /** Van `begrip_store.actualiteit`: is de dragende passage nog dezelfde? */
   actualiteit?: "actueel" | "gewijzigd" | "verworpen" | "verdwenen" | string;
+  /** Bij `verdwenen`: de annotatie van de markering werd verwijderd (`bronVerwijderdZin`). */
+  bron_verwijderd?: import("./annotatiePrullenbak").BronVerwijderd;
   /** De bronnode van de markering met de weg naar de wettekst (`annotatie_v2_store.bronreferentie`): de jci waar de BWB er
    *  een toekent, anders het anker op de toestandspagina. Een oudere api stuurt het niet. */
   bron?: RegelBron;

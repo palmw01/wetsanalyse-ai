@@ -234,6 +234,17 @@ async def test_de_bepaling_verwijderen_wist_ook_relaties_elders(lagen):
     assert (await store.weergave(s1))["relaties"] == []
 
 
+async def test_terugzetten_uit_de_prullenbak_brengt_ook_de_relaties_elders_terug(lagen):
+    s1, s2 = lagen
+    r = (await rel.leg(leg("zin", "termijn", "voorwaarde", {ONE: 1}), "jurist"))["relatie"]
+    res = await store.verwijder_weergave(s2, {TWO: 1}, "iemand")
+    from app import annotatie_prullenbak
+    terug = await annotatie_prullenbak.zet_terug(res["prullenbak"]["id"], "iemand")
+    assert terug["teruggezet"]["relaties"] == 1
+    assert [x["id"] for x in (await store.weergave(s1))["relaties"]] == [r["id"]]
+    assert await _revisie(s1) == 4                    # gelegd, gewist, teruggezet: de dragerlaag telt mee
+
+
 async def test_een_impliciete_partij_is_een_rechtssubject_van_de_jurist(lagen):
     s1, _ = lagen
     with pytest.raises(ValidationError):
@@ -420,3 +431,19 @@ def test_een_bron_is_een_bron_iri_en_staat_alleen_aan_de_kant_naar():
     assert not jas_relaties.toegestaan("uitzondering_op", "Bron", "Rechtsbetrekking")
     assert jas_relaties.toegestaan("toepassing", "Afleidingsregel", "Bron")
     assert not jas_relaties.toegestaan("tijd", "Rechtsbetrekking", "Bron")
+
+
+async def test_een_tijdsaanduiding_neemt_de_relaties_over_van_wat_zij_verbijzondert():
+    """H2:107; M01 h.4 §12. Art. 9 lid 1 Iw 1990 (acceptatie, 24 nov 2026): "de dagtekening van het aanslagbiljet" is
+    een datum die per aanslag verschilt, een tijdsaanduiding die een variabele verbijzondert, en daarmee kenmerk van het
+    aanslagbiljet. Als verbijzondering van een parameter mag zij dat niet: de api toetst het subtype."""
+    s1 = snapshot(ONE)
+    tijd = {**element(s1, ONE, 30, 34, "moment", "Tijdsaanduiding"), "jas_subtype": "verbijzondert parameter"}
+    await store.batch(batch(s1, [element(s1, ONE, 19, 29, "aanslag", RO), tijd], "lex-1"), s1, "lex")
+    with pytest.raises(HTTPException) as exc:
+        await rel.leg(leg("moment", "aanslag", "kenmerk", {ONE: 1}), "jurist")
+    assert exc.value.status_code == 422 and exc.value.detail["fout"] == "klassen_passen_niet"
+    await store.beslis("moment", Beslissing(type="edit", snapshot_id=s1["snapshot_id"], verwachte_revisies={ONE: 1},
+                                            wijziging={"jas_subtype": "verbijzondert variabele"}), s1, "jurist")
+    r = (await rel.leg(leg("moment", "aanslag", "kenmerk", {ONE: 2}), "jurist"))["relatie"]
+    assert r["leesvorm"] == "is kenmerk van" and r["van"]["klasse"] == "Tijdsaanduiding"
