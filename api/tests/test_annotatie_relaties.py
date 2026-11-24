@@ -234,6 +234,17 @@ async def test_de_bepaling_verwijderen_wist_ook_relaties_elders(lagen):
     assert (await store.weergave(s1))["relaties"] == []
 
 
+async def test_terugzetten_uit_de_prullenbak_brengt_ook_de_relaties_elders_terug(lagen):
+    s1, s2 = lagen
+    r = (await rel.leg(leg("zin", "termijn", "voorwaarde", {ONE: 1}), "jurist"))["relatie"]
+    res = await store.verwijder_weergave(s2, {TWO: 1}, "iemand")
+    from app import annotatie_prullenbak
+    terug = await annotatie_prullenbak.zet_terug(res["prullenbak"]["id"], "iemand")
+    assert terug["teruggezet"]["relaties"] == 1
+    assert [x["id"] for x in (await store.weergave(s1))["relaties"]] == [r["id"]]
+    assert await _revisie(s1) == 4                    # gelegd, gewist, teruggezet: de dragerlaag telt mee
+
+
 async def test_een_impliciete_partij_is_een_rechtssubject_van_de_jurist(lagen):
     s1, _ = lagen
     with pytest.raises(ValidationError):

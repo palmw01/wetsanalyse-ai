@@ -20,6 +20,7 @@ export const UI_ACTIES = [
   "gesprekken_verwijderen",
   "gesprekken_archiveren",
   "annotatie_verwijderen",
+  "annotatie_terugzetten",
   "werkgebied_verwijderen",
   "begrip_verwijderen",
   "regel_verwijderen",

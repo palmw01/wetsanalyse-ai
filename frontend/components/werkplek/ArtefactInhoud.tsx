@@ -11,9 +11,12 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { annotatieKopTekst } from "@/lib/herkomst";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
-import { MenuVerwijder } from "@/components/ui/MeerMenu";
+import { MenuKnop } from "@/components/ui/MeerMenu";
+import { Prullenbak } from "@/components/ui/Icoon";
+import { VerwijderBevestiging } from "@/components/annotaties/Prullenbak";
+import type { VerwijderImpact } from "@/lib/annotatiePrullenbak";
 import { knopKlasse } from "@/components/ui/Button";
-import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
+import { verwijderLabel } from "@/lib/verwijderen";
 import { Melding } from "@/components/ui/Melding";
 import { AnnotatieTekst } from "@/components/werkplek/AnnotatieTekst";
 import type { SegmentPlek } from "@/lib/annotatieNodeAdapter";
@@ -69,6 +72,8 @@ export interface ArtefactInhoudProps {
   /** De hele annotatie van deze bepaling verwijderen, uit de database én de graaf. Weglaten
    *  verbergt de knop (er is niets te verwijderen, of de weergave is alleen-lezen). */
   onVerwijder?: () => Promise<void>;
+  /** Wat verwijderen kost, voor de bevestiging (`VerwijderBevestiging`). */
+  verwijderImpact?: () => Promise<VerwijderImpact>;
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   /** De laatste laag van Escape, als dat niet sluiten is: het paneel verbergen (het bronvenster, PR 3b). */
@@ -95,7 +100,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, plekken, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
-  onWisEigenMarkering, vraagOnderwerp, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, kopVraag, naTekst, alleenLezen = false,
+  onWisEigenMarkering, vraagOnderwerp, onStatus, onVerwijder, verwijderImpact, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, kopVraag, naTekst, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -312,9 +317,9 @@ export function ArtefactInhoud({
         {/* De vaste kop (`PaneelKop`, 8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en
             afronden rechts. Exporteren en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders
             af naar een derde rij. Elke gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast
-            wie het deed, en de tweede klik bevestigt. */}
+            wie het deed, en een venster noemt vooraf wat er verloren gaat. */}
         <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onder={kopOnder} balk={kopBalk} vraag={kopVraag}
-          onStatus={onStatus} onVerwijder={onVerwijder} onExport={onExport} onFout={setFout} />
+          onStatus={onStatus} onVerwijder={onVerwijder} verwijderImpact={verwijderImpact} onExport={onExport} onFout={setFout} />
 
         {/* Tekst en kaartjes met elk een EIGEN scroll (`TekstEnLijst`). Eén gedeelde scroller liet de wettekst uit beeld
             lopen zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. Breed genoeg
@@ -431,7 +436,7 @@ export function focusBijArtefact(doel: EventTarget | null): boolean {
 /** De kop van een annotatie (`PaneelKop`): de status links, afronden rechts, exporteren en verwijderen in het menu ⋯.
  *  Eén component voor de tab Tekst (hier) en de tab Graaf (`NodeAnnotatiePaneel`), zodat de kop bij een tabwissel
  *  niet springt. Een fout landt via `onFout` in de melding van de tab die openstaat. */
-export function AnnotatieKop({ doc, opschrift, pagina, onder, balk, vraag, onStatus, onVerwijder, onExport, onFout }: {
+export function AnnotatieKop({ doc, opschrift, pagina, onder, balk, vraag, onStatus, onVerwijder, verwijderImpact, onExport, onFout }: {
   doc: AnnotatieDocument;
   opschrift: string;
   pagina?: string;
@@ -440,10 +445,13 @@ export function AnnotatieKop({ doc, opschrift, pagina, onder, balk, vraag, onSta
   vraag?: ReactNode;
   onStatus?: (status: "geaccordeerd" | "in_review") => Promise<void>;
   onVerwijder?: () => Promise<void>;
+  verwijderImpact?: () => Promise<VerwijderImpact>;
   onExport?: (formaat: ExportFormaat) => Promise<void>;
   onFout: (fout: string | null) => void;
 }) {
   const [statusBezig, setStatusBezig] = useState(false);
+  // De bevestiging staat buiten het menu: dat gaat dicht bij de klik, het venster moet blijven.
+  const [bevestig, setBevestig] = useState(false);
   const { actueel } = splitsVerouderd(doc.elementen);
   // Dezelfde telling als de samenvatting op de kaart: alleen actuele markeringen.
   const stand = documentStand({
@@ -466,30 +474,26 @@ export function AnnotatieKop({ doc, opschrift, pagina, onder, balk, vraag, onSta
     }
   }
 
-  /** Verwijdert en zegt of het lukte: dan gaat het menu dicht, anders blijft het open bij de melding. */
-  async function verwijder(): Promise<boolean> {
-    if (!onVerwijder) return false;
-    onFout(null);
-    try {
-      await onVerwijder();
-      return true;
-    } catch (e) {
-      onFout(foutTekst(e, "De annotatie is niet verwijderd."));
-      return false;
-    }
-  }
-
   return (
     // De vaste kop (8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en afronden rechts. Exporteren
     // en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders af naar een derde rij. Elke
-    // gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast wie het deed, de tweede klik bevestigt.
+    // gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast wie het deed. Het venster
+    // `VerwijderBevestiging` noemt vooraf wat er naar de prullenbak gaat.
+    <>
     <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onder={onder} balk={balk} vraag={vraag}
       status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
       hoofdactie={onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
       menu={(sluit) => <>
         <ExportRegels sluit={sluit} onFout={onFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
-        {onVerwijder && <MenuVerwijder onBevestig={async () => { if (await verwijder()) sluit(); }} ariaLabel={verwijderLabel("annotatie")} titel={VERWIJDER_UITLEG.annotatie} />}
+        {onVerwijder && <MenuKnop gevaar icoon={<Prullenbak />} ariaLabel={verwijderLabel("annotatie")}
+          onClick={() => { onFout(null); sluit(); setBevestig(true); }}>Verwijderen…</MenuKnop>}
       </>} />
+    {bevestig && onVerwijder && (
+      // Het venster noemt wat er verloren gaat; een fout blijft in het venster staan.
+      <VerwijderBevestiging bepaling={opschrift} haalImpact={verwijderImpact} onVerwijder={onVerwijder}
+        onSluit={() => setBevestig(false)} />
+    )}
+    </>
   );
 }
 

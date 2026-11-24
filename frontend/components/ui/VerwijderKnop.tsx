@@ -8,8 +8,11 @@ import { VERWIJDER_UITLEG, verwijderLabel, type VerwijderSoort } from "@/lib/ver
  *  gesprek, op de pagina en per rij in de lijst (`lib/verwijderen.ts`). Altijd *Verwijderen*, de
  *  tweede klik bevestigt (*Verwijderen?*), de tooltip zegt wat er weggaat en wat blijft. In de maat van de knoppen
  *  ernaast (`knopVorm`): `xs` tussen de kleine gereedschappen van een paneelkop, `sm` in `KaartActies`. */
-export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", bevestigTekst = "Verwijderen?", className = "" }: {
+export function VerwijderKnop({ soort, onBevestig, onKies, disabled, maat = "xs", bevestigTekst = "Verwijderen?", className = "" }: {
   soort: VerwijderSoort;
+  /** Een eigen bevestiging (een venster dat noemt wat er verloren gaat, zoals bij een annotatie): de klik opent die,
+   *  in plaats van de tweede klik op de knop zelf. `onBevestig` wordt dan niet aangeroepen. */
+  onKies?: () => void;
   /** De tweede stand. Bij een groep zegt hij hoeveel er weggaat: *71 gesprekken verwijderen?*. */
   bevestigTekst?: string;
   maat?: "xs" | "sm";
@@ -17,6 +20,13 @@ export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", bevest
   disabled?: boolean;
   className?: string;
 }) {
+  const klasse = `focus-ring ${knopVorm(maat)} border-line text-muted hover:border-fout/40 hover:text-fout ${className}`;
+  if (onKies) {
+    return (
+      <button type="button" onClick={onKies} disabled={disabled} aria-label={verwijderLabel(soort)}
+        title={VERWIJDER_UITLEG[soort]} className={klasse}>Verwijderen</button>
+    );
+  }
   return (
     <BevestigKnop
       onBevestig={onBevestig}
@@ -24,7 +34,7 @@ export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", bevest
       ariaLabel={verwijderLabel(soort)}
       titel={VERWIJDER_UITLEG[soort]}
       disabled={disabled}
-      className={`focus-ring ${knopVorm(maat)} border-line text-muted hover:border-fout/40 hover:text-fout ${className}`}
+      className={klasse}
       bevestigClassName="border-fout bg-fout text-paper hover:text-paper"
     >
       Verwijderen

@@ -1,4 +1,5 @@
-// Verwijderen werkt voor een annotatie, een werkgebied, een begrip en een groep gesprekken op dezelfde manier: echt wissen,
+// Verwijderen werkt voor een annotatie, een werkgebied, een begrip en een groep gesprekken op dezelfde manier: echt wissen
+// (een annotatie gaat eerst naar de prullenbak, `lib/annotatiePrullenbak.ts`),
 // met de audit als bewijs (api), één knop (`components/ui/VerwijderKnop`) op dezelfde plekken – het
 // paneel naast het gesprek, de pagina en de lijst – en daarna een toestand in plaats van een fout.
 //
@@ -12,7 +13,7 @@ export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip" | "regel" | "
 
 /** Wat de knop als tooltip draagt: wat er weggaat en wat blijft. */
 export const VERWIJDER_UITLEG: Record<VerwijderSoort, string> = {
-  annotatie: "Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf",
+  annotatie: "Zet alle markeringen en beoordelingen van deze bepaling in de prullenbak en verwijdert ze uit de kennisgraaf. Terugzetten kan zolang er geen nieuwe annotatie staat.",
   werkgebied: "Verwijdert het werkgebied met zijn bronselecties, deelvragen en begrippen, ook uit de kennisgraaf. De annotaties blijven staan.",
   begrip: "Verwijdert het begrip met zijn koppelingen en relaties, ook uit de kennisgraaf. De annotaties blijven staan.",
   regel: "Verwijdert de afleidingsregel met zijn revisies en dragers. De begrippen en annotaties blijven staan.",
