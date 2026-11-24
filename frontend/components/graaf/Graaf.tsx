@@ -64,11 +64,16 @@ export interface GraafContext {
 }
 export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
 
-export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, vraagOnderwerp,
+export function Graaf({ stand, zichtbaar, groot, onGroot, kopActie, onOnderwerp, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, vraagOnderwerp,
   benaming = ANTWOORD, bijKnoop, herkomst }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
   /** *Groot bekijken*: alleen de graaf in een venster (`GraafBeeld`, `TekeningVenster`); zonder ontbreekt de knop. */
   onGroot?: () => void;
+  /** Rechts naast de kop, verticaal gecentreerd op het hele blok (titel en uitleg): *Exporteren* in `TekeningVenster`. */
+  kopActie?: ReactNode;
+  /** In `TekeningVenster`: de titel van het venster ("Samenhang van Artikel 9, lid 1"). De kop van de graaf noemt dan
+   *  alleen de telling en de uitleg, niet nog een keer waar het over gaat. */
+  onOnderwerp?: (titel: string) => void;
   /** Hoe het doel gekozen is: `eerste_bron` = Lex noemde geen bepaling (`antwoordDoelen`). */
   herkomst?: string;
   actiefElementId?: string;
@@ -232,21 +237,27 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weerg
     }
   }
 
-  if (!bronnen && fout) return <div className="p-5"><LaadStand wat="De graaf" fout={fout.tekst} onOpnieuw={fout.herstel} /></div>;
-
-  const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf"
-    : ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} ${ketting.knopen.some((k) => k.soort === "deel" && ketting.doelen!.includes(k.id)) ? "delen en bepalingen" : "bepalingen"}`
+  // Waar de graaf over gaat, los van de schakelaar *Dit antwoord* / *Hele kennisgraaf*: de titel van het venster.
+  const onderwerp: string = ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} ${ketting.knopen.some((k) => k.soort === "deel" && ketting.doelen!.includes(k.id)) ? "delen en bepalingen" : "bepalingen"}`
     : ketting?.doelen?.[0] && model.hasNode(ketting.doelen[0]) ? model.getNodeAttribute(ketting.doelen[0], "naam")
     : bronnen && bronnen.length > 1 ? clusterOmschrijving(bronnen)
     : (hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : hoofd?.doel.label) ?? "de bepaling";
+  useEffect(() => { onOnderwerp?.(`Samenhang van ${onderwerp}`); }, [onderwerp, onOnderwerp]);
+
+  if (!bronnen && fout) return <div className="p-5"><LaadStand wat="De graaf" fout={fout.tekst} onOpnieuw={fout.herstel} /></div>;
+
+  const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf" : onderwerp;
   const hoofdNaam = hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : "het eerste artikel";
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}
     data-gereed={!!getekend && opBereik} data-bereik={bereik} data-zijbalk={groot && zijbalkIn ? "in" : "uit"} data-selectie={gekozen ?? ""}>
-    <div className="shrink-0 border-b border-line px-5 py-2.5">
-      <h2 className="text-sm font-semibold text-lint">
-        {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}
-        {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
-      </h2>
+    <div className="flex shrink-0 items-center gap-3 border-b border-line px-5 py-2.5">
+    <div className="min-w-0 flex-1">
+      {onOnderwerp
+        ? getekend && <p className="text-xs text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</p>
+        : <h2 className="text-sm font-semibold text-lint">
+          {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}
+          {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
+        </h2>}
       {ketting && opBereik && bereik === "antwoord" && <p className="mt-1 text-xs text-muted" data-testid="graaf-keten-zin">
         {ketenZin(ketting, herkomst === "eerste_bron")}{" "}
         {heelArtikel && <button type="button" data-testid="graaf-heel-artikel" disabled={!!laadtBij} onClick={() => void laadErbij(heelArtikel)}
@@ -258,6 +269,8 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weerg
       {weergave && bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
       {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{aantal(stand.nietGeladen, "deel is", "delen zijn")} niet geladen.</p>}
       {melding && <p role="alert" className="mt-1 text-xs text-fout" data-testid="graaf-melding">{melding}</p>}
+    </div>
+    {kopActie}
     </div>
     <div className={`flex min-h-0 flex-1 ${groot ? "flex-col md:flex-row" : "flex-col"}`}>
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">

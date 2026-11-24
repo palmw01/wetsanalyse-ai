@@ -703,6 +703,32 @@ async function wachtGereed(page) {
   assert.ok((await zoekStand(page, "lid 1", A10L1)).er, "het bijgeladen artikel blijft");
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
+  // Het venster op tablet en mobiel (aan het eind: onder de tabletmaat bouwt het paneel opnieuw op).
+  // Exporteren staat naast de kop van de graaf (geen eigen regel), op elke schermmaat binnen beeld en zonder
+  // horizontaal scrollen.
+  // Wisselt het paneel van vorm (blad onder de tabletmaat), dan bouwt het opnieuw op en is het venster dicht.
+  const weerGroot = async () => {
+    if (await grootVenster.isVisible()) return;
+    await page.getByRole("tab", { name: "Graaf" }).click();
+    await page.getByRole("group", { name: "Beeld" }).getByRole("button", { name: "Groot bekijken" }).click();
+    await grootVenster.getByTestId("graaf-telling").waitFor();
+    await page.waitForTimeout(800);
+  };
+  for (const [w, h] of [[1440, 1000], [768, 1024], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(500);
+    await weerGroot();
+    const kop = await grootVenster.getByTestId("graaf-telling").boundingBox();
+    const knop = await grootVenster.getByRole("button", { name: "Exporteren" }).boundingBox();
+    assert.ok(knop.y < kop.y + 80 && knop.x + knop.width <= w, `${w}: Exporteren staat naast de kop (${JSON.stringify(knop)})`);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${w}: geen horizontaal scrollen`);
+    // Titel en kruisje van het venster staan op één lijn.
+    const titelVak = await page.locator("[data-dialoog-kop] h2").boundingBox();
+    const kruis = await page.locator("[data-dialoog-kop]").getByRole("button", { name: "Sluiten" }).boundingBox();
+    assert.ok(Math.abs((titelVak.y + titelVak.height / 2) - (kruis.y + kruis.height / 2)) <= 2, `${w}: titel en kruisje op één lijn`);
+    await page.screenshot({ path: `${shots}/10b-graaf-groot-${w}.png` });
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.close();
 }
 
