@@ -1,6 +1,7 @@
 # Plan: lessen uit de begrippen- en afleidingsregelbibliotheek van Termijnen
 
-24 nov 2026. Status: **concept, ter bespreking**. Analyse en voorstel; er is geen code gewijzigd.
+24 nov 2026. Status: **concept, ter bespreking**. Analyse en voorstel. De methode-skill is aangevuld buiten de
+methodemarkers (§5a); er is geen code van Lex gewijzigd, en wat het gedrag van Lex raakt, staat als voorstel in §5b.
 
 Dit plan legt gevalideerd praktijkwerk naast de methode en naast Lex. Het vult
 [`plan-lessen-e2e-termijnen.md`](plan-lessen-e2e-termijnen.md) aan: dat plan trok lessen uit wat een agentteam mét Lex
@@ -336,8 +337,8 @@ enkel voorstel kent een bepaling, een begrip of een regel uit Termijnen.
 
 ### Prioriteit 2: wat de methodetekst of het gedrag van Lex raakt
 
-**V5 · De skill beschrijft de ontleding in hulpregels en het ja/nee-begrip** (skill, references; S; meting alleen als de
-tekst tussen de methodemarkers wijzigt)
+**V5 · De skill beschrijft de ontleding in hulpregels en het ja/nee-begrip** (skill, references; S). *Het deel buiten
+de methodemarkers is in deze PR doorgevoerd, zie §5a; wat een meting vraagt, staat in §5b.*
 - Probleem: de skill noemt tussenresultaten, maar niet de korrel die de praktijk laat zien (§2).
 - Oplossing, in `references/afleidingsregels.md` en `references/begrippen.md`, buiten de methodemarkers:
   - een voorwaarde die zelf iets afleidt, wordt een eigen regel met een eigen begrip; de regel erboven verwijst ernaar;
@@ -415,6 +416,82 @@ tekst tussen de methodemarkers wijzigt)
 7. V9 en V10 als R5 van start gaat.
 
 V2, V3 en V7 raken `api/app/regel_contracts.py` of `begrip_contracts.py`: één schrijver tegelijk per bestand.
+
+## 5a. Wat in de skill is doorgevoerd
+
+Alleen tekst buiten de methodemarkers. De secties tussen de markers (`agentrollen.md`, `nl-sbb-en-b1.md`,
+`deelvragen-en-bronnen.md`) zijn byte-gelijk; in `tools/graph-qa/agent/methodepakket.py` veranderden alleen de hashes van
+`SKILL.md` en `references/bronnen.md` en de hash van het pakket, geen sectietekst. De methodeversie blijft 3.0. De
+generatoren zijn gedraaid (`--check` groen) en `tests/methode/` en `tests/poort/` slagen.
+
+| wijziging | waar | de les waarop ze rust |
+|---|---|---|
+| *Ontleden in kleine regels*: een voorwaarde die iets afleidt wordt een eigen regel; een indeling is een regel; een deel van een waarde is een begrip; algemene hulpregels één keer; een regel per element; het moment van toepassen als invoer; een vaste waarde uit het waardebereik; twee momenten zijn twee begrippen | `references/afleidingsregels.md` | les 1 en 2 (§4); voorbeelden 1 en 2 (§3.2) |
+| *Toetsen met een voorbeeldtabel*: kolom per geval, een oordeel over de invoer en over de uitkomst, met opzet een geval dat niet kan, de grenzen van elke vergelijking | `references/afleidingsregels.md`, `references/analyseprotocol.md` §5 | les 5 |
+| *Wat de praktijk aan een begrip toevoegt*: de werklijst en de volgorde van 3a; de klasse kan verschuiven; de vorm van een ja/nee-begrip; het waardebereik; de naam van een kenmerk noemt zijn object; interpretatie apart; het gesprek hoort erbij | `references/begrippen.md` | les 1, 4, 6 en 7 |
+| Een rekenvoorbeeld in de bron is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden, niet de losse data; wijs zo'n markering niet af omdat het een voorbeeld is | `references/markeringslijst.md` | les 3; voorbeeld 3 (§3.2) |
+| Twee rijen in de kwaliteitsrubriek: *Begrippen* en *Afleidingsregels* | `references/kwaliteit.md` | les 1, 4 en 5 |
+| Voorbeeld 5: één regel ontleed in kleine regels, met een voorbeeldtabel (een eigen uitwerking van IW 9 lid 5, geen overname) | `references/voorbeelden.md` | les 1, 2 en 5 |
+| Een zin bij werkstroom D en F, en drie veelgemaakte fouten | `SKILL.md` | les 1, 3 en voorbeeld 1 |
+| M15 (het praktijkwerk als bron, lokaal) en P23 (wat eruit is overgenomen, en wat niet) | `references/bronnen.md` | herleidbaarheid |
+
+**Bewust niet overgenomen** (de praktijk wijkt hier af van de methode, of de eigenaar moet kiezen, §7): geen
+operatorbegrippen, geen begrip voor een rechtsbetrekking, "bepaal" in plaats van "bepalen", en de termijn als parameter
+én tijdsaanduiding. De regel "een termijn is één Tijdsaanduiding" staat ongewijzigd in de skill.
+
+**Een kanttekening.** Het waardebereik staat nu in de skill als iets wat je vastlegt "in de toelichting, tot het
+platform een veld heeft". Dat loopt vooruit op V2 en op het besluit over P15. Zegt de eigenaar nee op vraag 1, dan
+gaat die alinea terug naar een aandachtspunt.
+
+## 5b. Voorstellen die het gedrag van Lex veranderen (niet doorgevoerd; vragen een meting, ADR-010)
+
+Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
+
+**M1 · De begrippen-agent kent de vorm van een ja/nee-begrip en het waardebereik**
+(`references/nl-sbb-en-b1.md`, sectie `nl-sbb-taalniveau`; rol `begrippen`)
+- Toen: de sectie beschrijft de vier velden (definitie, uitleg, toelichting, voorbeeld) en zegt niets over een begrip
+  dat alleen waar of onwaar kan zijn.
+- Nu, als extra zin na de beschrijving van de definitie: "Kan een begrip alleen waar of onwaar zijn, dan beschrijft de
+  definitie de situatie waarin het waar is ('situatie waarin …'), zonder de regel die het afleidt en zonder
+  ontkenning."
+- Zodra V2 er is, een tweede zin: "Bij een variabele of parameter stel je het waardebereik voor uit de passages: ja/nee,
+  datum, bedrag, aantal, duur of een vaste lijst."
+- Meting: licht (één run), de begrippen van Termijnen als set, met de ja/nee-begrippen uit de referentie (V1) als
+  toets: komt de definitie in de afgesproken vorm, en verslechtert geen andere definitie?
+
+**M2 · De annotatieketen behandelt een rekenvoorbeeld als voorbeeld**
+(`tools/graph-qa/agent/jas_pipeline/`: detectoren, en de prompts van `classificatie.py` en `review.py`, P20)
+- Toen: een voorbeeldzin wordt gemarkeerd als elke andere zin. In Leidraad 9.5 leverde dat 67 voorstellen op, waarvan
+  er 49 zijn afgewezen.
+- Nu: V8. Een detector herkent de voorbeeldzin; concrete data en bedragen daarbinnen worden niet los voorgesteld; de
+  woorden die een kenmerk aanduiden wel; de reviewer krijgt de regel uit `references/markeringslijst.md` (het
+  rekenvoorbeeld) als instructie.
+- De kennis hoort in de detector en zijn tests, niet in de prompt (ADR-001). De promptwijziging is één zin.
+- Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
+  aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
+
+**M3 · De termijn als parameter** (alleen na een ja op vraag 3)
+(`references/markeringslijst.md`, `references/voorbeelden.md`, `SKILL.md` *Veelgemaakte fouten*; de detector die een
+duur als tijdsaanduiding met subtype *verbijzondert parameter* markeert; `tools/graph-qa/eval/extern_dossier.py`)
+- Toen: "Een termijn is één Tijdsaanduiding. Geef hem niet ook een Parameter omdat de duur voor iedereen gelijk is."
+  De waarde krijgt een eigen begrip naast het begrip voor de termijn.
+- Nu, als de eigenaar de praktijk volgt: "Een duur die voor iedereen gelijk is en die de wetgever kan wijzigen, is een
+  Parameter met een Parameterwaarde; de plaatsing in de tijd ('na de dagtekening') is de Tijdsaanduiding. De markeringen
+  mogen overlappen." Eén parameterbegrip, met de waarde in het waardebereik en per tijdvak.
+- Dit raakt de keten, de referentieset van activiteit 2 en de bestaande annotaties. Meting volgens het lichte regime op
+  de gerichte set, en opnieuw op de blinde sets, want de klasse Tijdsaanduiding verandert van omvang.
+- Zegt de eigenaar nee, dan blijft alles zoals het is en krijgt alleen de regel (V7) de waarde via de parameter.
+
+**M4 · De regels-agent stelt hulpregels voor** (R5, staat op HOLD)
+- Toen: `opstellen` maakt per dragende formulering één regel met de voorwaarden als tekst.
+- Nu: V9. De volledigheidstoets leest de gaten `voorwaarde_zonder_begrip` en `voorwaarde_herhaald` (V6) en stelt per gat
+  een ja/nee-begrip met een regel voor, in code.
+- Meting: bijlage A §7 van ADR-018, met de referentie van V1 als maat.
+
+**M5 · De agent-jurist en de agent-gegevensspecialist van het acceptatieteam** (`.claude/agents/`, `docs/acceptatie/`)
+- Zij lezen de skill als maatstaf. De wijzigingen van §5a veranderen dus wat zij bij een volgende e2e doen (minder
+  afwijzen in een rekenvoorbeeld, meer ja/nee-begrippen). Dat is bedoeld, maar het maakt een volgende e2e niet
+  vergelijkbaar met die van 19 en 20 nov 2026. Noteer dat in het logboek van de volgende run.
 
 ## 6. Dit materiaal als referentieset
 

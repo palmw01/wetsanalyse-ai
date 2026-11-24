@@ -115,6 +115,8 @@ annotatie**: elk begrip rust op minstens één gemarkeerde passage. Een tussenre
 formulering krijgt wél een begrip; het rust op de markering van de afleidingsregel die het afleidt (rol `afgeleid`). De herkomst van een definitie telt: letterlijk uit
 de bron gaat voor samengesteld uit bronfragmenten, en dat gaat voor zelf geformuleerd. Een uitleg schrijf je op
 taalniveau B1. Zie [begrippen](references/begrippen.md) en [NL-SBB en B1](references/nl-sbb-en-b1.md).
+Werk vanuit een werklijst (formulering, vindplaats, begripsnaam), en geef een kenmerk dat alleen waar of onwaar kan
+zijn een eigen begrip. Leg bij een variabele of parameter het waardebereik vast.
 
 ## E. Volledig dossier
 
@@ -132,6 +134,8 @@ en voorwaarden dragen. Per uitvoer is er één regel; verschilt het per geval, d
 elkaar uitsluiten. Een tussenresultaat krijgt een begrip. Een parameter gebruik je in de regel, zijn waarde staat in een
 eigen begrip. Een interpretatie die nog niet in beleid staat, signaleer je als open punt. Zie
 [afleidingsregels](references/afleidingsregels.md).
+Houd regels klein: een voorwaarde die zelf iets afleidt, wordt een eigen regel met een eigen begrip. Loop elke regel na
+met een voorbeeldtabel.
 
 ## De dertien JAS-klassen
 
@@ -169,6 +173,10 @@ parameter*; een getal in cijfers daarin is een eigen, geneste parameterwaarde.
 - "De Staat" of "de inspecteur" invullen als partij die de tekst niet noemt, zonder de bepaling waaruit dat volgt. Of
   het omgekeerde: een rechtsbetrekking met één partij laten staan zonder te zeggen wie de andere is of dat dat onbekend is.
 - Een parameter én een tijdsaanduiding op dezelfde termijn zetten.
+- Een samengestelde voorwaarde als zinsdeel in een regel laten staan, in plaats van er een begrip met een eigen regel
+  van te maken.
+- Een markering in een rekenvoorbeeld afwijzen omdat het een voorbeeld is, terwijl een begrip of regel erop rust.
+- Twee momenten (de laatste dag van een termijn en de dag erna) in één begrip leggen.
 
 ## Grenzen
 
