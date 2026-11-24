@@ -1517,6 +1517,6 @@ function useStabieleGroepen(items: Item[], bezig: boolean) {
 
 const VOORBEELDEN = [
   "Wat betekent het begrip 'belastingschuldige'?",
-  "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
+  "Annoteer artikel 9 lid 1 van de Invorderingswet 1990",
   "Welke artikelen gaan over invordering?",
 ];
