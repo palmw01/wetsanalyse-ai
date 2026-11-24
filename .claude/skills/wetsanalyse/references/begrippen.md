@@ -106,6 +106,47 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 Twee van deze regels toetst Lex in code (een kringdefinitie, een rekenregel in de definitie); de andere zijn
 aandachtspunten voor wie het begrip beoordeelt.
 
+## Wat de praktijk aan een begrip toevoegt
+
+Grondslag: M15 (gevalideerd praktijkwerk), met M01 h.3 stap 3a en h.6; P23. In eigen woorden. Waar dit verder gaat dan
+wat het platform nu vastlegt, staat dat erbij.
+
+**De volgorde.** Maak eerst een werklijst: per klasse de gemarkeerde formuleringen met hun vindplaats, en daarnaast de
+naam van het begrip. Formuleringen met dezelfde betekenis komen in één rij. Begin met de rechtssubjecten en
+rechtsobjecten, dan de variabelen, de parameters en de tijd. Pas als die begrippen er zijn, maak je de regels voor
+rechtsfeiten, afleidingsregels, rechtsbetrekkingen en voorwaarden. Een formulering waar je geen begrip bij vindt, is
+een open rij, geen stille weglating.
+
+**De klasse kan verschuiven.** De klasse van een markering zegt wat de formulering in de zin doet. Bij het maken van
+het begrip kan blijken dat het in de regels iets anders is: wat de tekst als rechtsobject noemt ("een voorlopige
+aanslag in de inkomstenbelasting"), is in de regel een ja/nee-kenmerk van een algemener object, afgeleid uit twee
+andere kenmerken. Leg dat vast bij het begrip, met de reden; de markering blijft wat ze was. Een markering als parameter
+die bij nader inzien een deel van een regel of van een variabele is, vervalt als parameter.
+
+**Een ja/nee-begrip.** Een begrip dat alleen waar of onwaar kan zijn, krijgt:
+- een naam zonder voorvoegsel ("is", "indicator") en zonder ontkenning: de woorden van de tekst, zo dicht als kan;
+- een omschrijving die de situatie beschrijft waarin het waar is ("situatie waarin …"), niet de regel die het afleidt;
+- een regel "bepalen …" die zegt wanneer het waar is (zie [afleidingsregels](afleidingsregels.md), *Ontleden in kleine
+  regels*).
+
+**Het waardebereik.** Bij een variabele of parameter hoort wat voor waarde het is: ja/nee, een datum, een bedrag (met
+het aantal decimalen en de ondergrens), een aantal, een duur, of een van een vaste lijst waarden. Zonder waardebereik
+is een voorbeeld niet te toetsen en een regel niet te bouwen. Het platform heeft hier nog geen veld voor; zet het tot
+die tijd in de toelichting van het begrip. De waarde van een parameter hoort hier, niet in de omschrijving.
+
+**De naam van een kenmerk noemt zijn object.** "Dagtekening" is van een aanslagbiljet, een brief of een beschikking.
+Draagt een kenmerk een naam die ook bij een ander object past, zet het object er dan bij. Geldt een begrip alleen in één
+domein (de aanslag in de invordering, niet in de heffing), dan hoort dat in de naam van het object, en zo vanzelf in de
+namen van zijn kenmerken. Dit weegt het zwaarst bij een begrip dat meer werkgebieden gebruiken. Blijkt een begrip
+breder te gelden dan zijn naam zegt, hernoem het dan en leg vast waarom.
+
+**Interpretatie apart.** Voegt het begrip iets toe aan de tekst (een geval dat de wet niet noemt maar dat de uitvoering
+eronder brengt), dan staat dat niet in de omschrijving maar als interpretatiekeuze bij het begrip, met de reden en wie
+koos.
+
+**Het gesprek hoort erbij.** Een voorstel, een tegenwerping en het besluit, met datum, horen bij het begrip. Wie later
+twijfelt, moet kunnen lezen waarom het zo is.
+
 ## De vorm van een voorbeeld
 
 Grondslag: M01 h.3 stap 3, onderdeel a, en stap 4, onderdeel a (valideren met concrete voorbeelden).

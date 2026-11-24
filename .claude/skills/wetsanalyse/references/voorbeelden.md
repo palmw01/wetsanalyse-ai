@@ -12,6 +12,7 @@ anders kiezen, en dat is precies waarom alternatieven zichtbaar blijven.
 - Voorbeeld 2: een uitzondering met een opsomming (art. 9, elfde lid, aanhef en onderdeel a)
 - Voorbeeld 3: een plicht zonder genoemde partij (Awb art. 4:13, eerste lid)
 - Voorbeeld 4: een rekenregel (art. 28, tweede lid, eerste volzin)
+- Voorbeeld 5: een regel ontleden in kleine regels (art. 9, vijfde lid, eerste volzin)
 - Wat de voorbeelden laten zien
 
 ## Voorbeeld 1: één enkelvoudige normzin
@@ -173,6 +174,45 @@ of de uitkomst juridisch juist is:
   zegt het niet uitdrukkelijk: een grensgeval, en een reviewvraag;
 - de dag van betaling is onbekend: de uitkomst is niet bepaalbaar.
 
+## Voorbeeld 5: een regel ontleden in kleine regels
+
+**Bron.** Invorderingswet 1990, artikel 9, vijfde lid, eerste volzin (hier samengevat, niet geciteerd): een voorlopige
+aanslag in een van de genoemde belastingen, waarvan het aanslagbiljet is gedagtekend in het jaar waarover de aanslag is
+vastgesteld, is invorderbaar in zoveel gelijke termijnen als er na de maand van de dagtekening nog maanden van het jaar
+overblijven.
+
+**Eén grote regel.** Je kunt dit als één regel schrijven: *bepalen aantal termijnen*, met als voorwaarden de soort
+aanslag, de belasting en de ligging van de dagtekening. Dat klopt, maar de voorwaarden zijn dan zinsdelen. Een tweede
+regel (het bedrag per termijn, de vervaldag per termijn) moet ze herhalen.
+
+**Ontleed.** Elke voorwaarde die iets afleidt, wordt een begrip met een eigen regel:
+
+| begrip | waardebereik | regel |
+|---|---|---|
+| soort van de aanslag; belasting van de aanslag | een van een vaste lijst | geen: invoer |
+| jaar van de dagtekening; maand van de dagtekening | jaartal; maand | het jaar, de maand uit de dagtekening |
+| de dagtekening ligt in het jaar van de aanslag | ja/nee | waar als het jaar van de dagtekening gelijk is aan het jaar waarover de aanslag is vastgesteld |
+| de aanslag is een voorlopige aanslag in belasting X | ja/nee | waar als de soort "voorlopige aanslag" is en de belasting X (één regel per genoemde belasting) |
+| de aanslag valt onder de termijnregeling | ja/nee | waar als de dagtekening in het jaar ligt en de aanslag een van de genoemde voorlopige aanslagen is |
+| aantal termijnen | geheel getal, minstens 1 | twaalf min het nummer van de maand van de dagtekening, als de aanslag onder de termijnregeling valt; in de andere gevallen één |
+
+De bovenste regel leest nu als een opsomming van uitkomsten van de regels eronder. De namen in de tabel zijn
+omschrijvingen; de echte naam kies je met de [richtlijnen](begrippen.md).
+
+**Wat de tekst open laat.** Is de dagtekening in de laatste maand, dan blijft er geen maand over. De derde volzin van
+het lid zegt dat dan de hoofdregel geldt; in de regel is dat een eigen geval. Of het bedrag per termijn wordt afgerond
+en waar het restant landt, zegt de tekst niet: dat is een open punt (ontbrekend uitvoeringsbeleid), geen stille keuze.
+
+**Voorbeeldtabel** bij *aantal termijnen* (verzonnen gevallen):
+
+| | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| valt onder de termijnregeling | ja | ja | nee | ja |
+| maand van de dagtekening | april | december | april | (geen) |
+| kan deze invoer zich voordoen? | ja | ja | ja | nee |
+| aantal termijnen (voorspelling) | 8 | 1 | 1 | n.v.t. |
+| juridisch juist? | door de jurist | door de jurist | door de jurist | n.v.t. |
+
 ## Wat de voorbeelden laten zien
 
 - De hele normzin draagt de functie; de onderdelen krijgen daarnaast hun eigen markering.
@@ -182,3 +222,5 @@ of de uitkomst juridisch juist is:
 - Een partij die de tekst niet noemt, maak je expliciet met de bepaling waaruit zij volgt, of je noemt haar onbekend.
 - Een rekenregel heeft precies één uitvoer; ontbreekt er invoer, dan staat die vaak in een andere bepaling.
 - Een voorbeeldreeks vindt het geval dat de tekst niet uitdrukkelijk regelt.
+- Een voorwaarde die zelf iets afleidt, is een begrip met een eigen regel; de regel erboven noemt alleen dat begrip.
+- Een voorbeeldtabel bevat ook een geval dat niet kan.

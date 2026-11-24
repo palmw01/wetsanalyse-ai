@@ -1,9 +1,9 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '94fe24f375b6a23316843091a6a7a11c911e4682484d4b0338b6bdd7ab861c28',
+PAKKET = {'bronbestanden': {'SKILL.md': 'f27a451e69d9913d8ddd1fc3267d4c152084db5f6e1122b975ddf5d87a2719ed',
                    'agentrollen.json': 'a87a8bc9a2c6cb16a46fa33150f32cc83f1f2a47c1f0e01184f38a8b7c5994fa',
                    'references/agentrollen.md': '26e1550d15e59ed7fa2c7910b09337cb7e8aa7d476a80d8990a9d8e4cef5564f',
-                   'references/bronnen.md': 'a58253b60658810947be1e561e04b4e871ab91c741b434d078992404e5c72f48',
+                   'references/bronnen.md': '4659a40e75d7612733a927675375920bd2cd1c144bca9481b4d787b0f6d1058a',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '4ed318a29ad2c691e31271618c42b333fd405a9335e891a9d1fb845287da4e5d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -228,7 +228,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '94fe24f375b6a23316843091a6a7a11c911e468
                                     'doelcontract; verricht geen juridische duiding. Gebruik '
                                     'alleen aangetroffen versiegegevens, geen veronderstelde '
                                     'geldigheid.'}},
- 'sha256': 'b5d1ee36edcd201dc844ba349e98952e6a30e4795080e710cafeb3115147d208',
+ 'sha256': '511f6fd8bb601be9f470eb6dd55d7ce796394520e76a2b20cc9c09bdc46bed91',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
