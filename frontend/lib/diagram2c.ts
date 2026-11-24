@@ -67,6 +67,21 @@ export interface DiagramSet {
   diagrammen: DiagramData[];
 }
 
+/** Het kader van wat er werkelijk getekend is: de knopen en de labels van de lijnen, met een rand. De plaatsing van de api
+ *  rekent op de volle breedte van een pagina (drie kolommen); staat er maar één kolom, dan zou de tekening op een smal
+ *  scherm onleesbaar klein worden. Leeg: het kader van de plaatsing. */
+export function inhoudKader(data: Pick<DiagramData, "plaatsing" | "lijnen">, rand = 3): { x: number; y: number; b: number; h: number } {
+  const xs: number[] = [], ys: number[] = [], xe: number[] = [], ye: number[] = [];
+  for (const g of data.plaatsing.knopen) { xs.push(g.x); ys.push(g.y); xe.push(g.x + g.b); ye.push(g.y + g.h); }
+  for (const l of data.lijnen) {
+    xs.push(l.lx - l.lb / 2, Math.min(l.x1, l.x2)); xe.push(l.lx + l.lb / 2, Math.max(l.x1, l.x2));
+    ys.push(l.ly - l.lh / 2, Math.min(l.y1, l.y2)); ye.push(l.ly + l.lh / 2, Math.max(l.y1, l.y2));
+  }
+  if (!xs.length) return { x: -rand, y: -rand, b: data.plaatsing.breedte + 2 * rand, h: data.plaatsing.hoogte + 2 * rand };
+  const x = Math.min(...xs) - rand, y = Math.min(...ys) - rand;
+  return { x, y, b: Math.max(...xe) + rand - x, h: Math.max(...ye) + rand - y };
+}
+
 /** De maten van de tekening (`api/app/diagram.py` en `diagram_teken.py`): in dezelfde eenheden als de plaatsen. */
 export const MAAT = { kop: 11, regel: 9, marge: 5, tekst: 7.5, kopTekst: 6.5, label: 6, labelRegel: 7.5 } as const;
 export const LIJNKLEUR = "#535353";

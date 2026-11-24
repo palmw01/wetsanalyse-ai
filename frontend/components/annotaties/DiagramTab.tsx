@@ -9,6 +9,8 @@ import { LaadStand } from "@/components/ui/LaadStand";
 import { Leeg } from "@/components/ui/Leeg";
 import { KlasseLabel, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
+import { TekeningVenster } from "@/components/graaf/TekeningVenster";
+import { bewaar, diagramSvg, svgNaarPng, tekeningNaam } from "@/lib/tekeningExport";
 import { TekstEnLijst } from "@/components/ui/TekstEnLijst";
 import { weergaveVersie, type NodeImpliciet, type NodeWeergave } from "@/lib/annotatieNode";
 import { knoopSleutel, type DiagramData, type DiagramKnoop, type DiagramSet, type OntbrekendeRol } from "@/lib/diagram2c";
@@ -116,6 +118,8 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
   bediening?: Bediening;
 }) {
   const d = data.diagram;
+  // *Groot bekijken*: alleen dit diagram in een venster boven de pagina (`TekeningVenster`).
+  const [groot, setGroot] = useState(false);
   const centraal = d.knopen.find((k) => k.soort === "element" && k.id === d.centraal)!;
   const tekst = centraal.tekst.length > 90 ? `${centraal.tekst.slice(0, 87)}…` : centraal.tekst;
   const kanBewerken = !!bediening?.(view.elementen.find((e) => e.id === d.centraal)?.laag_id);
@@ -130,6 +134,7 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
           gekozenKnoop={keuze ? knoopSleutel(keuze.knoop) : undefined} gekozenLijn={keuze?.lijn}
           onKiesKnoop={(knoop) => kies({ diagram: d.centraal, knoop })}
           onTerug={keuze ? () => onKies(undefined) : undefined}
+          onGroot={() => setGroot(true)}
           onKiesLijn={(l) => {
             // Een lijn kies je via haar kant in deze bepaling: daar staat ze in het blok *Relaties*.
             const hier = (id: string) => view.elementen.some((e) => e.id === id);
@@ -138,6 +143,16 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
             if (knoop) kies({ diagram: d.centraal, knoop, lijn: l.relatie_id });
           }} />
       </div>
+      {groot && (
+        <TekeningVenster titel={<>Rond {d.klasse.toLowerCase()} <span className="font-normal text-muted">“{tekst}”</span></>}
+          onSluit={() => setGroot(false)} exporteer={{ formaten: ["svg", "png"], onDownload: async (f) => {
+            const naam = tekeningNaam(["diagram", d.klasse, d.centraal], f === "png" ? "png" : "svg");
+            await bewaar(async () => (f === "png" ? svgNaarPng(await diagramSvg(d.centraal)) : diagramSvg(d.centraal)), naam);
+          } }}>
+          <Diagram2c data={data} venster label={`Diagram rond de ${d.klasse.toLowerCase()} “${tekst}”, groot.`}
+            gekozenKnoop={keuze ? knoopSleutel(keuze.knoop) : undefined} gekozenLijn={keuze?.lijn} />
+        </TekeningVenster>
+      )}
       {data.ontbreekt_rollen.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 text-xs" data-ontbreekt>
           <span className="text-muted">Nog niet vastgelegd:</span>
