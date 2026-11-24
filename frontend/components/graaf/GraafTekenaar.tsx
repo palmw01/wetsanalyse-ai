@@ -17,6 +17,7 @@ import { detailFactor, effectieveZoom, kiesLabels, labelPrioriteit, magLabel, ty
 import type { GraafModel, KnoopData, KnoopSoort, RelatieData } from "@/lib/graaf/model";
 import { GEDIMD_LABEL, LABELKLEUR } from "@/lib/graaf/stijl";
 import { knoopBeeld, lijnBeeld, type WeergaveContext } from "@/lib/graaf/weergave";
+import { alsPng } from "@/lib/tekeningExport";
 
 export interface GraafBediening {
   /** Alles in beeld. */
@@ -27,6 +28,8 @@ export interface GraafBediening {
   zoom: (factor: number) => void;
   /** Een groep knopen in beeld (de focus van het antwoord); leeg of onbekend = alles in beeld. */
   toon: (ids: Iterable<string>) => void;
+  /** Wat er nu in beeld is als PNG, op een witte achtergrond (*Exporteren* in `TekeningVenster`). */
+  afbeelding: () => Promise<Blob>;
 }
 
 /** Het beeld van een knoop staat in zijn attributen (`schrijfBeeld`): de styles hieronder lezen alleen
@@ -340,6 +343,22 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, r
         beweeg({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, ratio }, duur);
       };
       bedieningRef.current = {
+        // De lagen van sigma samen op één doek. WebGL bewaart zijn buffer niet (`preserveDrawingBuffer: false`), dus
+        // eerst opnieuw tekenen en dan meteen, in dezelfde taak, kopiëren.
+        afbeelding: () => {
+          s.refresh();
+          const lagen = [...el.querySelectorAll("canvas")];
+          const b = Math.max(1, ...lagen.map((c) => c.width)), h = Math.max(1, ...lagen.map((c) => c.height));
+          const doekUit = document.createElement("canvas");
+          doekUit.width = b;
+          doekUit.height = h;
+          const ctx = doekUit.getContext("2d");
+          if (!ctx) return Promise.reject(new Error("De afbeelding kon niet worden gemaakt."));
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, b, h);
+          for (const laag of lagen) ctx.drawImage(laag, 0, 0, b, h);
+          return alsPng(doekUit);
+        },
         pasIn: () => beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, beweging()),
         toon,
         zoom: (factor) => {

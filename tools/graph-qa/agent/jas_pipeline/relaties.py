@@ -26,6 +26,8 @@ Vier regels, in de volgorde van ADR-011, elk met een eigen code (verklaard in `v
    woordvolgorde als `volgorde` (1 = links). Een andere operator ertussen breekt de reeks. Een ontkenning ('niet',
    'geen'; `EEN_OPERAND`) heeft één operand, de naaste rechts, op plek 1; ze breekt de reeks van een andere operator
    niet en is zelf nooit diens linkeroperand (M04 H2 *Operator*; Termijnen: "'niet' heeft één operand").
+   De uitvoer van een afleidingsregel is nooit operand van een operator in die regel: een operator verbindt invoer
+   (M01 h.4 §11; meting keten-termijnpatroon, 24 nov 2026: 'invorderbaar' werd operand van 'na').
 4. **`voorwaarde` uit de aanhechting** (`REL_VOORWAARDE_AANHECHTING`): een voorwaardelijke bijzin (`advcl` met een
    voorwaardelijk `mark`) aan het hoofdpredicaat (`root`) hangt aan de enige rechtsbetrekking of afleidingsregel die dat
    predicaat draagt. Dragen precies één rechtsbetrekking en één afleidingsregel het predicaat samen (een bepaling met
@@ -74,7 +76,7 @@ from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "6"
+VERSIE = "7"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -295,13 +297,16 @@ def _een_operand(op: _El) -> bool:
     return op.klasse == OP and str(op.ankers[0].get("tekst", "")).strip().lower() in EEN_OPERAND
 
 
-def _operand(op: _El, ouder: _El, els: list[_El], links: bool, unair: set[str] = frozenset()) -> _El | None:
+def _operand(op: _El, ouder: _El, els: list[_El], links: bool, unair: set[str] = frozenset(),
+             uitvoer: frozenset[tuple[str, str]] = frozenset()) -> _El | None:
     # Een ontkenning breekt de reeks niet: 'de toepassing … niet leidt tot meer dan één termijn' heeft links van
     # 'meer dan' de toepassing, niet de ontkenning.
     andere_ops = [o for o in els if o.klasse == OP and o.id != op.id and o.bron_iri == op.bron_iri and o.id not in unair]
     kandidaten = []
     for x in els:
         if x.id in (op.id, ouder.id) or not ouder.bevat(x) or x.overlapt(op.start, op.eind):
+            continue
+        if (ouder.id, x.id) in uitvoer:                # de uitvoer van de regel is geen invoer van zijn bewerking
             continue
         if links and x.id in unair:
             continue
@@ -321,7 +326,9 @@ def _operand(op: _El, ouder: _El, els: list[_El], links: bool, unair: set[str] =
     return _enige([x for x in dichtst if x.lengte == grootst])
 
 
-def _operator(els: list[_El], genest: set[tuple[str, str]]) -> list[dict[str, Any]]:
+def _operator(els: list[_El], genest: set[tuple[str, str]],
+              uitvoer: frozenset[tuple[str, str]] = frozenset()) -> list[dict[str, Any]]:
+    """`uitvoer`: (regel, uitvoer) per `uitvoer`-voorstel; die uitvoer is geen operand binnen de regel."""
     uit = []
     unair = {e.id for e in els if _een_operand(e)}
     for op in (e for e in els if e.klasse == OP):
@@ -331,7 +338,7 @@ def _operator(els: list[_El], genest: set[tuple[str, str]]) -> list[dict[str, An
         uit.append(_voorstel("operator_in", op, ouder, REL_OPERATOR_IN_NESTING))
         plekken = ((1, False),) if op.id in unair else ((1, True), (2, False))
         for volgorde, links in plekken:
-            x = _operand(op, ouder, els, links, unair)
+            x = _operand(op, ouder, els, links, unair, uitvoer)
             if x is not None:
                 uit.append(_voorstel("operand", x, op, REL_OPERAND_WOORDVOLGORDE, volgorde))
     return uit
@@ -548,7 +555,10 @@ def stel_voor(voorstellen: list[dict[str, Any]], fusie: Fusie,
     relaties naar een hele bepaling; zonder komen die niet."""
     els = _elementen(voorstellen, fusie)
     genest = _genest(fusie)
-    alle = [*_functie(els), *_waarde(els, genest), *_operator(els, genest), *_voorwaarde(els, analyses or {}),
+    functie = _functie(els)
+    uitvoer = frozenset((r["spoor"]["van_element"], r["spoor"]["naar_element"]) for r in functie
+                        if r["type"] == "uitvoer")
+    alle = [*functie, *_waarde(els, genest), *_operator(els, genest, uitvoer), *_voorwaarde(els, analyses or {}),
             *_rollen(els, analyses or {})]
     if verwijzingen and teksten:
         alle += [*_uitzondering(els, verwijzingen, teksten), *_toepassing(els, verwijzingen)]

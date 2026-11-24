@@ -1242,7 +1242,9 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 /** Exportformaten van een annotatie. */
 export type ExportFormaat = "pdf" | "md" | "csv" | "json" | "trig"
   /** Begrippen (fase F3): NL-SBB als Turtle, standaard alleen geaccordeerd; `ttl-alle` met de rest. */
-  | "ttl" | "ttl-alle";
+  | "ttl" | "ttl-alle"
+  /** Een tekening (graaf, 2c-diagram): vector en afbeelding (`lib/tekeningExport.ts`). */
+  | "svg" | "png";
 
 /** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
  *
@@ -1258,7 +1260,8 @@ export function downloadTekst(tekst: string, naam: string, type = "text/plain"):
   downloadBlob(new Blob([tekst], { type: `${type};charset=utf-8` }), naam);
 }
 
-function downloadBlob(blob: Blob, naam: string): void {
+/** Een bestand dat de browser zelf maakt (een tekening als PNG) als download: hetzelfde downloadpatroon. */
+export function downloadBlob(blob: Blob, naam: string): void {
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");

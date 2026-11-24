@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 
 import { GraafBeeld } from "@/components/graaf/GraafBeeld";
-import { GraafHint } from "@/components/graaf/GraafHint";
 import {
-  MAAT, RAND_CENTRAAL, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
+  MAAT, RAND_CENTRAAL, inhoudKader, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
   type DiagramLijn,
 } from "@/lib/diagram2c";
 import { useBeeld, type Beeld } from "@/lib/useBeeld";
@@ -16,10 +15,10 @@ import { useBeeld, type Beeld } from "@/lib/useBeeld";
  *  knoop noemt zijn klasse, elke lijn haar relatie; een voorstel is gestippeld, een impliciete partij ook (haar rand).
  *
  *  De bediening is die van de graaf (`useBeeld`): het muiswiel zoomt rond de cursor, slepen verschuift, twee vingers
- *  knijpen, en rechtsonder staan dezelfde knoppen (`GraafBeeld`: *Alles in beeld*, inzoomen, uitzoomen). Geen scrollbalken: het
+ *  knijpen, en rechtsonder staan dezelfde knoppen (`GraafBeeld`: *Alles in beeld* en *Vergroten*; geen uitleg in beeld). Geen scrollbalken: het
  *  venster heeft de verhouding van de tekening en zoomen verandert alleen wat erin te zien is. Een klik zonder slepen
  *  kiest nog steeds een knoop of lijn. Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. */
-export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, onTerug, label }: {
+export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, onTerug, onGroot, venster = false, label }: {
   data: DiagramData;
   /** `knoopSleutel` van de gekozen knoop. */
   gekozenKnoop?: string;
@@ -30,23 +29,29 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   /** Zolang er een keuze is: de keuze opheffen. Dan staat de knop *Terug* bij de beeldknoppen, en een klik op de
    *  achtergrond doet hetzelfde, zoals in de graaf. */
   onTerug?: () => void;
+  /** *Groot bekijken*: alleen dit diagram in een venster (`GraafBeeld`, `TekeningVenster`); zonder ontbreekt de knop. */
+  onGroot?: () => void;
+  /** In dat venster: de tekening vult de ruimte die het venster haar laat. */
+  venster?: boolean;
   label: string;
 }) {
   const { diagram, plaatsing, lijnen } = data;
   const rand = 3;
   const kiesbaar = !!(onKiesKnoop || onKiesLijn);
-  const alles: Beeld = { x: -rand, y: -rand, b: plaatsing.breedte + 2 * rand, h: plaatsing.hoogte + 2 * rand };
+  // Het kader van de inhoud, niet van de pagina: anders is één kolom op een telefoon een postzegel.
+  const alles: Beeld = useMemo(() => inhoudKader({ plaatsing, lijnen }, rand), [plaatsing, lijnen]);
   const svg = useRef<SVGSVGElement>(null);
-  const { beeld, zoom, pasIn, sleept, handlers } = useBeeld(alles, svg);
+  const { beeld, pasIn, sleept, handlers } = useBeeld(alles, svg);
   const terug = onTerug && (() => { onTerug(); pasIn(); });
 
   return (
-    <div className="relative" data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
+    <div className={venster ? "relative min-h-0 flex-1" : "relative"} data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
     <svg ref={svg} role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
       viewBox={`${beeld.x} ${beeld.y} ${beeld.b} ${beeld.h}`} preserveAspectRatio="xMidYMid meet"
-      className={`block w-full select-none touch-none ${sleept ? "cursor-grabbing" : "cursor-grab"}`}
-      // Het venster heeft de verhouding van de hele tekening, en wordt nooit hoger dan 60% van het scherm.
-      style={{ fontFamily: "inherit", aspectRatio: `${alles.b} / ${alles.h}`, maxHeight: "60vh", minHeight: "8rem" }}
+      className={`block w-full select-none touch-none ${venster ? "h-full" : ""} ${sleept ? "cursor-grabbing" : "cursor-grab"}`}
+      // In het paneel heeft het canvas de verhouding van de hele tekening, nooit hoger dan 60% van het scherm; in het
+      // venster vult het de ruimte onder de kop en de exportknop, op elke schermmaat.
+      style={venster ? { fontFamily: "inherit" } : { fontFamily: "inherit", aspectRatio: `${alles.b} / ${alles.h}`, maxHeight: "60vh", minHeight: "8rem" }}
       {...handlers}
       // Een klik op de achtergrond (niet op een knoop of lijn) is terug, zoals in de graaf. Na slepen komt die klik
       // niet aan (`useBeeld`).
@@ -114,11 +119,9 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
         );
       })}
     </svg>
-      {/* Dezelfde bediening als de graaf: de uitleg onderin (één keer), de knoppen rechtsonder, met *Terug* bij een keuze. */}
+      {/* Dezelfde knoppen als de graaf, rechtsonder, met *Terug* bij een keuze. */}
       <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
-        {kiesbaar && <GraafHint klaar={sleept || !!gekozenKnoop || !!gekozenLijn} terug="het hele diagram" sleutel="wa_diagram_hint" />}
-        {/* Rechts, ook als de uitleg weg is. */}
-        <div className="ml-auto"><GraafBeeld onPasIn={pasIn} onZoom={(f) => zoom(f)} onNaarAntwoord={terug} terug="het hele diagram" /></div>
+        <div className="ml-auto"><GraafBeeld onPasIn={pasIn} onGroot={onGroot} onNaarAntwoord={terug} terug="het hele diagram" /></div>
       </div>
     </div>
   );

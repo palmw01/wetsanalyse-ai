@@ -50,6 +50,14 @@ De Handleiding geeft daarbij vaste regels (M02 §3.4 activiteit 2, deelactivitei
   markering: de verwijzing bepaalt mee wat er bedoeld is.
 - **Een variabele markeer je zonder werkwoord en zonder voorwaarden.** Alleen de naamwoordgroep die de grootheid
   aanduidt, met haar lidwoord.
+  - **Ook een ja/nee-variabele is alleen het kenmerk.** Bij "is invorderbaar" is de variabele *invorderbaar*, zonder
+    koppelwerkwoord; een ontkenning ("niet invorderbaar") hoort er evenmin bij, die geeft de waarde *nee*. Het
+    werkwoord hoort bij de rechtsbetrekking of het rechtsfeit, die je aan haar werkwoorden herkent (M04 H2
+    *Rechtsbetrekking*). Grondslag: de booleaanse waarde in M04 H2 *Variabele en variabelewaarde* (voorbeeld
+    "geregistreerd in het donorregister"), en M01 h.4, hoofdstuk Variabele, *Voorbeeld van variabele met booleaanse
+    waarde* (art. 23 lid 5 Wet op de motorrijtuigenbelasting 1994): de wet zegt "niet is geregistreerd in het
+    kentekenregister", het boek noemt als variabele "geregistreerd in het kentekenregister". Besluit van de eigenaar,
+    24 nov 2026.
 - **Een afleidingsregel markeer je met werkwoord en voorwaarden**, en met lidwoord, verwijzing en het zinseinde.
 - **Een voorwaarde is bij voorkeur de hele zin of het hele zinsdeel** waarin zij staat.
 - **De grens volgt het begrip dat je wilt vastleggen.** Twijfel je over de grens, maak dan een concreet voorbeeld van

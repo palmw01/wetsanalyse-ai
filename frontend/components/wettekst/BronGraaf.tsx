@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { TekeningVenster } from "@/components/graaf/TekeningVenster";
+import { bewaar, tekeningNaam } from "@/lib/tekeningExport";
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties, type GraafStand } from "@/components/graaf/useGraafStand";
 import { TabRij, type TabRijItem } from "@/components/ui/Tabs";
@@ -89,12 +91,25 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   benaming?: GraafContext;
   bijKnoop?: (knoop: KnoopData & { id: string }) => ReactNode;
 }) {
+  const [venster, setVenster] = useState(false);
   if (!graaf.geopend) return null;
+  const teken = (groot: boolean, metVenster: boolean) => (
+    <Graaf stand={graaf.stand as GraafStand} herkomst={herkomst} zichtbaar={zichtbaar} groot={groot}
+      onGroot={metVenster ? () => setVenster(true) : undefined}
+      actiefElementId={actiefElementId} weergave={weergave} dekking={dekking} onKiesElement={onKiesElement ?? (() => {})}
+      onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} vraagOnderwerp={vraagOnderwerp} benaming={benaming} bijKnoop={bijKnoop} />
+  );
+  // *Groot bekijken* (`TekeningVenster`): de graaf in een venster boven de pagina; zolang dat open is, staat hij niet
+  // ook nog in het paneel (één tekening, één stand). Op een pagina is hij al groot: geen knop.
   return (
     <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf>
-      <Graaf stand={graaf.stand as GraafStand} herkomst={herkomst} zichtbaar={zichtbaar} groot={graaf.groot || pagina}
-        actiefElementId={actiefElementId} weergave={weergave} dekking={dekking} onKiesElement={onKiesElement ?? (() => {})}
-        onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} vraagOnderwerp={vraagOnderwerp} benaming={benaming} bijKnoop={bijKnoop} />
+      {venster
+        ? <TekeningVenster titel="Graaf" onSluit={() => setVenster(false)} exporteer={{ formaten: ["png"], onDownload: async () => {
+            const bediening = (graaf.stand as GraafStand).bediening.current;
+            if (!bediening) throw new Error("De graaf is nog niet getekend.");
+            await bewaar(() => bediening.afbeelding(), tekeningNaam(["graaf", herkomst ?? ""], "png"));
+          } }}>{teken(true, false)}</TekeningVenster>
+        : teken(graaf.groot || pagina, !pagina)}
     </div>
   );
 }

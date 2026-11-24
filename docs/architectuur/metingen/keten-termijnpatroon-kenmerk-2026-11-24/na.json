@@ -1,0 +1,416 @@
+{
+ "set": [
+  {
+   "id": "IW 9.1",
+   "soort": "patroon",
+   "toestand": [
+    "invorderbaar"
+   ],
+   "uitvoer_naar_variabele": [
+    "invorderbaar"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 6,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "de dagtekening van het aanslagbiljet",
+     "naar": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "operand",
+     "van": "de dagtekening van het aanslagbiljet",
+     "naar": "na",
+     "volgorde": 2,
+     "regel": "REL_OPERAND_WOORDVOLGORDE"
+    },
+    {
+     "type": "operator_in",
+     "van": "na",
+     "naar": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "volgorde": null,
+     "regel": "REL_OPERATOR_IN_NESTING"
+    },
+    {
+     "type": "tijd",
+     "van": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "naar": "zes weken na de dagtekening van het aanslagbiljet",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+     "naar": "invorderbaar",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    },
+    {
+     "type": "voorwerp",
+     "van": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+     "naar": "Een belastingaanslag",
+     "volgorde": null,
+     "regel": "REL_VOORWERP_ZINSDEEL"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.2",
+   "soort": "patroon",
+   "toestand": [
+    "invorderbaar"
+   ],
+   "uitvoer_naar_variabele": [
+    "invorderbaar"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 6,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "de dagtekening van het aanslagbiljet",
+     "naar": "invorderbaar één maand na de dagtekening van het aanslagbiljet",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "operand",
+     "van": "de dagtekening van het aanslagbiljet",
+     "naar": "na",
+     "volgorde": 2,
+     "regel": "REL_OPERAND_WOORDVOLGORDE"
+    },
+    {
+     "type": "operator_in",
+     "van": "na",
+     "naar": "invorderbaar één maand na de dagtekening van het aanslagbiljet",
+     "volgorde": null,
+     "regel": "REL_OPERATOR_IN_NESTING"
+    },
+    {
+     "type": "tijd",
+     "van": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+     "naar": "één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "invorderbaar één maand na de dagtekening van het aanslagbiljet",
+     "naar": "invorderbaar",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    },
+    {
+     "type": "voorwerp",
+     "van": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+     "naar": "een navorderingsaanslag",
+     "volgorde": null,
+     "regel": "REL_VOORWERP_ZINSDEEL"
+    }
+   ]
+  },
+  {
+   "id": "IW 52.1",
+   "soort": "patroon",
+   "toestand": [
+    "invorderbaar"
+   ],
+   "uitvoer_naar_variabele": [
+    "invorderbaar"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 5,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "de dagtekening van de beschikking",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "operand",
+     "van": "de dagtekening van de beschikking",
+     "naar": "na",
+     "volgorde": 2,
+     "regel": "REL_OPERAND_WOORDVOLGORDE"
+    },
+    {
+     "type": "operator_in",
+     "van": "na",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "volgorde": null,
+     "regel": "REL_OPERATOR_IN_NESTING"
+    },
+    {
+     "type": "tijd",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "naar": "zes weken na de dagtekening van de beschikking",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "naar": "invorderbaar",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    }
+   ]
+  },
+  {
+   "id": "IW 63b.5",
+   "soort": "patroon",
+   "toestand": [
+    "invorderbaar"
+   ],
+   "uitvoer_naar_variabele": [
+    "invorderbaar"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 5,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "de beschikking",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "operand",
+     "van": "de beschikking",
+     "naar": "na",
+     "volgorde": 2,
+     "regel": "REL_OPERAND_WOORDVOLGORDE"
+    },
+    {
+     "type": "operator_in",
+     "van": "na",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "volgorde": null,
+     "regel": "REL_OPERATOR_IN_NESTING"
+    },
+    {
+     "type": "tijd",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "naar": "zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd",
+     "naar": "invorderbaar",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    }
+   ]
+  },
+  {
+   "id": "Awir 33.4",
+   "soort": "patroon",
+   "toestand": [
+    "invorderbaar"
+   ],
+   "uitvoer_naar_variabele": [
+    "invorderbaar"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 5,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "de dagtekening van de beschikking",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "operand",
+     "van": "de dagtekening van de beschikking",
+     "naar": "na",
+     "volgorde": 2,
+     "regel": "REL_OPERAND_WOORDVOLGORDE"
+    },
+    {
+     "type": "operator_in",
+     "van": "na",
+     "naar": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "volgorde": null,
+     "regel": "REL_OPERATOR_IN_NESTING"
+    },
+    {
+     "type": "tijd",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "naar": "zes weken na de dagtekening van de beschikking",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "invorderbaar zes weken na de dagtekening van de beschikking",
+     "naar": "invorderbaar",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.5",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [
+    "zoveel gelijke termijnen"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 7,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "na de maand",
+     "naar": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "invoer",
+     "van": "het aanslagbiljet",
+     "naar": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "volgorde": 2,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "invoer",
+     "van": "nog maanden",
+     "naar": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "volgorde": 3,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "invoer",
+     "van": "het jaar",
+     "naar": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "volgorde": 4,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "tijd",
+     "van": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+     "naar": "in het jaar",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+     "naar": "zoveel gelijke termijnen",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    },
+    {
+     "type": "voorwerp",
+     "van": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+     "naar": "een dagtekening",
+     "volgorde": null,
+     "regel": "REL_VOORWERP_ZINSDEEL"
+    }
+   ]
+  },
+  {
+   "id": "IW 9.7",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [
+    "zoveel gelijke termijnen"
+   ],
+   "uitvoer_ook_operand": [],
+   "relaties": 4,
+   "rijen": [
+    {
+     "type": "invoer",
+     "van": "maanden",
+     "naar": "zoveel gelijke termijnen als er maanden van het jaar zijn",
+     "volgorde": 1,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "invoer",
+     "van": "het jaar",
+     "naar": "zoveel gelijke termijnen als er maanden van het jaar zijn",
+     "volgorde": 2,
+     "regel": "REL_INVOER_FUNCTIE"
+    },
+    {
+     "type": "tijd",
+     "van": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+     "naar": "voor het jaar",
+     "volgorde": null,
+     "regel": "REL_TIJD_NESTING"
+    },
+    {
+     "type": "uitvoer",
+     "van": "zoveel gelijke termijnen als er maanden van het jaar zijn",
+     "naar": "zoveel gelijke termijnen",
+     "volgorde": null,
+     "regel": "REL_UITVOER_FUNCTIE"
+    }
+   ]
+  },
+  {
+   "id": "rekenregel",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [],
+   "uitvoer_ook_operand": [],
+   "relaties": 0,
+   "rijen": []
+  },
+  {
+   "id": "synthetisch: geen moment",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [],
+   "uitvoer_ook_operand": [],
+   "relaties": 1,
+   "rijen": [
+    {
+     "type": "voorwerp",
+     "van": "Een belastingaanslag is invorderbaar.",
+     "naar": "Een belastingaanslag",
+     "volgorde": null,
+     "regel": "REL_VOORWERP_ZINSDEEL"
+    }
+   ]
+  },
+  {
+   "id": "synthetisch: ontkend",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [],
+   "uitvoer_ook_operand": [],
+   "relaties": 1,
+   "rijen": [
+    {
+     "type": "voorwaarde",
+     "van": "Een belastingaanslag die een bedrag behelst is niet invorderbaar zolang het adres ontbreekt.",
+     "naar": "zolang het adres ontbreekt",
+     "volgorde": null,
+     "regel": "REL_VOORWAARDE_AANHECHTING"
+    }
+   ]
+  },
+  {
+   "id": "AWR 13.2",
+   "soort": "controle",
+   "toestand": [],
+   "uitvoer_naar_variabele": [],
+   "uitvoer_ook_operand": [],
+   "relaties": 0,
+   "rijen": []
+  }
+ ]
+}

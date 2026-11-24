@@ -606,7 +606,9 @@ class GevolgDetector:
     #    voorbeelden.md E03, meting keten-termijnpatroon 24 nov 2026
     # 7: die variabele neemt het koppelwerkwoord mee als het er direct voor staat ('is invorderbaar'; besluit jurist
     #    24 nov 2026, meting keten-termijnpatroon-na)
-    versie = "7"
+    # 8: weer zonder koppelwerkwoord: de variabele is het kenmerk ('invorderbaar'; bron H2-JAS en het boek, besluit
+    #    eigenaar 24 nov 2026). Met 'is' wees het model hem 3 van 3 keer af (meting keten-termijnpatroon-koppelwerkwoord)
+    versie = "8"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -731,24 +733,19 @@ class GevolgDetector:
             if span in gezien or _in_verwijzing(bron, *span):
                 continue
             gezien.add(span)
-            # De variabele is de toestand met haar koppelwerkwoord ('is invorderbaar'; besluit jurist 24 nov 2026), als
-            # dat er direct voor staat. Staat het verder weg (inversie: 'is een navorderingsaanslag … invorderbaar') of
-            # ontbreekt het, dan alleen de toestand: een markering is één aaneengesloten fragment.
-            cop = next((a.tokens[k] for k in a.kinderen(t.i) if a.tokens[k].deprel == "cop"
-                        and a.tokens[k].start < t.start and not bron.tekst[a.tokens[k].eind:t.start].strip()), None)
-            vs, ve = (cop.start if cop else t.start), t.eind
-            uitkomst = {"start": vs, "eind": ve, "tekst": bron.tekst[vs:ve]}
+            # De variabele is het kenmerk zonder koppelwerkwoord: 'invorderbaar', niet 'is invorderbaar'. Het werkwoord
+            # hoort bij de rechtsbetrekking of het rechtsfeit (H2-JAS; het boek markeert 'geregistreerd in het
+            # kentekenregister' zonder 'is' en 'niet'; besluit eigenaar 24 nov 2026, markeren-fragmentgrenzen.md).
+            uitkomst = {"start": t.start, "eind": t.eind, "tekst": t.tekst}
             uit.append(_kandidaat(bron, [(span, "predicaat")], [AR], [Evidence(
                 detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
                 detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip(), "uitkomst": uitkomst,
                                    **({"invoer": invoer} if invoer else {})}, ensure_ascii=False, sort_keys=True))]))
             # De toestand is de uitvoer van die regel: een kenmerk van het onderwerp met per geval een eigen waarde,
             # wel of niet invorderbaar op een datum (H2:71, H2:80; voorbeelden.md E03). Een eigen kandidaat, ook als het
-            # model de regel afwijst: de variabele hangt niet aan de markering van de regel. De kale toestand is optie.
-            grenzen_var = [((vs, ve), "predicaat")] + ([((t.start, t.eind), "toestand")] if cop else [])
-            uit.append(_kandidaat(bron, grenzen_var, [VAR], [Evidence(
-                detector=self.naam, code=self.CODES[3], regel=self.REGELS[3], relatie=t.deprel,
-                detail=bron.tekst[vs:ve])]))
+            # model de regel afwijst: de variabele hangt niet aan de markering van de regel.
+            uit.append(_kandidaat(bron, [((t.start, t.eind), "toestand")], [VAR], [Evidence(
+                detector=self.naam, code=self.CODES[3], regel=self.REGELS[3], relatie=t.deprel, detail=t.tekst)]))
         return uit
 
 

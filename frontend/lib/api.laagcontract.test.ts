@@ -146,7 +146,7 @@ afterAll(() => vi.unstubAllGlobals());
 /** Helpers die geen aanroep zijn: pure functies, of een registratie zonder verzoek. */
 const GEEN_AANROEP = new Set([
   "parseError", "naarInloggen", "isApiError", "foutTekst", "bestandsnaamUit", "voorstellenPad",
-  "vergeetDelegaties", "luisterNaarDelegaties", "GESPREKKEN_PER_VERZOEK", "downloadAntwoord", "downloadTekst",
+  "vergeetDelegaties", "luisterNaarDelegaties", "GESPREKKEN_PER_VERZOEK", "downloadAntwoord", "downloadTekst", "downloadBlob",
 ]);
 
 /** De helpers in `lib/annotatieNode.ts` die een verzoek doen; de rest van die module is rekenwerk. */
