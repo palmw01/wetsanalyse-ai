@@ -279,8 +279,6 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
     """Het 2c-diagram rond één centrale markering (Handleiding §3.4c): hetzelfde model en dezelfde tekening als in het
     werkgebiedrapport (`diagram`, `diagram_teken`), voor de werkplek of elke andere plek die het wil tonen. Alleen wat
     is vastgelegd; met `vorm=json` ook de plaatsen, met `vorm=svg` het plaatje."""
-    from bronmodel.vindplaats import vindplaats as bron_vindplaats
-
     from . import diagram as diagram_mod
     from .diagram_teken import als_svg
     from .jas_relaties import CENTRALE_KLASSEN
@@ -295,13 +293,32 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
 
     def info(kant: dict) -> dict:
         iri = kant.get("eigenaar_iri") or (e["eigenaar_iri"] if kant["id"] == element_id else "")
-        vp = bron_vindplaats(iri) if iri else None
-        return {"waar": iri, "waar_label": vp.label if vp else iri}
+        return {"waar": iri, "waar_label": _waar_label(iri)}
     d = diagram_mod.bouw({"id": element_id, "klasse": e["klasse"], "tekst": e.get("tekst") or "",
                           "lifecycle": e.get("lifecycle") or ""}, rel, info)
     if vorm == "svg":
         return Response(als_svg(d, vorm=weergave), media_type="image/svg+xml")
     return _diagram_json(d, rel, weergave)
+
+
+def _waar_label(iri: str) -> str:
+    """Waar een knoop staat, leesbaar: de vindplaats ("Artikel 9, lid 5"), of bij een node met een knoop-id (een
+    bepaling van een beleidsregel, een slottekst) haar nummer uit dat id ("bepaling 9.1") in plaats van de IRI."""
+    import re
+    from urllib.parse import unquote
+
+    from bronmodel.vindplaats import vindplaats as bron_vindplaats
+    if not iri:
+        return ""
+    if vp := bron_vindplaats(iri):
+        return vp.label
+    if ":id:" in iri:
+        laatste = unquote(iri.rsplit(":id:", 1)[1]).rstrip("/").rsplit("/", 1)[-1]
+        if m := re.search(r"divisie(\d+(?:\.\d+)*)$", laatste, re.I):
+            return f"bepaling {m.group(1)}"
+        if m := re.fullmatch(r"(Artikel|Lid|Slottekst|Bijlage)(.*)", laatste):
+            return f"{m.group(1).lower()} {m.group(2)}".strip()
+    return iri
 
 
 def _diagram_json(d, rel: list[dict], weergave: str = "formuleringen") -> dict:
@@ -331,8 +348,6 @@ async def get_diagrammen(doel: dict = Depends(doel_query), actor: str = Depends(
     """Alle 2c-diagrammen van een bepaling (Handleiding §3.4c), met dezelfde keuze als het werkgebiedrapport
     (`diagram.diagrammen`): één per centrale formulering die niet al in een ander diagram hangt. Voor de tab *Diagram*
     van het annotatiepaneel. Alleen wat is vastgelegd; `ontbreekt` per diagram is wat de methode nog verwacht."""
-    from bronmodel.vindplaats import vindplaats as bron_vindplaats
-
     from . import diagram as diagram_mod
     view = await store.weergave(await resolve_bron(doel))
     markeringen = [{"id": e["id"], "klasse": e.get("klasse") or "", "tekst": e.get("tekst") or "",
@@ -349,8 +364,7 @@ async def get_diagrammen(doel: dict = Depends(doel_query), actor: str = Depends(
 
     def info(kant: dict) -> dict:
         iri = kant.get("eigenaar_iri") or iri_van.get(kant["id"], "")
-        vp = bron_vindplaats(iri) if iri else None
-        return {"waar": iri, "waar_label": vp.label if vp else iri}
+        return {"waar": iri, "waar_label": _waar_label(iri)}
     return {"bron_iri": view["doel"]["bron_iri"],
             "diagrammen": [_diagram_json(d, rel) for d in diagram_mod.diagrammen(markeringen, rel, info)]}
 

@@ -473,7 +473,7 @@
        "elders": "Artikel 9, lid 5",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -485,7 +485,7 @@
        "elders": "Artikel 9, lid 6",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -497,7 +497,7 @@
        "elders": "Artikel 9, lid 7",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -562,9 +562,83 @@
      ]
     },
     "plaatsing": {
-     "breedte": 612.0,
-     "hoogte": 230.0,
+     "breedte": 480.0,
+     "hoogte": 303.0,
      "knopen": [
+      {
+       "knoop": {
+        "id": "u5",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 5",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 16.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … … nog maanden",
+        "van het jaar overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u6",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 6",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 180.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
+       "regels": [
+        "In afwijking van het eerste",
+        "en het vijfde lid … … nog",
+        "maanden van het jaar",
+        "overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u7",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+        "elders": "Artikel 9, lid 7",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 344.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … termijnen als",
+        "er maanden van het jaar",
+        "zijn."
+       ]
+      },
       {
        "knoop": {
         "id": "rb",
@@ -578,8 +652,8 @@
         "zone": "midden",
         "diepte": 0
        },
-       "x": 246.0,
-       "y": 0.0,
+       "x": 180.0,
+       "y": 91.0,
        "b": 120.0,
        "h": 57.0,
        "kop": "Rechtsbetrekking",
@@ -603,88 +677,14 @@
         "zone": "onder",
         "diepte": 1
        },
-       "x": 0.0,
-       "y": 91.0,
+       "x": 180.0,
+       "y": 182.0,
        "b": 120.0,
        "h": 39.0,
        "kop": "Tijdsaanduiding",
        "regels": [
         "zes weken na de dagtekening",
         "van het aanslagbiljet"
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u5",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
-        "elders": "Artikel 9, lid 5",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 164.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 48.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
-       "regels": [
-        "In afwijking van het eerste",
-        "lid is een … … nog maanden",
-        "van het jaar overblijven."
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u6",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
-        "elders": "Artikel 9, lid 6",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 328.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 57.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
-       "regels": [
-        "In afwijking van het eerste",
-        "en het vijfde lid … … nog",
-        "maanden van het jaar",
-        "overblijven."
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u7",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
-        "elders": "Artikel 9, lid 7",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 492.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 57.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
-       "regels": [
-        "In afwijking van het eerste",
-        "lid is een … termijnen als",
-        "er maanden van het jaar",
-        "zijn."
        ]
       },
       {
@@ -700,8 +700,8 @@
         "zone": "onder",
         "diepte": 2
        },
-       "x": 246.0,
-       "y": 182.0,
+       "x": 180.0,
+       "y": 255.0,
        "b": 120.0,
        "h": 48.0,
        "kop": "Afleidingsregel",
@@ -724,12 +724,12 @@
        "heeft als",
        "tijdsaanduiding"
       ],
-      "x1": 306.0,
-      "y1": 57.0,
-      "x2": 60.0,
-      "y2": 91.0,
-      "lx": 183.0,
-      "ly": 74.0,
+      "x1": 240.0,
+      "y1": 148.0,
+      "x2": 240.0,
+      "y2": 182.0,
+      "lx": 240.0,
+      "ly": 165.0,
       "lb": 46.88,
       "lh": 16.5
      },
@@ -742,12 +742,12 @@
       "label": [
        "levert op"
       ],
-      "x1": 306.0,
-      "y1": 182.0,
-      "x2": 60.0,
-      "y2": 130.0,
-      "lx": 183.0,
-      "ly": 156.0,
+      "x1": 240.0,
+      "y1": 255.0,
+      "x2": 240.0,
+      "y2": 221.0,
+      "lx": 240.0,
+      "ly": 238.0,
       "lb": 27.76,
       "lh": 9.0
      },
@@ -761,12 +761,12 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 224.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 265.0,
-      "ly": 74.0,
+      "x1": 76.0,
+      "y1": 48.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 158.0,
+      "ly": 69.5,
       "lb": 46.83,
       "lh": 16.5
      },
@@ -780,11 +780,11 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 388.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 347.0,
+      "x1": 240.0,
+      "y1": 57.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 240.0,
       "ly": 74.0,
       "lb": 46.83,
       "lh": 16.5
@@ -799,11 +799,11 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 552.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 429.0,
+      "x1": 404.0,
+      "y1": 57.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 322.0,
       "ly": 74.0,
       "lb": 46.83,
       "lh": 16.5
@@ -889,7 +889,7 @@
        "elders": "Artikel 9, lid 5",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -901,7 +901,7 @@
        "elders": "Artikel 9, lid 6",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -913,7 +913,7 @@
        "elders": "Artikel 9, lid 7",
        "lifecycle": "human_approved",
        "begrip": "",
-       "zone": "onder",
+       "zone": "boven",
        "diepte": 1
       },
       {
@@ -985,9 +985,83 @@
      ]
     },
     "plaatsing": {
-     "breedte": 612.0,
-     "hoogte": 230.0,
+     "breedte": 480.0,
+     "hoogte": 303.0,
      "knopen": [
+      {
+       "knoop": {
+        "id": "u5",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 5",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 16.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 48.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … … nog maanden",
+        "van het jaar overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u6",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
+        "elders": "Artikel 9, lid 6",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 180.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
+       "regels": [
+        "In afwijking van het eerste",
+        "en het vijfde lid … … nog",
+        "maanden van het jaar",
+        "overblijven."
+       ]
+      },
+      {
+       "knoop": {
+        "id": "u7",
+        "soort": "element",
+        "nr": 0,
+        "klasse": "Rechtsbetrekking",
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
+        "elders": "Artikel 9, lid 7",
+        "lifecycle": "human_approved",
+        "begrip": "",
+        "zone": "boven",
+        "diepte": 1
+       },
+       "x": 344.0,
+       "y": 0.0,
+       "b": 120.0,
+       "h": 57.0,
+       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
+       "regels": [
+        "In afwijking van het eerste",
+        "lid is een … termijnen als",
+        "er maanden van het jaar",
+        "zijn."
+       ]
+      },
       {
        "knoop": {
         "id": "rb",
@@ -1001,8 +1075,8 @@
         "zone": "midden",
         "diepte": 0
        },
-       "x": 246.0,
-       "y": 0.0,
+       "x": 180.0,
+       "y": 91.0,
        "b": 120.0,
        "h": 57.0,
        "kop": "Rechtsbetrekking",
@@ -1026,8 +1100,8 @@
         "zone": "rechts",
         "diepte": 1
        },
-       "x": 426.0,
-       "y": 13.5,
+       "x": 360.0,
+       "y": 104.5,
        "b": 120.0,
        "h": 30.0,
        "kop": "Rechtsobject",
@@ -1048,88 +1122,14 @@
         "zone": "onder",
         "diepte": 1
        },
-       "x": 0.0,
-       "y": 91.0,
+       "x": 180.0,
+       "y": 182.0,
        "b": 120.0,
        "h": 39.0,
        "kop": "Tijdsaanduiding",
        "regels": [
         "zes weken na de dagtekening",
         "van het aanslagbiljet"
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u5",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting … nog maanden van het jaar overblijven.",
-        "elders": "Artikel 9, lid 5",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 164.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 48.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 5",
-       "regels": [
-        "In afwijking van het eerste",
-        "lid is een … … nog maanden",
-        "van het jaar overblijven."
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u6",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag … nog maanden van het jaar overblijven.",
-        "elders": "Artikel 9, lid 6",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 328.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 57.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 6",
-       "regels": [
-        "In afwijking van het eerste",
-        "en het vijfde lid … … nog",
-        "maanden van het jaar",
-        "overblijven."
-       ]
-      },
-      {
-       "knoop": {
-        "id": "u7",
-        "soort": "element",
-        "nr": 0,
-        "klasse": "Rechtsbetrekking",
-        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag … invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn.",
-        "elders": "Artikel 9, lid 7",
-        "lifecycle": "human_approved",
-        "begrip": "",
-        "zone": "onder",
-        "diepte": 1
-       },
-       "x": 492.0,
-       "y": 91.0,
-       "b": 120.0,
-       "h": 57.0,
-       "kop": "Rechtsbetrekking · Artikel 9, lid 7",
-       "regels": [
-        "In afwijking van het eerste",
-        "lid is een … termijnen als",
-        "er maanden van het jaar",
-        "zijn."
        ]
       },
       {
@@ -1145,8 +1145,8 @@
         "zone": "onder",
         "diepte": 2
        },
-       "x": 246.0,
-       "y": 182.0,
+       "x": 180.0,
+       "y": 255.0,
        "b": 120.0,
        "h": 48.0,
        "kop": "Afleidingsregel",
@@ -1169,12 +1169,12 @@
        "heeft als",
        "tijdsaanduiding"
       ],
-      "x1": 306.0,
-      "y1": 57.0,
-      "x2": 60.0,
-      "y2": 91.0,
-      "lx": 183.0,
-      "ly": 74.0,
+      "x1": 240.0,
+      "y1": 148.0,
+      "x2": 240.0,
+      "y2": 182.0,
+      "lx": 240.0,
+      "ly": 165.0,
       "lb": 46.88,
       "lh": 16.5
      },
@@ -1187,12 +1187,12 @@
       "label": [
        "levert op"
       ],
-      "x1": 306.0,
-      "y1": 182.0,
-      "x2": 60.0,
-      "y2": 130.0,
-      "lx": 183.0,
-      "ly": 156.0,
+      "x1": 240.0,
+      "y1": 255.0,
+      "x2": 240.0,
+      "y2": 221.0,
+      "lx": 240.0,
+      "ly": 238.0,
       "lb": 27.76,
       "lh": 9.0
      },
@@ -1206,12 +1206,12 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 224.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 265.0,
-      "ly": 74.0,
+      "x1": 76.0,
+      "y1": 48.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 158.0,
+      "ly": 69.5,
       "lb": 46.83,
       "lh": 16.5
      },
@@ -1225,11 +1225,11 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 388.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 347.0,
+      "x1": 240.0,
+      "y1": 57.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 240.0,
       "ly": 74.0,
       "lb": 46.83,
       "lh": 16.5
@@ -1244,11 +1244,11 @@
        "maakt een",
        "uitzondering op"
       ],
-      "x1": 552.0,
-      "y1": 91.0,
-      "x2": 306.0,
-      "y2": 57.0,
-      "lx": 429.0,
+      "x1": 404.0,
+      "y1": 57.0,
+      "x2": 240.0,
+      "y2": 91.0,
+      "lx": 322.0,
       "ly": 74.0,
       "lb": 46.83,
       "lh": 16.5
@@ -1263,12 +1263,12 @@
        "heeft als",
        "voorwerp"
       ],
-      "x1": 366.0,
-      "y1": 28.5,
-      "x2": 426.0,
-      "y2": 28.5,
-      "lx": 396.0,
-      "ly": 28.5,
+      "x1": 300.0,
+      "y1": 119.5,
+      "x2": 360.0,
+      "y2": 119.5,
+      "lx": 330.0,
+      "ly": 119.5,
       "lb": 29.27,
       "lh": 16.5
      }

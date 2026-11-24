@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties, type GraafStand } from "@/components/graaf/useGraafStand";
 import { TabRij, type TabRijItem } from "@/components/ui/Tabs";
@@ -102,7 +101,8 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
 
 export const WEERGAVE_TABS = [
   { key: "tekst", label: "Tekst" },
-  { key: "graaf", label: "Graaf", icoon: <GraafIcoon className="h-3.5 w-3.5" /> },
+  // Geen icoon: Tekst, Graaf en Diagram staan in één rij, en geen ervan heeft er een (melding gebruiker 24 nov 2026).
+  { key: "graaf", label: "Graaf" },
 ] as const;
 
 /** De keuze Tekst | Graaf onder de kop van een venster (`PaneelKop.balk`): dezelfde tabrij als die van het paneel

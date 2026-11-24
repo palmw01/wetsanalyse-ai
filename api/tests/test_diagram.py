@@ -115,6 +115,21 @@ def test_een_knoop_in_een_andere_bepaling_krijgt_haar_vindplaats_en_geen_nummer(
     assert per == {"rb": (1, ""), "vw": (4, ""), "aanslag": (0, "onderdeel a")}
 
 
+def test_van_een_knoop_in_een_andere_bepaling_gaat_het_niet_verder():
+    """Termijnen, art. 9 lid 1 (24 nov 2026): 14 van de 23 knopen hingen aan de uitzonderingen in lid 5–7. Een knoop in een
+    andere bepaling toont de samenhang; wat daar weer aan hangt, hoort in het diagram van die bepaling. In deze bepaling
+    gaat het wel twee stappen ver. Een uitzondering staat boven, zoals een voorwaarde."""
+    uitz = {"id": "uitz", "klasse": "Rechtsbetrekking", "tekst": "In afwijking van het eerste lid"}
+    pw = {"id": "pw", "klasse": "Parameter en parameterwaarde", "tekst": "zes weken"}
+    ta = {"id": "ta", "klasse": "Tijdsaanduiding", "tekst": "zes weken na"}
+    ar = {"id": "ar", "klasse": "Afleidingsregel", "tekst": "invorderbaar"}
+    waar = {"rb": "lid1", "vw": "lid1", "ta": "lid1", "ar": "lid1", "uitz": "lid5", "pw": "lid5"}
+    d = diagram.bouw(RB, [_r(uitz, RB, "uitzondering_op"), _r(uitz, pw, "voorwerp"), _r(RB, ta, "tijd"), _r(ar, ta, "uitvoer")],
+                     info=lambda k: {"waar": waar[k["id"]], "waar_label": waar[k["id"]]})
+    assert {k.id for k in d.knopen} == {"rb", "uitz", "ta", "ar"}
+    assert {k.id: k.zone for k in d.knopen}["uitz"] == "boven"
+
+
 def test_de_tekenaars_maken_pdf_svg_en_mermaid_uit_hetzelfde_model():
     from app import diagram_teken
     relaties = [_r(ONTV, RB, "plichthebbende"), _r(RB, AANSLAG, "voorwerp", lifecycle="voorgesteld"),
