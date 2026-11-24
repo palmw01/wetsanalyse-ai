@@ -372,6 +372,10 @@ def lees(vraag: str, aan: frozenset[str],
             if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
     if over:
         return None
+    if relatief[0] and "volgorde" not in args and "nieuwste" in c.volgordes and not tellen:
+        # "Van afgelopen maand" vraagt wat er recent is: de nieuwste eerst, niet de meest relevante (acceptatie 24 nov
+        # 2026). Een eigen volgorde in de vraag gaat voor; een telvraag heeft geen volgorde nodig.
+        args["volgorde"] = "nieuwste"
     kanttekening = " ".join(filter(None, [relatief[1], kanttekening]))
     return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0, tellen, verdeling, kanttekening)
 

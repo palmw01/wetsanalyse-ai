@@ -68,6 +68,13 @@ extern onderzoek en je maakt geen volledigheidsclaim over de regeling. Wil ieman
   variabele en parameter bij dezelfde functie.
 - **Verzin niets.** Geen bron, actor, rechtsgevolg of subtype dat de tekst niet draagt. Ontbrekende context noem je in
   de toelichting van het betrokken element, of onder *Ontbrekende context*.
+- **Een rekenvoorbeeld in de bron is geen norm, maar wel bron.** Een beleidsregel die een termijn voorrekent ("valt de
+  dagtekening op …, dan vervalt de termijn op …"), stelt geen nieuwe regel. De concrete data en bedragen in zo'n
+  voorbeeld markeer je niet los. De woorden die een kenmerk aanduiden dat een regel nodig heeft (het jaartal, de
+  laatste dag van de maand, het nummer van de dag), markeer je wel: vaak is dit de enige plek waar de tekst ze noemt.
+  Het voorbeeld zelf gebruik je om de regel te toetsen ([afleidingsregels](afleidingsregels.md), *Toetsen met een
+  voorbeeldtabel*). Wijs bij een review een markering in een voorbeeld dus niet af omdat het "maar een voorbeeld" is;
+  vraag of een regel of begrip erop rust.
 - **Aantal is geen kwaliteit.** Veel markeringen, of overeenstemming met een andere annotator, bewijst niet dat de
   lijst volledig is.
 

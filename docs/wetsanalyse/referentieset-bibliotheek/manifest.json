@@ -1,0 +1,19 @@
+{
+  "naam": "termijnen-bibliotheek-2026-11",
+  "schema": "extern-bibliotheek-v1",
+  "delen": [
+    {
+      "paginas": 177,
+      "sha256": "4639ff347a6dbbc8a05c2688d97266b8bbaa77beb181bf4818c5f640b3407851"
+    },
+    {
+      "paginas": 36,
+      "sha256": "aeb238a8001251a70588b12235c016201da9c77be1c94ac043de0ed4f8bce4e2"
+    },
+    {
+      "paginas": 13,
+      "sha256": "f83f20137e629a78a845e17adef6028ebf578f8dc65d081472481eada927f87f"
+    }
+  ],
+  "sha256": "2bb60d5beddf0a7e5a3be14cc5b0b7766983078c42a953973c78c261c7d1b657"
+}

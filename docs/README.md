@@ -69,7 +69,7 @@ HTML-bestanden zelf zijn lokaal.
 | Wat is de projectmethode en hoe landt die in de agents? | [`wetsanalyse/methode-onderzoek.md`](wetsanalyse/methode-onderzoek.md) + de skill | specificatie |
 | Wat is er gemeten? | [`architectuur/metingen/README.md`](architectuur/metingen/README.md) | meting |
 | Hoe valideren we juridisch? | [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) + [`wetsanalyse/referentieset/`](wetsanalyse/referentieset/README.md) | onderzoek |
-| Waartegen meten we begrippen en bronselectie? | [`wetsanalyse/referentieset-begrippen/`](wetsanalyse/referentieset-begrippen/README.md) en `wetsanalyse/referentieset-bronselectie/` (per set een conceptmap met eigen README) | meting |
+| Waartegen meten we begrippen en bronselectie? | [`wetsanalyse/referentieset-begrippen/`](wetsanalyse/referentieset-begrippen/README.md) en `wetsanalyse/referentieset-bronselectie/` (per set een conceptmap met eigen README); begrippen en regels uit praktijkwerk: [`wetsanalyse/referentieset-bibliotheek/`](wetsanalyse/referentieset-bibliotheek/README.md) (alleen het manifest, het materiaal is lokaal) | meting |
 | Wat bleek uit het onderzoek naar invordering? | [`wetsanalyse/onderzoek-invordering-2026-09-29/`](wetsanalyse/onderzoek-invordering-2026-09-29/README.md) | onderzoek |
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
@@ -105,6 +105,10 @@ Toelichting bij enkele documenten:
   Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
   end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
   oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).
+  En [`architectuur/plan-lessen-termijnen-bibliotheek.md`](architectuur/plan-lessen-termijnen-bibliotheek.md): gevalideerd
+  praktijkwerk over hetzelfde onderwerp (een begrippen- en een afleidingsregelbibliotheek, lokaal, niet in de repo)
+  naast de methode en naast Lex, met een verbeterplan en een voorstel voor een lokale referentieset (24 nov 2026;
+  concept, ter bespreking).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
