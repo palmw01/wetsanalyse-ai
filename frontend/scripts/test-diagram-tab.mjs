@@ -12,6 +12,7 @@
  *  - een lijn kiezen toont de relatie bovenaan in het blok *Relaties* van haar kant in deze bepaling;
  *  - *+ voorwerp* opent *Verbind met…* met alleen de markeringen die die rol kunnen hebben, het type voorgekozen; verbinden
  *    stuurt de relatie en het diagram toont haar daarna;
+ *  - passend in de breedte, met in- en uitzoomen;
  *  - toegankelijk (axe) en geen horizontale scroll.
  * Met `SCHERMAFBEELDINGEN=<map>` bewaart hij de standen (voor de PR).
  */
@@ -89,6 +90,16 @@ try {
   }
   assert.deepEqual(await kaart.locator("[data-ontbreekt] button").allInnerTexts(), ["+ rechthebbende", "+ plichthebbende", "+ voorwerp"]);
   if (map) await page.screenshot({ path: `${map}/diagram-tab.png` });
+
+  // Passend: de hele tekening in de breedte van haar kader; inzoomen maakt haar breder, en dan schuift het kader.
+  const kader = await kaart.locator("[data-diagram-zoom]").boundingBox();
+  assert.ok((await svg.boundingBox()).width <= kader.width + 1, "passend: het hele diagram in beeld");
+  await kaart.getByRole("button", { name: "Inzoomen" }).click();
+  assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1.5");
+  assert.ok((await svg.boundingBox()).width > kader.width * 1.4, "ingezoomd: breder dan het kader");
+  if (map) await page.screenshot({ path: `${map}/diagram-ingezoomd.png` });
+  await kaart.getByRole("button", { name: "Passend" }).click();
+  assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1");
 
   // Een lijn kiezen: de relatie staat bovenaan in het blok van haar kant in deze bepaling, met nadruk.
   await svg.locator('[data-diagram-lijn="R-tijd"]').click();

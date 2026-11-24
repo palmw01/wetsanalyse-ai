@@ -31,7 +31,7 @@ Zone = Literal["boven", "links", "midden", "rechts", "onder"]
 
 #: Waar een buur van de centrale formulering staat, naar het type van de relatie. De rest staat eronder.
 ZONE_VAN: dict[str, Zone] = {
-    "voorwaarde": "boven",
+    "voorwaarde": "boven", "uitzondering_op": "boven",
     "rechthebbende": "links", "plichthebbende": "links", "verricht": "links", "bevoegde": "links",
     "voorwerp": "rechts", "kenmerk": "rechts", "onderdeel": "rechts",
 }
@@ -104,9 +104,11 @@ def _sleutel(kant: dict) -> str:
     return f"{kant.get('soort', 'element')}:{kant['id']}"
 
 
-def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE) -> dict[str, int]:
+def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE,
+          eindpunt: Callable[[str], bool] | None = None) -> dict[str, int]:
     """Wat er over relaties bereikbaar is vanaf `centraal` (een element-id), in beide richtingen, tot `diepte`; per knoop
-    (`element:<id>` of `impliciet:<id>`) de afstand. Dezelfde regel als `diagramBuurt` in de werkplek."""
+    (`element:<id>` of `impliciet:<id>`) de afstand. Dezelfde regel als `diagramBuurt` in de werkplek; met `eindpunt`
+    gaat het van zo'n knoop niet verder (`bouw`: een knoop in een andere bepaling)."""
     actief = [r for r in relaties if _actief(r)]
     start = f"element:{centraal}"
     afstand = {start: 0}
@@ -114,6 +116,8 @@ def buurt(centraal: str, relaties: Iterable[dict], diepte: int = DIEPTE) -> dict
     for d in range(1, diepte + 1):
         volgende = []
         for knoop in rand:
+            if eindpunt is not None and knoop != start and eindpunt(knoop):
+                continue
             for r in actief:
                 a, b = _sleutel(r["van"]), _sleutel(r["naar"])
                 ander = b if a == knoop else a if b == knoop else None
@@ -132,11 +136,19 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
     (`annotatie_v2_relaties`: `van`/`naar` met `id`, `soort`, `klasse`, `tekst`, `lifecycle`)."""
     info = info or (lambda _id: {})
     relaties = [r for r in relaties if _actief(r)]
-    afstand = buurt(centraal["id"], relaties, diepte)
     kanten: dict[str, dict] = {f"element:{centraal['id']}": {"id": centraal["id"], "soort": "element", **centraal}}
     for r in relaties:
         for k in (r["van"], r["naar"]):
             kanten.setdefault(_sleutel(k), k)
+    # Een knoop in een andere bepaling laat zien hoe de bepalingen samenhangen, maar wat daar weer aan hangt, hoort in het
+    # diagram van die bepaling (Termijnen, art. 9 lid 1: 14 van de 23 knopen hingen aan de uitzonderingen in lid 5–7).
+    hier_ = info({"soort": "element", **centraal}).get("waar")
+
+    def elders(sleutel: str) -> bool:
+        k = kanten.get(sleutel) or {}
+        waar = info(k).get("waar") if k.get("soort", "element") == "element" else None
+        return bool(hier_ and waar and waar != hier_)
+    afstand = buurt(centraal["id"], relaties, diepte, eindpunt=elders)
     lijnen = [r for r in relaties if _sleutel(r["van"]) in afstand and _sleutel(r["naar"]) in afstand]
     lijnen.sort(key=lambda r: (_CODEVOLGORDE.get(r["type"], 99), r.get("volgorde") or 0, r.get("id", "")))
 
@@ -151,7 +163,7 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
                 if afstand.get(kind) == d and afstand.get(ouder) == d - 1 and kind not in zone:
                     zone[kind] = ZONE_VAN.get(r["type"], "onder") if ouder == start else zone[ouder]
     knopen = []
-    hier = info({"soort": "element", **centraal}).get("waar")
+    hier = hier_
     for s, d in afstand.items():
         k = kanten[s]
         extra = info(k) if k.get("soort", "element") == "element" else {}
@@ -267,7 +279,7 @@ def labelregels(tekst: str) -> list[str]:
 
 
 def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "begrippen"] = "formuleringen") -> Plaatsing:
-    """Een vaste plaats per rol: voorwaarden boven, partijen links, het voorwerp rechts, de rest eronder, de centrale
+    """Een vaste plaats per rol: voorwaarden en uitzonderingen boven, partijen links, het voorwerp rechts, de rest eronder, de centrale
     formulering in het midden. Binnen een zone de volgorde van `Diagram.knopen`."""
     b = min(KNOOP_B, (breedte - 2 * TUSSEN_X) / 3)
     per_zone: dict[str, list[Knoop]] = {z: [] for z in ("boven", "links", "midden", "rechts", "onder")}

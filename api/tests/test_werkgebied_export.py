@@ -1307,12 +1307,15 @@ async def test_de_diagrammen_van_een_bepaling_zijn_die_van_het_rapport(client, g
     knopen = {k["id"]: k for k in x["diagram"]["knopen"]}
     assert knopen[ids[(VW, "Beta")]]["elders"] == "Artikel 9, lid 2" and len(x["plaatsing"]["knopen"]) == len(knopen)
     assert all(l["relatie_id"] for l in x["lijnen"]) and x["ontbreekt_rollen"] == []
-    # Alleen lid 2 in beeld: het rechtsfeit daar krijgt een eigen diagram (in het rapport hangt het in dat van lid 1).
-    los = (await client.get("/v1/annotatie/diagrammen", params={"bron_iri": TWO})).json()["diagrammen"]
-    assert [x["diagram"]["centraal"] for x in los] == [ids[(RF, "eta")]] and not lid2.diagrammen
+    # Alleen lid 2 in beeld: de afleidingsregel in lid 1 is daar een eindpunt (wat eraan hangt, hoort bij lid 1), dus het
+    # rechtsfeit en de voorwaarde in lid 2 krijgen elk een eigen diagram (in het rapport hangen ze in dat van lid 1).
+    los = {x["diagram"]["centraal"]: x for x in (await client.get("/v1/annotatie/diagrammen", params={"bron_iri": TWO})).json()["diagrammen"]}
+    assert set(los) == {ids[(RF, "eta")], ids[(VW, "Beta")]} and not lid2.diagrammen
+    rf = los[ids[(RF, "eta")]]
+    assert {k["id"] for k in rf["diagram"]["knopen"]} == {ids[(RF, "eta")], ids[(AR, "😀 Alfa Alfa")]}, "de regel in lid 1 is een eindpunt"
     # Het rechtsfeit mist wie het verricht en wat het creëert: met type en richting, om meteen aan te vullen.
-    rollen = {r["label"]: (r["codes"], r["richting"]) for r in los[0]["ontbreekt_rollen"]}
-    assert rollen["wie het verricht"] == (["verricht"], "in") and set(rollen) == set(los[0]["diagram"]["ontbreekt"])
+    rollen = {r["label"]: (r["codes"], r["richting"]) for r in rf["ontbreekt_rollen"]}
+    assert rollen["wie het verricht"] == (["verricht"], "in") and set(rollen) == set(rf["diagram"]["ontbreekt"])
 
 
 

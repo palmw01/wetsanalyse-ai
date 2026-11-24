@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   MAAT, RAND_CENTRAAL, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
   type DiagramLijn,
@@ -9,7 +11,8 @@ import {
  *  plaatje als in het werkgebiedrapport, maar met knopen en lijnen die je kunt kiezen. Kleur draagt nooit alleen: elke
  *  knoop noemt zijn klasse, elke lijn haar relatie; een voorstel is gestippeld, een impliciete partij ook (haar rand).
  *
- *  Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. De tekening schaalt mee met de breedte (`viewBox`). */
+ *  Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. Standaard past de hele tekening in de breedte en groeit ze mee
+ *  met het venster (`viewBox`); inzoomen (−, +, *Passend*) maakt haar breder dan haar kader, en dan schuif je erin. */
 export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, label }: {
   data: DiagramData;
   /** `knoopSleutel` van de gekozen knoop. */
@@ -23,13 +26,24 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   const { diagram, plaatsing, lijnen } = data;
   const rand = 3;
   const kiesbaar = !!(onKiesKnoop || onKiesLijn);
+  const [zoom, setZoom] = useState(1);
+  const knop = "focus-ring flex h-6 min-w-6 items-center justify-center rounded-knop-xs border border-line bg-paper px-1.5 text-xs font-medium text-lint hover:bg-surface disabled:cursor-default disabled:text-faint";
   return (
+    <div data-diagram-zoom={zoom}>
+      {/* Boven de tekening, niet erover: anders dekt het een knoop af. */}
+      <div className="mb-1 flex justify-end gap-1" role="group" aria-label="Zoomen">
+        <button type="button" className={knop} aria-label="Uitzoomen" title="Uitzoomen" disabled={zoom <= 1}
+          onClick={() => setZoom((z) => vorigeZoom(z))}>−</button>
+        <button type="button" className={knop} aria-label="Inzoomen" title="Inzoomen" disabled={zoom >= ZOOM[ZOOM.length - 1]}
+          onClick={() => setZoom((z) => volgendeZoom(z))}>+</button>
+        {zoom > 1 && <button type="button" className={knop} onClick={() => setZoom(1)}>Passend</button>}
+      </div>
+      <div className="overflow-auto" style={{ maxHeight: zoom > 1 ? "70vh" : undefined }}>
     <svg role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
       viewBox={`${-rand} ${-rand} ${plaatsing.breedte + 2 * rand} ${plaatsing.hoogte + 2 * rand}`}
-      className="h-auto w-full select-none"
-      // Nooit kleiner dan leesbaar: een eenheid is minstens 1,1 px (de tekst dan ~8 px). Is er minder ruimte, dan scrolt de
-      // kaart eromheen in de breedte.
-      style={{ fontFamily: "inherit", minWidth: `${Math.round((plaatsing.breedte + 2 * rand) * 1.1)}px` }}>
+      className="block h-auto select-none"
+      // Passend: de hele tekening in de breedte van haar kader; ingezoomd breder, en dan schuift het kader.
+      style={{ fontFamily: "inherit", width: `${zoom * 100}%`, maxWidth: "none" }}>
       {lijnen.map((l) => {
         const gekozen = !!gekozenLijn && l.relatie_id === gekozenLijn;
         const voorstel = l.lifecycle === "voorgesteld";
@@ -93,8 +107,15 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
         );
       })}
     </svg>
+      </div>
+    </div>
   );
 }
+
+/** De zoomstappen: 1 is passend. */
+const ZOOM = [1, 1.5, 2, 3, 4] as const;
+const volgendeZoom = (z: number) => ZOOM.find((s) => s > z) ?? z;
+const vorigeZoom = (z: number) => [...ZOOM].reverse().find((s) => s < z) ?? 1;
 
 let meetDoek: CanvasRenderingContext2D | null | undefined;
 
