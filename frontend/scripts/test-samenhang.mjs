@@ -528,7 +528,7 @@ async function wachtGereed(page) {
   await detail(page).getByText("vaste regel", { exact: true }).waitFor();
   await page.screenshot({ path: `${shots}/1c-markering.png` });
   await detail(page).getByText("Technisch detail", { exact: true }).click();
-  await detail(page).getByText("Nog niet in de graaf bijgewerkt", { exact: false }).waitFor();
+  await detail(page).getByText("Nog niet overal bijgewerkt", { exact: false }).waitFor();
   assert.equal(await page.getByRole("tab", { name: "Tekst", exact: true }).getAttribute("aria-selected"), "false", "je blijft in de graaf");
   // Het paneel toont lid 2; e1 staat op lid 1. Naar de tekst springen zou niets tonen: dan opent het
   // paneel op lid 1 in plaats daarvan.

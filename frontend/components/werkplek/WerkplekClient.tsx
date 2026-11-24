@@ -1138,7 +1138,7 @@ export function WerkplekClient({
             setWgUitOverzicht(undefined);
             onKiesWerkgebied?.(id);
             setMelding("Werkgebied gemaakt.");
-            setWgMelding(mislukt.length ? `Niet opgenomen (niet in de graaf of niet te verifiëren): ${mislukt.join(", ")}.` : null);
+            setWgMelding(mislukt.length ? `Niet opgenomen (niet beschikbaar of niet te verifiëren): ${mislukt.join(", ")}.` : null);
           }} />
       )}
       {wgMelding && (

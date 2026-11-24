@@ -98,10 +98,10 @@ describe("de verdeling tussen tekst en lijst", () => {
       expect(bron(pad), pad).not.toMatch(/role="separator"|setPointerCapture/);
   });
 
-  it("Wat de graaf weet is één blok: onder de annotatie en in het bronvenster", () => {
-    expect(bron("components/annotaties/NodeAnnotatiePaneel.tsx")).toMatch(/<WatDeGraafWeet\b/);
-    expect(bron("components/wettekst/BronVenster.tsx")).toMatch(/<WatDeGraafWeet\b/);
-    expect(bron("components/wettekst/BronVenster.tsx")).not.toMatch(/titel="Wat de graaf weet"/);
+  it("Over deze bepaling is één blok: onder de annotatie en in het bronvenster", () => {
+    expect(bron("components/annotaties/NodeAnnotatiePaneel.tsx")).toMatch(/<OverDezeBepaling\b/);
+    expect(bron("components/wettekst/BronVenster.tsx")).toMatch(/<OverDezeBepaling\b/);
+    expect(bron("components/wettekst/BronVenster.tsx")).not.toMatch(/titel="Over deze bepaling"/);
   });
 });
 
