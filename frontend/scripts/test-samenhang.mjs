@@ -661,7 +661,7 @@ async function wachtGereed(page) {
   assert.equal(await lagen.count(), 0, "Escape sluit het lagenpaneel");
 
   // 10. Beeldknoppen.
-  // Alles in beeld (vizier) en Groot bekijken; in- en uitzoomen gaat met het muiswiel (melding gebruiker 24 nov 2026).
+  // Terug (pijl: keuze weg, alles in beeld) en Groot bekijken; in- en uitzoomen gaat met het muiswiel (melding gebruiker 24 nov 2026).
   assert.equal(await page.getByRole("button", { name: "Inzoomen" }).count(), 0, "geen knop Inzoomen");
   await page.getByRole("button", { name: "Alles in beeld" }).click();
   // Groot bekijken: alleen de graaf in een venster, met Exporteren als PNG – een echte, niet-lege afbeelding.
@@ -809,8 +809,9 @@ async function wachtGereed(page) {
   const DETAIL = ["lid", "onderdeel", "markering", "extern"];
   assert.ok(uitgezoomd.includes("regeling") && !uitgezoomd.some((x) => DETAIL.includes(x)), `uitgezoomd alleen de opbouw (${uitgezoomd})`);
   assert.ok(ingezoomd.includes("artikel") && new Set(ingezoomd).size >= new Set(uitgezoomd).size, `ingezoomd meer detail (${ingezoomd})`);
-  await page.getByRole("button", { name: "Naar het antwoord" }).click();
+  await page.getByRole("button", { name: "Alles in beeld" }).click();
   await page.waitForTimeout(900);
+  assert.equal(await page.getByRole("button", { name: /^Naar het/ }).count(), 0, "één terugknop, geen tweede");
 
   await zoekEnKies(page, "Artikel 28", A28);
   await page.waitForTimeout(600);

@@ -163,13 +163,14 @@ try {
   assert.equal(await eerste.getAttribute("data-nadruk"), "true");
   assert.equal(await gekozen.locator("[data-diagram]").count(), 0, "geen tweede diagram in het blok");
   if (map) await page.screenshot({ path: `${map}/diagram-lijn-gekozen.png` });
-  // Dezelfde knoppen als de graaf: bij een keuze staat *Terug* bij de beeldknoppen, en de achtergrond is ook terug.
+  // Dezelfde knoppen als de graaf: de pijl is terug, en de achtergrond ook.
   const knoppen = await kaart.getByRole("group", { name: "Beeld" }).boundingBox();
   const venster = await svg.boundingBox();
   assert.ok(knoppen.x + knoppen.width > venster.x + venster.width - 30, "de knoppen staan rechtsonder, zoals in de graaf");
-  await kaart.getByRole("button", { name: "Naar het hele diagram" }).click();
+  // Eén knop terug (pijl): de keuze vervalt en het hele diagram staat weer in beeld; geen tweede terugknop.
+  assert.equal(await kaart.getByRole("group", { name: "Beeld" }).getByRole("button").count(), 2, "terug en groot bekijken");
+  await kaart.getByRole("button", { name: "Alles in beeld" }).click();
   await gekozen.waitFor({ state: "detached" });
-  assert.equal(await kaart.getByRole("button", { name: "Naar het hele diagram" }).count(), 0, "zonder keuze geen Terug");
   await svg.locator('[data-diagram-lijn="R-tijd"]').click();
   await gekozen.waitFor();
   const vlak = await svg.boundingBox();

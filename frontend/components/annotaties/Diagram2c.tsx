@@ -15,7 +15,7 @@ import { useBeeld, type Beeld } from "@/lib/useBeeld";
  *  knoop noemt zijn klasse, elke lijn haar relatie; een voorstel is gestippeld, een impliciete partij ook (haar rand).
  *
  *  De bediening is die van de graaf (`useBeeld`): het muiswiel zoomt rond de cursor, slepen verschuift, twee vingers
- *  knijpen, en rechtsonder staan dezelfde knoppen (`GraafBeeld`: *Alles in beeld* en *Vergroten*; geen uitleg in beeld). Geen scrollbalken: het
+ *  knijpen, en rechtsonder staan dezelfde knoppen (`GraafBeeld`: terug, alles in beeld, en *Groot bekijken*; geen uitleg in beeld). Geen scrollbalken: het
  *  venster heeft de verhouding van de tekening en zoomen verandert alleen wat erin te zien is. Een klik zonder slepen
  *  kiest nog steeds een knoop of lijn. Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. */
 export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, onTerug, onGroot, venster = false, label }: {
@@ -121,7 +121,7 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
     </svg>
       {/* Dezelfde knoppen als de graaf, rechtsonder, met *Terug* bij een keuze. */}
       <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
-        <div className="ml-auto"><GraafBeeld onPasIn={pasIn} onGroot={onGroot} onNaarAntwoord={terug} terug="het hele diagram" /></div>
+        <div className="ml-auto"><GraafBeeld onTerug={terug ?? pasIn} onGroot={onGroot} /></div>
       </div>
     </div>
   );
