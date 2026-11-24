@@ -115,6 +115,19 @@ try {
   await kaart.getByRole("button", { name: "Alles in beeld" }).click();
   assert.equal(await zoomStand(), 1, "Alles in beeld zet terug");
 
+  // Twee vingers knijpen, zoals in de graaf (melding gebruiker 24 nov 2026: op mobiel zoomde het diagram niet). Echte
+  // touch-events via het DevTools-protocol: de browser maakt er pointer-events van, zoals op een telefoon.
+  const cdp = await page.context().newCDPSession(page);
+  const mx = s.x + s.width / 2, my = s.y + s.height / 2;
+  const vingers = (d) => [{ x: mx - d, y: my, id: 1 }, { x: mx + d, y: my, id: 2 }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: vingers(20) });
+  for (const d of [30, 45, 60, 80]) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: vingers(d) });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  assert.ok(await zoomStand() > 2.5, `knijpen zoomt in (zoom ${await zoomStand()})`);
+  assert.equal(await page.locator("[data-diagram-gekozen]").count(), 0, "knijpen kiest niets");
+  await kaart.getByRole("button", { name: "Alles in beeld" }).click();
+  assert.equal(await zoomStand(), 1);
+
   // Een lijn kiezen: de relatie staat bovenaan in het blok van haar kant in deze bepaling, met nadruk.
   await svg.locator('[data-diagram-lijn="R-tijd"]').click();
   const gekozen = page.locator('[data-diagram-gekozen="element:rb"]');
