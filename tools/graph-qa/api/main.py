@@ -721,7 +721,7 @@ def run() -> None:
     import uvicorn
     uvicorn.run(
         "api.main:app",
-        host="0.0.0.0",
+        host="0.0.0.0",  # noqa: S104 – in de container luistert de dienst op alle interfaces; de ingress begrenst
         port=int(os.environ.get("PORT", "8080")),
         reload=False,
     )

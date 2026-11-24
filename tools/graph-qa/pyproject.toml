@@ -30,6 +30,9 @@ dependencies = [
     # De detectieprofielen van de hybride JAS-pijplijn staan als YAML (agent/jas_pipeline/profielen).
     # Kwam al transitief mee via uvicorn[standard]; wat je importeert hoor je te declareren.
     "pyyaml>=6",
+    # XML van overheid.nl, de Rechtspraak en de SRU-diensten lezen zonder entiteiten of externe verwijzingen
+    # (`agent/xml_lezen.py`).
+    "defusedxml>=0.7",
 ]
 # NB: Settings gebruikt bewust een gewone pydantic BaseModel (agent/config.py),
 # niet pydantic-settings – geen extra runtime-dependency nodig.

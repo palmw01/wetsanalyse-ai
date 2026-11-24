@@ -2556,6 +2556,25 @@ Lokaal draaien vraagt een bereikbare API en graph-qa plus `.env.local` (zie de R
 zodat hij getest kan worden; de tests overslaan maakt die keuze zinloos. CI
 (`frontend-docker-publish.yml`) draait dezelfde drie plus `npm run build`.
 
+### Dekking: wat vitest meet en wat de browser dekt
+
+`npm test -- --coverage` (de poort, voor het kwaliteitsrapport) meet per statement over alle `.ts`/`.tsx` behalve tests,
+scripts en config. Lees het totaal niet als één getal: de helft is `components/`, en die dekt vitest bewust niet.
+
+- **Logica** (`lib/`, `app/api/`, `auth.ts`, `proxy.ts`) hoort in vitest. Doel: boven de 85%, met elke nieuwe helper of
+  route meteen mee (23 nov 2026: 89,8%). Geen drempel in de poort; het rapport blijft een rapport.
+- **Componenten** (`components/`, `app/**/page.tsx`) dekt de browserregressie (`scripts/test-*.mjs`), die vitest niet ziet.
+  Niet dubbel testen in vitest; wat een component rekent, hoort in `lib/` (§*Lagen*).
+- **Twee contracttests dekken een laag als geheel**, dus een nieuwe route of helper valt er vanzelf onder:
+  - `app/api/bffContract.test.ts`: elke route onder `app/api` geeft zonder sessie 401 of 403 zonder upstream, laat een
+    analist niet bij beheer, en stuurt de identiteit uit de sessie (nooit de `X-User-Id` van de browser), het token van de
+    server en de traceparent (`metTrace`) mee. Een publieke route staat met een reden in `PUBLIEK`;
+  - `lib/api.laagcontract.test.ts`: elke helper in `lib/api.ts` en de opslag van `lib/annotatieNode.ts` roept de échte
+    route aan (die met de juiste methode bestaat en door haar allowlist komt), alleen op de eigen origin en zonder
+    Authorization-header. Dit vangt de pad- en methodefouten tussen de lagen die de browsertests met hun nep-BFF missen.
+- Een tijdgrens in een test houdt rekening met de instrumentatie: onder `--coverage` zet `vitest.config.ts`
+  `VITEST_DEKKING=1` (v8 rekent dan tot tien keer trager).
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

@@ -151,7 +151,7 @@ def genoemd(vraag: str, graph: Any, bron: Any, *, vandaag: str) -> list[Genoemd]
     artikelen = {m.group("artikel") for m in _ARTIKEL_RE.finditer(vraag)}
     leden = {m.group("lid") for m in _LID_RE.finditer(vraag)}
     uit: list[Genoemd] = []
-    for naam, titel, artikel in kandidaten[:MAX_KANDIDATEN]:
+    for naam, titel, _artikel in kandidaten[:MAX_KANDIDATEN]:
         try:
             afk, tit = _zoek(bron, titel, vandaag)
         except Exception:  # noqa: BLE001 – een storing kost alleen de herkenning

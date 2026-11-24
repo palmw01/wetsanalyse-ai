@@ -8,6 +8,7 @@ subagent een regel. De vorm (geen lege plekken) toetst `tests/conftest.py` voor 
 from __future__ import annotations
 
 import asyncio
+import itertools
 import json
 from types import SimpleNamespace
 
@@ -56,7 +57,7 @@ def toets_een_op_een(events: list[dict]) -> None:
     regels = _regels(events)
     for regel in regels:
         assert not lege_plekken(regel), regel
-    assert all(a != b for a, b in zip(regels, regels[1:])), regels
+    assert all(a != b for a, b in itertools.pairwise(regels)), regels
 
 
 # --- door de hele graaf ---------------------------------------------------------------------------------------
@@ -89,7 +90,7 @@ def test_elke_aanroep_heeft_zijn_regel_door_de_hele_graaf(naam):
              for d in e["message"].removeprefix("Lex · ").split("; ") if d != "gebruikt wat er al is opgehaald"]
     gedraaid = [e for e in _eind(events) if e.get("status") != "geweigerd"]
     assert len(delen) == len(gedraaid), (delen, [e["tool"] for e in gedraaid])
-    for deel, e in zip(delen, gedraaid):
+    for deel, e in zip(delen, gedraaid, strict=True):
         assert deel == sb.toolregel({"name": e["tool"], "input": {}}).split(" ")[0] or \
             deel.split(" ")[0] == sb.toolregel({"name": e["tool"], "input": {}}).split(" ")[0], (deel, e["tool"])
 

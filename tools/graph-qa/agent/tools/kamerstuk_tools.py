@@ -325,7 +325,7 @@ def _soort_in_titel(rec: Any, woorden: list[str]) -> bool | None:
         return all(any(e.startswith(w) for e in eigen) for w in woorden)
     delen = [[w.lower() for w in _WOORD_RE.findall(d)] for d in titel.split("; ")[1:]] or [
         [w.lower() for w in _WOORD_RE.findall(titel)]]
-    if any(len(d) >= len(woorden) and all(e.startswith(w) for e, w in zip(d, woorden)) for d in delen):
+    if any(len(d) >= len(woorden) and all(e.startswith(w) for e, w in zip(d, woorden, strict=False)) for d in delen):
         return True
     alle = [w.lower() for w in _WOORD_RE.findall(titel)]
     return None if all(any(e.startswith(w) for e in alle) for w in woorden) else False

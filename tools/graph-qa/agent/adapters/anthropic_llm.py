@@ -198,7 +198,8 @@ class AnthropicLLM:
 
         return _AnthropicStream(
             open_stream(), opnieuw=open_stream,
-            terugval=lambda exc, h=met_historie(): self._zonder_caching(exc, historie=h),
+            # De default legt de stand vast op het moment van openen: de terugval moet weten wat de eerste poging deed.
+            terugval=lambda exc, h=met_historie(): self._zonder_caching(exc, historie=h),  # noqa: B008 – bewust vroeg
             meter=self.meter, meting=voor_meter(model=model, system=system, tools=tools, messages=messages),
         )
 

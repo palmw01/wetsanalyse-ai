@@ -81,7 +81,7 @@ _DOSSIERNOTATIE = re.compile(r"(?<![\d.,])(\d{2,3}) (\d{3})(?!\d|[.,]\d)")
 _TELLING = re.compile(r"(?<![\w.,/:-])(\d{1,3}(?:\.\d{3})+|\d+)\s+(?:van\s+de\s+\d+\s+)?([a-zà-ÿ][a-zà-ÿ-]{2,})\b")
 #: Woorden achter een getal die geen telling maken.
 _GEEN_TELLING = frozenset({
-    "en", "tot", "of", "t/m", "van", "tot", "per", "keer", "maal", "procent", "jaar", "jaren", "dag", "dagen", "weken",
+    "en", "tot", "of", "t/m", "van", "per", "keer", "maal", "procent", "jaar", "jaren", "dag", "dagen", "weken",
     "week", "maand", "maanden", "uur", "uren", "euro", "januari", "februari", "maart", "april", "mei", "juni", "juli",
     "augustus", "september", "oktober", "november", "december", "minuten", "seconden", "werkdagen", "werkdag",
     # lidwoorden, voornaamwoorden en werkwoorden: "153 een eerdere redactie", "470 de huidige tekst"

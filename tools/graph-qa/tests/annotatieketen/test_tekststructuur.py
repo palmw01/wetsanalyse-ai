@@ -126,7 +126,7 @@ def test_hele_detectielaag_is_brongetrouw_reproduceerbaar_en_herleidbaar(tekst):
     assert rs == detecteer_alles(bron)
     f = fuseer(rs)
     assert f == fuseer(detecteer_alles(bron))
-    for detector, r in zip(standaard_detectoren(), rs):
+    for detector, r in zip(standaard_detectoren(), rs, strict=True):
         assert (r.detector, r.versie) == (detector.naam, detector.versie)
         assert not r.overgeslagen or (r.reden and not r.kandidaten)
         for k in r.kandidaten:

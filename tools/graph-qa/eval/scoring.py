@@ -339,7 +339,7 @@ def _koppel(
     def _claim(gold_idx: int) -> dict[str, Any]:
         gold = beschikbaar[gold_idx]
         beschikbaar[gold_idx] = None
-        assert gold is not None
+        assert gold is not None  # noqa: S101 – typevernauwing; eval draait nooit met -O
         return gold
 
     resultaat: list[tuple[dict[str, Any], dict[str, Any] | None]] = []
@@ -374,7 +374,7 @@ def _koppel(
             uitgesteld2.append((i, v))
 
     # Pas 3: hoogste token-IoU (stabiele tiebreak op positie in voorgesteld)
-    for i, v in uitgesteld2:
+    for _i, v in uitgesteld2:
         best_score, best_idx = 0.0, -1
         for j, g in enumerate(beschikbaar):
             if g is None:

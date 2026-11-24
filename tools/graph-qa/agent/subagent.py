@@ -65,7 +65,8 @@ VELDEN: dict[str, str] = {
 _KOPPEN = {"doel": "Doel", "onderwerp": "Onderwerp", "oplevering": "Wat je oplevert",
            "bronnen": "Bronnen die voor de hand liggen", "buiten": "Hoort er niet bij"}
 
-assert set(VELDEN) == set(SubagentOpdracht.model_fields), "het schema en het verzoek hebben dezelfde velden"
+if set(VELDEN) != set(SubagentOpdracht.model_fields):
+    raise RuntimeError("het schema en het verzoek hebben dezelfde velden")
 
 
 def kiesbaar() -> list[str]:
@@ -1147,7 +1148,7 @@ async def voer_plan_uit(state: dict[str, Any], delegatie_id: str, stuur: Callabl
                 await hart
         await _leg_vast(api, delegatie_id, [a.als_dict() for a in aflopen], stuur,
                         run_id=state.get("run_id", "") or "", nu=aflopen)
-        return list(zip(aflopen, uit)), ""
+        return list(zip(aflopen, uit, strict=True)), ""
     finally:
         if eigen_api:
             await api.aclose()

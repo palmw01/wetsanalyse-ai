@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from agent.jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE
+from agent.jas_klassen import JAS_KLASSEN_VOLGORDE
 from scripts.genereer_jas_klassen import (
     DOEL, REFERENTIE, ReferentieFout, bouw_blok, lees_klassen, vervang,
 )

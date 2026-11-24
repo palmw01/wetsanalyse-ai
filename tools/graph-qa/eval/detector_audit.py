@@ -19,7 +19,7 @@ from agent.jas_pipeline.bewijssterkte import generiek_bewijs
 from agent.jas_pipeline.classificatie import batches, systeemprompt, toolschema, userprompt
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
 from agent.jas_pipeline.fusie import _samen, fuseer
-from agent.jas_pipeline.kandidaten import CandidateStatus, label_kandidaten
+from agent.jas_pipeline.kandidaten import label_kandidaten
 from agent.jas_pipeline.specificiteit import pas_toe
 from agent.jas_pipeline.taal import SpacyProvider
 from agent.jas_pipeline.taal.grenzen import VERSIE as GRENS_VERSIE
