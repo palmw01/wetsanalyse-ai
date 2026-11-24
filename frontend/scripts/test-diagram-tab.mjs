@@ -12,7 +12,7 @@
  *  - een lijn kiezen toont de relatie bovenaan in het blok *Relaties* van haar kant in deze bepaling;
  *  - *+ voorwerp* opent *Verbind met…* met alleen de markeringen die die rol kunnen hebben, het type voorgekozen; verbinden
  *    stuurt de relatie en het diagram toont haar daarna;
- *  - passend in de breedte, met in- en uitzoomen;
+ *  - de bediening van de graaf: knoppen rechtsonder, zoomen met het muiswiel, slepen, Alles in beeld;
  *  - toegankelijk (axe) en geen horizontale scroll.
  * Met `SCHERMAFBEELDINGEN=<map>` bewaart hij de standen (voor de PR).
  */
@@ -94,25 +94,26 @@ try {
   assert.deepEqual(await kaart.locator("[data-ontbreekt] button").allInnerTexts(), ["+ rechthebbende", "+ plichthebbende", "+ voorwerp"]);
   if (map) await page.screenshot({ path: `${map}/diagram-tab.png` });
 
-  // Passend: de hele tekening in de breedte van haar kader; inzoomen maakt haar breder, en dan schuift het kader.
-  const kader = await kaart.locator("[data-diagram-zoom]").boundingBox();
-  assert.ok((await svg.boundingBox()).width <= kader.width + 1, "passend: het hele diagram in beeld");
+  // De bediening van de graaf: knoppen rechtsonder, het muiswiel zoomt, slepen verschuift, Alles in beeld zet terug.
+  const zoomStand = async () => Number(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"));
+  const viewBox = async () => (await svg.getAttribute("viewBox")).split(" ").map(Number);
+  assert.equal(await zoomStand(), 1, "alles in beeld");
   await kaart.getByRole("button", { name: "Inzoomen" }).click();
-  assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1.5");
-  assert.ok((await svg.boundingBox()).width > kader.width * 1.4, "ingezoomd: breder dan het kader");
+  assert.ok(await zoomStand() > 1.3, "de knop zoomt in");
   if (map) await page.screenshot({ path: `${map}/diagram-ingezoomd.png` });
-  // Vastpakken en slepen schuift het kader; slepen kiest niets.
-  const kaderEl = kaart.locator("[data-diagram-kader]");
-  const k = await kaderEl.boundingBox();
-  const voor = await kaderEl.evaluate((el) => el.scrollLeft);
-  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2);
+  const s = await svg.boundingBox();
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+  const voorWiel = await zoomStand();
+  await page.mouse.wheel(0, -400);
+  await page.waitForFunction((v) => Number(document.querySelector("[data-diagram-zoom]").getAttribute("data-diagram-zoom")) > v, voorWiel);
+  const [x0] = await viewBox();
   await page.mouse.down();
-  await page.mouse.move(k.x + k.width / 2 - 160, k.y + k.height / 2, { steps: 6 });
+  await page.mouse.move(s.x + s.width / 2 - 120, s.y + s.height / 2 + 40, { steps: 6 });
   await page.mouse.up();
-  assert.ok(await kaderEl.evaluate((el) => el.scrollLeft) > voor + 80, "slepen schuift het diagram");
-  assert.equal(await page.locator("[data-diagram-gekozen]").count(), 0, "slepen kiest geen knoop");
-  await kaart.getByRole("button", { name: "Passend" }).click();
-  assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1");
+  assert.ok((await viewBox())[0] > x0 + 10, "slepen verschuift het beeld");
+  assert.equal(await page.locator("[data-diagram-gekozen]").count(), 0, "slepen kiest niets");
+  await kaart.getByRole("button", { name: "Alles in beeld" }).click();
+  assert.equal(await zoomStand(), 1, "Alles in beeld zet terug");
 
   // Een lijn kiezen: de relatie staat bovenaan in het blok van haar kant in deze bepaling, met nadruk.
   await svg.locator('[data-diagram-lijn="R-tijd"]').click();

@@ -168,8 +168,9 @@ stand komt uit `lib/herkomst.ts`.
   verdeling) het blok *Relaties* van die markering – verbinden, beoordelen en wissen gaan dus langs dezelfde weg als op de
   kaart; een ontbrekende rol (`ontbreekt_rollen`) opent *Verbind met…* met het type voorgekozen. *Annotatie afronden*
   opent eerst deze tab (één keer per paneel): na het afronden is een laag dicht en leg je geen relatie meer.
-  Passend past het diagram in de breedte; −, + en *Passend* zoomen, en ingezoomd pak je het met de muis vast en sleep je
-  (een klik zonder slepen kiest nog steeds). Smaller dan 56rem staat de keuze onder het diagram in één doorlopende
+  De bediening is die van de graaf: het muiswiel zoomt rond de cursor, slepen verschuift, rechtsonder `GraafBeeld` (*Alles
+  in beeld*, inzoomen, uitzoomen); geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Een
+  klik zonder slepen kiest nog steeds. Smaller dan 56rem staat de keuze onder het diagram in één doorlopende
   scroll (`TekstEnLijst smal="doorlopend"`), niet in twee vensters van 45/55. Het diagram volgt de weergave: elke nieuwe
   revisie van een laag (besluit, markering, relatie, heropenen) haalt het opnieuw op bij de api.
 
