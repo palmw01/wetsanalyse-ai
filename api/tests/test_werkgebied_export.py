@@ -1252,8 +1252,9 @@ async def test_de_route_kiest_standaard_alleen_beoordeeld(client):
 
 
 async def test_een_bepaling_draagt_het_diagram_rond_haar_centrale_markering(client):
-    """Deelactiviteit 2c (Handleiding §3.4c): onder de bepaling met de afleidingsregel één diagram, met de voorwaarde en het
-    rechtsfeit uit lid 2 erin en daar dus geen eigen diagram. In de PDF een tekening, in Markdown een Mermaid-blok."""
+    """Deelactiviteit 2c (Handleiding §3.4c): onder de bepaling met de afleidingsregel één diagram, met de voorwaarde uit lid 2
+    erin. Het rechtsfeit hangt er alleen tekstueel aan ("vindt toepassing op", geen structuur): het krijgt in lid 2 een eigen
+    diagram. In de PDF een tekening, in Markdown een Mermaid-blok."""
     wg, ids = await _regel_met_relaties(client)
     data = await _data(wg)
     lid1, lid2 = export.bouw_rapport(data, V).wettekst.regelingen[0].artikelen[0].bepalingen
@@ -1261,11 +1262,12 @@ async def test_een_bepaling_draagt_het_diagram_rond_haar_centrale_markering(clie
     assert (d.centraal, d.klasse, d.nr, d.ontbreekt) == (ids[(AR, "😀 Alfa Alfa")], AR, 1, [])
     knopen = {k.id: k for k in d.knopen}
     assert knopen[ids[(VW, "Beta")]].elders == "Lid 2" and knopen[ids[(VW, "Beta")]].nr == 0
-    assert ids[(RF, "eta")] in knopen and lid2.diagrammen == []
+    assert ids[(RF, "eta")] not in knopen and [x.centraal for x in lid2.diagrammen] == [ids[(RF, "eta")]]
+    assert not {"uitzondering_op", "toepassing"} & {l.code for l in d.lijnen}, "tekstuele relaties staan in de lijst, niet hier"
     assert all(l.code != "uitvoer" or l.naar != ids[(TA, "a")] for l in d.lijnen)            # de afgewezen uitvoer niet
     regels = export.regels(data, V)
     assert ("Heading4", "Diagram rond afleidingsregel 1") in regels
-    assert sum(s == pdf_opmaak.DIAGRAM for s, _t in regels) == 1
+    assert sum(s == pdf_opmaak.DIAGRAM for s, _t in regels) == 2
     md = export.markdown_export(data, V).decode()
     assert "```mermaid\nflowchart TB" in md and "levert op" in md
     assert export.pdf_export(data, V).startswith(b"%PDF")
@@ -1299,7 +1301,7 @@ async def test_de_diagrammen_van_een_bepaling_zijn_die_van_het_rapport(client, g
     monkeypatch.setattr(annotatie_v2, "_resolve_bron", graaf.resolve)
     wg, ids = await _regel_met_relaties(client)
     lid1, lid2 = export.bouw_rapport(await _data(wg), V).wettekst.regelingen[0].artikelen[0].bepalingen
-    for iri, verwacht in ((ONE, [d.centraal for d in lid1.diagrammen]), (ART, [ids[(AR, "😀 Alfa Alfa")]])):
+    for iri, verwacht in ((ONE, [d.centraal for d in lid1.diagrammen]), (ART, [ids[(AR, "😀 Alfa Alfa")], ids[(RF, "eta")]])):
         r = await client.get("/v1/annotatie/diagrammen", params={"bron_iri": iri})
         assert r.status_code == 200, r.text
         assert [x["diagram"]["centraal"] for x in r.json()["diagrammen"]] == verwacht
@@ -1310,9 +1312,9 @@ async def test_de_diagrammen_van_een_bepaling_zijn_die_van_het_rapport(client, g
     # Alleen lid 2 in beeld: de afleidingsregel in lid 1 is daar een eindpunt (wat eraan hangt, hoort bij lid 1), dus het
     # rechtsfeit en de voorwaarde in lid 2 krijgen elk een eigen diagram (in het rapport hangen ze in dat van lid 1).
     los = {x["diagram"]["centraal"]: x for x in (await client.get("/v1/annotatie/diagrammen", params={"bron_iri": TWO})).json()["diagrammen"]}
-    assert set(los) == {ids[(RF, "eta")], ids[(VW, "Beta")]} and not lid2.diagrammen
+    assert set(los) == {ids[(RF, "eta")], ids[(VW, "Beta")]} and [x.centraal for x in lid2.diagrammen] == [ids[(RF, "eta")]]
     rf = los[ids[(RF, "eta")]]
-    assert {k["id"] for k in rf["diagram"]["knopen"]} == {ids[(RF, "eta")], ids[(AR, "😀 Alfa Alfa")]}, "de regel in lid 1 is een eindpunt"
+    assert {k["id"] for k in rf["diagram"]["knopen"]} == {ids[(RF, "eta")]}, "vindt toepassing op is geen structuur"
     # Het rechtsfeit mist wie het verricht en wat het creëert: met type en richting, om meteen aan te vullen.
     rollen = {r["label"]: (r["codes"], r["richting"]) for r in rf["ontbreekt_rollen"]}
     assert rollen["wie het verricht"] == (["verricht"], "in") and set(rollen) == set(rf["diagram"]["ontbreekt"])
@@ -1343,7 +1345,7 @@ async def test_de_bijlage_toont_een_diagram_met_begrippen_pas_als_elke_formuleri
     assert ("Heading2", rapport.wettekst.regelingen[0].titel) in bijlage
     assert ("Heading3", "Lid 1 – rond afleidingsregel 1") in bijlage
     md = markdown_opmaak.markdown(regels)
-    assert md.count("```mermaid") == 2 and "begrip 0" in md
+    assert md.count("```mermaid") == 3 and "begrip 0" in md                    # twee diagrammen, één met begrippen
 
 
 async def test_het_begrip_van_een_markering_komt_uit_een_dragende_koppeling_aan_een_geaccordeerd_begrip():

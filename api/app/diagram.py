@@ -5,6 +5,9 @@ rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde – met hun klasse e
 puur: het kent geen reportlab, geen database en geen graaf. Wie relaties en markeringen heeft (het rapport, een route,
 Lex), bouwt hier het `Diagram`; de tekenaars (`diagram_teken`) maken er een PDF-tekening, SVG of Mermaid van.
 
+- **Alleen de structuur.** Methodische relaties (partijen, voorwerp, voorwaarden, invoer en uitvoer, …); een tekstuele
+  relatie zoals "maakt een uitzondering op" staat in de lijst Relaties, niet in het diagram. Van een knoop in een
+  andere bepaling gaat het niet verder.
 - **Alleen wat is vastgelegd.** Een afgewezen relatie of een verworpen markering staat er niet in. Wat de methode bij
   een centrale klasse verwacht en ontbreekt, staat in `ontbreekt`: een signaal, geen oordeel.
 - **Dezelfde buurt als de werkplek.** `buurt` volgt `diagramBuurt` in `frontend/lib/graaf/weergave.ts`: beide
@@ -135,7 +138,11 @@ def bouw(centraal: dict, relaties: Iterable[dict], info: Info | None = None, die
     """Het diagram rond `centraal` (een markering: `id`, `klasse`, `tekst`, `nr`) uit relaties in de vorm van de weergave
     (`annotatie_v2_relaties`: `van`/`naar` met `id`, `soort`, `klasse`, `tekst`, `lifecycle`)."""
     info = info or (lambda _id: {})
-    relaties = [r for r in relaties if _actief(r)]
+    # Alleen de structuur van de methode: een tekstuele relatie (`uitzondering_op`, `toepassing`, `onderdeel`; in de
+    # catalogus `methodisch: false`) is geen regelstructuur (skill `relaties.md`) en hoort niet in het diagram van een
+    # centrale klasse (Handleiding §3.4c: partijen, voorwerp, voorwaarden en wat daar aan hangt). Ze blijft in de lijst
+    # Relaties, die leidend is.
+    relaties = [r for r in relaties if _actief(r) and RELATIETYPEN.get(r["type"], {}).get("methodisch", True)]
     kanten: dict[str, dict] = {f"element:{centraal['id']}": {"id": centraal["id"], "soort": "element", **centraal}}
     for r in relaties:
         for k in (r["van"], r["naar"]):

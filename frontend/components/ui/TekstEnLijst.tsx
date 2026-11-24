@@ -16,7 +16,7 @@ import { AANDEEL_MAX, AANDEEL_MIN, AANDEEL_STANDAARD, OPSLAG_AANDEEL, aandeelNaT
  *  De koppeling tussen tekst en lijst (een markering kiezen licht het kaartje uit, en andersom) blijft werken: elk
  *  scrollt in zijn eigen kolom naar wat gekozen is (`WettekstBlok`, `ReviewQueue`). */
 export function TekstEnLijst({ tekst, lijst, standaard = AANDEEL_STANDAARD, opslag = OPSLAG_AANDEEL,
-  label = "Verdeling tussen tekst en lijst" }: {
+  label = "Verdeling tussen tekst en lijst", smal = "verdeeld" }: {
   /** Links (breed) of bovenin (smal). */
   tekst: ReactNode;
   /** Rechts (breed) of eronder (smal). */
@@ -28,6 +28,9 @@ export function TekstEnLijst({ tekst, lijst, standaard = AANDEEL_STANDAARD, opsl
   opslag?: string;
   /** Hoe de scheiding heet voor een schermlezer. */
   label?: string;
+  /** Smal: `verdeeld` (twee vensters, de tekst hoogstens 45%) of `doorlopend` (één scroll, elk deel zo hoog als zijn
+   *  inhoud; voor een tekening met een korte lijst eronder). */
+  smal?: "verdeeld" | "doorlopend";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [aandeel, setAandeel] = useState(standaard);
@@ -47,7 +50,7 @@ export function TekstEnLijst({ tekst, lijst, standaard = AANDEEL_STANDAARD, opsl
 
   return (
     <div className="tekst-en-lijst-schil">
-      <div ref={ref} className="tekst-en-lijst" data-tekst-en-lijst style={{ "--tekst-aandeel": `${aandeel}%` } as React.CSSProperties}>
+      <div ref={ref} className="tekst-en-lijst" data-tekst-en-lijst data-smal={smal} style={{ "--tekst-aandeel": `${aandeel}%` } as React.CSSProperties}>
         <div data-tekst-kolom>{tekst}</div>
         {/* Alleen naast elkaar te zien (de CSS); onder elkaar is er niets te verdelen. */}
         <Scheiding label={label} waarde={aandeel} min={AANDEEL_MIN} max={AANDEEL_MAX}
