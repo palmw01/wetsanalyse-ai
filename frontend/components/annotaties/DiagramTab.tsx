@@ -63,7 +63,10 @@ export function DiagramTab({ view, haal, gebruiker, bediening, impliciet, afrond
   }
   // Een keuze in een diagram dat er na een handeling niet meer is, vervalt.
   const gekozenDiagram = keuze && set.diagrammen.find((d) => d.diagram.centraal === keuze.diagram);
-  const actief = gekozenDiagram ? keuze : undefined;
+  // Een rol die inmiddels is vastgelegd, is geen opdracht meer: de keuze blijft, de hint en de voorkeur vervallen.
+  const actief = gekozenDiagram && keuze
+    ? (keuze.rol && !gekozenDiagram.ontbreekt_rollen.some((r) => r.label === keuze.rol!.label) ? { ...keuze, rol: undefined } : keuze)
+    : undefined;
 
   const diagrammen = (
     <div className="space-y-4 p-4" data-diagram-tab>
@@ -102,7 +105,7 @@ export function DiagramTab({ view, haal, gebruiker, bediening, impliciet, afrond
     </div>
   );
   return <TekstEnLijst tekst={diagrammen} lijst={keuzeKolom} standaard={DIAGRAM_AANDEEL} opslag="lex.diagram.aandeel"
-    label="Verdeling tussen diagram en relaties" />;
+    label="Verdeling tussen diagram en relaties" smal="doorlopend" />;
 }
 
 function DiagramKaart({ data, view, keuze, onKies, bediening }: {

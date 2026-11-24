@@ -275,6 +275,23 @@ a {
     padding-top: 0.25rem;
   }
 }
+/* Smal en doorlopend (`TekstEnLijst smal="doorlopend"`, de tab Diagram): niet twee vensters met elk een eigen scroll, maar
+   één kolom die als geheel scrolt, elk deel zo hoog als zijn inhoud. Een diagram kreeg anders 45% van de hoogte en een
+   lege keuze de rest (melding gebruiker 24 nov 2026: veel witruimte onder het diagram). */
+@container tekst-en-lijst (width < 56rem) {
+  .tekst-en-lijst[data-smal="doorlopend"] {
+    overflow-y: auto;
+  }
+  .tekst-en-lijst[data-smal="doorlopend"] > [data-tekst-kolom] {
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  .tekst-en-lijst[data-smal="doorlopend"] > [data-lijst-kolom] {
+    flex: none;
+    overflow: visible;
+  }
+}
 
 /* Een object met een zijkolom (`SplitDetail` in `components/ui/Pagina.tsx`): de inhoud en rechts 20rem voor beoordeling,
    relaties en historie. Net als tekst en lijst een containerquery op het blok zelf (`SPLIT_DETAIL_BREED`, getest), zodat

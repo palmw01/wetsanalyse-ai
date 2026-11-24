@@ -28,7 +28,7 @@ const map = process.env.SCHERMAFBEELDINGEN;
 const F = JSON.parse(readFileSync(new URL("./diagram-art9.json", import.meta.url), "utf8"));
 const L1 = "urn:bwb:BWBR0004770:artikel:9:lid:1";
 
-const stand = { revisie: 3, gelegd: false, afgerond: false };
+const stand = { revisie: 3, gelegd: false, afgerond: false, diagramVerzoeken: 0 };
 const view = () => ({
   schema_versie: 2, snapshot_id: "snapshot",
   doel: { bron_iri: L1, label: "Invorderingswet 1990 – Artikel 9, Lid 1", type: "Lid", bwb_id: "BWBR0004770", artikel: "9", lid: "1",
@@ -53,6 +53,7 @@ await page.route("**/api/**", async (route) => {
   if (p.endsWith("/v2/weergave")) return route.fulfill({ json: view() });
   if (p.endsWith("/v2/diagrammen")) {
     assert.equal(url.searchParams.get("bron_iri"), L1);
+    stand.diagramVerzoeken += 1;
     return route.fulfill({ json: stand.gelegd ? F.diagrammen_na : F.diagrammen });
   }
   if (p.endsWith("/v2/relaties") && req.method() === "POST") {
@@ -85,9 +86,11 @@ try {
   await page.locator("[data-diagram-tab]").getByText("Bekijk eerst de samenhang:").waitFor();
   assert.equal(await page.locator("[data-diagram-kaart]").count(), 1, "één diagram: de afleidingsregel hangt in dat van de rechtsbetrekking");
   const svg = kaart.locator("[data-diagram-2c]");
-  for (const k of ["element:rb", "element:ta", "element:ar", "element:u5"]) {
+  for (const k of ["element:rb", "element:ta", "element:ar"]) {
     assert.equal(await svg.locator(`[data-diagram-knoop="${k}"]`).count(), 1, `knoop ${k} staat in het diagram`);
   }
+  // De uitzonderingen uit lid 5–7 zijn een tekstuele relatie: in de lijst Relaties, niet in het diagram (Handleiding §3.4c).
+  assert.equal(await svg.locator('[data-diagram-knoop="element:u5"]').count(), 0, "geen tekstuele relatie in het diagram");
   assert.deepEqual(await kaart.locator("[data-ontbreekt] button").allInnerTexts(), ["+ rechthebbende", "+ plichthebbende", "+ voorwerp"]);
   if (map) await page.screenshot({ path: `${map}/diagram-tab.png` });
 
@@ -98,6 +101,16 @@ try {
   assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1.5");
   assert.ok((await svg.boundingBox()).width > kader.width * 1.4, "ingezoomd: breder dan het kader");
   if (map) await page.screenshot({ path: `${map}/diagram-ingezoomd.png` });
+  // Vastpakken en slepen schuift het kader; slepen kiest niets.
+  const kaderEl = kaart.locator("[data-diagram-kader]");
+  const k = await kaderEl.boundingBox();
+  const voor = await kaderEl.evaluate((el) => el.scrollLeft);
+  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(k.x + k.width / 2 - 160, k.y + k.height / 2, { steps: 6 });
+  await page.mouse.up();
+  assert.ok(await kaderEl.evaluate((el) => el.scrollLeft) > voor + 80, "slepen schuift het diagram");
+  assert.equal(await page.locator("[data-diagram-gekozen]").count(), 0, "slepen kiest geen knoop");
   await kaart.getByRole("button", { name: "Passend" }).click();
   assert.equal(await kaart.locator("[data-diagram-zoom]").getAttribute("data-diagram-zoom"), "1");
 
@@ -120,14 +133,18 @@ try {
   assert.equal(await gekozen.getByLabel("Soort relatie").inputValue(), "uit:voorwerp");
   await gekozen.locator("[data-verbind-zin]").waitFor();
   if (map) await page.screenshot({ path: `${map}/diagram-verbinden.png` });
+  const verzoekenVoor = stand.diagramVerzoeken;
   await gekozen.getByRole("button", { name: "Verbinden", exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('[data-diagram-lijn="R-nieuw"]').length === 1);
+  // In sync: na elke wijziging (nieuwe revisie van de laag) haalt het diagram zich opnieuw op, uit de api.
+  assert.ok(stand.diagramVerzoeken > verzoekenVoor, "het diagram is na de wijziging opnieuw opgehaald");
   const gelegd = verzoeken.find((v) => v.p.endsWith("/v2/relaties"));
   assert.deepEqual({ van: gelegd.body.van, naar: gelegd.body.naar, type: gelegd.body.type },
     { van: { soort: "element", id: "rb" }, naar: { soort: "element", id: "ro" }, type: "voorwerp" });
   assert.deepEqual(gelegd.body.verwachte_revisies, { [L1]: 3 });
   assert.deepEqual(await kaart.locator("[data-ontbreekt] button").allInnerTexts(), ["+ rechthebbende", "+ plichthebbende"]);
   await kaart.locator('[data-diagram-knoop="element:ro"]').waitFor();
+  assert.equal(await page.getByText("Leg de relatie voorwerp").count(), 0, "een vastgelegde rol is geen opdracht meer");
   if (map) await page.screenshot({ path: `${map}/diagram-na-verbinden.png` });
 
   await toetsToegankelijkheid(page, "tab Diagram");
@@ -140,9 +157,17 @@ try {
   await page.waitForFunction(() => !document.querySelector("[data-ontbreekt] button"));
   assert.equal(await kaart.locator("[data-ontbreekt]").count(), 1);
 
-  // Smal: het diagram schaalt mee, geen horizontale scroll.
+  // Smal: het diagram schaalt mee, geen horizontale scroll, en doorlopend: de keuze direct onder het diagram, zonder dat
+  // het diagram in een venster van 45% gevangen zit (melding gebruiker: veel witruimte onder het diagram).
   await page.setViewportSize({ width: 420, height: 900 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "smal: geen horizontale scroll");
+  const [tk, lk] = await page.evaluate(() => ["[data-tekst-kolom]", "[data-lijst-kolom]"].map((q) => {
+    const el = document.querySelector(`[data-diagram-tab]`).closest(".tekst-en-lijst").querySelector(`:scope > ${q}`);
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, binnen: el.scrollHeight - el.clientHeight };
+  }));
+  assert.ok(tk.binnen <= 1, "smal: het diagram heeft geen eigen scroll");
+  assert.ok(Math.abs(lk.top - tk.bottom) <= 2, "smal: de keuze staat direct onder het diagram");
   if (map) await page.screenshot({ path: `${map}/diagram-smal.png`, fullPage: false });
 
   assert.deepEqual(errors, []);

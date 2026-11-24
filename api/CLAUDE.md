@@ -496,8 +496,11 @@ spoor D (*Werkgebied als node*).
   - **Diagrammen (2c)** (ADR-009, aanvulling diagrammen; Handleiding §3.4c): `Bepaling.diagrammen` is per centrale markering
     het diagram (`app/diagram.py`: model, keuze van de wortels, vaste layout; `app/diagram_teken.py`: reportlab-tekening,
     SVG, Mermaid). Eén diagram per wortel over het hele rapport (`_met_diagrammen`): een voorwaarde hoort bij haar drager.
-    Van een knoop in een andere bepaling gaat het niet verder (`buurt(..., eindpunt=)`): die toont de samenhang, wat daar
-    weer aan hangt hoort in het diagram van die bepaling. Een uitzondering staat boven, zoals een voorwaarde.
+    Alleen de methodische relaties (catalogus `methodisch: true`; Handleiding §3.4c: de partijen, het voorwerp, de
+    voorwaarden van de centrale formulering en wat daar aan hangt). Een tekstuele relatie (`uitzondering_op`, `toepassing`,
+    `onderdeel`) is geen regelstructuur (skill `relaties.md`) en staat alleen in de relatielijst, die leidend is. Een
+    markering in een andere bepaling mag erin (een partij of voorwaarde staat soms in een ander lid), maar van daar gaat
+    het niet verder (`buurt(..., eindpunt=)`): wat daaraan hangt, hoort in het diagram van die bepaling.
     De buurt is die van `diagramBuurt` in de werkplek (`frontend/lib/graaf/diagram.vectoren.json`). In de regels is het de
     stijl `DIAGRAM` met het model als JSON (de PDF tekent, Markdown maakt een Mermaid-blok); bijlage *Begrippendiagrammen*
     (`DIAGRAM_BEGRIPPEN`) toont hetzelfde met de begrippen, alleen als elke formulering die een begrip verwacht er een heeft.

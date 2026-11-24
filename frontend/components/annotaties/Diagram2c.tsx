@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   MAAT, RAND_CENTRAAL, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
@@ -12,7 +12,8 @@ import {
  *  knoop noemt zijn klasse, elke lijn haar relatie; een voorstel is gestippeld, een impliciete partij ook (haar rand).
  *
  *  Zonder `onKiesKnoop` en `onKiesLijn` is het een plaatje. Standaard past de hele tekening in de breedte en groeit ze mee
- *  met het venster (`viewBox`); inzoomen (−, +, *Passend*) maakt haar breder dan haar kader, en dan schuif je erin. */
+ *  met het venster (`viewBox`); inzoomen (−, +, *Passend*) maakt haar breder dan haar kader, en dan schuif je erin: met de
+ *  muis (vastpakken en slepen) of met de scrollbalk. Een klik zonder te slepen kiest nog steeds een knoop of lijn. */
 export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKiesLijn, label }: {
   data: DiagramData;
   /** `knoopSleutel` van de gekozen knoop. */
@@ -27,6 +28,9 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   const rand = 3;
   const kiesbaar = !!(onKiesKnoop || onKiesLijn);
   const [zoom, setZoom] = useState(1);
+  const kader = useRef<HTMLDivElement>(null);
+  const sleep = useRef<{ x: number; y: number; links: number; boven: number; bewogen: boolean } | null>(null);
+  const [sleept, setSleept] = useState(false);
   const knop = "focus-ring flex h-6 min-w-6 items-center justify-center rounded-knop-xs border border-line bg-paper px-1.5 text-xs font-medium text-lint hover:bg-surface disabled:cursor-default disabled:text-faint";
   return (
     <div data-diagram-zoom={zoom}>
@@ -38,7 +42,30 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
           onClick={() => setZoom((z) => volgendeZoom(z))}>+</button>
         {zoom > 1 && <button type="button" className={knop} onClick={() => setZoom(1)}>Passend</button>}
       </div>
-      <div className="overflow-auto" style={{ maxHeight: zoom > 1 ? "70vh" : undefined }}>
+      <div ref={kader} className={`overflow-auto ${zoom > 1 ? (sleept ? "cursor-grabbing" : "cursor-grab") : ""}`}
+        style={{ maxHeight: zoom > 1 ? "70vh" : undefined }} data-diagram-kader
+        // Vastpakken en slepen (alleen ingezoomd, alleen de muis: aanraken scrolt al vanzelf).
+        onPointerDown={(e) => {
+          if (zoom <= 1 || e.button !== 0 || e.pointerType !== "mouse" || !kader.current) return;
+          sleep.current = { x: e.clientX, y: e.clientY, links: kader.current.scrollLeft, boven: kader.current.scrollTop, bewogen: false };
+        }}
+        onPointerMove={(e) => {
+          const s = sleep.current;
+          if (!s || !kader.current) return;
+          const dx = e.clientX - s.x, dy = e.clientY - s.y;
+          if (!s.bewogen && Math.abs(dx) + Math.abs(dy) < 4) return;
+          if (!s.bewogen) { s.bewogen = true; setSleept(true); }
+          kader.current.scrollLeft = s.links - dx;
+          kader.current.scrollTop = s.boven - dy;
+        }}
+        onPointerUp={() => { if (sleep.current && !sleep.current.bewogen) sleep.current = null; }}
+        onPointerLeave={() => { if (sleep.current?.bewogen) { sleep.current = null; setSleept(false); } }}
+        // Na echt slepen is de klik die volgt geen keuze.
+        onClickCapture={(e) => {
+          if (sleep.current?.bewogen) { e.stopPropagation(); e.preventDefault(); }
+          sleep.current = null;
+          setSleept(false);
+        }}>
     <svg role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
       viewBox={`${-rand} ${-rand} ${plaatsing.breedte + 2 * rand} ${plaatsing.hoogte + 2 * rand}`}
       className="block h-auto select-none"
