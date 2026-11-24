@@ -168,8 +168,10 @@ stand komt uit `lib/herkomst.ts`.
   verdeling) het blok *Relaties* van die markering – verbinden, beoordelen en wissen gaan dus langs dezelfde weg als op de
   kaart; een ontbrekende rol (`ontbreekt_rollen`) opent *Verbind met…* met het type voorgekozen. *Annotatie afronden*
   opent eerst deze tab (één keer per paneel): na het afronden is een laag dicht en leg je geen relatie meer.
-  De bediening is die van de graaf: het muiswiel zoomt rond de cursor, slepen verschuift, rechtsonder `GraafBeeld` (*Alles
-  in beeld*, inzoomen, uitzoomen); geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Een
+  De bediening is die van de graaf, uit één hook (`lib/useBeeld.ts`, voor elke SVG-tekening die je verschuift): het
+  muiswiel zoomt rond de cursor, slepen verschuift, twee vingers knijpen en verschuiven tegelijk (op mobiel), rechtsonder
+  `GraafBeeld` (*Alles in beeld*, inzoomen, uitzoomen). Een nieuwe tekening die je kunt verschuiven, gebruikt die hook en
+  geen eigen wijzercode: de graaf (sigma) knijpt, dus een eigen bediening die dat vergeet, verschilt op mobiel; geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Een
   klik zonder slepen kiest nog steeds. Smaller dan 56rem staat de keuze onder het diagram in één doorlopende
   scroll (`TekstEnLijst smal="doorlopend"`), niet in twee vensters van 45/55. Het diagram volgt de weergave: elke nieuwe
   revisie van een laag (besluit, markering, relatie, heropenen) haalt het opnieuw op bij de api.

@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Any
 
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
@@ -63,6 +64,23 @@ _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "aug
 #: bleef "maart" over en ging de vraag naar het model (meting Rechtspraak R04, 11 nov 2026).
 _MAAND_RE = re.compile(rf"\b(?:(?P<sinds>sinds|vanaf|na)|(?P<in>in|uit|van)|(?P<tot>tot|voor))?\s*"
                        rf"(?P<maand>{'|'.join(_MAANDEN)})\s+(?P<jaar>{_JAAR})\b", re.IGNORECASE)
+#: Een periode tegenover vandaag: "van afgelopen maand", "deze week", "vorig jaar", "de afgelopen 3 maanden", "sinds vorige
+#: week", "van gisteren". Acceptatie 24 nov 2026 (gesprek e7e2fb16): "de kamerstukken over invordering van afgelopen maand"
+#: werd de zoektekst "invordering afgelopen maand", zonder datumfilter, en gaf 25 stukken uit 1995–2026. De code rekent de
+#: datums uit tegenover vandaag; de zoekvraag onder de lijst noemt ze, en de kanttekening zegt hoe de woorden zijn gelezen.
+_EENHEID = r"dag|dagen|week|weken|maand|maanden|kwartaal|kwartalen|jaar|jaren"
+_RELATIEF_RE = re.compile(
+    rf"\b(?:(?P<sinds>sinds|vanaf)\s+|(?:van|uit|in|over|gedurende|tijdens|binnen)\s+)?(?:(?:de|het)\s+)?(?:"
+    rf"(?P<dit>deze|dit|huidige)\s+(?P<e1>week|maand|kwartaal|jaar)"
+    rf"|(?P<vorig>vorige|vorig)\s+(?P<e2>week|maand|kwartaal|jaar)"
+    rf"|(?P<afgelopen>afgelopen|laatste|voorbije|verstreken)\s+(?:(?P<n>{_GETAL})\s+)?(?P<e3>{_EENHEID})"
+    rf"|(?P<dag>vandaag|gisteren|eergisteren))\b", re.IGNORECASE)
+#: Woorden over tijd die geen zoektekst zijn: blijft er na het lezen zo'n woord over, dan kon de code de periode niet
+#: plaatsen ("de recente stukken", "een paar weken geleden") en leest het model de vraag. Nooit als woorden in de tekst
+#: zoeken, want dan wordt het een lijst zonder datumfilter (zie `_RELATIEF_RE`).
+_TIJDWOORDEN = frozenset("""dag dagen week weken maand maanden kwartaal kwartalen jaar jaren afgelopen vorige vorig
+    voorbije verstreken deze dit huidige vandaag gisteren eergisteren morgen recent recente recentelijk onlangs
+    kortgeleden geleden binnenkort periode tijdje""".split())
 #: Een telvraag: "hoeveel …", "het aantal …", "hoe vaak …". Het antwoord is het totaal van de bron, niet een schatting
 #: (Kamerstukken ronde 4, K26; Rechtspraak ronde 3, R22).
 _TEL_RE = re.compile(r"^\s*(?:hoeveel|hoe\s+vaak|(?:wat\s+is\s+)?(?:het\s+)?aantal)\b", re.IGNORECASE)
@@ -112,6 +130,85 @@ class Lijstvraag:
     kanttekening: str = ""
 
 
+def _min_maanden(d: date, n: int) -> date:
+    """`d` min `n` maanden, op dezelfde dag of de laatste van die maand (31 maart min een maand is 28 of 29 februari)."""
+    j, m = divmod(d.year * 12 + d.month - 1 - n, 12)
+    m += 1
+    volgende = date(j + (m == 12), m % 12 + 1, 1)
+    return date(j, m, min(d.day, (volgende - timedelta(days=1)).day))
+
+
+def _begin(d: date, eenheid: str) -> date:
+    """Het begin van de week (maandag), de maand, het kwartaal of het jaar waarin `d` valt."""
+    if eenheid == "week":
+        return d - timedelta(days=d.weekday())
+    if eenheid == "maand":
+        return d.replace(day=1)
+    if eenheid == "kwartaal":
+        return date(d.year, (d.month - 1) // 3 * 3 + 1, 1)
+    return date(d.year, 1, 1)
+
+
+def _terug(d: date, eenheid: str, n: int) -> date:
+    """`d` min `n` dagen, weken, maanden, kwartalen of jaren (enkelvoud of meervoud)."""
+    if eenheid.startswith("dag"):
+        return d - timedelta(days=n)
+    if eenheid.startswith("we"):
+        return d - timedelta(weeks=n)
+    return _min_maanden(d, n * (1 if eenheid.startswith("maand") else 3 if eenheid.startswith("kwarta") else 12))
+
+
+def _met_lidwoord(eenheid: str) -> str:
+    return ("het " if eenheid in ("jaar", "kwartaal") else "de ") + eenheid
+
+
+def relatieve_periode(m: re.Match[str], vandaag: date) -> tuple[date | None, date | None, str]:
+    """(vanaf, tot, uitleg) van een periode tegenover vandaag (`_RELATIEF_RE`). "Deze maand" loopt van de eerste tot
+    vandaag, "vorige maand" is de hele kalendermaand ervoor, "afgelopen maand" (en "de afgelopen 3 maanden") telt terug
+    vanaf vandaag. Met "sinds" alleen een begin. De uitleg zegt hoe de woorden zijn gelezen: "afgelopen maand" kan ook
+    de vorige kalendermaand zijn, en de jurist moet de keuze zien."""
+    if (dag := m.group("dag")) is not None:
+        d = vandaag - timedelta(days={"vandaag": 0, "gisteren": 1, "eergisteren": 2}[dag.lower()])
+        return d, (None if m.group("sinds") else d), ""
+    if m.group("dit"):
+        e = m.group("e1").lower()
+        woorden, vanaf, tot = f"{m.group('dit').lower()} {e}", _begin(vandaag, e), vandaag
+        uitleg = f"vanaf het begin van {woorden} tot en met vandaag"
+    elif m.group("vorig"):
+        e = m.group("e2").lower()
+        woorden = f"{m.group('vorig').lower()} {e}"
+        vanaf = _begin(_terug(_begin(vandaag, e), e, 1), e)
+        tot = _begin(vandaag, e) - timedelta(days=1)
+        uitleg = {"week": "de hele week ervoor, maandag tot en met zondag", "maand": "de hele kalendermaand ervoor",
+                  "kwartaal": "het hele kwartaal ervoor", "jaar": "het hele kalenderjaar ervoor"}[e]
+    else:
+        e = m.group("e3").lower()
+        n = _getal(m.group("n")) if m.group("n") else 1
+        woorden = " ".join(x for x in (m.group("afgelopen").lower(), m.group("n") or "", e) if x)
+        vanaf, tot = _terug(vandaag, e, n), vandaag
+        uitleg = f"de {m.group('n')} {e}" if m.group("n") else _met_lidwoord(e)
+        uitleg += " tot en met vandaag"
+    if m.group("sinds"):
+        return vanaf, None, ""
+    return vanaf, tot, f"“{woorden}” is gelezen als {uitleg}."
+
+
+def _relatief(c: ConnectorBeschrijving, tekst: str, args: dict[str, Any], vandaag: date) -> tuple[str, str] | None:
+    """Een periode tegenover vandaag in de vraag als datumfilter in `args`: (de gelezen woorden, de uitleg), ("", "")
+    zonder zo'n periode, of None als de connector niet op datum filtert (dan leest het model de vraag)."""
+    if (r := _RELATIEF_RE.search(tekst)) is None:
+        return "", ""
+    vanaf_arg, tot_arg = _arg(c, "datum", 0), _arg(c, "datum", 1)
+    if not (vanaf_arg and tot_arg):
+        return None
+    vanaf, tot, uitleg = relatieve_periode(r, vandaag)
+    if vanaf is not None:
+        args[vanaf_arg] = vanaf.isoformat()
+    if tot is not None:
+        args[tot_arg] = tot.isoformat()
+    return r.group(0), uitleg
+
+
 def _getal(woord: str) -> int:
     return int(woord) if woord.isdigit() else _TELWOORDEN[woord.lower()]
 
@@ -123,9 +220,10 @@ def _arg(c: ConnectorBeschrijving, sleutel: str, index: int = 0) -> str:
 
 
 def lees(vraag: str, aan: frozenset[str],
-         regelingen: Callable[[str], list[tuple[str, set[str]]]] | None = None) -> Lijstvraag | None:
+         regelingen: Callable[[str], list[tuple[str, set[str]]]] | None = None,
+         vandaag: date | None = None) -> Lijstvraag | None:
     """De lijstvraag in de vraag, voor een connector die aanstaat en de vraag herkent; None als het geen lijstvraag is
-    of de code haar niet helemaal kan lezen."""
+    of de code haar niet helemaal kan lezen. `vandaag` is voor een periode als "afgelopen maand" (standaard de dag zelf)."""
     tekst = " ".join((vraag or "").split())
     if _INHOUD_RE.search(tekst):
         return None
@@ -137,6 +235,12 @@ def lees(vraag: str, aan: frozenset[str],
     args: dict[str, Any] = {}
     gevraagd = 0
     rest = tekst
+    # Vóór de volgorde ("de laatste 3 maanden" is een periode, geen aantal) en vóór het onderwerp na "over" (anders
+    # werden de woorden zoektekst).
+    if (relatief := _relatief(c, rest, args, vandaag or date.today())) is None:
+        return None
+    if relatief[0]:
+        rest, zonder_organen = rest.replace(relatief[0], " "), zonder_organen.replace(relatief[0], " ")
     tellen, verdeling = bool(_TEL_RE.match(tekst)), ""
     per = _PER_RE.search(tekst)
     if _VERDELING_RE.search(tekst) or (tellen and per is not None and per.group("p")):
@@ -245,6 +349,9 @@ def lees(vraag: str, aan: frozenset[str],
     if (o := _OVER_RE.search(rest)) is not None:
         woorden = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ'-]+", o.group("o"))
                    if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
+        if any(w.lower() in _TIJDWOORDEN for w in woorden):
+            # Een tijdwoord dat de code niet als periode las, is geen zoektekst (zie `_TIJDWOORDEN`).
+            return None
         if woorden and (len(woorden) > MAX_ONDERWERP or "tekst" not in _zoekargumenten(c)):
             return None
         if woorden:
@@ -265,6 +372,7 @@ def lees(vraag: str, aan: frozenset[str],
             if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
     if over:
         return None
+    kanttekening = " ".join(filter(None, [relatief[1], kanttekening]))
     return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0, tellen, verdeling, kanttekening)
 
 

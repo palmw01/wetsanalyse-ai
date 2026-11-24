@@ -45,8 +45,22 @@ export function parseStuk(v: unknown): StukAntwoord | undefined {
       id_prefixen: Array.isArray(c.id_prefixen) ? c.id_prefixen.map(String) : [],
       metadata: (c.metadata as unknown[]).filter(isObject).map((m) => ({ sleutel: String(m.sleutel), label: String(m.label) })),
     },
-    deel: { ...deel, resultaten: Array.isArray(deel.resultaten) ? deel.resultaten : [] },
+    deel: { ...deel, resultaten: Array.isArray(deel.resultaten) ? deel.resultaten.filter(isObject).map((r) => passage(r as unknown as StukPassage)) : [] },
   };
+}
+
+/** Een passage zoals de leestool haar gaf, met de verwijzingen in één vorm. De leestool noemt een stuk waar een voetnoot
+ *  naar verwijst bij zijn id; het antwoordblok `extern` geeft `{id, label, link}`. Een kaal id krijgt zichzelf als label,
+ *  en wat geen van beide is, valt weg: het venster mag op de vorm van een bron niet omvallen (24 nov 2026). */
+function passage(r: StukPassage): StukPassage {
+  const ruw: unknown = r.verwijst_naar;
+  if (ruw == null) return r;
+  const naar = (Array.isArray(ruw) ? ruw : []).flatMap((v: unknown) => {
+    if (typeof v === "string" && v) return [{ id: v, label: v, link: "" }];
+    if (!isObject(v) || typeof v.id !== "string" || !v.id) return [];
+    return [{ id: v.id, label: typeof v.label === "string" && v.label ? v.label : v.id, link: typeof v.link === "string" ? v.link : "" }];
+  });
+  return { ...r, verwijst_naar: naar };
 }
 
 export async function haalStuk(connector: string, id: string, offset = 0): Promise<StukAntwoord> {

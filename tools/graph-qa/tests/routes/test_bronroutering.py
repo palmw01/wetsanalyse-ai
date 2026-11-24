@@ -236,3 +236,22 @@ def test_het_bronvenster_leest_een_wettekst_buiten_de_graaf_met_de_graaf_erbij(m
     assert data["resultaat"]["stuk"]["id"] == f"bwbt:{NepBwb.BWB}:2026-01-01_0:artikel:1"
     assert graaf.queries and gesloten == [True]
     w._graaf_stand.clear()
+
+
+def test_het_bronvenster_krijgt_een_verwijzing_met_label_en_link():
+    """De leestool noemt een stuk waar een voetnoot naar verwijst bij zijn id; het venster tekent er een knop van en
+    heeft dus id, label en link nodig. Met alleen het id viel de pagina om (24 nov 2026)."""
+    import api.main as main
+
+    resultaat = {"status": "ok", "resultaten": [
+        {"nr": 1, "tekst": "alinea"},
+        {"nr": 2, "soort": "voetnoot", "tekst": "noot", "verwijst_naar": ["kst-33410-15", "geen vindplaats", 7]},
+        {"nr": 3, "soort": "voetnoot", "tekst": "noot", "verwijst_naar": "kst-33410-15"}]}
+    main._verwijzingen_voluit(resultaat)
+    een, twee, drie = resultaat["resultaten"]
+    assert "verwijst_naar" not in een
+    assert [v["id"] for v in twee["verwijst_naar"]] == ["kst-33410-15"]
+    assert twee["verwijst_naar"][0]["label"].startswith("Kamerstukken") and twee["verwijst_naar"][0]["link"].startswith("https://")
+    assert drie["verwijst_naar"] == []
+    main._verwijzingen_voluit({"status": "fout"})   # een fout is ook een resultaat
+    main._verwijzingen_voluit("geen dict")
