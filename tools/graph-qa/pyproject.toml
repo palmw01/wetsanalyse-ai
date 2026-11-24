@@ -99,7 +99,15 @@ markers = [
     # De live-proef van de bronconnectors (ADR-013): raakt de echte externe dienst, zonder graaf of model. Slaat
     # zichzelf over zonder BRONNEN_LIVE=1; draait dagelijks in `.github/workflows/bronnenwacht.yml`, niet in de poort.
     "live: raakt een echte externe bron (BRONNEN_LIVE=1)",
+    # pytest-cov registreert deze zelf; hier ook, zodat hij zonder pytest-cov (lokaal) geen onbekende marker is.
+    "no_cover: meet geen dekking voor deze test (pytest-cov; zie scripts/kwaliteit.py)",
 ]
+
+# De dekking voor het kwaliteitsrapport (scripts/kwaliteit.py); de poort meet met `--cov`. Relatieve paden, zodat de
+# shards in een andere job samen te voegen zijn.
+[tool.coverage.run]
+source = ["agent", "api", "eval", "scripts"]
+relative_files = true
 
 # Het spaCy-model van de taalanalyse (de extra `nlp`): niet op PyPI, dus een wheel van de release van explosion. Hier
 # en niet in [tool.uv.sources], zodat het buiten uv.lock blijft (zie de extra `nlp`). De Dockerfile en de CI lezen
