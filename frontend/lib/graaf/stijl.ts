@@ -8,9 +8,10 @@ import type { KnoopData, KnoopSoort, RelatieData } from "./model";
 export const BRONKLEUR: Record<Exclude<KnoopSoort, "markering" | "klasse" | "begrip" | "impliciet">, string> = {
   regeling: "#154273", deel: "#2b5f8f", artikel: "#007bc7", lid: "#398ab8", onderdeel: "#6aa6cf", extern: "#94a3b8",
 };
-/** Omtrek van een bepaling buiten wat geladen is; binnenin wit. */
-export const RANDKLEUR = "#7f9bb5";
-export const RAND_VULLING = "#ffffff";
+/** Omtrek van een bepaling buiten wat geladen is; binnenin licht. Niet wit: op het canvas (`#f7f9fc`) was zo'n knoop
+ *  dan alleen een dunne rand, en leek een lijn in het niets te eindigen (melding gebruiker 24 nov 2026). */
+export const RANDKLEUR = "#5f7f9f";
+export const RAND_VULLING = "#bccbdb";
 export { DEKKINGSKLEUR };
 /** Wat niet bij de selectie of de focus hoort: zichtbaar als kaart, maar op de achtergrond. Donker
  *  genoeg om op het canvas (`#f7f9fc`) te blijven staan – gedimd is niet weg. */
@@ -57,9 +58,10 @@ export function relatieStijl(a: Pick<RelatieData, "lifecycle" | "veranderd">): {
   return { kleur: a.lifecycle === "voorgesteld" || a.veranderd ? VOORSTELKLEUR : RELATIEKLEUR, zichtbaar: true };
 }
 
-/** Grootte in schermpixels bij zoom 1: de opbouw draagt het beeld, de details zijn klein. */
+/** Grootte in schermpixels bij zoom 1: de opbouw draagt het beeld, de details zijn klein. Maar nooit kleiner dan een
+ *  lijn die erop eindigt: bij 2,6 px (uitgezoomd 1,6) liep een lijn in het niets (melding gebruiker 24 nov 2026). */
 export const GROOTTE: Record<KnoopSoort, number> = {
-  regeling: 13, deel: 8, klasse: 9, artikel: 5, lid: 3.5, onderdeel: 2.6, extern: 2.6, markering: 2.6, begrip: 6, impliciet: 3.4,
+  regeling: 13, deel: 8, klasse: 9, artikel: 6.2, lid: 5, onderdeel: 4.6, extern: 5.2, markering: 4.6, begrip: 6.2, impliciet: 5,
 };
 export const GEKOZEN_FACTOR = 1.6;
 
