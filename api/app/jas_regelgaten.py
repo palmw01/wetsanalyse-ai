@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 #: De eerste twaalf tekens van de sha256 van de bron.
-REGELGATEN_VERSIE = '65eeb363a7ea'
+REGELGATEN_VERSIE = '70423d8e6a58'
 
 #: Waar een gat zit: het skelet, het regelobject of de keten.
 PLEKKEN = ('skelet', 'regel', 'keten')
@@ -40,6 +40,10 @@ GATEN = {'uitvoer_ontbreekt': {'plek': 'skelet',
  'regelbegrip_zonder_bepalen': {'plek': 'regel',
                                 'herkomst': 'methode',
                                 'melding': 'Het regelbegrip heet niet "bepalen <uitvoer>".'},
+ 'regelbegrip_bepalen_van': {'plek': 'regel',
+                             'herkomst': 'methode',
+                             'melding': 'Het regelbegrip "{naam}" heet "{voorstel}": "bepalen" met de '
+                                        'uitvoer erachter, zonder "van de" of "van het".'},
  'parameter_zonder_tijdvak': {'plek': 'regel',
                               'herkomst': 'regelspecialist',
                               'melding': 'De parameter {naam} heeft geen waarde met een tijdvak.'},

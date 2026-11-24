@@ -82,7 +82,7 @@ async def test_een_lege_patch_op_een_oud_begrip_geeft_geen_revisie(client):
 async def test_een_waarde_buiten_het_bereik_is_een_signaal_en_een_regel_heeft_een_eigenaar(client):
     ids = await _annoteer()
     wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
-    begrippen = {"regel": await _begrip(client, wg, "bepalen van het termijnbedrag", ids["ar"]),
+    begrippen = {"regel": await _begrip(client, wg, "bepalen termijnbedrag", ids["ar"]),
                  "uit": await _begrip(client, wg, "termijnbedrag", ids["var"]),
                  "in": await _begrip(client, wg, "aantal termijnen", ids["rs"])}
     url = f"/v1/werkgebieden/{wg['id']}/begrippen/{begrippen['in']['id']}"
@@ -107,7 +107,7 @@ async def test_de_lijst_zegt_welk_begrip_een_regel_benoemt(client):
     """V11: de begrippenlijst toont een regelbegrip bij de regels; de api zegt welke dat zijn."""
     ids = await _annoteer()
     wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
-    begrippen = {"regel": await _begrip(client, wg, "bepalen van het termijnbedrag", ids["ar"]),
+    begrippen = {"regel": await _begrip(client, wg, "bepalen termijnbedrag", ids["ar"]),
                  "uit": await _begrip(client, wg, "termijnbedrag", ids["var"]),
                  "in": await _begrip(client, wg, "aantal termijnen", ids["rs"])}
     r = await client.post(_url(wg), json={"inhoud": _inhoud(begrippen),
@@ -115,4 +115,4 @@ async def test_de_lijst_zegt_welk_begrip_een_regel_benoemt(client):
     assert r.status_code == 201, r.text
     lijst = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen")).json()["begrippen"]
     assert {b["inhoud"]["naam"]: b["regelbegrip"] for b in lijst} == {
-        "bepalen van het termijnbedrag": True, "termijnbedrag": False, "aantal termijnen": False}
+        "bepalen termijnbedrag": True, "termijnbedrag": False, "aantal termijnen": False}
