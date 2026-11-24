@@ -11,6 +11,8 @@ Een concept is niet goedgekeurd omdat een model het zelf groen noemt. Beoordeel 
 | Samenhang | Partijen, voorwaarden, rechtsfeiten en de rechtsbetrekkingen waarop ze werken consistent verbonden waar van toepassing. |
 | Interpretatie | Materiële keuzes onderbouwd, bronstatus onderscheiden, alternatieven zichtbaar. |
 | Dekking | Iedere normeenheid verantwoord; geen verborgen uitzondering of contextlacune. |
+| Begrippen | Elke formulering die bij de analyse hoort, heeft een begrip of een open rij; een ja/nee-begrip en een tussenresultaat hebben een eigen begrip; het waardebereik is bekend; een interpretatie staat apart. |
+| Afleidingsregels | Eén regel per uitvoer; elke voorwaarde noemt begrippen, geen losse zinsdelen; elke regel is met een voorbeeldtabel nagelopen, met een geval dat niet kan en de grenzen van elke vergelijking. |
 | Praktijkvoorbeelden | Verwachte uitkomsten volgen uit bronnen; een normaal geval en een grensgeval getoetst; onbekende invoer benoemd. |
 | Reviewbaarheid | Open vragen hebben impact en vervolgstap; ontbrekend beleid is als zodanig gemeld; menselijke besluiten blijven traceerbaar. |
 

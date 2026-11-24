@@ -122,6 +122,9 @@ Toets de analyse daarna. De methode kent daarvoor drie manieren (M01 h.3 stap 4;
 - **Een voorbeeldreeks bij een afleidingsregel.** Geef de invoer een reeks waarden en schrijf per geval de uitkomst op
   die de regel geeft. Neem ook nul, een negatieve waarde en een onbekende waarde. Vraag per uitkomst: is dit juridisch
   juist, en mag dit geval zich voordoen? Zo vind je een geval dat de regel niet dekt.
+  Schrijf de reeks op als tabel bij de regel: een kolom per geval, de invoerbegrippen met hun waarde, de vraag of die
+  invoer zich kan voordoen, de uitkomst, en de vraag of die juridisch juist is
+  ([afleidingsregels](afleidingsregels.md), *Toetsen met een voorbeeldtabel*).
 
 Gebruik minstens een normaal geval en een grensgeval. Vier gevallen helpen een reeks te vullen: het normale geval, een
 voorwaarde die niet vervuld is, de uitzondering, en de precieze grens van een termijn of bedrag.

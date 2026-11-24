@@ -732,14 +732,15 @@ VANDAAG = __import__("datetime").date(2026, 11, 24)   # een dinsdag
 ])
 def test_een_periode_tegenover_vandaag_wordt_een_datumfilter(vraag, args, uitleg):
     v = bron_lijst.lees(vraag, KST, vandaag=VANDAAG)
-    assert v is not None and v.args == args
+    # Zonder eigen volgorde: de nieuwste eerst.
+    assert v is not None and v.args == {"volgorde": "nieuwste", **args}
     assert uitleg in v.kanttekening
 
 
 def test_de_laatste_maanden_is_een_periode_en_geen_aantal():
     """"De laatste 3 maanden" is een periode; "de laatste 3 kamerstukken" blijft een aantal."""
     assert bron_lijst.lees("kamerstukken van de laatste 3 maanden", KST, vandaag=VANDAAG).args == {
-        "vanaf": "2026-08-24", "tot": "2026-11-24"}
+        "vanaf": "2026-08-24", "tot": "2026-11-24", "volgorde": "nieuwste"}
     assert bron_lijst.lees("de laatste 3 kamerstukken", KST, vandaag=VANDAAG).args == {"volgorde": "nieuwste", "aantal": 3}
 
 
@@ -775,3 +776,20 @@ def test_terugtellen_in_maanden_blijft_binnen_de_maand():
     assert bron_lijst._min_maanden(date(2024, 3, 31), 1) == date(2024, 2, 29)
     assert bron_lijst._min_maanden(date(2026, 1, 15), 1) == date(2025, 12, 15)
     assert bron_lijst._min_maanden(date(2026, 1, 15), 12) == date(2025, 1, 15)
+
+
+def test_een_eigen_volgorde_gaat_voor_en_een_telvraag_krijgt_er_geen():
+    assert bron_lijst.lees("de oudste kamerstukken van vorige maand", KST, vandaag=VANDAAG).args["volgorde"] == "oudste"
+    tel = bron_lijst.lees("hoeveel moties van vorige maand", KST, vandaag=VANDAAG)
+    assert tel is not None and tel.tellen and "volgorde" not in tel.args
+
+
+def test_de_soort_van_een_stuk_is_leesbaar():
+    """Acceptatie 24 nov 2026: "Nota n.a.v. het (nader/tweede nader/enz.) verslag" stond zo in de lijst."""
+    from bronmodel.antwoord import Stuk, soort_netjes
+
+    assert soort_netjes("Nota n.a.v. het (nader/tweede nader/enz.) verslag") == "Nota naar aanleiding van het verslag"
+    assert soort_netjes("JAARVERSLAG") == "Jaarverslag"
+    assert soort_netjes("Verslag (schriftelijk overleg)") == "Verslag (schriftelijk overleg)"
+    assert soort_netjes("EU") == "EU"
+    assert Stuk(id="kst-1-2", label="x", soort="JAARVERSLAG").soort == "Jaarverslag"
