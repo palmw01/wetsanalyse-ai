@@ -1065,6 +1065,33 @@ export interface BegripInhoud {
   /** NL-SBB `rdfs:comment`: uitleg in eenvoudige taal. */
   uitleg: string;
   voorbeelden: Voorbeeld[];
+  /** V2/V4 (plan lessen Termijnen-bibliotheek): optioneel. Een oudere api stuurt ze niet. */
+  waardebereik?: Waardebereik | null;
+  klasse_keuze?: { klasse: string; reden: string } | null;
+  eigenaar?: string;
+}
+
+/** De soorten waarde, gelijk aan `WaardeSoort` in `api/app/begrip_contracts.py`. */
+export const WAARDE_SOORTEN = ["ja_nee", "datum", "bedrag", "aantal", "duur", "tekst", "opsomming"] as const;
+export type WaardeSoort = (typeof WAARDE_SOORTEN)[number];
+
+export interface Waardebereik {
+  soort: WaardeSoort;
+  eenheid?: string;
+  decimalen?: number | null;
+  minimum?: string;
+  maximum?: string;
+  waarden?: string[];
+  toelichting?: string;
+}
+
+/** De klasse van een begrip (V2): afgeleid uit de dragende passages, of gekozen door de analist met een reden. */
+export interface BegripKlasse {
+  klasse: string;
+  afgeleid: string;
+  uit_passages: Record<string, number>;
+  gekozen: string;
+  reden: string;
 }
 
 /** De bewaarde bewijsstand van een passage: zo zag het element eruit toen het gekoppeld werd. */
@@ -1281,6 +1308,8 @@ export interface Poort {
 }
 
 interface BegripBasis {
+  /** V2; een oudere api stuurt het niet. */
+  klasse?: BegripKlasse;
   /** `generiek` staat boven de werkgebieden (ADR-006); `werkgebied_id` is dan leeg. Een oudere api stuurt het niet. */
   kader?: "generiek" | "werkgebied";
   ontstaan_in?: string | null;
@@ -1346,6 +1375,8 @@ export interface DefinitieOnderbouwing {
 
 export interface BegripSamenvatting extends BegripBasis {
   aantal_koppelingen: number;
+  /** V11: het begrip benoemt een afleidingsregel ("bepalen …") en staat in de lijst bij de regels. */
+  regelbegrip?: boolean;
   element_ids: string[];
 }
 

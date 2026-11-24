@@ -22,6 +22,7 @@ Het patroon is dat van de begrippen (`begrip_store`), met dezelfde bouwstenen in
 from __future__ import annotations
 
 import re
+from datetime import date
 import uuid
 from contextlib import asynccontextmanager
 
@@ -88,7 +89,8 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
     rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(
         b.c.id.in_(sorted(ids)), begrip_store.in_werkgebied(werkgebied_id)))).all()
     return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status,
-                   "definitie": (r.inhoud or {}).get("definitie", "")} for r in rows}
+                   "definitie": (r.inhoud or {}).get("definitie", ""),
+                   **({"waardebereik": wb} if (wb := (r.inhoud or {}).get("waardebereik")) else {})} for r in rows}
 
 
 #: De standen van een open punt die het accorderen tegenhouden (ADR-018 besluit 2, aangevuld 20 nov 2026: "Ja,
@@ -315,8 +317,59 @@ def smalle_voorbeelden(regel: dict) -> list[dict]:
             for i, v in enumerate(regel["inhoud"].get("voorbeelden", []), start=1)]
 
 
+_SOORTNAAM = {"ja_nee": "ja/nee-waarde", "datum": "datum", "bedrag": "bedrag", "aantal": "aantal",
+              "opsomming": "keuze uit een lijst"}
+_JA_NEE = {"ja", "nee", "waar", "onwaar", "true", "false"}
+_DATUM = re.compile(r"^(?:(\d{1,2})-(\d{1,2})-(\d{4})|(\d{4})-(\d{1,2})-(\d{1,2}))$")
+_GETAL = re.compile(r"^-?\d{1,3}(?:\.\d{3})*(?:,(\d+))?$|^-?\d+(?:[,.](\d+))?$")
+
+
+def past_in(waarde: str, wb: dict) -> bool | None:
+    """Past een waarde uit een voorbeeld in het waardebereik van haar begrip (V3)? `None` als het niet te zeggen is (een
+    duur, tekst, een waarde met een toelichting erachter). De api rekent niet: hij toetst alleen de vorm."""
+    w = re.sub(r"^\s*(?:€|eur(?:o)?)\s*", "", (waarde or "").strip(), flags=re.I).strip()
+    soort = wb.get("soort")
+    if not w or soort in ("duur", "tekst"):
+        return None
+    if soort == "ja_nee":
+        return w.casefold() in _JA_NEE
+    if soort == "opsomming":
+        return w.casefold() in {x.casefold() for x in wb.get("waarden") or []}
+    if soort == "datum":
+        if not (m := _DATUM.match(w)):
+            return False
+        d, mnd, j = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(6), m.group(5), m.group(4))
+        try:
+            date(int(j), int(mnd), int(d))
+        except ValueError:
+            return False
+        return True
+    if soort in ("bedrag", "aantal"):
+        if not (m := _GETAL.match(w)):
+            return False
+        decimalen = len(m.group(1) or m.group(2) or "")
+        if soort == "aantal" and decimalen:
+            return False
+        return wb.get("decimalen") is None or decimalen <= wb["decimalen"]
+    return None
+
+
+def _waarden_buiten_bereik(voorbeelden: list[dict], begrippen: dict[str, dict]) -> list[str]:
+    uit = []
+    for n, v in enumerate(voorbeelden, start=1):
+        if v.get("oordeel") == "kan_niet":
+            continue   # een invoer die zich niet voordoet, mag buiten het bereik liggen
+        for x in v.get("waarden") or []:
+            b = begrippen.get(x["begrip_id"]) or {}
+            if (wb := b.get("waardebereik")) and past_in(x["waarde"], wb) is False:
+                uit.append(f"Voorbeeld {n} noemt voor {b.get('naam') or 'een invoerbegrip'} de waarde "
+                           f"\"{x['waarde']}\", maar dat begrip is een {_SOORTNAAM.get(wb['soort'], wb['soort'])}"
+                           + (f" ({', '.join(wb['waarden'])})" if wb.get("waarden") else "") + ".")
+    return uit
+
+
 def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None,
-             geerfd: list[dict] | None = None) -> list[str]:
+             geerfd: list[dict] | None = None, begrippen: dict[str, dict] | None = None) -> list[str]:
     """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
     uit: list[str] = []
     # Een genomen keuze op een geval, waarvan de lezing op markeringen rust die dat geval niet draagt (vervolgronde
@@ -356,6 +409,7 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
         uit.append(_meervoud(len(los), "Voorbeeld <nrs> is niet na te rekenen: het noemt de invoer niet per invoerbegrip.",
                              "De voorbeelden <nrs> zijn niet na te rekenen: ze noemen de invoer niet per "
                              "invoerbegrip.").replace("<nrs>", _nrs(los)))
+    uit.extend(_waarden_buiten_bereik(voorbeelden, begrippen or {}))
     zelf = sum(bool(v.get("door")) and v.get("beoordeeld_door") == v.get("door") for v in voorbeelden
                if v.get("oordeel", "open") != "open")
     if zelf:
@@ -526,7 +580,7 @@ def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: li
             "regeltekst": regeltekst(inhoud, namen),
             "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
             "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten, geerfd),
-            "signalen": signalen(inhoud, dragers, open_punten, geerfd), "gaten": gaten or [],
+            "signalen": signalen(inhoud, dragers, open_punten, geerfd, begrippen), "gaten": gaten or [],
             "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or []),
                             "bij_voorganger": len(geerfd or [])},
             "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
@@ -884,6 +938,8 @@ def inhoud_van(model) -> dict:
         for k in ("waarden", "van_geval"):
             if not v.get(k):
                 v.pop(k, None)
+    if not inhoud.get("eigenaar"):                    # idem voor een regel zonder eigenaar (V4)
+        inhoud.pop("eigenaar", None)
     return inhoud
 
 async def _revisieregel(conn, regel_id, revisie, actie, detail, status, inhoud, actor, tijdstip):

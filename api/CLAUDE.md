@@ -576,6 +576,16 @@ spoor D (*Werkgebied als node*).
   `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
   door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
   overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
+- **Klasse, waardebereik en eigenaar** (plan lessen Termijnen-bibliotheek, V2/V4; besluit gebruiker 24 nov 2026: P15
+  bijgesteld). `BegripInhoud` draagt optioneel `waardebereik` (`Waardebereik`: soort `ja_nee|datum|bedrag|aantal|duur|
+  tekst|opsomming`, eenheid, decimalen, minimum, maximum, waarden alleen bij een opsomming), `klasse_keuze` (een JAS-klasse
+  met verplichte reden) en `eigenaar`. Elke kaart draagt `klasse` (`begrip_store.klasse_van`): afgeleid uit de klassen van
+  de dragende passages (meest voorkomend, bij gelijk in JAS-volgorde), en de keuze wint. De poort vraagt ze niet. Leeg en
+  afwezig tellen bij een wijziging als gelijk (`_wijzig_inhoud`), zodat een begrip van vóór deze velden geen revisie krijgt.
+  De lijst zegt per begrip `regelbegrip` (V11: het benoemt een regel). Een regel draagt optioneel `eigenaar` (niet
+  bewaard als hij leeg is, `inhoud_van`), en een waarde in een voorbeeld die niet in het waardebereik van haar begrip past,
+  is een signaal (`regel_store.past_in`, `_waarden_buiten_bereik`; een voorbeeld op `kan_niet` telt niet). De projectie
+  naar NL-SBB neemt deze velden nog niet mee. Tests: `tests/test_begrip_waardebereik.py`.
 - **Geen begrip zonder annotatie** (harde regel, besluit gebruiker 19 nov 2026). Een begrip rust altijd op minstens één
   koppeling met een annotatie-element. `maak` weigert een nieuw begrip zonder `element_ids` (422 `geen_passage`, met
   `melding`), en `toets_passage` draait in de transactie van elke mutatie die een koppeling weghaalt of overzet

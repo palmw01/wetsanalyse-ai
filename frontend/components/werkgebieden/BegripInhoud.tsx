@@ -19,6 +19,7 @@ import { usePaneelKopVulling } from "@/components/ui/PaneelKop";
 import { Melding } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen, SplitDetail } from "@/components/ui/Pagina";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
+import { KenmerkenBlok } from "@/components/werkgebieden/BegripKenmerken";
 import { BegripOpvolging } from "@/components/werkgebieden/BegripOpvolging";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
@@ -58,10 +59,11 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
   onNaarBegrip?: (begripId: string) => void;
   onGewijzigd?: () => void;
 }) {
-  const [open, setOpen] = useState({ betekenis: false, voorbeelden: false });
+  const [open, setOpen] = useState({ betekenis: false, voorbeelden: false, kenmerken: false });
   const meldBetekenis = useCallback((o: boolean) => setOpen((s) => ({ ...s, betekenis: o })), []);
   const meldVoorbeelden = useCallback((o: boolean) => setOpen((s) => ({ ...s, voorbeelden: o })), []);
-  const onbewaard = open.betekenis || open.voorbeelden;
+  const meldKenmerken = useCallback((o: boolean) => setOpen((s) => ({ ...s, kenmerken: o })), []);
+  const onbewaard = open.betekenis || open.voorbeelden || open.kenmerken;
 
   useEffect(() => { onOnbewaard(onbewaard); }, [onbewaard, onOnbewaard]);
   useEffect(() => () => onOnbewaard(false), [onOnbewaard]);
@@ -77,6 +79,8 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
   if (!begrip) return <LaadStand wat="Het begrip" verwijderd={stand.verwijderd && verwijderdZin(stand.verwijderd)} fout={stand.fout} onOpnieuw={() => void stand.laad()} />;
 
   const betekenis = <BetekenisBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldBetekenis} />;
+  const kenmerken = <KenmerkenBlok stand={stand} begrip={begrip} weergave={weergave} bewerkbaar={magBewerken(stand, begrip)}
+    onOnbewaard={meldKenmerken} />;
   const voorbeelden = <VoorbeeldenBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldVoorbeelden} />;
   const melding = stand.melding && <Melding type={stand.melding.type} compact>{stand.melding.tekst}</Melding>;
 
@@ -85,7 +89,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="generiek" className="space-y-4">
         {melding}
-        <SplitDetail hoofd={<>{betekenis}{voorbeelden}<PassagesPerWerkgebied begrip={begrip} /></>}
+        <SplitDetail hoofd={<>{betekenis}{kenmerken}{voorbeelden}<PassagesPerWerkgebied begrip={begrip} /></>}
           zij={<>
             <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onNaarBegrip={onNaarBegrip} />
             <GebruiktIn begrip={begrip} />
@@ -100,6 +104,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-alleen-lezen className="space-y-5 text-sm text-ink">
         {betekenis}
+        {kenmerken}
         {voorbeelden}
         <PassagesLezen begrip={begrip} />
         <RelatiesLezen stand={stand} />
@@ -124,7 +129,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="pagina" className="space-y-4">
         {melding}
-        <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
+        <SplitDetail hoofd={<>{veranderd}{betekenis}{kenmerken}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
       </div>
     );
   }
@@ -132,7 +137,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     // Dezelfde indeling als op de pagina (`SplitDetail`): smal onder elkaar, vergroot of breed gesleept naast elkaar.
     <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="paneel" className="space-y-5 text-sm text-ink">
       {melding}
-      <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
+      <SplitDetail hoofd={<>{veranderd}{betekenis}{kenmerken}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
     </div>
   );
 }

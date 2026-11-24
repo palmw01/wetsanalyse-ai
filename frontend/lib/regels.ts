@@ -34,6 +34,22 @@ export function voorbeeldWaarden(regel: Regel, v: RegelVoorbeeld): string[] {
   return (v.waarden ?? []).map((w) => `${begripNaam(regel, w.begrip_id)}: ${w.waarde}`);
 }
 
+/** De voorbeelden van één geval als tabel (V3, de vorm van de praktijk): een kolom per voorbeeld, een rij per
+ *  invoerbegrip met zijn waarde. Alleen als minstens één voorbeeld zijn invoer per begrip noemt; anders `null`. */
+export function voorbeeldTabel(regel: Regel, voorbeelden: RegelVoorbeeld[]):
+  { kolommen: number[]; rijen: { begrip: string; waarden: string[] }[] } | null {
+  if (!voorbeelden.some((v) => (v.waarden?.length ?? 0) > 0)) return null;
+  const begrippen: string[] = [];
+  for (const v of voorbeelden) for (const w of v.waarden ?? []) if (!begrippen.includes(w.begrip_id)) begrippen.push(w.begrip_id);
+  return {
+    kolommen: voorbeelden.map((v) => voorbeeldNr(regel, v)),
+    rijen: begrippen.map((b) => ({
+      begrip: begripNaam(regel, b),
+      waarden: voorbeelden.map((v) => v.waarden?.find((w) => w.begrip_id === b)?.waarde ?? ""),
+    })),
+  };
+}
+
 export interface RegelInhoud {
   soort: RegelSoort;
   regelbegrip_id: string;
@@ -45,6 +61,8 @@ export interface RegelInhoud {
   toelichting: string;
   brontype: "wet" | "beleid";
   lidwoord: "de" | "het" | "";
+  /** Wie de regel beheert (V4). Een regel zonder eigenaar draagt het veld niet. */
+  eigenaar?: string;
 }
 
 export interface RegelDrager {

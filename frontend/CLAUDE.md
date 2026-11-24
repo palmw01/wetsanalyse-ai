@@ -1392,6 +1392,11 @@ bestaat los van de gesprekken.
     Rust de definitie op een voorstel of groep van Lex, dan staat eronder ingeklapt waarop
     (`DefinitieOnderbouwing`, uit `definitie_onderbouwing` van de api, spoor M): de fragmenten met hun
     vindplaats als link naar de bepaling, en de duiding. Op de kaart alleen zolang de tekst de bewaarde is.
+  - **Kenmerken** (V2/V4 van het plan lessen Termijnen-bibliotheek, `BegripKenmerken.tsx`): een eigen blok onder
+    Betekenis met de klasse (van de api, of gekozen met een reden), het waardebereik (`waardebereikZin`) en de eigenaar;
+    bewerken per blok zoals de andere. De rekenkern staat in `lib/begrippen.ts` (`klasseZin`, `waardebereikUit`). In het
+    kader staan begrippen die een regel benoemen (`regelbegrip`) ingeklapt onder *Regelbegrippen* (V11), en op de regelkaart
+    staan de voorbeelden van een geval ook als tabel (`voorbeeldTabel` in `lib/regels.ts`, V3). Tests: `lib/kenmerken.test.ts`.
   - **Voorbeelden in kleur, en alles zichtbaar** (spoor I3, `components/werkgebieden/Voorbeelden.tsx`): lezen
     gaat als rijen met een `OordeelLabel` (groen *valt eronder*, rood *valt er niet onder*, oker *twijfel*;
     `OORDEEL_TOON` in `lib/begrippen.ts` – kleur draagt het oordeel nooit alleen), in `BegripInhoud` en bij een

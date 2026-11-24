@@ -6,6 +6,7 @@ import type {
   Actualiteit,
   Begrip,
   BegripInhoud,
+  BegripKlasse,
   BegripRevisie,
   BegripSamenvatting,
   DefinitieHerkomst,
@@ -14,6 +15,8 @@ import type {
   KoppelStand,
   Koppeling,
   VoorbeeldOordeel,
+  WaardeSoort,
+  Waardebereik,
 } from "./types";
 
 export const LEGE_INHOUD: BegripInhoud = {
@@ -193,4 +196,50 @@ export function filterBegrippen<T extends Pick<BegripSamenvatting, "status" | "i
   const t = term.trim().toLowerCase();
   return begrippen.filter((b) => (status === "alle" || b.status === status) && (!t
     || [b.inhoud.naam, ...(b.inhoud.alternatieve_termen ?? []), b.inhoud.definitie ?? ""].some((x) => x.toLowerCase().includes(t))));
+}
+
+
+// --- Klasse, waardebereik en eigenaar (V2, V4) -----------------------------------------------------------------------
+
+export const WAARDE_SOORT_LABEL: Record<WaardeSoort, string> = {
+  ja_nee: "ja of nee", datum: "datum", bedrag: "bedrag", aantal: "aantal", duur: "duur", tekst: "tekst",
+  opsomming: "een van een vaste lijst",
+};
+
+/** Het waardebereik in één regel: "bedrag in euro, 0 decimalen, vanaf 0" of "een van: april, mei". */
+export function waardebereikZin(w: Waardebereik | null | undefined): string {
+  if (!w) return "";
+  const delen: string[] = [WAARDE_SOORT_LABEL[w.soort] ?? w.soort];
+  if (w.eenheid) delen[0] += ` in ${w.eenheid}`;
+  if (w.decimalen != null) delen.push(aantal(w.decimalen, "decimaal", "decimalen"));
+  if (w.minimum && w.maximum) delen.push(`van ${w.minimum} tot en met ${w.maximum}`);
+  else if (w.minimum) delen.push(`vanaf ${w.minimum}`);
+  else if (w.maximum) delen.push(`tot en met ${w.maximum}`);
+  let zin = delen.join(", ");
+  if (w.soort === "opsomming" && w.waarden?.length) zin = `een van: ${w.waarden.join(", ")}`;
+  return w.toelichting ? `${zin} (${w.toelichting})` : zin;
+}
+
+/** Wat de kaart over de klasse zegt: de klasse en waar ze vandaan komt. */
+export function klasseZin(k: BegripKlasse | undefined): { klasse: string; herkomst: string } {
+  if (!k || !k.klasse) return { klasse: "", herkomst: "" };
+  if (k.gekozen && k.gekozen !== k.afgeleid) {
+    return { klasse: k.gekozen, herkomst: k.afgeleid ? `gekozen; de passages zeggen ${k.afgeleid}` : "gekozen" };
+  }
+  const n = Object.values(k.uit_passages).reduce((s, x) => s + x, 0);
+  return { klasse: k.klasse, herkomst: n ? `uit ${aantal(n, "passage", "passages")}` : "" };
+}
+
+/** Het waardebereik uit de velden van het formulier; zonder soort geen waardebereik. Een opsomming leest één waarde
+ *  per regel. */
+export function waardebereikUit(v: { soort: string; eenheid: string; decimalen: string; minimum: string; maximum: string;
+  waarden: string; toelichting: string }): Waardebereik | null {
+  if (!v.soort) return null;
+  const soort = v.soort as WaardeSoort;
+  const decimalen = v.decimalen.trim() === "" ? null : Number(v.decimalen);
+  return {
+    soort, eenheid: v.eenheid.trim(), decimalen: Number.isFinite(decimalen) ? decimalen : null,
+    minimum: v.minimum.trim(), maximum: v.maximum.trim(), toelichting: v.toelichting.trim(),
+    waarden: soort === "opsomming" ? uitRegels(v.waarden).map((x) => x.trim()).filter(Boolean) : [],
+  };
 }
