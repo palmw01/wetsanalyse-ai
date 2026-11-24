@@ -255,7 +255,7 @@ async def setup(body: SetupIn):
         user = await users.bootstrap_admin(body.userid, body.email, body.password)
     except users.UserError as e:
         # Tabel niet meer leeg, of ongeldige invoer → registratie gesloten/ongeldig.
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     return MeOut(
         userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled,
         tfa_nodig=users.moet_2fa_koppelen(user),
@@ -281,7 +281,7 @@ async def registratie(body: RegistratieIn):
             body.voornaam, body.achternaam, body.email, body.password
         )
     except users.UserError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     logger.info(
         "registratie aangevraagd",
         extra={"categorie": "security", "actie": "registratie_aangevraagd",
@@ -437,7 +437,7 @@ async def change_password(body: PasswordChangeIn, userid: str = Depends(huidige_
     try:
         await users.change_own_password(userid, body.current, body.new)
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/2fa/begin", response_model=TotpBeginOut)
@@ -456,9 +456,9 @@ async def tfa_begin(body: TotpBeginIn, userid: str = Depends(huidige_userid)):
             "2FA-koppeling geweigerd: 2FA staat al aan",
             extra={"categorie": "security", "actie": "2fa_begin_geweigerd", "userid": userid},
         )
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return TotpBeginOut(otpauth_uri=uri)
 
 
@@ -468,7 +468,7 @@ async def tfa_activate(body: TotpActivateIn, userid: str = Depends(huidige_useri
     try:
         return HerstelcodesOut(codes=await users.activate_2fa(userid, body.totp))
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/2fa/herstelcodes", response_model=HerstelcodesOut)
@@ -477,7 +477,7 @@ async def tfa_herstelcodes(body: TotpDisableIn, userid: str = Depends(huidige_us
     try:
         codes = await users.vervang_herstelcodes(userid, body.totp)
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     logger.info(
         "herstelcodes vervangen",
         extra={"categorie": "security", "actie": "herstelcodes_vervangen", "userid": userid},
@@ -491,6 +491,6 @@ async def tfa_disable(body: TotpDisableIn, userid: str = Depends(huidige_userid)
     try:
         await users.disable_2fa(userid, body.totp)
     except users.BeheerderHoudt2faError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except users.UserError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

@@ -637,7 +637,7 @@ def bff_client(basis: str, token: str, timeout: float = 120) -> Bff:
         if formulier is not None:
             data, kop = urllib.parse.urlencode(formulier).encode(), {"Content-Type": "application/x-www-form-urlencoded"}
         try:
-            antwoord = opener.open(urllib.request.Request(basis + pad, data=data, headers=kop, method=methode),
+            antwoord = opener.open(urllib.request.Request(basis + pad, data=data, headers=kop, method=methode),  # noqa: S310 – basis is hierboven op https:// getoetst
                                    timeout=timeout)
         except urllib.error.HTTPError as e:
             antwoord = e

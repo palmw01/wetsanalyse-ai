@@ -171,7 +171,7 @@ async def test_aanvraag_rate_limit(client):
     from app import ratelimit
 
     # De per-e-mail-bucket staat drie pogingen toe; de vierde loopt tegen 429.
-    for i in range(3):
+    for _ in range(3):
         await client.post("/v1/auth/registratie", json=_aanvraag(email="spam@example.com"))
     r = await client.post("/v1/auth/registratie", json=_aanvraag(email="spam@example.com"))
     assert r.status_code == 429

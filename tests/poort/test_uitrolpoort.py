@@ -30,7 +30,7 @@ def _jobs(tekst: str) -> dict[str, str]:
     """De jobs van een workflow als tekstblokken (inspringing van twee spaties onder `jobs:`)."""
     _, _, rest = tekst.partition("\njobs:\n")
     delen = re.split(r"^  ([A-Za-z0-9_-]+):\s*$", rest, flags=re.M)
-    return dict(zip(delen[1::2], delen[2::2]))
+    return dict(zip(delen[1::2], delen[2::2], strict=True))
 
 
 @pytest.mark.parametrize("pad", _workflows(), ids=lambda p: p.name)

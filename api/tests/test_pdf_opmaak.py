@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from itertools import pairwise
 
 import pytest
 
@@ -156,14 +157,14 @@ def test_niets_op_het_titelblad_valt_buiten_de_marges_of_over_elkaar_en_wat_inko
     vlak = next(i for i in items if i.get("vlak"))
     los = sorted((i for i in items if not i.get("vlak") and not (vlak["y"] <= i["y"] <= vlak["y"] + vlak["hoogte"])),
                  key=lambda i: -i["y"])
-    for boven, onder in zip(los, los[1:]):
+    for boven, onder in pairwise(los):
         assert onder["y"] + onder["hoogte"] <= boven["y"] + 0.5, (boven["tekst"][:30], onder["tekst"][:30])
     rijen = [i for i in items if not i.get("vlak") and vlak["y"] <= i["y"] <= vlak["y"] + vlak["hoogte"]]
     assert all(vlak["y"] - 0.5 <= i["y"] and i["y"] + i["hoogte"] <= vlak["y"] + vlak["hoogte"] + 0.5 for i in rijen)
     # Ook binnen het vlak: per kolom (labels, waarden met hun noten) raakt niets elkaar.
     for kolom in {round(i["x"]) for i in rijen}:
         stapel = sorted((i for i in rijen if round(i["x"]) == kolom), key=lambda i: -i["y"])
-        for boven, onder in zip(stapel, stapel[1:]):
+        for boven, onder in pairwise(stapel):
             assert onder["y"] + onder["hoogte"] <= boven["y"] + 0.5, (boven["tekst"][:30], onder["tekst"][:30])
     # Wat is ingekort, eindigt op een ellips en heeft een noot die zegt waar de volledige tekst staat.
     teksten = [i["tekst"] for i in items]

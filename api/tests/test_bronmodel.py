@@ -1,6 +1,6 @@
 """Contracttests voor dezelfde bronresolver die API en agent gebruiken."""
 import pytest
-from bronmodel import BronFout, BronKeuze, anker_actueel, bouw_snapshot, element_actueel, bron_query, eigenaar, onderdelen_om_te_kiezen, valideer_ankers
+from bronmodel import BronFout, BronKeuze, parse_rows, anker_actueel, bouw_snapshot, element_actueel, bron_query, eigenaar, onderdelen_om_te_kiezen, valideer_ankers
 from rdflib.plugins.sparql.parser import parseQuery
 
 BWB = "BWBR0004770"
@@ -290,3 +290,13 @@ def test_de_validatoren_van_de_werkplaats_laden_in_de_api():
         assert fout.bevindingen
     else:
         raise AssertionError("een bestand zonder frontmatter is geen profiel")
+
+
+def test_sparql_tsv_met_een_rij_die_niet_bij_de_kop_past_is_een_fout():
+    """Een rij met meer of minder velden dan de kop is geen SPARQL-TSV: zip zette de waarden stil onder de verkeerde
+    variabele of liet ze vallen (B905, kwaliteitsmeting nov 2026)."""
+    assert parse_rows('?a\t?b\n<urn:x>\t""\n') == [{"a": "urn:x", "b": ""}]
+    with pytest.raises(BronFout, match="aantal velden"):
+        parse_rows('?a\t?b\n<urn:x>\n')
+    with pytest.raises(BronFout, match="aantal velden"):
+        parse_rows('?a\t?b\n<urn:x>\t"1"\t"2"\n')

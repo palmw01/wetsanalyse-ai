@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from typing import Any
 
 from fastapi import HTTPException
@@ -43,6 +44,8 @@ from .bronnen_run_contracts import ROL_VOLGORDE, Opnemen
 from .bronselectie_contracts import ANALYSEVRAAG, Fase, KandidaatBesluit, StatusActie, Voortgang
 from .werkgebied_contracts import DeelvraagStatus
 from .werkgebied_store import _audit, _gewijzigd
+
+logger = logging.getLogger(__name__)
 
 KLAAR = (Voortgang.voorlopig_afgerond.value, Voortgang.beoordeeld.value)
 #: Hoe een voorstel bij een deelvraag ervoor staat (naast `opgenomen`, dat de bronnen telt).
@@ -224,7 +227,9 @@ async def voorouders_van(paren, lees=None) -> dict[str, set[str]]:
     for bwb, iris in nodig.items():
         try:
             nodes = nodes_van(await lees({"bwb_id": bwb}))
-        except Exception:                                          # graaf weg of regeling onbekend: het pad beslist
+        except Exception as exc:                                   # graaf weg of regeling onbekend: het pad beslist
+            logger.info("bronselectie: bronboom niet gelezen, het pad beslist",
+                        extra={"categorie": "technisch", "bwb_id": bwb, "fout": type(exc).__name__})
             continue
         for iri in iris:
             boven: set[str] = set()
