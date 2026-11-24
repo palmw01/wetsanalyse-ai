@@ -292,11 +292,16 @@ def test_de_validatoren_van_de_werkplaats_laden_in_de_api():
         raise AssertionError("een bestand zonder frontmatter is geen profiel")
 
 
-def test_sparql_tsv_met_een_rij_die_niet_bij_de_kop_past_is_een_fout():
-    """Een rij met meer of minder velden dan de kop is geen SPARQL-TSV: zip zette de waarden stil onder de verkeerde
-    variabele of liet ze vallen (B905, kwaliteitsmeting nov 2026)."""
+def test_sparql_tsv_met_te_veel_velden_is_een_fout():
+    """Een rij met meer velden dan de kop is geen SPARQL-TSV: zip liet ze stil vallen (B905, kwaliteitsmeting nov 2026)."""
     assert parse_rows('?a\t?b\n<urn:x>\t""\n') == [{"a": "urn:x", "b": ""}]
     with pytest.raises(BronFout, match="aantal velden"):
-        parse_rows('?a\t?b\n<urn:x>\n')
-    with pytest.raises(BronFout, match="aantal velden"):
         parse_rows('?a\t?b\n<urn:x>\t"1"\t"2"\n')
+
+
+def test_sparql_tsv_zonder_lege_staart_vult_aan():
+    """De MCP-poort snijdt de uitvoer bij, dus de laatste rij verliest de tabs van ongebonden variabelen achteraan.
+    Zo kwam de graaf op acceptatie terug (nov 2026); een fout daarop brak elke annotatie."""
+    uitvoer = '?node\t?nummer\t?titel\n<urn:x:lid:2>\t"2"\t\n<urn:x:lid:1>\t"1"'
+    assert parse_rows(uitvoer) == [{"node": "urn:x:lid:2", "nummer": "2", "titel": ""},
+                                   {"node": "urn:x:lid:1", "nummer": "1", "titel": ""}]
