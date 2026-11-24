@@ -211,6 +211,9 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weerg
     requestAnimationFrame(() => bediening.current?.focus(id));
   }, [zichtbaar, actiefElementId, getekendModel, bediening]);
 
+  /** De zoeklijst wijst een knoop aan: die licht op in de graaf, zonder dat het beeld beweegt. */
+  const wijsAan = (id: string | null) => bediening.current?.wijsAan(id);
+
   /** Terug naar het begin: geen keuze, en wat het antwoord noemt in beeld. */
   function naarAntwoord() {
     kies(null);
@@ -270,7 +273,7 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, actiefElementId, weerg
         {getekend && <div ref={bedekking} className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
           <div className="flex flex-col items-start gap-2">
           <div className="flex w-full items-start justify-between gap-2">
-            <GraafZoek model={model} verborgen={context.verborgen} gekozen={gekozen} onKies={(id) => kies(id)} />
+            <GraafZoek model={model} verborgen={context.verborgen} gekozen={gekozen} onKies={(id) => kies(id)} onWijs={wijsAan} />
             <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-knop border border-line bg-paper/95 p-0.5 shadow-kaart">
               {/* Mobiel kort, zodat het zoekveld ernaast leesbaar blijft; de volle naam staat in het label. */}
               {(["antwoord", "kennisgraaf"] as const).map((b) => <button key={b} type="button" aria-pressed={bereik === b}

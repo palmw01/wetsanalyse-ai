@@ -724,6 +724,15 @@ async function wachtGereed(page) {
   await page.getByText("Samenhang van 2 bepalingen").waitFor();
   assert.deepEqual(log.keten.at(-1), [L2, A10], "beide genoemde bepalingen in één verzoek");
   await wachtGereed(page);
+  // Elke treffer noemt zijn regeling ("Artikel 10" alleen zegt niets), en de treffer waar je op staat licht op in de graaf.
+  await zoekveld(page).fill("Artikel 10");
+  const treffer = page.locator(`[role="option"][data-knoop-id="${A10}"]`);
+  assert.match(await treffer.innerText(), /Invorderingswet 1990/);
+  await treffer.hover();
+  await page.waitForFunction((id) => document.querySelector("[data-testid=graaf-tekenaar]")?.dataset.aangewezen === id, A10);
+  await page.screenshot({ path: `${shots}/5c-zoeken-aanwijzen.png` });
+  await zoekveld(page).press("Escape");
+  await page.waitForFunction(() => !document.querySelector("[data-testid=graaf-tekenaar]")?.dataset.aangewezen);
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
   await page.screenshot({ path: `${shots}/2b-twee-artikelen.png` });
