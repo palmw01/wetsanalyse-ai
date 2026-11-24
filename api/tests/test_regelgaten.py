@@ -23,7 +23,7 @@ def _regel(**invoer):
     return {"regelbegrip_id": "r", "uitvoer_begrip_id": "u", "invoer": [{"begrip_id": k, "rol": v} for k, v in invoer.items()]}
 
 
-BEGRIPPEN = {"r": {"naam": "bepalen van het termijnbedrag"}, "u": {"naam": "termijnbedrag"},
+BEGRIPPEN = {"r": {"naam": "bepalen termijnbedrag"}, "u": {"naam": "termijnbedrag"},
              "p": {"naam": "drempel", "definitie": "Het bedrag van € 49."}, "i": {"naam": "aantal termijnen"}}
 
 
@@ -87,7 +87,7 @@ async def test_de_api_geeft_de_gaten_bij_de_regel(client):
     regel = r.json()
     assert _codes(regel["gaten"]) == ["impliciete_invoer"]
     assert "resterende maanden" in regel["gaten"][0]["tekst"]
-    bepalen = await _begrip(client, wg, "bepalen van de resterende maanden", ids["ar"], rol="afgeleid")
+    bepalen = await _begrip(client, wg, "bepalen resterende maanden", ids["ar"], rol="afgeleid")
     tweede = {**_inhoud(b), "regelbegrip_id": bepalen["id"], "uitvoer_begrip_id": tussen["id"]}
     r = await client.post(_url(wg), json={"inhoud": tweede, "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})
     assert r.status_code == 201, r.text
@@ -131,3 +131,16 @@ async def test_de_lijst_en_de_kaart_noemen_het_homoniem(client):
     lijst = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen")).json()
     rij = next(x for x in (lijst.get("begrippen") or lijst) if x["id"] == b["in"]["id"])
     assert any(p.startswith(homoniem) for p in rij["aandachtspunten"])
+
+
+def test_bepalen_van_het_heet_bepalen_met_de_uitvoer():
+    """Besluit 5b van de eigenaar (plan lessen Termijnen-bibliotheek §7): "bepalen <uitvoer>", zonder "van de/het"."""
+    g = {**LEEG, "met_begrip": {"uit"}}
+    for naam, voorstel in (("bepalen van het termijnbedrag", "bepalen termijnbedrag"),
+                           ("Bepalen van de vervaldag", "Bepalen vervaldag"),
+                           ("bepalen van een termijn", "bepalen termijn")):
+        gaten = regel_store.regel_gaten(_regel(), [_drager("uit", "uitvoer")], {**BEGRIPPEN, "r": {"naam": naam}}, g)
+        assert _codes(gaten) == ["regelbegrip_bepalen_van"], naam
+        assert f'"{voorstel}"' in gaten[0]["tekst"] and f'"{naam}"' in gaten[0]["tekst"]
+    for naam in ("bepalen termijnbedrag", "bepalen termijn van betaling", "bepalen vandaag", "bepalen van"):
+        assert regel_store.regelbegrip_voorstel(naam) is None, naam

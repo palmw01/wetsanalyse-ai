@@ -87,6 +87,14 @@ andere klassen*):
 - een moment dat per geval verschilt ('de dagtekening van het aanslagbiljet'): *verbijzondert variabele*; geen
   tweede markering Variabele.
 
+Ook de duur binnen een termijn krijgt geen eigen markering. Bij 'zes weken na de dagtekening van het aanslagbiljet'
+is de hele termijn, duur en startmoment samen, één Tijdsaanduiding met *verbijzondert parameter*. 'zes weken' markeer je
+niet nog eens apart als Tijdsaanduiding. De bron doet het zo: H2:107 kiest voor één formulering één klasse, en het boek
+neemt in zijn voorbeelden de termijn steeds als geheel: 'ten minste een maand na het uitnodigen tot het doen van
+aangifte' (art. 9 AWR) en 'binnen 48 uur' (Awb, elektronisch verkeer). Dat is M01 h.4 §12 en de uitwerking van de Awb in
+het boek. Het startmoment heeft een andere functie (het moment, *verbijzondert variabele*) en is daarom wél een eigen,
+geneste Tijdsaanduiding.
+
 Zij neemt de relaties over van de klasse die zij verbijzondert: als variabele is zij bijvoorbeeld kenmerk van het
 aanslagbiljet. Zegt de context niet of het moment per geval verschilt, laat het subtype dan leeg en noteer de twijfel.
 Een getal in cijfers in de tijdsaanduiding ('48') is wel een eigen, geneste parameterwaarde: een andere functie (de

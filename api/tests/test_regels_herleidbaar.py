@@ -156,7 +156,7 @@ async def test_het_werkgebied_draagt_zijn_regels_in_het_kort(client):
     regel = await _regel(client, wg, b, ids)
     kort = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["regels"]
     assert kort["telling"] == {"concept": 1}
-    assert kort["regels"] == [{"id": regel["id"], "naam": "bepalen van het termijnbedrag", "uitvoer": "termijnbedrag",
+    assert kort["regels"] == [{"id": regel["id"], "naam": "bepalen termijnbedrag", "uitvoer": "termijnbedrag",
                                "status": "concept", "soort": "rekenregel", "brontype": "wet", "gevallen": 1}]
 
 
@@ -170,7 +170,7 @@ async def test_de_opvolging_met_namen_de_korte_vorm_en_korte_revisies(client):
                           json={"verwachte_revisie": oud["revisie"], "reden": "Samengevoegd", "opvolger_id": nieuw["id"]})
     assert r.status_code == 200, r.text
     oud, nieuw = r.json(), (await client.get(_url(wg, nieuw["id"]))).json()
-    naam = "bepalen van het termijnbedrag"
+    naam = "bepalen termijnbedrag"
     assert oud["opvolging"] == {"vervangen_door": {"id": nieuw["id"], "naam": naam}, "vervangt": []}
     assert nieuw["opvolging"] == {"vervangen_door": None, "vervangt": [{"id": oud["id"], "naam": naam}]}
     kort = (await client.get(_url(wg, nieuw["id"]) + "?vorm=kort")).json()
@@ -205,4 +205,4 @@ async def test_het_overzicht_draagt_dezelfde_opvolging_als_de_kaart(client):
     rijen = {r["id"]: r for r in (await client.get(f"/v1/regels?werkgebied_id={wg['id']}")).json()["resultaten"]}
     kaart = (await client.get(_url(wg, oud["id"]))).json()
     assert rijen[oud["id"]]["opvolging"] == kaart["opvolging"]
-    assert rijen[nieuw["id"]]["opvolging"]["vervangt"] == [{"id": oud["id"], "naam": "bepalen van het termijnbedrag"}]
+    assert rijen[nieuw["id"]]["opvolging"]["vervangt"] == [{"id": oud["id"], "naam": "bepalen termijnbedrag"}]

@@ -1190,7 +1190,8 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   - **skelet**: `regelskelet.gaten` in `GET weergave?vorm=skelet` (uitvoer, invoer, volgorde, rechtsobject, een voorwaarde
     die alleen aan de rechtsbetrekking hangt, "in afwijking van" zonder `uitzondering_op`);
   - **regel**: `regel_store.regel_gaten`, als `gaten` op elke regel. Het gaat om de uitvoerformulering zonder begrip, een
-    regelbegrip zonder "bepalen", een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
+    regelbegrip zonder "bepalen" of met "bepalen van de/het …" (`regelbegrip_bepalen_van`, met de naam in de vorm
+    "bepalen <uitvoer>" als voorstel; besluit 5b van het plan lessen Termijnen-bibliotheek), een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
     operator in de grondslag zonder begrip, een impliciete invoer, en wat op niets rust (`dragen_gaten`): een voorwaarde
     zonder markering en zonder verwijzing, een verwijzing die niet meer geldt of waarvan de uitvoer geen invoer is, en
     een begrip in een uitkomst dat geen invoer is, en een voorwaarde waarvan geen markering een invoerbegrip (of het

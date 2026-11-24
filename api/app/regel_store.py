@@ -443,6 +443,16 @@ def _noemt_waarde(definitie: str, waarden: list[dict]) -> bool:
     return False
 #: Het regelbegrip heet "bepalen <uitvoer>" (M01 h.3 stap 3b; skill, *Eén regel per uitvoer*).
 _BEPALEN = re.compile(r"^\s*(?:het\s+)?bepalen\b", re.IGNORECASE)
+#: "bepalen van de/het/een …": de vorm is "bepalen <uitvoer>", zonder lidwoord en voorzetsel (besluit eigenaar 24 nov 2026,
+#: plan lessen Termijnen-bibliotheek §7 vraag 5b). Een "van" dat bij de uitvoer zelf hoort ("bepalen termijn van betaling")
+#: valt hier niet onder: alleen "van" direct na "bepalen" met een lidwoord erachter.
+_BEPALEN_VAN = re.compile(r"^(\s*(?:het\s+)?bepalen)\s+van\s+(?:de|het|een)\s+(?=\S)", re.IGNORECASE)
+
+
+def regelbegrip_voorstel(naam: str) -> str | None:
+    """De naam in de vorm "bepalen <uitvoer>" als `naam` "bepalen van de/het …" is, anders None."""
+    m = _BEPALEN_VAN.match(naam)
+    return f"{m.group(1).strip()} {naam[m.end():]}" if m else None
 #: De rollen waarmee een begrip op een formulering rust (niet `afgeleid` en niet `context`).
 _OP_FORMULERING = ("duiding", "definitie")
 
@@ -458,6 +468,8 @@ def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g
     naam = begrippen.get(inhoud["regelbegrip_id"], {}).get("naam", "")
     if naam and not _BEPALEN.match(naam):
         uit.append(gat("regelbegrip_zonder_bepalen"))
+    elif naam and (voorstel := regelbegrip_voorstel(naam)):
+        uit.append(gat("regelbegrip_bepalen_van", naam=naam, voorstel=voorstel))
     for i in inhoud.get("invoer", []):
         b = begrippen.get(i["begrip_id"], {})
         if i.get("rol") == "parameter":
