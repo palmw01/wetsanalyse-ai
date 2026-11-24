@@ -444,7 +444,7 @@ def prompt_voorbeelden(manifest: Manifest, k: Kant, km: list[str] | None = None,
                        dossier: betekenis.Dossier | None = None) -> str:
     km = km if km is not None else kenmerken(k.inhoud.get("definitie", ""))
     regels = ["Bedenk voorbeelden bij dit begrip.", "", *kantblok(manifest, k, "BEGRIP"), "",
-              "KENMERKEN", *[f"  [{i}] {t}" for i, t in zip(_kenmerk_ids(km), km)]]
+              "KENMERKEN", *[f"  [{i}] {t}" for i, t in zip(_kenmerk_ids(km), km, strict=True)]]
     if dossier is not None:
         regels += ["", *betekenis.blok(dossier)]
     if frs:
@@ -469,7 +469,7 @@ def valideer_voorbeelden(k: Kant, item: dict[str, Any] | None, km: list[str] | N
     if item is None or not isinstance(item.get("voorbeelden"), list):
         return Uitkomst(melding=TEKST["MODEL_ONBRUIKBAAR"])
     km = km if km is not None else kenmerken(k.inhoud.get("definitie", ""))
-    per_id = dict(zip(_kenmerk_ids(km), km))
+    per_id = dict(zip(_kenmerk_ids(km), km, strict=True))
     grens = {m.group(0) for f in frs or [] for m in _GETAL.finditer(f.tekst)}
     definitie = _norm(k.inhoud.get("definitie", ""))
     gezien = {_norm(v.get("tekst", "")) for v in k.inhoud.get("voorbeelden") or []}

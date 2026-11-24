@@ -45,6 +45,7 @@ from bronmodel.bwb.models import Wet
 from bronmodel.bwb.parser import ParseError, ToestandParser
 
 from .http_beleid import STANDAARD, met_herhaling
+from ..xml_lezen import lees_xml
 
 logger = logging.getLogger("graph_qa.bwb_live")
 
@@ -159,7 +160,7 @@ def _tekst(e: ET.Element, pad: str) -> str:
 def lees_records(xml: bytes) -> tuple[int, list[Toestand]]:
     """(totaal, toestanden) uit een searchRetrieveResponse. Een SRU-diagnose is een fout, geen lege lijst."""
     try:
-        root = ET.fromstring(xml)
+        root = lees_xml(xml)
     except ET.ParseError as exc:
         raise BwbFout(f"onleesbaar antwoord van de zoekdienst: {exc}", code="geweigerd") from exc
     if (diag := root.find(".//diag:message", _NS)) is not None:
@@ -360,4 +361,4 @@ class SruBwb:
         try:
             self._client.close()
         except Exception:  # noqa: BLE001 – best-effort
-            pass
+            logger.debug("bwb-client niet netjes gesloten", exc_info=True)

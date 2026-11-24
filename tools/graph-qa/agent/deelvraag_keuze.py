@@ -93,8 +93,8 @@ def kandidaten(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]],
     uit: list[dict[str, Any]] = []
     gezien: set[str] = set()
     i = 0
-    while len(uit) < maximaal and any(i * s < len(r) for r, s in zip(rijen, stap)):
-        for r, s in zip(rijen, stap):
+    while len(uit) < maximaal and any(i * s < len(r) for r, s in zip(rijen, stap, strict=True)):
+        for r, s in zip(rijen, stap, strict=True):
             for o in r[i * s:(i + 1) * s]:
                 if o["bron_iri"] not in gezien and len(uit) < maximaal:
                     gezien.add(o["bron_iri"])

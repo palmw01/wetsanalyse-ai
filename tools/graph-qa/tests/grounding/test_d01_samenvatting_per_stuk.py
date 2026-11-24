@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
 
 from agent import subagent as sub
 from agent.gelezen import per_stuk, vraag_niet_in_stuk, zelf_afgebakend

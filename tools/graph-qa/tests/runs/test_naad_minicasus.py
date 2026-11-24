@@ -25,7 +25,7 @@ import pytest
 from agent.runstore import Run
 from bron_fakes import bronrijen
 from bronmodel import bouw_snapshot
-from fakes import FakeGraph, make_settings
+from fakes import make_settings
 from test_gedeelde_laag import ARTIKEL_TSV, _events
 
 pytestmark = pytest.mark.risico("R21", laag=2)

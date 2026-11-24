@@ -22,7 +22,7 @@ MEETMAP = ROOT / "docs/architectuur/metingen/hybrid-v1-invordering-vervolg-2026-
 ONDERZOEK = ROOT / "docs/wetsanalyse/onderzoek-invordering-2026-09-29"
 VARIANTEN = ("A_huidig", "B_verbeterd", "C_context")
 TOKENS = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
-TARIEVEN = dict(zip(TOKENS, (3.0, 15.0, 0.30, 3.75)))
+TARIEVEN = dict(zip(TOKENS, (3.0, 15.0, 0.30, 3.75), strict=True))
 TARIEFBRON = "https://www-cdn.anthropic.com/files/4zrzovbb/website/3684c2faafb97418665782cea0001f439f74b1d2.pdf"
 
 

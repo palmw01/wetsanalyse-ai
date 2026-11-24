@@ -41,7 +41,7 @@ class NepApi:
     def __init__(self, vragen=VRAGEN, kandidaten=None, gezocht=True):
         self.revisie = 1
         self.ids = [f"d{i + 1}" for i in range(len(vragen))] or [bs.ANALYSEVRAAG]
-        self.vragen = dict(zip(self.ids, vragen or ["Wanneer is een aanslag invorderbaar?"]))
+        self.vragen = dict(zip(self.ids, vragen or ["Wanneer is een aanslag invorderbaar?"], strict=True))
         self.modus = "deelvragen" if vragen else "analysevraag"
         self.rijen: dict[str, dict] = {}
         self.kandidaten = kandidaten or {}                  # id → {label, rol, bij: [did], afh_van?: id}

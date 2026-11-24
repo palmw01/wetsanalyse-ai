@@ -48,6 +48,7 @@ import httpx
 from bronmodel import tekst_hash
 
 from .http_beleid import HERHAAL_S, POGINGEN, STANDAARD, TIJDELIJKE_CODES, Statusbeleid, met_herhaling
+from ..xml_lezen import lees_xml
 
 logger = logging.getLogger("graph_qa.rechtspraak")
 
@@ -107,7 +108,7 @@ _ID_RE = re.compile(r"<id>([^<]+)</id>")
 
 def lido_metadata(tekst: str, ecli: str) -> dict[str, str]:
     """{titel, datum, nummer, rechtsgebied} uit de RDF van een uitspraak bij LiDO; {} als die de ECLI niet beschrijft."""
-    root = ET.fromstring(tekst)
+    root = lees_xml(tekst)
     dct, rl = "{http://purl.org/dc/terms/}", _RL
     if not any((e.text or "").strip() == ecli for e in root.iter(f"{dct}identifier")):
         return {}
@@ -241,7 +242,7 @@ def _gewijzigd(tekst: str) -> str:
     """`dcterms:modified` uit een antwoord met alleen de metadata (`return=META`); leeg als het niet te lezen is, en dan
     haalt de adapter de tekst opnieuw – liever een aanroep te veel dan een verouderde uitspraak."""
     try:
-        return _gewijzigd_in(ET.fromstring(tekst))
+        return _gewijzigd_in(lees_xml(tekst))
     except ET.ParseError:
         return ""
 
@@ -251,7 +252,7 @@ _ATOM = "{http://www.w3.org/2005/Atom}"
 
 def feed_van(tekst: str) -> Feed:
     """De treffers en het totaal uit een Atom-antwoord van de zoekfeed."""
-    root = ET.fromstring(tekst.lstrip("\ufeff"))
+    root = lees_xml(tekst.lstrip("\ufeff"))
     m = re.search(r"(\d+)", root.findtext(f"{_ATOM}subtitle") or "")
     treffers = tuple(Treffer((e.findtext(f"{_ATOM}id") or "").strip(), " ".join((e.findtext(f"{_ATOM}title") or "").split()),
                              " ".join((e.findtext(f"{_ATOM}summary") or "").split()))
@@ -260,7 +261,7 @@ def feed_van(tekst: str) -> Feed:
 
 
 def instanties_van(tekst: str) -> tuple[Instantie, ...]:
-    root = ET.fromstring(tekst.lstrip("\ufeff"))
+    root = lees_xml(tekst.lstrip("\ufeff"))
     return tuple(Instantie((i.findtext("Identifier") or "").strip(), (i.findtext("Naam") or "").strip(),
                            (i.findtext("Afkorting") or "").strip(), (i.findtext("Type") or "").strip(),
                            not (i.findtext("EndDate") or "").strip())
@@ -277,7 +278,7 @@ def rechtsgebieden_van(tekst: str) -> tuple[Rechtsgebied, ...]:
             uit.append(Rechtsgebied((r.findtext("Identifier") or "").strip(), naam, ouder))
             loop(r, naam)
 
-    loop(ET.fromstring(tekst.lstrip("\ufeff")), "")
+    loop(lees_xml(tekst.lstrip("\ufeff")), "")
     return tuple(r for r in uit if r.uri)
 
 
@@ -302,7 +303,7 @@ def nieuwste_titel(tekst: str) -> str:
 def links_xml(tekst: str, versie: str) -> tuple[list[Link], int, int | None]:
     """(links, aantal items op de pagina, telling van LiDO) uit één pagina van `get-links` als XML. Een ongeldig
     antwoord is een `ET.ParseError`; de aanroeper valt dan terug op RDF."""
-    root = ET.fromstring(tekst)
+    root = lees_xml(tekst)
     subjecten = [x for x in root if x.tag == "subject"]
     if not subjecten:
         return [], 0, None
@@ -329,7 +330,7 @@ def links_xml(tekst: str, versie: str) -> tuple[list[Link], int, int | None]:
 def links_rdf(tekst: str, versie: str) -> list[Link]:
     """Dezelfde inkomende jurisprudentielinks uit het RDF-formaat (`get-links` zonder `output=xml`), zonder titel."""
     uit: list[Link] = []
-    for d in ET.fromstring(tekst).iter(f"{_RDF}Description"):
+    for d in lees_xml(tekst).iter(f"{_RDF}Description"):
         typ = d.find(f"{_RDF}type")
         if typ is None or not typ.get(f"{_RDF}resource", "").endswith("/LinkAct"):
             continue
@@ -638,7 +639,7 @@ class LidoRechtspraak:
                 return bewaard
         tekst = self._get(self._rs, id=ecli)
         try:
-            root = ET.fromstring(tekst)
+            root = lees_xml(tekst)
         except ET.ParseError as exc:
             raise RechtspraakFout(f"de Rechtspraak gaf geen leesbare XML voor {ecli}", code="geweigerd") from exc
         if not any(e.tag.endswith("identifier") and (e.text or "").strip() == ecli for e in root.iter()):
@@ -655,4 +656,4 @@ class LidoRechtspraak:
         try:
             self._client.close()
         except Exception:  # noqa: BLE001 – best-effort, zoals MCPClient.close
-            pass
+            logger.debug("rechtspraak-client niet netjes gesloten", exc_info=True)

@@ -312,7 +312,7 @@ def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, A
                                      gestopt=lambda: bool(b.stop_check and b.stop_check())),
             loop=b.loop, schrijf=writer)
         if not nee:
-            tweede.zelf_beantwoord = [{"vraag": str(v.get("tekst", "")), "antwoord": a} for v, a in zip(gesteld, antwoorden)]
+            tweede.zelf_beantwoord = [{"vraag": str(v.get("tekst", "")), "antwoord": a} for v, a in zip(gesteld, antwoorden, strict=True)]
             return _met_kind(state, tweede, verder, profiel)
     return _met_kind(state, afloop, kind, profiel)
 
@@ -692,7 +692,8 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
     if naar == INGANG:
         from .nodes.supervisie import _entry_node
         naar = _entry_node(_b, {**state, **uitkomst})
-        assert naar in o.ingangen, f"overdracht {o.naam} kwam uit bij {naar}"
+        if naar not in o.ingangen:
+            raise RuntimeError(f"overdracht {o.naam} kwam uit bij {naar}")
     return {"messages": [resultaat(tekst)], "pending_tools": [],
             "overdracht_naar": "" if naar == "agent" else naar, **uitkomst}
 

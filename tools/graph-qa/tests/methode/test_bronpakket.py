@@ -6,7 +6,6 @@ van de api (`bronmodel.werkplaats.hash_van`).
 """
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys

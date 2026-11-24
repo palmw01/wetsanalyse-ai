@@ -22,7 +22,8 @@ from .validatie import Bevinding
 
 # Welke klasse een sterk bewijsstuk aanwijst: afgeleid uit de regeldefinities (bewijssterkte.py).
 KLASSE_VAN_BEWIJS = klasse_van_bewijs()
-assert set(KLASSE_VAN_BEWIJS) == set(STERK_BEWIJS), "elk sterk bewijs wijst één klasse aan"
+if set(KLASSE_VAN_BEWIJS) != set(STERK_BEWIJS):
+    raise RuntimeError("elk sterk bewijs wijst één klasse aan")
 
 REVIEWBAAR = ("DETECTOR_CONFLICT", "CLASSIFIER_ABSTAIN", "ZELFDE_SPAN", "CENTRALE_NORM_AFGEWEZEN")
 

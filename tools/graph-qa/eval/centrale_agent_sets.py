@@ -103,7 +103,8 @@ def scoor_kwaliteit(rec: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]
 def scoor_gesprek(rec: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
     centraal = rec.get("vorm") == "centraal"
     beurten = []
-    for spec, beurt in zip(case["beurten"], rec.get("beurten") or []):
+    # Een afgebroken opname heeft minder beurten dan de casus; die tellen alleen tot waar ze kwamen.
+    for spec, beurt in zip(case["beurten"], rec.get("beurten") or [], strict=False):
         verwacht = dict(spec.get("verwacht") or {})
         niet_getoetst = []
         if centraal and verwacht.get("route") in SPECIALISTROUTES:

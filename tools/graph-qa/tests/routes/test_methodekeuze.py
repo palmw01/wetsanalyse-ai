@@ -13,7 +13,7 @@ import pytest
 from agent import methodekeuze
 from agent.methodepakket import PAKKET
 from agent.nodes import supervisie
-from test_routering import ModelGevraagd, _bouw
+from test_routering import _bouw
 
 EVAL = Path(__file__).resolve().parents[2] / "eval"
 

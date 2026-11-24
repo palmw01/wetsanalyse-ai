@@ -18,7 +18,7 @@ from agent.config import Settings
 from agent.grounding import check_grounding
 from agent.sjablonen import extern
 from agent.sjablonen.vullen import Onvulbaar
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
+from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 from test_kamerstuk_tools import DOSSIER, NepBron
 
 AAN = Settings(connector_kamerstukken=True)

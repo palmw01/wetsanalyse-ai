@@ -34,6 +34,7 @@ import httpx
 from bronmodel import tekst_hash
 
 from .http_beleid import STANDAARD, met_herhaling
+from ..xml_lezen import lees_xml
 
 SRU_URL = "https://repository.overheid.nl/sru"
 _HOSTS = {"repository.overheid.nl"}
@@ -150,6 +151,11 @@ def _tekst(e: ET.Element, pad: str) -> str:
     return (v.text or "").strip() if v is not None else ""
 
 
+def _alle(e: ET.Element, pad: str) -> tuple[str, ...]:
+    """De niet-lege teksten van alle elementen op `pad` onder `e`."""
+    return tuple(t for d in e.iterfind(pad, _NS) if (t := (d.text or "").strip()))
+
+
 def _datum(waarde: str) -> str:
     """Een ISO-datum, of '' bij een datum die niet kan kloppen (vóór `_EERSTE_JAAR`)."""
     return waarde if waarde[:4].isdigit() and int(waarde[:4]) >= _EERSTE_JAAR else ""
@@ -158,7 +164,7 @@ def _datum(waarde: str) -> str:
 def lees_records(xml: bytes, fout: type[KoopFout] = KoopFout) -> tuple[int, list[Record]]:
     """(totaal, records) uit een searchRetrieveResponse. Een SRU-diagnose is een fout, geen lege lijst."""
     try:
-        root = ET.fromstring(xml)
+        root = lees_xml(xml)
     except ET.ParseError as exc:
         raise fout(f"onleesbaar SRU-antwoord: {exc}", code="geweigerd") from exc
     if (diag := root.find(".//diag:message", _NS)) is not None:
@@ -168,9 +174,6 @@ def lees_records(xml: bytes, fout: type[KoopFout] = KoopFout) -> tuple[int, list
     for rec in root.iterfind(".//sru:record", _NS):
         urls = {u.get("manifestation"): (u.text or "").strip() for u in rec.iterfind(".//gzd:itemUrl", _NS)}
 
-        def alle(pad: str) -> tuple[str, ...]:
-            return tuple(t for d in rec.iterfind(pad, _NS) if (t := (d.text or "").strip()))
-
         gepubliceerd = _datum(_tekst(rec, ".//dcterms:available"))
         uit.append(Record(
             id=_tekst(rec, ".//dcterms:identifier"), titel=_tekst(rec, ".//dcterms:title"),
@@ -178,16 +181,16 @@ def lees_records(xml: bytes, fout: type[KoopFout] = KoopFout) -> tuple[int, list
             # brief van 25 september, gepubliceerd op 9 november). Nu elk apart; zonder `dt.date` de publicatiedatum.
             datum=_datum(_tekst(rec, ".//dcterms:date")) or gepubliceerd,
             gepubliceerd=gepubliceerd,
-            vergaderjaar=_tekst(rec, ".//ow:vergaderjaar"), dossiers=alle(".//ow:dossiernummer"),
+            vergaderjaar=_tekst(rec, ".//ow:vergaderjaar"), dossiers=_alle(rec, ".//ow:dossiernummer"),
             ondernummer=_tekst(rec, ".//ow:ondernummer"), xml_url=urls.get("xml", ""), pdf_url=urls.get("pdf", ""),
             gewijzigd=_tekst(rec, ".//dcterms:modified"), documentstatus=_tekst(rec, ".//ow:documentstatus"),
             versie=" ".join(v for v in (_tekst(rec, ".//ow:versieinformatie"), _tekst(rec, ".//ow:versienummer")) if v),
             documenttitel=_tekst(rec, ".//ow:documenttitel"), dossiertitel=_tekst(rec, ".//ow:dossiertitel"),
             soort=_tekst(rec, ".//ow:subrubriek"), kamer=_tekst(rec, ".//dcterms:creator"),
-            indieners=alle(".//ow:indiener"), publicatienaam=_tekst(rec, ".//ow:publicatienaam"),
+            indieners=_alle(rec, ".//ow:indiener"), publicatienaam=_tekst(rec, ".//ow:publicatienaam"),
             jaargang=_tekst(rec, ".//ow:jaargang"), publicatienummer=_tekst(rec, ".//ow:publicatienummer"),
             ondertekend=_datum(_tekst(rec, ".//ow:datumOndertekening")),
-            behandeld_dossiers=alle(".//ow:behandeldDossier"), type=_tekst(rec, ".//dcterms:type"),
+            behandeld_dossiers=_alle(rec, ".//ow:behandeldDossier"), type=_tekst(rec, ".//dcterms:type"),
             samenvatting=_tekst(rec, ".//dcterms:abstract")))
     return totaal, uit
 
@@ -287,4 +290,4 @@ class SruKoop:
         try:
             self._client.close()
         except Exception:  # noqa: BLE001 – best-effort, zoals MCPClient.close
-            pass
+            self._logger.debug(f"{self.SOORT}-client niet netjes gesloten", exc_info=True)

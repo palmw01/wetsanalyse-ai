@@ -18,7 +18,6 @@ from typing import Any
 from langgraph.config import get_stream_writer
 from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
 
-from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
 from ..bron_annotatie import (controleer_hergebruik, doel_event, lees_bron, lokale_elementen, lokale_relaties,
                               stand_per_optie)

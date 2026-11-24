@@ -223,8 +223,9 @@ class GeheugenStore:
                 if afgelopen:
                     break
                 if cursor >= run.geproduceerd:
+                    # `tot` legt de cursor van deze ronde vast: de lus verzet hem pas na het wachten.
                     await run._wakker.wait_for(
-                        lambda: cursor < run.geproduceerd or not run.loopt
+                        lambda tot=cursor: tot < run.geproduceerd or not run.loopt
                     )
         if not gezien:
             # Ook wie aanhaakt ná de `done` (`vanaf`) krijgt hem: alleen `done` sluit een beurt voor de client.
