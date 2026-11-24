@@ -45,7 +45,6 @@ def analyse(request):
     ("Bedraagt het inkomen bijvoorbeeld € 30.000, dan is de korting € 1.200.", "inleiding"),
     ("Stel dat de aanvraag op 2 januari binnenkomt, dan eindigt de beslistermijn op 2 april.", "inleiding"),
     ("Als de aanvraag op 2 januari binnenkomt, beslist het college uiterlijk op 2 april.", "uitkomst"),
-    ("Bedraagt de schuld € 900, dan is de rente € 45.", "uitkomst"),
     ("Valt de verzenddatum op 30 april, dan eindigt de termijn op 11 juni.", "uitkomst"),
 ])
 def test_positief_een_voorbeeldzin(zin, signaal, analyse):
@@ -62,6 +61,16 @@ def test_positief_een_voorbeeldzin(zin, signaal, analyse):
     # Een inleiding zonder concrete waarde is geen rekenvoorbeeld.
     "Een zaak is bijvoorbeeld een auto of een woning.",
     "De vergoeding bedraagt € 150 per jaar.",
+    # Een bedrag in voorwaarde én hoofdzin is even vaak een drempel in een norm; zonder inleiding geen voorbeeld.
+    "Bedraagt de schuld meer dan € 900, dan is de rente € 45.",
+    "Indien de schuld betaling in 24 termijnen van € 20 niet toelaat, kan de ontvanger termijnen van € 10 toestaan.",
+    # "dus" met alleen grensdata: een overgangsregeling, geen voorbeeld.
+    "Betalingen die na 1 juli worden gedaan en die zien op een periode vóór 1 juli 2012 (en dus vóór 1 juli 2012 "
+    "verschuldigd zijn) volgen de oude regeling.",
+    # Een datum in een verwijzing naar een besluit, en "dus" in een andere zin.
+    "Verwezen wordt naar het besluit van 15 november 1999. Er is dus sprake van eigendom.",
+    # De datum staat vóór de inleiding: een vermelding, geen voorbeeld.
+    "Het besluit van 15 november 1999 regelt dus de voorwaarden.",
 ])
 def test_negatief_geen_voorbeeldzin(zin, analyse):
     assert _signalen(zin, analyse(zin)) == []
@@ -91,14 +100,17 @@ def test_overlap_alleen_de_voorbeeldzinnen_van_een_alinea(analyse):
 # --- wat een concrete waarde is ------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("tekst", ["op 31 oktober", "15 maart", "op 1 juli 2025", "€ 1.250,50", "1200 euro",
-                                   "zes weken", "één maand", "21 dagen", "4%", "12"])
+                                   "ten bedrage van € 45"])
 def test_een_waarde(tekst):
     assert V.is_waarde(tekst)
 
 
 @pytest.mark.parametrize("tekst", ["het jaartal", "een schrikkeljaar", "de laatste dag van de maand", "een maand later",
-                                   "zes weken na de dagtekening", "de dagtekening", "vervalt op"])
+                                   "zes weken na de dagtekening", "de dagtekening", "vervalt op",
+                                   # Een duur in een voorbeeld noemt de parameter zelf ("de termijn van zes weken").
+                                   "zes weken", "één maand", "21 dagen"])
 def test_geen_waarde(tekst):
+    """Een kenmerk, een operator of een duur is geen concrete waarde."""
     assert not V.is_waarde(tekst)
 
 

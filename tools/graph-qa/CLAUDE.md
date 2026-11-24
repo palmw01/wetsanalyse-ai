@@ -1478,6 +1478,15 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   per geval verschilt, H2:107, M01 h.4 §12) zet de keten nooit: dat kiest de jurist. Een verbijzondering telt in de
   relatiecatalogus ook als de klasse die zij verbijzondert (`jas_relaties.als_klassen`, de sleutel `verbijzonderingen` in
   `relaties.json`); de relatievoorstellen gebruiken dat, ook voor de ouder van een waarde (`relaties._waardeouder`).
+- **Een rekenvoorbeeld is geen norm, maar wel bron** (`jas_pipeline/voorbeeld.py`, na de fusie en vóór de besluiten; skill
+  `references/markeringslijst.md`, plan-lessen-termijnen-bibliotheek V8/M2). Een voorbeeldzin herkent de stap aan een
+  inleiding ("bijvoorbeeld", "dus", "dan houdt dat in dat", "stel dat") met een datum of bedrag als gegeven ná de
+  inleiding, of aan een voorwaardelijke zin met een kalenderdatum als gegeven in de voorwaarde én als uitkomst. Een datum
+  als grens ("vóór 1 april", "met ingang van") telt niet: zo schrijft een overgangsregeling een norm; een bedrag zonder
+  inleiding ook niet: dat is even vaak een drempel. Binnen het voorbeeld: een datum of bedrag `REJECTED`
+  (`VOORBEELD_WAARDE`), de normklassen weg (`VOORBEELD_GEEN_NORM`), de rest het kenmerk `IN_VOORBEELD` (administratief in
+  `besluit`, zichtbaar in de signalen, de toelichting en voor de reviewer, die er één zin over krijgt). Een duur is geen
+  waarde: in een voorbeeld noemt die de parameter. Zonder voorbeeld is de uitkomst bitgelijk. `tests/annotatieketen/test_voorbeeld.py`.
 - **Een duur is één Tijdsaanduiding** (JAS-PRIORITY-001) met subtype "verbijzondert parameter"; alleen een
   getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
   code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem

@@ -1,0 +1,1390 @@
+{
+ "urn:bwb:BWBR0004770:artikel:9:lid:1": {
+  "status": 200,
+  "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+  "label": "Invorderingswet 1990 – Artikel 9, Lid 1",
+  "elementen": [
+   {
+    "id": "d46ea984bf1d",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 50,
+    "eind": 86,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "223ac94d9c58",
+    "klasse": "Rechtsobject",
+    "tekst": "Een belastingaanslag",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 0,
+    "eind": 20,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "055a7e165515",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 37,
+    "eind": 86,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "a362df5f5bef",
+    "klasse": "Operator",
+    "tekst": "na",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 47,
+    "eind": 49,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "1c3866246a40",
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 69,
+    "eind": 86,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "473c19a14797",
+    "klasse": "Rechtsbetrekking",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 0,
+    "eind": 87,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "8263fa226caa491988a08721285d4106",
+    "klasse": "Afleidingsregel",
+    "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 24,
+    "eind": 86,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "aa58048441264c61adb00deec24f396f",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "lifecycle": "rejected",
+    "herkomst": "mens",
+    "start": 50,
+    "eind": 64,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "379bc7e16ded465b895586eedddb2e3f",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 37,
+    "eind": 46,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   },
+   {
+    "id": "5bdea17d31534e0994a895a1376b2f49",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "invorderbaar",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 24,
+    "eind": 36,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:1"
+   }
+  ]
+ },
+ "urn:bwb:BWBR0004770:artikel:9:lid:5": {
+  "status": 200,
+  "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+  "label": "Invorderingswet 1990 – Artikel 9, Lid 5",
+  "elementen": [
+   {
+    "id": "2b684fd4d32245c3a62cf48d7ad3cb9f",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de vennootschapsbelasting",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 89,
+    "eind": 114,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "e2ca71561a2145d2a2385855ac42f905",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de inkomstenbelasting",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 158,
+    "eind": 179,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "3f4cc7cd90b3",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "lifecycle": "edited",
+    "herkomst": "agent",
+    "start": 348,
+    "eind": 384,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "c329cb2e0144",
+    "klasse": "Rechtsobject",
+    "tekst": "een voorlopige conserverende aanslag in de inkomstenbelasting",
+    "lifecycle": "edited",
+    "herkomst": "agent",
+    "start": 118,
+    "eind": 179,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "670e69da2d58",
+    "klasse": "Rechtsobject",
+    "tekst": "een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting",
+    "lifecycle": "edited",
+    "herkomst": "agent",
+    "start": 35,
+    "eind": 114,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "e9bdeadac5c4",
+    "klasse": "Rechtsbetrekking",
+    "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 0,
+    "eind": 434,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "e68cfd6caa2e",
+    "klasse": "Operator",
+    "tekst": "of",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 83,
+    "eind": 85,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "ae0e362d0604",
+    "klasse": "Operator",
+    "tekst": "en",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 115,
+    "eind": 117,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "b0ba8ba3376e",
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 189,
+    "eind": 206,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "ba134bee6642",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een dagtekening",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 207,
+    "eind": 222,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "e6e2c10a5107",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "in het jaar",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 238,
+    "eind": 249,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "4b1457b3fe8a",
+    "klasse": "Voorwaarde",
+    "tekst": "het jaar waarover deze is vastgesteld",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 241,
+    "eind": 278,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "2e6928e80654",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "invorderbaar",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 280,
+    "eind": 292,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "1cb47880a331",
+    "klasse": "Afleidingsregel",
+    "tekst": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 296,
+    "eind": 433,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "f9b6508156ed",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "zoveel gelijke termijnen",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 296,
+    "eind": 320,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "9480b1694035",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "na de maand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 328,
+    "eind": 339,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "97731f06784b",
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 367,
+    "eind": 384,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "a4e8bca538b5",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "nog maanden",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 397,
+    "eind": 408,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "52525d2b22c84273ae0cff53311237fc",
+    "klasse": "Afleidingsregel",
+    "tekst": "gelijke termijnen",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 303,
+    "eind": 320,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "045de4259c8142469b8f2ed21769ada6",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de inkomstenbelasting",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 61,
+    "eind": 82,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "64509082541d49ddbf8131c36e676a08",
+    "klasse": "Voorwaarde",
+    "tekst": "waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 181,
+    "eind": 278,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "706f59c2328e",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "het jaar",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 413,
+    "eind": 421,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "e9f2f0428ec5",
+    "klasse": "Afleidingsregel",
+    "tekst": "De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 435,
+    "eind": 567,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "87a05e19b7c8",
+    "klasse": "Rechtsobject",
+    "tekst": "De eerste termijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 435,
+    "eind": 452,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "12b2b76041de",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "één maand na de dagtekening van het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 461,
+    "eind": 510,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "8dbbf1fe2966",
+    "klasse": "Operator",
+    "tekst": "na",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 471,
+    "eind": 473,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "15fa7c69055d",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 474,
+    "eind": 510,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "0ed5a7200be1",
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 493,
+    "eind": 510,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "2cf4034b8aa3",
+    "klasse": "Rechtsobject",
+    "tekst": "de volgende termijnen",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 522,
+    "eind": 543,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "480469359368",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "telkens een maand later",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 544,
+    "eind": 567,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "efbdfe240aa2",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "telkens een maand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 544,
+    "eind": 561,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "261f3dcdc3a6",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 552,
+    "eind": 561,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "678a57321295",
+    "klasse": "Voorwaarde",
+    "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 569,
+    "eind": 646,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "3ddfd376bf03",
+    "klasse": "Rechtsfeit",
+    "tekst": "de toepassing van de eerste volzin",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 576,
+    "eind": 610,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "141d9244761e",
+    "klasse": "Operator",
+    "tekst": "niet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 611,
+    "eind": 615,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "f34386e946c7",
+    "klasse": "Operator",
+    "tekst": "meer dan",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 626,
+    "eind": 634,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "dbbd2599a78e",
+    "klasse": "Parameter en parameterwaarde",
+    "tekst": "één",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 635,
+    "eind": 638,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "2009980331ee",
+    "klasse": "Rechtsobject",
+    "tekst": "termijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 639,
+    "eind": 646,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "1d46b64dc6aa",
+    "klasse": "Afleidingsregel",
+    "tekst": "vindt het eerste lid toepassing",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 648,
+    "eind": 679,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   },
+   {
+    "id": "241dabff13904951a626b4da781451ac",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "in de inkomstenbelasting of in de vennootschapsbelasting",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 58,
+    "eind": 114,
+    "bron": "urn:bwb:BWBR0004770:artikel:9:lid:5"
+   }
+  ]
+ },
+ "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1": {
+  "status": 200,
+  "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+  "label": "Leidraad Invordering 2008 – Artikel 9, 9.1",
+  "elementen": [
+   {
+    "id": "c78a9b1949df",
+    "klasse": "Rechtsfeit",
+    "tekst": "Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 310,
+    "eind": 407,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "2dc15657bb19",
+    "klasse": "Voorwaarde",
+    "tekst": "Bij afwijkende boekjaren",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 310,
+    "eind": 334,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "d5d07bd19887",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "afwijkende boekjaren",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 314,
+    "eind": 334,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "009a07ef4b9b",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de laatste vervaldag",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 341,
+    "eind": 361,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "4ad4ad37e6d0",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de laatste dag van de maand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 372,
+    "eind": 399,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "3c99638dd4924981aac6de4102bb205e",
+    "klasse": "Voorwaarde",
+    "tekst": "die zijn gedagtekend in november of eerder",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 95,
+    "eind": 137,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "da2f764592f3",
+    "klasse": "Voorwaarde",
+    "tekst": "toepassing van de wet",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 139,
+    "eind": 160,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "07097203e293",
+    "klasse": "Rechtsfeit",
+    "tekst": "dan wordt de vervaldag van deze termijn op 31 december gesteld",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 246,
+    "eind": 308,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "fa0896da3ba7",
+    "klasse": "Afleidingsregel",
+    "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld.",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 0,
+    "eind": 309,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "a6e0f16c4b5e",
+    "klasse": "Rechtsobject",
+    "tekst": "voorlopige aanslagen",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 27,
+    "eind": 47,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "0069d4c9efeb",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "in november of eerder",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 116,
+    "eind": 137,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "9a48a37ef782",
+    "klasse": "Operator",
+    "tekst": "of eerder",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 128,
+    "eind": 137,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "9423f4688388",
+    "klasse": "Rechtsobject",
+    "tekst": "de enige of laatste betalingstermijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 183,
+    "eind": 219,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "ad51d6eb825b",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "voor 31 december",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 228,
+    "eind": 244,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "374b28c13f3d",
+    "klasse": "Operator",
+    "tekst": "voor",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 228,
+    "eind": 232,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "7a5a070c79f1",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de vervaldag",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 256,
+    "eind": 268,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "20519f920e6e",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 31 december",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 286,
+    "eind": 300,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "fa3a068d97ab",
+    "klasse": "Afleidingsregel",
+    "tekst": "Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 310,
+    "eind": 408,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   },
+   {
+    "id": "b6b68283fd1641d18fab557fa1d0c8f0",
+    "klasse": "Voorwaarde",
+    "tekst": "toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december",
+    "lifecycle": "human_approved",
+    "herkomst": "mens",
+    "start": 139,
+    "eind": 244,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+   }
+  ]
+ },
+ "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5": {
+  "status": 200,
+  "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+  "label": "Leidraad Invordering 2008 – Artikel 9, 9.5",
+  "elementen": [
+   {
+    "id": "7f2eda4ddb2a",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 4,
+    "eind": 23,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "5f60d0ad708f",
+    "klasse": "Rechtsobject",
+    "tekst": "een aanslag",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 28,
+    "eind": 39,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "10acb6391bad",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "één maand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 54,
+    "eind": 63,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "82b20eecfc60",
+    "klasse": "Operator",
+    "tekst": "of",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 64,
+    "eind": 66,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "13e7f744c842",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 81,
+    "eind": 90,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "398711121c90",
+    "klasse": "Afleidingsregel",
+    "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening.",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 556,
+    "eind": 801,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "14cd813486b1",
+    "klasse": "Voorwaarde",
+    "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 556,
+    "eind": 659,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "01a9d55bf82c",
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 579,
+    "eind": 596,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "c58bb41742b5",
+    "klasse": "Operator",
+    "tekst": "valt op een andere dag dan",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 597,
+    "eind": 623,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "3f803dcfa550",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de laatste dag van de kalendermaand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 624,
+    "eind": 659,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "10ad28ed8b4c",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 669,
+    "eind": 679,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "24dbe440e190",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand later",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 680,
+    "eind": 695,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "8b29c8b9d9e1",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een betalingstermijn",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 701,
+    "eind": 721,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "6806977cc57b",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 726,
+    "eind": 735,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "5efc554c3da9",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dag die hetzelfde nummer heeft als dat van de dagtekening",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 740,
+    "eind": 800,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "33161b134fb1",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "lifecycle": "human_approved",
+    "herkomst": "agent",
+    "start": 786,
+    "eind": 800,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "273b05b20861",
+    "klasse": "Afleidingsregel",
+    "tekst": "vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 661,
+    "eind": 800,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "1cf91714fd26",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de kalendermaand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 643,
+    "eind": 659,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "02ba15841c30",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 680,
+    "eind": 689,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "1adbe584d478",
+    "klasse": "Rechtsobject",
+    "tekst": "de dag",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 740,
+    "eind": 746,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "30b2b50af856",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "hetzelfde nummer",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 751,
+    "eind": 767,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "13704901b983",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een andere dag",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 605,
+    "eind": 619,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "e172c48988dc",
+    "klasse": "Operator",
+    "tekst": "is gesteld op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 40,
+    "eind": 53,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "e2507d41fd59",
+    "klasse": "Operator",
+    "tekst": "is gesteld op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 67,
+    "eind": 80,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2249bf60a2fd",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "lifecycle": "edited",
+    "herkomst": "agent",
+    "start": 560,
+    "eind": 596,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "004eaea923d7",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 26 april",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 966,
+    "eind": 977,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "0c7ba317c10e",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 806,
+    "eind": 820,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "1110b9f1e6b5",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 955,
+    "eind": 965,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "11d3257a0c13",
+    "klasse": "Operator",
+    "tekst": "vervalt op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 208,
+    "eind": 218,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2748bbb841a6",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 258,
+    "eind": 267,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "29dd001bb2f6",
+    "klasse": "Rechtsobject",
+    "tekst": "een aanslagbiljet",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 136,
+    "eind": 153,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2a9d29de0853",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 388,
+    "eind": 407,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2b04e73c8985",
+    "klasse": "Operator",
+    "tekst": "vervalt op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 518,
+    "eind": 528,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2bae48f141f1",
+    "klasse": "Operator",
+    "tekst": "vervalt op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 268,
+    "eind": 278,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2d80cbe68ca5",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "één maand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 198,
+    "eind": 207,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "2e22d40ee437",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 234,
+    "eind": 253,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "341b4c271272",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een schrikkeljaar",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 471,
+    "eind": 488,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "4be77ba9b58a",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "het jaartal",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 442,
+    "eind": 453,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "4fe545a275fe",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "15 maart",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 937,
+    "eind": 945,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "50412fa897e1",
+    "klasse": "Voorwaarde",
+    "tekst": "dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 102,
+    "eind": 172,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "63ec2a2d08ad",
+    "klasse": "Afleidingsregel",
+    "tekst": "dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 327,
+    "eind": 433,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "69868008b343",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "28 februari",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 311,
+    "eind": 322,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "6ebfdbe8bc32",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 31 maart",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 373,
+    "eind": 384,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "74037520ef60",
+    "klasse": "Operator",
+    "tekst": "dan wel",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 538,
+    "eind": 545,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "78e3203d9091",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 31 oktober",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 159,
+    "eind": 172,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "92ee15fd2be2",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 28 maart",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 526,
+    "eind": 537,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "93282303087d",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 296,
+    "eind": 310,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "a008ce6ec044",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "15 maart",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 834,
+    "eind": 842,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "a09568867c95",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 906,
+    "eind": 915,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "a74d4f60cfe0",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 886,
+    "eind": 905,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "a789b12dc83d",
+    "klasse": "Voorwaarde",
+    "tekst": "de dagtekening van een aanslagbiljet",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 117,
+    "eind": 153,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "aa46a2bf0efb",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 15 april",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 870,
+    "eind": 881,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "b37f6e2ecd06",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 30 november",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 216,
+    "eind": 230,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "bfa84d8503fd",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 412,
+    "eind": 421,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "c135619d56a8",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 363,
+    "eind": 372,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "c31287927691",
+    "klasse": "Operator",
+    "tekst": "valt op",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 154,
+    "eind": 161,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "ccd1cce32ea0",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 339,
+    "eind": 358,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "cdf6cc11f3e7",
+    "klasse": "Operator",
+    "tekst": "tenzij",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 435,
+    "eind": 441,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "d2023c1b5c76",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 12 december",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 276,
+    "eind": 290,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "d66bf9dd2af1",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "op 11 april",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 422,
+    "eind": 433,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "daa995f444c0",
+    "klasse": "Tijdsaanduiding",
+    "tekst": "10 april",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 546,
+    "eind": 554,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "dad4fd50cbc9",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 507,
+    "eind": 517,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "e06bfefbeaa6",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 855,
+    "eind": 865,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "e94a368ce753",
+    "klasse": "Operator",
+    "tekst": "en",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 385,
+    "eind": 387,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "ec2b3234c3f6",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 174,
+    "eind": 193,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "ecbe2efc3e24",
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 922,
+    "eind": 936,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   },
+   {
+    "id": "fc6ba8d36f61",
+    "klasse": "Voorwaarde",
+    "tekst": "tenzij het jaartal aangeeft dat het een schrikkeljaar is",
+    "lifecycle": "rejected",
+    "herkomst": "agent",
+    "start": 435,
+    "eind": 491,
+    "bron": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   }
+  ]
+ }
+}

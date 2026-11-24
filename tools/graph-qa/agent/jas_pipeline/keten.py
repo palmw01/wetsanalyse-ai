@@ -245,9 +245,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     resultaten = [r for t in teksten for r in detecteer_alles(t)]
     fusie = fuseer(resultaten)
     # Een rekenvoorbeeld is geen norm maar wel bron (skill, markeringslijst): vóór de besluiten, zonder model.
-    voorbeelden = [v for t in teksten for v in voorbeeld.herken(t.bron_iri, t.tekst, t.analyse)]
-    if voorbeelden:
-        fusie = fusie.model_copy(update={"kandidaten": voorbeeld.pas_toe(fusie.kandidaten, voorbeelden)})
+    fusie, voorbeeldmeting = voorbeeld.op_fusie(fusie, teksten)
     detectoren = len({r.detector for r in resultaten})
     fasen.klaar("Detectie", f"{len(fusie.kandidaten)} kandidaten uit {detectoren} detectoren")
     meting: dict[str, Any] = {"llm_calls": 0, "kandidaten": len(fusie.kandidaten),
@@ -260,11 +258,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                                   "bron_iri": r.bron_iri, "kandidaten": len(r.kandidaten),
                                   "overgeslagen": r.overgeslagen, "reden": r.reden} for r in resultaten],
                               "classifier_prompt": promptversie(settings.classifier_spankeuze)}
-    if voorbeelden:   # alleen dan: een bepaling zonder voorbeeld houdt dezelfde meting
-        meting["voorbeelden"] = {"versie": voorbeeld.VERSIE, "aantal": len(voorbeelden),
-                                 "afgewezen": sum(k.status is CandidateStatus.REJECTED
-                                                  and any(e.code in voorbeeld.AFWIJZINGSCODES for e in k.evidence)
-                                                  for k in fusie.kandidaten)}
+    if voorbeeldmeting:   # alleen dan: een bepaling zonder voorbeeld houdt dezelfde meting
+        meting["voorbeelden"] = voorbeeldmeting
 
     beslissingen: list[Beslissing] = []
     naar_model: list[Candidate] = []

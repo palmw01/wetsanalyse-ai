@@ -342,7 +342,7 @@
     jas:codeWaarde "VOORBEELD_GEEN_NORM" .
 
 <urn:jas-ns:code:VOORBEELD_WAARDE> a jas:Detectiecode ;
-    skos:definition "Een concrete datum, een bedrag of een getal in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."@nl ;
+    skos:definition "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."@nl ;
     skos:prefLabel "Waarde in een rekenvoorbeeld"@nl ;
     jas:codeWaarde "VOORBEELD_WAARDE" .
 
@@ -1592,5 +1592,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "afbdc3d9a6af" .
+    jas:vocabulaireVersie "417e41805acc" .
 

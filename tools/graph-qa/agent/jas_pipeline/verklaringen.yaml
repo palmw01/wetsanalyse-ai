@@ -87,7 +87,7 @@ detectie:
   PRIORITY_APPLIED: {naam: "Voorrangsregel toegepast", uitleg: "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."}
   # rekenvoorbeeld (voorbeeld.py)
   IN_VOORBEELD: {naam: "In een rekenvoorbeeld", uitleg: "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."}
-  VOORBEELD_WAARDE: {naam: "Waarde in een rekenvoorbeeld", uitleg: "Een concrete datum, een bedrag of een getal in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."}
+  VOORBEELD_WAARDE: {naam: "Waarde in een rekenvoorbeeld", uitleg: "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."}
   VOORBEELD_GEEN_NORM: {naam: "Een voorbeeld stelt geen norm", uitleg: "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."}
 
 besluit:

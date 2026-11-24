@@ -12,8 +12,9 @@ Deze stap herkent de voorbeeldzin zonder model en past dat toe op de kandidaten 
 besluiten. De kennis staat hier en in de tests, niet in een prompt (ADR-001). Wat de stap doet, staat als bewijs op
 de kandidaat; er verdwijnt niets stil:
 
-- `VOORBEELD_WAARDE`: een concrete waarde in het voorbeeld (een datum, een bedrag, een kale duur of een getal) wordt
-  `REJECTED`;
+- `VOORBEELD_WAARDE`: een concrete waarde in het voorbeeld (een kalenderdatum of een bedrag) wordt `REJECTED`. Een
+  duur ("zes weken") valt er bewust niet onder: in een voorbeeld noemt die de parameter zelf ("de betalingstermijn van
+  zes weken"), niet een uitkomst;
 - `VOORBEELD_GEEN_NORM`: de klassen die een norm dragen (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit)
   vallen weg; blijft er niets over, dan `REJECTED`;
 - `IN_VOORBEELD`: wat overblijft, krijgt dit kenmerk. Het zegt niets over de klasse (`besluit` telt het niet als
@@ -23,11 +24,12 @@ de kandidaat; er verdwijnt niets stil:
 bedrag) als uitkomst; een duur alleen telt niet, want die staat ook in elke termijnnorm:
 
 1. *een inleiding*: "bijvoorbeeld", "ter illustratie", "stel dat", "dus", of een conclusie als "dan houdt dat in
-   dat" en "dat betekent dat". Bij een conclusie begint het voorbeeld bij de inleiding: wat ervoor staat, is vaak de
-   regel die het voorbeeld uitwerkt;
+   dat" en "dat betekent dat", met een concrete waarde als gegeven ná de inleiding (een grens telt niet, zie hieronder). Bij een
+   conclusie begint het voorbeeld bij de inleiding: wat ervoor staat, is vaak de regel die het voorbeeld uitwerkt;
 2. *een uitkomst uit een concreet geval*: een voorwaardelijke zin ("als …, dan …", of met de persoonsvorm voorop: "is
-   de dagtekening …, vervalt …") waarvan de voorwaarde een concrete waarde als gegeven noemt en de hoofdzin een
-   concrete waarde als uitkomst. Een datum als grens in de voorwaarde ("vóór 1 april", "met ingang van") is geen
+   de dagtekening …, vervalt …") waarvan de voorwaarde een kalenderdatum als gegeven noemt en de hoofdzin een
+   kalenderdatum als uitkomst. Met een bedrag is zo'n zin even vaak een norm met een drempel; die telt alleen met een
+   inleiding. Een datum als grens in de voorwaarde ("vóór 1 april", "met ingang van") is geen
    gegeven: zo schrijft een overgangsregeling een norm.
 """
 from __future__ import annotations
@@ -57,6 +59,7 @@ _W = woordenlijsten()
 _DATUM = rf"\b\d{{1,2}}\s+(?:{_W['MAAND']})(?:\s+\d{{4}}(?!\d))?\b"
 _BEDRAG = r"(?:€\s?\d[\d.]*(?:,(?:\d{1,2}|-))?|\b\d[\d.]*(?:,\d{1,2})?\s+euro\b)"
 _CONCREET = re.compile(rf"{_DATUM}|{_BEDRAG}", re.IGNORECASE)
+_KALENDERDATUM = re.compile(_DATUM, re.IGNORECASE)
 # Een datum die een grens is, geen gegeven: vóór 1 april, met ingang van 1 januari.
 _GRENS = re.compile(r"(?:\b(?:vóór|voor|na|vanaf|sinds|tot(?:\s+en\s+met)?|met\s+ingang\s+van|uiterlijk(?:\s+op)?"
                     r"|tussen|per)\s+)$", re.IGNORECASE)
@@ -74,8 +77,7 @@ _INVERSIE = re.compile(r"^\s*(?:is|zijn|valt|vallen|bedraagt|bedragen|ligt|wordt
 
 # Een concrete waarde als hele kandidaat, eventueel met een voorzetsel of lidwoord ervoor.
 _VOOR = r"(?:(?:op|per|van|tot|vóór|voor|na|met|in|de|het|een|tot\s+en\s+met|te|ten\s+bedrage\s+van)\s+)*"
-_DUUR = rf"(?:{_W['TELWOORD']})\s+(?:{_W['PERIODE']})"
-_WAARDE = re.compile(rf"^\s*{_VOOR}(?:{_DATUM}|{_BEDRAG}|{_DUUR}|\d+(?:,\d+)?\s?%|\d+(?:,\d+)?)\s*[.,;]?\s*$",
+_WAARDE = re.compile(rf"^\s*{_VOOR}(?:{_DATUM}|{_BEDRAG})\s*[.,;]?\s*$",
                      re.IGNORECASE)
 
 
@@ -101,20 +103,21 @@ def _zinnen(tekst: str, analyse=None) -> list[tuple[int, int]]:
     return uit
 
 
-def _gegevens(tekst: str) -> list[re.Match]:
+def _gegevens(tekst: str, patroon: re.Pattern = _CONCREET) -> list[re.Match]:
     """De concrete waarden die als gegeven staan, niet als grens."""
-    return [m for m in _CONCREET.finditer(tekst) if not _GRENS.search(tekst[:m.start()])]
+    return [m for m in patroon.finditer(tekst) if not _GRENS.search(tekst[:m.start()])]
 
 
 def _uitkomst(zin: str) -> bool:
-    """Een voorwaardelijke zin met een concrete waarde als gegeven én een als uitkomst."""
+    """Een voorwaardelijke zin met een kalenderdatum als gegeven én een als uitkomst. Een bedrag telt hier niet: "is de
+    schuld lager dan € 20, dan …" is een drempel in een norm (Awir art. 7 lid 3), en een bedrag als uitkomst ook."""
     if not (_VOORWAARDE_BEGIN.match(zin) or _INVERSIE.match(zin)):
         return False
     komma = zin.find(",")
     if komma < 0:
         return False
     voorwaarde, hoofdzin = zin[:komma], zin[komma + 1:]
-    return bool(_gegevens(voorwaarde)) and bool(_CONCREET.search(hoofdzin))
+    return bool(_gegevens(voorwaarde, _KALENDERDATUM)) and bool(_KALENDERDATUM.search(hoofdzin))
 
 
 def herken(bron_iri: str, tekst: str, analyse=None) -> list[Voorbeeld]:
@@ -125,9 +128,9 @@ def herken(bron_iri: str, tekst: str, analyse=None) -> list[Voorbeeld]:
         if not _CONCREET.search(zin):
             continue
         conclusie = _CONCLUSIE.search(zin)
-        if conclusie and _CONCREET.search(zin, conclusie.start()):
+        if conclusie and _gegevens(zin[conclusie.start():]):
             uit.append(Voorbeeld(bron_iri, s + conclusie.start(), e, "conclusie"))
-        elif _INLEIDING.search(zin):
+        elif (inleiding := _INLEIDING.search(zin)) and _gegevens(zin[inleiding.start():]):
             uit.append(Voorbeeld(bron_iri, s, e, "inleiding"))
         elif _uitkomst(zin):
             uit.append(Voorbeeld(bron_iri, s, e, "uitkomst"))
@@ -135,7 +138,7 @@ def herken(bron_iri: str, tekst: str, analyse=None) -> list[Voorbeeld]:
 
 
 def is_waarde(tekst: str) -> bool:
-    """Is dit fragment alleen een concrete waarde (een datum, bedrag, kale duur, percentage of getal)?"""
+    """Is dit fragment alleen een concrete waarde: een kalenderdatum of een bedrag, eventueel met een voorzetsel?"""
     return bool(_WAARDE.match(tekst))
 
 
@@ -169,3 +172,15 @@ def pas_toe(kandidaten: Iterable[Candidate], voorbeelden: Iterable[Voorbeeld]) -
         kenmerk = Evidence(detector="voorbeeld", code="IN_VOORBEELD", regel=REGEL_KENMERK, detail=_plek(v))
         uit.append(k.model_copy(update={"possible_classes": over, "evidence": (*k.evidence, kenmerk, *geen_norm)}))
     return tuple(uit)
+
+
+def op_fusie(fusie, teksten) -> tuple:
+    """De stap in de keten: (de fusie met de regel toegepast, de meting), of (dezelfde fusie, None) zonder voorbeeld."""
+    voorbeelden = [v for t in teksten for v in herken(t.bron_iri, t.tekst, t.analyse)]
+    if not voorbeelden:
+        return fusie, None
+    kandidaten = pas_toe(fusie.kandidaten, voorbeelden)
+    afgewezen = sum(k.status is CandidateStatus.REJECTED and any(e.code in AFWIJZINGSCODES for e in k.evidence)
+                    for k in kandidaten)
+    return (fusie.model_copy(update={"kandidaten": kandidaten}),
+            {"versie": VERSIE, "aantal": len(voorbeelden), "afgewezen": afgewezen})

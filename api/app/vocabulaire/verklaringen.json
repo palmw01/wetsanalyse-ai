@@ -346,7 +346,7 @@
     },
     "VOORBEELD_WAARDE": {
       "naam": "Waarde in een rekenvoorbeeld",
-      "uitleg": "Een concrete datum, een bedrag of een getal in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."
+      "uitleg": "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."
     }
   },
   "jas_versie": "1.0.10",
@@ -1076,5 +1076,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "afbdc3d9a6af"
+  "vocabulaire_versie": "417e41805acc"
 }
