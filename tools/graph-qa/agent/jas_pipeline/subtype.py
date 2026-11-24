@@ -17,7 +17,7 @@ eerlijke "onbepaald", een verkeerd subtype is een stille fout.
 | klasse | subtype | bewijs (detectiecodes) |
 |---|---|---|
 | Variabele en variabelewaarde | variabelewaarde | een concrete waarde: bedrag, percentage, datum (H2:82) |
-| Variabele en variabelewaarde | variabele | een eigenschap-naamwoord ('de hoogte van …') (H2:80) |
+| Variabele en variabelewaarde | variabele | een eigenschap-naamwoord ('de hoogte van …'), een toestand als uitvoer ('invorderbaar') (H2:80) |
 | Parameter en parameterwaarde | parameterwaarde | bedrag, percentage, veelvoud, getal in een duur (H2:91) |
 | Parameter en parameterwaarde | parameter | een parameterwoord ('tarief', 'drempel') (H2:89) |
 | Delegatiebevoegdheid en delegatie-invulling | delegatiebevoegdheid | de delegatieformule (H2:127) |
@@ -44,7 +44,7 @@ DUURCODES = frozenset({"TEMPORAL_DURATION", "TEMPORAL_PERIOD_OF", "TEMPORAL_RECU
 #: klasse → [(subtype, codes die het aanwijzen)]
 REGELS: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {
     VAR: (("variabelewaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "TEMPORAL_DATE"})),
-          ("variabele", frozenset({"PROPERTY_NOUN"}))),
+          ("variabele", frozenset({"PROPERTY_NOUN", "STATE_PROPERTY"}))),
     PAR: (("parameterwaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "MULTIPLIER",
                                          "DURATION_NUMBER"})),
           ("parameter", frozenset({"PARAMETER_NOUN"}))),
