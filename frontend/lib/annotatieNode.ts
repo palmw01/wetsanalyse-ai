@@ -1,6 +1,7 @@
 import { downloadAntwoord, parseError, type ExportFormaat } from "./api";
-import { CENTRALE_KLASSEN, RELATIETYPEN } from "./jasRelaties";
+import { RELATIETYPEN } from "./jasRelaties";
 import { pathSegment } from "./url";
+import { haalDiagrammen, type DiagramSet } from "@/lib/diagram2c";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -187,13 +188,6 @@ export interface ElementDetail {
   actuele_snapshot_id?: string;
   bronnen: NodeSegment[];
 }
-/** Het 2c-diagram rond een markering van een centrale klasse (api `GET /v1/annotatie/diagram`): hetzelfde plaatje als
- *  in het werkgebiedrapport. `versie` (de revisies van de lagen in beeld) laat de browser een nieuw plaatje halen na een
- *  besluit. `null` als de klasse geen diagram heeft. */
-export function diagramUrl(elementId: string, klasse: string, versie: string | number): string | null {
-  if (!CENTRALE_KLASSEN.includes(klasse)) return null;
-  return `/api/annotatie/v2/diagram?element_id=${encodeURIComponent(elementId)}&vorm=svg&v=${encodeURIComponent(String(versie))}`;
-}
 /** Een versie van wat in beeld is: verandert zodra een laag een nieuwe revisie krijgt. */
 export function weergaveVersie(view: NodeWeergave): string {
   return view.lagen.map((l) => `${l.id}:${l.revisie}`).sort().join(",");
@@ -265,6 +259,8 @@ export interface NodeOpslag {
   maakImpliciet?(body: { doel: { bron_iri: string }; snapshot_id: string; label: string; toelichting: string;
     vindplaats?: string; zelfde_als?: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
   wisImpliciet?(implicietId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  /** De 2c-diagrammen van een bepaling (de tab *Diagram*). Weglaten (de rondleiding, een oude versie): geen tab. */
+  diagrammen?(bronIri: string): Promise<DiagramSet>;
   /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
    *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
   levend: boolean;
@@ -302,6 +298,7 @@ export const apiOpslag: NodeOpslag = {
   bevestigRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/bevestig`, body),
   maakImpliciet: (body) => nodeRequest("impliciet", body),
   wisImpliciet: (id, body) => nodeRequest(`impliciet/${pathSegment(id)}/wis`, body),
+  diagrammen: haalDiagrammen,
   async exporteer(body) {
     const response = await fetch("/api/annotatie/v2/weergave/export", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),

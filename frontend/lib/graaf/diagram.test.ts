@@ -33,11 +33,20 @@ describe("de buurt van een diagram (vectoren)", () => {
 });
 
 describe("het diagram in de werkplek", () => {
-  it("alleen rond een centrale klasse, en een nieuwe url na een besluit", async () => {
-    const { diagramUrl, weergaveVersie } = await import("@/lib/annotatieNode");
-    expect(diagramUrl("e1", "Rechtssubject", "1")).toBeNull();
-    expect(diagramUrl("e 1", "Rechtsbetrekking", "a:3")).toBe("/api/annotatie/v2/diagram?element_id=e%201&vorm=svg&v=a%3A3");
+  it("haalt zich opnieuw op na een besluit: de versie volgt de revisies van de lagen", async () => {
+    const { weergaveVersie } = await import("@/lib/annotatieNode");
     const view = { lagen: [{ id: "b", bron_iri: "x", revisie: 2, status: "" }, { id: "a", bron_iri: "y", revisie: 5, status: "" }] };
     expect(weergaveVersie(view as never)).toBe("a:5,b:2");
+  });
+
+  it("tekent de punt van een lijn op het eindpunt, en noemt de lijn zoals ze leest", async () => {
+    const { pijlpunt, lijnNaam, knoopKleuren } = await import("@/lib/diagram2c");
+    expect(pijlpunt({ x1: 0, y1: 0, x2: 10, y2: 0 })).toBe("10.00,0.00 5.00,-2.40 5.00,2.40");
+    const knopen = [{ id: "a", tekst: "de ontvanger" }, { id: "b", tekst: "een belastingaanslag" }] as never[];
+    const lijn = { van: "a", naar: "b", label: ["heeft als", "voorwerp"] } as never;
+    expect(lijnNaam(lijn, knopen)).toBe("“de ontvanger” heeft als voorwerp “een belastingaanslag”");
+    // Dezelfde kleuren als de badges, met een terugval voor een onbekende klasse.
+    expect(knoopKleuren("Rechtsbetrekking")).toEqual({ vlak: "#90a2d0", rand: "#707ea2" });
+    expect(knoopKleuren("Onbekend").vlak).toBe("#edefef");
   });
 });

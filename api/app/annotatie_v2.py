@@ -301,7 +301,58 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
                           "lifecycle": e.get("lifecycle") or ""}, rel, info)
     if vorm == "svg":
         return Response(als_svg(d, vorm=weergave), media_type="image/svg+xml")
-    return {"diagram": d.model_dump(), "plaatsing": diagram_mod.plaats(d, vorm=weergave).model_dump()}
+    return _diagram_json(d, rel, weergave)
+
+
+def _diagram_json(d, rel: list[dict], weergave: str = "formuleringen") -> dict:
+    """Een diagram voor de werkplek: het model, de plaatsen van de knopen en per lijn haar stuk en label, zoals de
+    tekenaar ze uitrekent (`diagram_teken.lijnstukken`). De werkplek tekent dus hetzelfde plaatje als de PDF en hoeft
+    zelf niets te meten. `relatie_id` maakt een lijn aanklikbaar."""
+    from . import diagram as diagram_mod
+    from .diagram_teken import lijnstukken
+    p = diagram_mod.plaats(d, vorm=weergave)
+    # Alleen een geldende relatie: een afgewezen met dezelfde kanten en hetzelfde type staat niet in het diagram.
+    ids = {(r["van"]["id"], r["naar"]["id"], r["type"]): r["id"] for r in rel if r.get("lifecycle") not in ("rejected", "vervangen")}
+    lijnen = [{"relatie_id": ids.get((lijn.van, lijn.naar, lijn.code), ""), "van": lijn.van, "naar": lijn.naar,
+               "code": lijn.code, "lifecycle": lijn.lifecycle,
+               "label": diagram_mod.labelregels(lijn.leesvorm + (f" ({lijn.volgorde})" if lijn.volgorde is not None else "")),
+               "x1": round(x1, 2), "y1": round(y1, 2), "x2": round(x2, 2), "y2": round(y2, 2),
+               "lx": round(lx, 2), "ly": round(ly, 2), "lb": round(lb, 2), "lh": round(lh, 2)}
+              for lijn, (x1, y1, x2, y2), (lx, ly, lb, lh) in lijnstukken(d, p)]
+    # Wat ontbreekt, met de relatietypen en de richting (gezien vanuit de centrale formulering), zodat de werkplek het
+    # meteen kan laten aanvullen. Dezelfde tabel als `Diagram.ontbreekt` (`diagram.VERWACHT`).
+    rollen = [{"label": label, "codes": sorted(codes), "richting": richting}
+              for codes, richting, label in diagram_mod.VERWACHT.get(d.klasse, ()) if label in d.ontbreekt]
+    return {"diagram": d.model_dump(), "plaatsing": p.model_dump(), "lijnen": lijnen, "ontbreekt_rollen": rollen}
+
+
+@router.get("/diagrammen")
+async def get_diagrammen(doel: dict = Depends(doel_query), actor: str = Depends(actieve_userid)):
+    """Alle 2c-diagrammen van een bepaling (Handleiding §3.4c), met dezelfde keuze als het werkgebiedrapport
+    (`diagram.diagrammen`): één per centrale formulering die niet al in een ander diagram hangt. Voor de tab *Diagram*
+    van het annotatiepaneel. Alleen wat is vastgelegd; `ontbreekt` per diagram is wat de methode nog verwacht."""
+    from bronmodel.vindplaats import vindplaats as bron_vindplaats
+
+    from . import diagram as diagram_mod
+    view = await store.weergave(await resolve_bron(doel))
+    markeringen = [{"id": e["id"], "klasse": e.get("klasse") or "", "tekst": e.get("tekst") or "",
+                    "lifecycle": e.get("lifecycle") or "", "eigenaar_iri": e.get("eigenaar_iri") or ""}
+                   for e in view["elementen"] if e.get("lifecycle") not in ("rejected", "vervangen")]
+    if not markeringen:
+        return {"bron_iri": view["doel"]["bron_iri"], "diagrammen": []}
+    # Tot de diepte van het diagram: de relaties van de markeringen, dan die van hun buren (ook in een andere bepaling).
+    eigen = {m["id"] for m in markeringen}
+    rel = await relaties.bij_elementen(eigen)
+    buren = {k["id"] for r in rel for k in (r["van"], r["naar"]) if k["soort"] == "element"} | eigen
+    rel = await relaties.bij_elementen(buren)
+    iri_van = {m["id"]: m["eigenaar_iri"] for m in markeringen}
+
+    def info(kant: dict) -> dict:
+        iri = kant.get("eigenaar_iri") or iri_van.get(kant["id"], "")
+        vp = bron_vindplaats(iri) if iri else None
+        return {"waar": iri, "waar_label": vp.label if vp else iri}
+    return {"bron_iri": view["doel"]["bron_iri"],
+            "diagrammen": [_diagram_json(d, rel) for d in diagram_mod.diagrammen(markeringen, rel, info)]}
 
 
 @router.delete("/elementen/{element_id}")

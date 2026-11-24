@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
+import { DiagramTab } from "@/components/annotaties/DiagramTab";
 import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/components/annotaties/Relaties";
 import { ongedektPerBron } from "@/lib/dekking";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
@@ -39,12 +40,15 @@ import { bronPad } from "@/lib/werkgebiedPaden";
 import { WatDeGraafWeet } from "@/components/werkplek/BepalingFeiten";
 import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
-import { BronGraaf, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
+import { BronGraaf, WEERGAVE_TABS, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
+import { CENTRALE_KLASSEN } from "@/lib/jasRelaties";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
-export type PaneelTab = Weergave;
+/** Tekst | Graaf | Diagram: de graaf alleen met een kennisgraaf, het diagram (deelactiviteit 2c) alleen met een opslag
+ *  die het kent (niet in de rondleiding of bij een oude versie). */
+export type PaneelTab = Weergave | "diagram";
 
 /** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
  *
@@ -91,7 +95,16 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const [view, setView] = useState<NodeWeergave>();
   // De graaf van het venster (`useBronGraaf`): één *Vergroten*, en Escape laag voor laag.
   const bronGraaf = useBronGraaf({ doel, samenhang: { extra: extraDoelen ?? [], graaf: graaf ?? {} },
-    aan: samenhang && !!view, weergave: tab, claim: !!onSluit });
+    aan: samenhang && !!view, weergave: tab === "graaf" ? "graaf" : "tekst", claim: !!onSluit });
+  // Afronden vraagt eerst de samenhang (deelactiviteit 2c), één keer per paneel: wie de tab *Diagram* al bekeek, rondt
+  // meteen af.
+  const [diagramGezien, setDiagramGezien] = useState(beginTab === "diagram");
+  const [afrondVraag, setAfrondVraag] = useState(false);
+  const kiesTab = useCallback((t: PaneelTab) => {
+    setTab(t);
+    if (t === "diagram") setDiagramGezien(true);
+  }, []);
+  const diagramMogelijk = !!view && !opname && !!opslag.diagrammen;
   const graafStand = bronGraaf.stand;
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
@@ -188,6 +201,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
    *  toetst per laag of alles beoordeeld is, en een weigering noemt dan de laag waar het zit. */
   async function status(nieuw: "geaccordeerd" | "in_review") {
     if (!view) return;
+    if (nieuw === "geaccordeerd" && diagramMogelijk && !diagramGezien
+      && view.elementen.some((e) => CENTRALE_KLASSEN.includes(e.klasse ?? "") && e.lifecycle !== "rejected")) {
+      // Nog niet afronden: eerst het diagram, waar je de samenhang nog kunt aanvullen. Na een afgeronde laag kan dat niet meer.
+      kiesTab("diagram");
+      setAfrondVraag(true);
+      setMelding("Bekijk eerst de samenhang in het diagram; rond daarna af.");
+      return;
+    }
     try {
       for (const laag of view.lagen.filter((l) => l.status !== nieuw)) {
         await opslag.status(laag.id, { status: nieuw, verwachte_revisie: laag.revisie });
@@ -196,6 +217,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       await laad();
       graafStand.ververs();
     }
+    if (nieuw === "geaccordeerd") setAfrondVraag(false);
     setMelding(nieuw === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }
 
@@ -258,7 +280,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
 
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
   function openTekst(knoop: KnoopData) {
-    setTab("tekst");
+    kiesTab("tekst");
     if (knoop.element_id) { setActiefId(knoop.element_id); return; }
     if (knoop.lid) requestAnimationFrame(() => document.querySelector(`[data-artefact] [data-lid="${CSS.escape(knoop.lid)}"]`)
       ?.scrollIntoView({ block: "center" }));
@@ -285,10 +307,16 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     <VraagLexKnop onderwerp={{ soort: "bepaling", bron_iri: view.doel.bron_iri, label: view.doel.label || doel.label || "",
       annotatie: view.lagen.length > 0 }} />
   );
-  // Een oude versie heeft geen graaf: de kaart toont de stand van nu.
-  const toonTabs = samenhang && !!view && !opname;
-  // Tekst | Graaf staat in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
-  const tabs = toonTabs && <WeergaveBalk weergave={tab} onKies={setTab} />;
+  // Een oude versie heeft geen graaf en geen diagram: de kaart toont de stand van nu.
+  const toonGraaf = samenhang && !!view && !opname;
+  const tabLijst = [...(toonGraaf ? WEERGAVE_TABS : WEERGAVE_TABS.slice(0, 1)),
+    ...(diagramMogelijk ? [{ key: "diagram", label: "Diagram" }] : [])];
+  // Een tabrij alleen bij twee of meer tabs (zie `PaneelKop`). Een tab die er (nog) niet is – Graaf zonder kennisgraaf –
+  // toont de tekst, niet een leeg paneel.
+  const toonTabs = tabLijst.length > 1;
+  const actief: PaneelTab = tabLijst.some((t) => t.key === tab) ? tab : "tekst";
+  // Tekst | Graaf | Diagram staat in de balk van de ene paneelkop (`PaneelKop.balk`), op elke tab.
+  const tabs = toonTabs && <WeergaveBalk<PaneelTab> weergave={actief} onKies={kiesTab} tabs={tabLijst} />;
 
   // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
   const reeksBalk = (reeks || doel.versie) && <>
@@ -310,7 +338,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
       <p className="sr-only" aria-live="polite">{melding}</p>
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
-      {toonTabs && tab === "graaf" && (
+      {toonTabs && (actief === "graaf" || actief === "diagram") && (
         <>
           <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onder={reeksBalk} balk={tabs} vraag={kopVraag}
             onStatus={view.lagen.length && !opname ? status : undefined}
@@ -319,15 +347,24 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
           {kopFout && <div className="px-4 pt-3"><Melding type="fout" compact>{kopFout}</Melding></div>}
         </>
       )}
-      {toonTabs && (
+      {toonGraaf && (
         <BronGraaf graaf={bronGraaf} zichtbaar={tab === "graaf"} pagina={!onSluit}
           herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} actiefElementId={actiefId}
           weergave={view} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
           onWisselArtikel={onWisselDoel}
           vraagOnderwerp={vraagOverKnoop} />
       )}
-      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
-      {(!toonTabs || tab === "tekst") && <ArtefactInhoud
+      {toonTabs && actief === "diagram" && opslag.diagrammen && (
+        <DiagramTab view={view} haal={opslag.diagrammen} gebruiker={gebruiker} afronden={afrondVraag}
+          bediening={(laagId) => (relatieBediening && laagOpen(laagId) ? relatieBediening : undefined)}
+          impliciet={{
+            onMaak: opslag.maakImpliciet && laagOpen(view.lagen.find((l) => l.bron_iri === view.doel.bron_iri)?.id) ? maakImpliciet : undefined,
+            onWis: opslag.wisImpliciet ? wisImpliciet : undefined,
+          }}
+          onToonInTekst={(id) => { kiesTab("tekst"); setActiefId(id); }} />
+      )}
+      {(!toonTabs || actief === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
+      {(!toonTabs || actief === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}
         plekken={nb.plekken}
@@ -373,6 +410,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       onSluit={onSluit} onEscape={view ? () => {
         // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het venster dat, van binnen naar
         // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
+        if (tab === "diagram") { (onVerberg ?? onSluit)(); return; }
         if (tab !== "graaf") return;
         if (!bronGraaf.escape({ id: actiefId, wis: () => setActiefId(undefined) })) (onVerberg ?? onSluit)();
       } : undefined}>

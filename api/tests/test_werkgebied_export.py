@@ -1285,6 +1285,34 @@ async def test_de_route_geeft_hetzelfde_diagram_als_json_en_als_svg(client):
     assert svg.headers["content-type"].startswith("image/svg+xml") and "levert op" in svg.text
     geen = await client.get("/v1/annotatie/diagram", params={"element_id": ids[(VAR, "Alfa")]})
     assert geen.status_code == 422 and geen.json()["detail"]["fout"] == "geen_centrale_klasse"
+    # De werkplek tekent zelf: elke lijn draagt haar stuk, haar label en de relatie die je erop kiest.
+    lijnen = r.json()["lijnen"]
+    assert len(lijnen) == len(d["lijnen"]) and all(l["relatie_id"].startswith("R") for l in lijnen)
+    assert {"levert op"} <= {" ".join(l["label"]) for l in lijnen}
+
+
+async def test_de_diagrammen_van_een_bepaling_zijn_die_van_het_rapport(client, graaf, monkeypatch):
+    """De tab *Diagram* van het annotatiepaneel: per bepaling dezelfde keuze als het werkgebiedrapport (één diagram rond
+    de afleidingsregel; de voorwaarde en het rechtsfeit uit lid 2 hangen erin), met de lijnen om te tekenen."""
+    from app import annotatie_v2
+
+    monkeypatch.setattr(annotatie_v2, "_resolve_bron", graaf.resolve)
+    wg, ids = await _regel_met_relaties(client)
+    lid1, lid2 = export.bouw_rapport(await _data(wg), V).wettekst.regelingen[0].artikelen[0].bepalingen
+    for iri, verwacht in ((ONE, [d.centraal for d in lid1.diagrammen]), (ART, [ids[(AR, "😀 Alfa Alfa")]])):
+        r = await client.get("/v1/annotatie/diagrammen", params={"bron_iri": iri})
+        assert r.status_code == 200, r.text
+        assert [x["diagram"]["centraal"] for x in r.json()["diagrammen"]] == verwacht
+    [x] = (await client.get("/v1/annotatie/diagrammen", params={"bron_iri": ONE})).json()["diagrammen"]
+    knopen = {k["id"]: k for k in x["diagram"]["knopen"]}
+    assert knopen[ids[(VW, "Beta")]]["elders"] == "Artikel 9, lid 2" and len(x["plaatsing"]["knopen"]) == len(knopen)
+    assert all(l["relatie_id"] for l in x["lijnen"]) and x["ontbreekt_rollen"] == []
+    # Alleen lid 2 in beeld: het rechtsfeit daar krijgt een eigen diagram (in het rapport hangt het in dat van lid 1).
+    los = (await client.get("/v1/annotatie/diagrammen", params={"bron_iri": TWO})).json()["diagrammen"]
+    assert [x["diagram"]["centraal"] for x in los] == [ids[(RF, "eta")]] and not lid2.diagrammen
+    # Het rechtsfeit mist wie het verricht en wat het creëert: met type en richting, om meteen aan te vullen.
+    rollen = {r["label"]: (r["codes"], r["richting"]) for r in los[0]["ontbreekt_rollen"]}
+    assert rollen["wie het verricht"] == (["verricht"], "in") and set(rollen) == set(los[0]["diagram"]["ontbreekt"])
 
 
 
