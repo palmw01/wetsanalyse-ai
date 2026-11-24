@@ -45,7 +45,7 @@ from ..overdracht import OVERDRACHT
 from ..state import State
 from ..subagent import RAPPORT_ONTBREEKT, open_aanbod, open_vraag, stukkengrens, vraagkaart, zonder_rapport
 from ..bronstand import prompt_blok as bronstand_blok
-from ..bronstand import waar as bronstand_waar
+from ..bronstand import eigen as bronstand_eigen, waar as bronstand_waar
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
 from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_antwoord
@@ -88,16 +88,19 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
     # Niet bij de centrale agent en niet bij een subagent: hun ingang zei al wat Lex doet ("bekijkt de vraag", "werkt als
     # subagent"), en welke bronnen hij gebruikt, zeggen de toolstappen (ADR-016 §A7: twee "zoekt"-regels vóór de eerste tool).
-    if not state.get("turns") and state.get("specialist") not in (CENTRAAL, CENTRAAL_BREED) and not state.get("opdracht"):
-        spec_naam = state.get("specialist") or DEFAULT_SPECIALIST
-        _stap(writer, "Lex", f"zoekt in {bronstand_waar(state.get('bronstand'))}", route=spec_naam)
-    # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij
-    # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
-    spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
     # De agent van deze beurt (ADR-016): het profiel bepaalt de systeemtekst, de tools, de sjablonen, het model en de
     # rol, en de agent doet de modelaanroep. ADR-013: staat er een connector aan die het profiel noemt, dan krijgt elk
     # sjabloon het veld voor bronnen naast de wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`.
     agent = agent_van(state)
+    # De regel noemt alleen de bronnen die déze agent kan gebruiken: de connectors die aanstaan én in zijn profiel staan,
+    # en zonder zo'n connector geen regel (de toolstappen zeggen dan waar hij kijkt). Eerst stonden alle aangezette
+    # bronnen erin, ook bij de ophaal-agent van de annotatieroute die alleen de wetgeving leest (acceptatie 24 nov 2026).
+    if (not state.get("turns") and state.get("specialist") not in (CENTRAAL, CENTRAAL_BREED) and not state.get("opdracht")
+            and (eigen := bronstand_eigen(state.get("bronstand"), agent.profiel.connectors))):
+        _stap(writer, "Lex", f"zoekt in {bronstand_waar(eigen)}", route=state.get("specialist") or DEFAULT_SPECIALIST)
+    # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij
+    # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
+    spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
     extern_aan = bool(agent.extern(state.get("bronstand")))
     sjablonen = agent.sjablonen(state.get("bronstand"))
     stabiel = agent.systeemtekst

@@ -1035,7 +1035,12 @@ bruikbaar is.
   letterlijkheid van een citaat toetst `grounding` op de hele tekst (hermeting na #1614, 16 nov 2026;
   `tests/grounding/test_controle_citaten.py`). Een route zegt één keer wat er gebeurt (de worker herhaalt
   het niet), de bronnenregel staat er alleen als de bronkeuze verandert, en een bericht van code zonder model draagt
-  ook een denkproces (`werkgebied_annotatie`). **Geen lege plekken**: `narratie._stap` toetst elke regel
+  ook een denkproces (`werkgebied_annotatie`). De regel "zoekt in …" van een specialist noemt alleen de connectors van zijn
+  profiel die aanstaan, en zonder zo'n connector staat hij er niet (`bronstand.eigen`). Een leestool waarvan "gelezen"
+  niet zegt wat hij opleverde, krijgt zijn uitkomst uit zijn resultaat (`spoorbronnen.EIGEN_UITKOMST`: de dekking, de
+  weergave en de bronnode van de annotatieroute), en een review-telling sluit op het aantal markeringen
+  (`bron_annotatie.telling_tekst`, met afgewezen); acceptatie 24 nov 2026, `tests/denkproces/test_denkproces_annotatie_hergebruik.py`.
+  **Geen lege plekken**: `narratie._stap` toetst elke regel
   (`lege_plekken`: "(art. )", "None", "{veld}", een dubbele spatie, een regel die op een scheiding eindigt). In de
   dienst haalt hij het gat weg en logt hij `denkproces: lege plek`; in de suite is het een fout (`tests/conftest.py`,
   `narratie.STRIKT`), dus elke test die een regel laat maken, toetst de vorm.

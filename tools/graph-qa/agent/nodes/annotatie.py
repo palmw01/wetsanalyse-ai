@@ -20,7 +20,7 @@ from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
 
 from ..annotatie import aanduiding_in_woorden
 from ..bron_annotatie import (controleer_hergebruik, doel_event, lees_bron, lokale_elementen, lokale_relaties,
-                              stand_per_optie)
+                              stand_per_optie, telling_tekst)
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..bronregister import bij
 from ..focus import na_annotatie
@@ -62,7 +62,7 @@ def _hergebruik_melding(hergebruik: dict[str, Any]) -> str:
     wat = _hergebruikte_leden([str(ld.get("lid", "")) for ld in hergebruik["leden"]])
     t = hergebruik["telling"]
     return (f"{wat} ongewijzigd sinds de vorige annotatie · {t['markeringen']} markeringen uit de "
-            f"graaf ({t['beoordeeld']} beoordeeld, {t['te_beoordelen']} te beoordelen)")
+            f"graaf ({telling_tekst(t)})")
 
 
 # Een artikel kan veel leden hebben (IW 1990 art. 9: twaalf); de keuze is dan de hele lijst. Het
@@ -371,7 +371,7 @@ def _emit_hergebruik(
     samenvatting = (
         f"{plek[0].upper()}{plek[1:]} is al geannoteerd en de wettekst is sindsdien niet veranderd. "
         f"Ik heb de bestaande annotatie hergebruikt: {t['markeringen']} markeringen, waarvan "
-        f"{t['beoordeeld']} beoordeeld en {t['te_beoordelen']} nog te beoordelen."
+        f"{telling_tekst(t, nog=True)}."
         " Wil je toch een nieuwe ronde, vraag dan om opnieuw annoteren – wat al beoordeeld is "
         "blijft staan."
     )
