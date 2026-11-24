@@ -90,9 +90,10 @@ export function magLabel(soort: KnoopSoort, zoom: number): boolean {
   return zoom <= LABEL_VANAF[soort];
 }
 
-/** Uitgezoomd zijn de details kleiner, zodat het overzicht rustig blijft; ingezoomd hun volle maat. */
+/** Uitgezoomd zijn de details iets kleiner, zodat het overzicht rustig blijft; ingezoomd hun volle maat. Niet kleiner dan
+ *  80%: anders verdwijnt een knoop onder de lijnen die erop eindigen. */
 export function detailFactor(soort: KnoopSoort, zoom: number): number {
-  return (soort === "onderdeel" || soort === "markering" || soort === "extern") && zoom > LABEL_VANAF[soort] * 2 ? 0.6 : 1;
+  return (soort === "onderdeel" || soort === "markering" || soort === "extern") && zoom > LABEL_VANAF[soort] * 2 ? 0.8 : 1;
 }
 
 const SOORT_VOLGORDE: Record<KnoopSoort, number> = {

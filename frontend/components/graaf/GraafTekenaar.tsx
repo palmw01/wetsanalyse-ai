@@ -123,7 +123,7 @@ function schrijfBeeld(g: TekenGraaf, ctx: WeergaveContext, zoom: number, info: M
     }
     return {
       ...a, size, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau,
-      labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR, randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
+      labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR, randDikte: b.omtrek ? 0.4 : 0, randKleur: b.omtrek ?? b.kleur,
     };
   }, { attributes: ["size", "color", "zicht", "zIndex", "labelKleur", "randDikte", "randKleur"] });
   g.updateEachEdgeAttributes((_e, a, bron, doel) => {
