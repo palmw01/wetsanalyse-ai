@@ -687,6 +687,24 @@ def test_een_datumregel_heeft_de_toestand_als_uitvoer():
         ("uitvoer", regel, "invorderbaar", None), ("invoer", "de dagtekening van de beschikking", regel, 1)}
 
 
+def test_de_toestand_met_koppelwerkwoord_is_uitvoer_en_geen_operand():
+    """Besluit jurist 24 nov 2026: de variabele is 'is invorderbaar'. Die ligt buiten de regel; ze blijft de uitvoer,
+    en is geen operand van 'na' (de meting na de uitrol van #1837 zag 'invorderbaar' als operand 1)."""
+    tekst = "Het bedrag is invorderbaar zes weken na de dagtekening van de beschikking."
+    regel = "invorderbaar zes weken na de dagtekening van de beschikking"
+    z = Zin(tekst)
+    tijdstip, toestand = z.span("de dagtekening van de beschikking"), z.span("is invorderbaar")
+    detail = json.dumps({"uitkomst": {"start": toestand.start, "eind": toestand.eind, "tekst": toestand.tekst},
+                         "invoer": {"start": tijdstip.start, "eind": tijdstip.eind, "tekst": tijdstip.tekst}})
+    z.markeer(regel, AR, code="DATE_ASSIGNMENT", detail=detail)
+    z.markeer("is invorderbaar", VAR, "variabele")
+    z.markeer("na", OP)
+    z.markeer("de dagtekening van de beschikking", TIJD)
+    rel = kort(z.voorstel())
+    assert ("uitvoer", regel, "is invorderbaar", None) in rel
+    assert not {r for r in rel if r[0] == "operand" and r[1] == "is invorderbaar"}
+
+
 def test_een_datumregel_zonder_variabele_op_de_toestand_heeft_geen_uitvoer():
     """Wees de jurist of het model de variabele af, dan wordt geen ander voorstel de uitvoer."""
     tekst = "Het bedrag is invorderbaar zes weken na de dagtekening van de beschikking."
