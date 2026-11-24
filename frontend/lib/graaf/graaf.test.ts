@@ -100,7 +100,9 @@ describe("layout", () => {
     expect(Math.hypot(rx - lx, ry - ly)).toBeLessThan(Math.hypot(rx - ix, ry - iy) + 1e-9);
   });
 
-  it("legt de hele kennisgraaf in één keer: elke regeling een eigen gebied", { timeout: 60_000 }, () => {
+  // Met dekking (de poort) rekent v8 geïnstrumenteerd, ongeveer tien keer trager: lokaal 33 s tegen 3,5 s.
+  const metDekking = process.env.VITEST_DEKKING === "1";
+  it("legt de hele kennisgraaf in één keer: elke regeling een eigen gebied", { timeout: metDekking ? 240_000 : 60_000 }, () => {
     const p = proefgraaf();
     const g = bouwModel([p]);
     const s = structuurVan(g);
@@ -108,7 +110,7 @@ describe("layout", () => {
     const begin = performance.now();
     const pos = berekenLayout(s);
     // Ruim boven de ~3,5 s die het lokaal kost: dit vangt een terugval naar kwadratisch, geen ruis.
-    expect(performance.now() - begin).toBeLessThan(30_000);
+    expect(performance.now() - begin).toBeLessThan(metDekking ? 180_000 : 30_000);
     expect(pos.size).toBe(s.knopen.length);
     // Een artikel ligt dichter bij zijn eigen regeling dan bij welke andere ook.
     const regelingen = s.knopen.filter((k) => k.soort === "regeling").map((k) => k.id);
