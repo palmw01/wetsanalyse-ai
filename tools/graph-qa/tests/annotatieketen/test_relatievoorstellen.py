@@ -669,6 +669,37 @@ def test_een_datumregel_heeft_het_tijdstip_als_invoer_en_geen_uitvoer():
         ("invoer", "de dagtekening van de beschikking", regel, 1)}
 
 
+def test_een_datumregel_heeft_de_toestand_als_uitvoer():
+    """Keten-termijnpatroon (24 nov 2026, art. 9 lid 1): de toestand die op de datum intreedt ('invorderbaar') is de
+    uitvoer, als die als variabele gemarkeerd is; de invoer blijft het tijdstip, niet de duur eromheen."""
+    tekst = "Het bedrag is invorderbaar zes weken na de dagtekening van de beschikking."
+    regel = "invorderbaar zes weken na de dagtekening van de beschikking"
+    z = Zin(tekst)
+    tijdstip, toestand = z.span("de dagtekening van de beschikking"), z.span("invorderbaar")
+    detail = json.dumps({"toestand": "invorderbaar", "moment": "zes weken na de dagtekening van de beschikking",
+                         "uitkomst": {"start": toestand.start, "eind": toestand.eind, "tekst": toestand.tekst},
+                         "invoer": {"start": tijdstip.start, "eind": tijdstip.eind, "tekst": tijdstip.tekst}})
+    z.markeer(regel, AR, code="DATE_ASSIGNMENT", detail=detail)
+    z.markeer("invorderbaar", VAR, "variabele")
+    z.markeer("zes weken na de dagtekening van de beschikking", TIJD, "verbijzondert parameter")
+    z.markeer("de dagtekening van de beschikking", TIJD)
+    assert {r for r in kort(z.voorstel()) if r[0] in ("invoer", "uitvoer")} == {
+        ("uitvoer", regel, "invorderbaar", None), ("invoer", "de dagtekening van de beschikking", regel, 1)}
+
+
+def test_een_datumregel_zonder_variabele_op_de_toestand_heeft_geen_uitvoer():
+    """Wees de jurist of het model de variabele af, dan wordt geen ander voorstel de uitvoer."""
+    tekst = "Het bedrag is invorderbaar zes weken na de dagtekening van de beschikking."
+    regel = "invorderbaar zes weken na de dagtekening van de beschikking"
+    z = Zin(tekst)
+    tijdstip, toestand = z.span("de dagtekening van de beschikking"), z.span("invorderbaar")
+    detail = json.dumps({"uitkomst": {"start": toestand.start, "eind": toestand.eind, "tekst": toestand.tekst},
+                         "invoer": {"start": tijdstip.start, "eind": tijdstip.eind, "tekst": tijdstip.tekst}})
+    z.markeer(regel, AR, code="DATE_ASSIGNMENT", detail=detail)
+    z.markeer("de dagtekening van de beschikking", TIJD)
+    assert not {r for r in kort(z.voorstel()) if r[0] == "uitvoer"}
+
+
 def test_een_ontkenning_heeft_een_operand_en_breekt_de_reeks_niet():
     """Termijnen (art. 9 lid 5 IW): 'niet' kreeg twee operanden, en 'meer dan' miste zijn eerste."""
     tekst = "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing."

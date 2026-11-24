@@ -594,15 +594,17 @@ class GevolgDetector:
     Zonder parse slaat hij zich zichtbaar over.
     """
     REGELS: tuple[str, ...] = ("jas.betrekking.rechtsgevolg_hoofdzin", "jas.betrekking.toepassingsgevolg",
-                               "jas.afleiding.datumtoewijzing")
-    CODES = ("LEGAL_EFFECT_CLAUSE", "APPLICABILITY_CONSEQUENCE", "DATE_ASSIGNMENT")
+                               "jas.afleiding.datumtoewijzing", "jas.variabele.toestand_als_uitvoer")
+    CODES = ("LEGAL_EFFECT_CLAUSE", "APPLICABILITY_CONSEQUENCE", "DATE_ASSIGNMENT", "STATE_PROPERTY")
     naam = "gevolg"
     # 2: een rechtsgevolg dat een moment vastlegt is ook een afleiding (H2:71), met het ALS→DAN-segment als
     #    eigen kandidaat
     # 3: een rechtsgevolg als toestand met een moment ('is invorderbaar zes weken na …') ook (L-2-1)
     # 4: die regel eindigt nooit voorbij het moment (meting bundel 3, IW art. 63b lid 5)
     # 5: en noemt het tijdstip als invoer in zijn bewijs (`invoer`), voor de relatievoorstellen
-    versie = "5"
+    # 6: de toestand zelf ('invorderbaar') is een eigen kandidaat-Variabele, de uitvoer van die regel (`uitkomst`);
+    #    voorbeelden.md E03, meting keten-termijnpatroon 24 nov 2026
+    versie = "6"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -727,10 +729,16 @@ class GevolgDetector:
             if span in gezien or _in_verwijzing(bron, *span):
                 continue
             gezien.add(span)
+            uitkomst = {"start": t.start, "eind": t.eind, "tekst": t.tekst}
             uit.append(_kandidaat(bron, [(span, "predicaat")], [AR], [Evidence(
                 detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
-                detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip(),
+                detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip(), "uitkomst": uitkomst,
                                    **({"invoer": invoer} if invoer else {})}, ensure_ascii=False, sort_keys=True))]))
+            # De toestand is de uitvoer van die regel: een kenmerk van het onderwerp met per geval een eigen waarde,
+            # wel of niet invorderbaar op een datum (H2:71, H2:80; voorbeelden.md E03). Een eigen kandidaat op het
+            # woord, ook als het model de regel afwijst: de variabele hangt niet aan de markering van de regel.
+            uit.append(_kandidaat(bron, [((t.start, t.eind), "predicaat")], [VAR], [Evidence(
+                detector=self.naam, code=self.CODES[3], regel=self.REGELS[3], relatie=t.deprel, detail=t.tekst)]))
         return uit
 
 

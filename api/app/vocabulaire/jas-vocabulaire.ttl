@@ -301,6 +301,11 @@
     skos:prefLabel "Beperkende bijzin"@nl ;
     jas:codeWaarde "RESTRICTIVE_RELATIVE" .
 
+<urn:jas-ns:code:STATE_PROPERTY> a jas:Detectiecode ;
+    skos:definition "De toestand van een rechtsgevolg met een moment ('is invorderbaar zes weken na …'): een kenmerk van het onderwerp dat per geval wel of niet geldt, en de uitvoer van de regel die het moment afleidt."@nl ;
+    skos:prefLabel "Toestand als uitvoer"@nl ;
+    jas:codeWaarde "STATE_PROPERTY" .
+
 <urn:jas-ns:code:SUBJECT_NP> a jas:Detectiecode ;
     skos:definition "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."@nl ;
     skos:prefLabel "Onderwerp bij een recht of plicht"@nl ;
@@ -1564,5 +1569,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "b92ecd1bd6c1" .
+    jas:vocabulaireVersie "92094f422b19" .
 

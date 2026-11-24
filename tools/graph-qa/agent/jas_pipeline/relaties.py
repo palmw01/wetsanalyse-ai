@@ -15,8 +15,10 @@ Vier regels, in de volgorde van ADR-011, elk met een eigen code (verklaard in `v
    rechtsobject erbinnen niet ('de dagtekening van het aanslagbiljet': de dagtekening). Dat rechtsobject krijgt een
    `kenmerk` van de variabele (`REL_KENMERK_INVOER`). Zonder waarde blijft het binnenste voorstel de invoer. De invoer
    krijgt de woordvolgorde als `volgorde` (1 = de eerste). Een datumregel (`DATE_ASSIGNMENT`, "invorderbaar zes weken
-   na de dagtekening van …") noemt alleen een invoer, het tijdstip: de invoer is wat daarbinnen ligt, en een uitvoer is er
-   niet, want de datum heeft geen eigen formulering (meting bundel 3, 20 nov 2026).
+   na de dagtekening van …") noemt als invoer het tijdstip: de invoer is wat daarbinnen ligt, niet de duur eromheen
+   (meting bundel 3, 20 nov 2026). De datum zelf heeft geen formulering; de uitvoer is de toestand die op die datum
+   intreedt ('invorderbaar'), als variabele gemarkeerd (`uitkomst`, voorbeelden.md E03; meting keten-termijnpatroon,
+   24 nov 2026).
 2. **`waarde` uit de nesting** (`REL_WAARDE_NESTING`): een parameterwaarde binnen een tijdsaanduiding die een parameter
    verbijzondert, of een parameter- of variabelewaarde binnen een parameter of variabele. De binnenste ouder telt.
 3. **`operator_in` en `operand`** (`REL_OPERATOR_IN_NESTING`, `REL_OPERAND_WOORDVOLGORDE`): een operator in een
@@ -72,7 +74,7 @@ from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "5"
+VERSIE = "6"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -98,8 +100,8 @@ RS, RO = "Rechtssubject", "Rechtsobject"
 VAR, PAR, TIJD = "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Tijdsaanduiding"
 #: De bewijscodes van de functiedetector die een uitkomst- en een invoerspan noemen (`detectoren/functies.py`).
 _FUNCTIE_SPANS = frozenset({"CALCULATION_QUANTITY", "DATE_ASSIGNMENT"})
-#: Bewijs dat alleen een invoer noemt: de datumregel ('invorderbaar zes weken na de dagtekening van …'). De datum zelf
-#: heeft geen formulering, dus geen uitvoer; de invoer is wat binnen het tijdstip ligt, niet de duur eromheen.
+#: De datumregel ('invorderbaar zes weken na de dagtekening van …'): de invoer is wat binnen het tijdstip ligt, niet de
+#: duur eromheen, en de uitvoer is precies de toestand ('invorderbaar'), als die een variabele is.
 _ALLEEN_INVOER = frozenset({"DATE_ASSIGNMENT"})
 #: Klassen die een waarde dragen: daarmee rekent een regel (de invoer), een rechtsobject niet.
 WAARDEN = (VAR, PAR, TIJD)
@@ -201,7 +203,7 @@ def _functiespans(k: Candidate) -> list[tuple[dict | None, dict]]:
             continue
         u, i = d.get("uitkomst"), d.get("invoer")
         if e.code in _ALLEEN_INVOER and _span(i):
-            uit.append((None, i))
+            uit.append(({**u, "precies": True} if _span(u) else None, i))
         elif _span(u) and _span(i):
             uit.append((u, i))
     return uit
@@ -212,9 +214,14 @@ def _functie(els: list[_El]) -> list[dict[str, Any]]:
     for regel in (e for e in els if e.klasse == AR and e.kandidaat is not None):
         for u, i in _functiespans(regel.kandidaat):
             binnen = [x for x in els if regel.bevat(x)]
-            if u is None:
-                # Alleen invoer: wat binnen het tijdstip ligt, niet de duur die het omvat.
+            if u is None or u.get("precies"):
+                # Een datumregel: de invoer is wat binnen het tijdstip ligt, niet de duur die het omvat; de uitvoer is
+                # de variabele precies op de toestand.
                 kandidaten = [x for x in binnen if i["start"] <= x.start and x.eind <= i["eind"]]
+                uitkomst = [x for x in els if u and (x.start, x.eind) == (u["start"], u["eind"]) and x.klasse == VAR
+                            and x.bron_iri == regel.bron_iri and _past("uitvoer", regel, x)]
+                if (x := _enige(uitkomst)) is not None:
+                    uit.append(_voorstel("uitvoer", regel, x, REL_UITVOER_FUNCTIE, span=u.get("tekst", "")))
             else:
                 uitkomst = _minimaal([x for x in binnen if x.overlapt(u["start"], u["eind"])
                                       and not x.overlapt(i["start"], i["eind"]) and _past("uitvoer", regel, x)])
