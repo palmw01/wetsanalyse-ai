@@ -129,6 +129,7 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
         <Diagram2c data={data} label={`Diagram rond de ${d.klasse.toLowerCase()} “${tekst}”. Kies een knoop of een relatie om haar te bewerken.`}
           gekozenKnoop={keuze ? knoopSleutel(keuze.knoop) : undefined} gekozenLijn={keuze?.lijn}
           onKiesKnoop={(knoop) => kies({ diagram: d.centraal, knoop })}
+          onTerug={keuze ? () => onKies(undefined) : undefined}
           onKiesLijn={(l) => {
             // Een lijn kies je via haar kant in deze bepaling: daar staat ze in het blok *Relaties*.
             const hier = (id: string) => view.elementen.some((e) => e.id === id);
