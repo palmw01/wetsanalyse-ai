@@ -709,3 +709,69 @@ def test_een_wetsvoorstel_bij_naam_is_een_dossiertitel(vraag, args, tellen):
 def test_bij_het_zonder_naam_of_zonder_dossiertitel_is_geen_dossiertitel(vraag, connector):
     lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
     assert lijst is None or "dossiertitel" not in lijst.args
+
+
+# Een periode tegenover vandaag (acceptatie 24 nov 2026, gesprek e7e2fb16): "de kamerstukken over invordering van afgelopen
+# maand" werd de zoektekst "invordering afgelopen maand", zonder datumfilter, en gaf 25 stukken uit 1995–2026.
+VANDAAG = __import__("datetime").date(2026, 11, 24)   # een dinsdag
+
+
+@pytest.mark.parametrize("vraag,args,uitleg", [
+    ("geef mij de kamerstukken over invordering van afgelopen maand",
+     {"vanaf": "2026-10-24", "tot": "2026-11-24", "tekst": "invordering"}, "de maand tot en met vandaag"),
+    ("kamerstukken over invordering van vorige maand",
+     {"vanaf": "2026-10-01", "tot": "2026-10-31", "tekst": "invordering"}, "de hele kalendermaand ervoor"),
+    ("de moties van deze week", {"vanaf": "2026-11-23", "tot": "2026-11-24", "soort": "motie"}, "het begin van deze week"),
+    ("kamerstukken van vorige week", {"vanaf": "2026-11-16", "tot": "2026-11-22"}, "maandag tot en met zondag"),
+    ("kamerstukken van de afgelopen drie maanden", {"vanaf": "2026-08-24", "tot": "2026-11-24"}, "de drie maanden"),
+    ("de laatste 5 kamerstukken van vorig jaar",
+     {"vanaf": "2025-01-01", "tot": "2025-12-31", "volgorde": "nieuwste", "aantal": 5}, "het hele kalenderjaar ervoor"),
+    ("kamerstukken van dit kwartaal", {"vanaf": "2026-10-01", "tot": "2026-11-24"}, "het begin van dit kwartaal"),
+    ("kamerstukken sinds vorige week over invorderingsrente", {"vanaf": "2026-11-16", "tekst": "invorderingsrente"}, ""),
+    ("kamerstukken van gisteren", {"vanaf": "2026-11-23", "tot": "2026-11-23"}, ""),
+])
+def test_een_periode_tegenover_vandaag_wordt_een_datumfilter(vraag, args, uitleg):
+    v = bron_lijst.lees(vraag, KST, vandaag=VANDAAG)
+    assert v is not None and v.args == args
+    assert uitleg in v.kanttekening
+
+
+def test_de_laatste_maanden_is_een_periode_en_geen_aantal():
+    """"De laatste 3 maanden" is een periode; "de laatste 3 kamerstukken" blijft een aantal."""
+    assert bron_lijst.lees("kamerstukken van de laatste 3 maanden", KST, vandaag=VANDAAG).args == {
+        "vanaf": "2026-08-24", "tot": "2026-11-24"}
+    assert bron_lijst.lees("de laatste 3 kamerstukken", KST, vandaag=VANDAAG).args == {"volgorde": "nieuwste", "aantal": 3}
+
+
+@pytest.mark.parametrize("vraag", [
+    "de recente kamerstukken over invordering",
+    "kamerstukken over invordering van een paar weken geleden",
+    "kamerstukken over invordering van onlangs",
+])
+def test_een_tijdwoord_wordt_nooit_zoektekst(vraag):
+    """Kan de code de periode niet plaatsen, dan geen lijstroute: het model leest de vraag."""
+    assert bron_lijst.lees(vraag, KST, vandaag=VANDAAG) is None
+
+
+def test_elke_connector_met_een_datumfilter_kent_de_periode():
+    """Generiek: de argumenten komen uit de beschrijving van de connector, niet uit een naam."""
+    vragen = {"kamerstukken": "kamerstukken van afgelopen maand", "rechtspraak": "uitspraken van de Hoge Raad van afgelopen maand",
+              "bekendmakingen": "Staatsblad van afgelopen maand", "kennisgroepen": "de nieuwste standpunten van de kennisgroepen van afgelopen maand"}
+    gedekt = set()
+    for naam, c in bm.CONNECTORS.items():
+        veld = c.veld("datum")
+        if not c.volgordes or veld is None or len(veld.filters) < 2:
+            continue
+        assert naam in vragen, f"geef een vraag voor {naam}"
+        v = bron_lijst.lees(vragen[naam], frozenset({naam}), vandaag=VANDAAG)
+        assert v is not None and v.args[veld.filters[0]] == "2026-10-24" and v.args[veld.filters[1]] == "2026-11-24", naam
+        gedekt.add(naam)
+    assert gedekt
+
+
+def test_terugtellen_in_maanden_blijft_binnen_de_maand():
+    from datetime import date
+    assert bron_lijst._min_maanden(date(2026, 3, 31), 1) == date(2026, 2, 28)
+    assert bron_lijst._min_maanden(date(2024, 3, 31), 1) == date(2024, 2, 29)
+    assert bron_lijst._min_maanden(date(2026, 1, 15), 1) == date(2025, 12, 15)
+    assert bron_lijst._min_maanden(date(2026, 1, 15), 12) == date(2025, 1, 15)
