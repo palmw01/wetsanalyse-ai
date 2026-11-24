@@ -92,10 +92,12 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   bijKnoop?: (knoop: KnoopData & { id: string }) => ReactNode;
 }) {
   const [venster, setVenster] = useState(false);
+  const [onderwerp, setOnderwerp] = useState("Samenhang");
   if (!graaf.geopend) return null;
-  const teken = (groot: boolean, metVenster: boolean) => (
+  const teken = (groot: boolean, metVenster: boolean, kopActie?: ReactNode) => (
     <Graaf stand={graaf.stand as GraafStand} herkomst={herkomst} zichtbaar={zichtbaar} groot={groot}
-      onGroot={metVenster ? () => setVenster(true) : undefined}
+      onGroot={metVenster ? () => setVenster(true) : undefined} kopActie={kopActie}
+      onOnderwerp={kopActie ? setOnderwerp : undefined}
       actiefElementId={actiefElementId} weergave={weergave} dekking={dekking} onKiesElement={onKiesElement ?? (() => {})}
       onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} vraagOnderwerp={vraagOnderwerp} benaming={benaming} bijKnoop={bijKnoop} />
   );
@@ -104,11 +106,11 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   return (
     <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf>
       {venster
-        ? <TekeningVenster titel="Graaf" onSluit={() => setVenster(false)} exporteer={{ formaten: ["png"], onDownload: async () => {
+        ? <TekeningVenster titel={onderwerp} onSluit={() => setVenster(false)} exporteer={{ formaten: ["png"], onDownload: async () => {
             const bediening = (graaf.stand as GraafStand).bediening.current;
             if (!bediening) throw new Error("De graaf is nog niet getekend.");
             await bewaar(() => bediening.afbeelding(), tekeningNaam(["graaf", herkomst ?? ""], "png"));
-          } }}>{teken(true, false)}</TekeningVenster>
+          } }}>{(exporteren) => teken(true, false, exporteren)}</TekeningVenster>
         : teken(graaf.groot || pagina, !pagina)}
     </div>
   );

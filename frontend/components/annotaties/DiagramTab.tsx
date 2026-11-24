@@ -145,6 +145,7 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
       </div>
       {groot && (
         <TekeningVenster titel={<>Rond {d.klasse.toLowerCase()} <span className="font-normal text-muted">“{tekst}”</span></>}
+          omschrijving={`${telWoord(data.diagram.knopen.length, "formulering", "formuleringen")} en ${telWoord(data.lijnen.length, "relatie", "relaties")} in deze bepaling${data.ontbreekt_rollen.length ? `; nog niet vastgelegd: ${data.ontbreekt_rollen.map((r) => r.label).join(", ")}` : ""}.`}
           onSluit={() => setGroot(false)} exporteer={{ formaten: ["svg", "png"], onDownload: async (f) => {
             const naam = tekeningNaam(["diagram", d.klasse, d.centraal], f === "png" ? "png" : "svg");
             await bewaar(async () => (f === "png" ? svgNaarPng(await diagramSvg(d.centraal)) : diagramSvg(d.centraal)), naam);
@@ -217,4 +218,9 @@ function Gekozen({ keuze, view, gebruiker, bediening, onToonInTekst, onSluit }: 
       )}
     </div>
   );
+}
+
+/** "1 formulering", "3 formuleringen". */
+function telWoord(n: number, een: string, meer: string): string {
+  return `${n} ${n === 1 ? een : meer}`;
 }

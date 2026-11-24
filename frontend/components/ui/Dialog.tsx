@@ -95,7 +95,9 @@ function DialoogKop({ titel, soort, uitleg, sluitLabel, onSluit }: DialoogKopPro
         <h2 className="font-display text-base font-semibold text-lint">{titel}</h2>
         {uitleg && <p className="mt-0.5 text-xs text-muted">{uitleg}</p>}
       </div>
-      <SluitKnop onSluit={onSluit} label={sluitLabel} />
+      {/* Het kruisje op de hoogte van de titelregel: een vak van één regel (h-6, de regelhoogte van de titel) dat de knop
+          er verticaal op centreert, ook als die op een aanraakscherm groter is. */}
+      <div className={`flex shrink-0 items-center ${soort ? "h-10" : "h-6"}`}><SluitKnop onSluit={onSluit} label={sluitLabel} /></div>
     </div>
   );
 }
