@@ -247,3 +247,23 @@ def test_het_diagram_toont_alles_behalve_afgewezen():
     assert [d.centraal for d in ds] == ["rb"]
     assert {k.id for k in ds[0].knopen} == {"rb", "obj", "ta"}
     assert {l.code for l in ds[0].lijnen} == {"voorwerp", "tijd"}
+
+
+def test_geen_label_op_een_lijn_valt_onder_een_blok():
+    """Melding gebruiker 24 nov 2026: "is invoer van (1)" is breder dan de vaste ruimte tussen twee kolommen en viel
+    onder de blokken. De ruimte tussen de kolommen draagt nu het breedste label."""
+    from app.diagram_teken import lijnstukken
+    rb, obj = _m("rb", "Rechtsbetrekking", 1), _m("obj", "Rechtsobject", 2)
+    var, ar = _m("var", "Variabele en variabelewaarde", 3), _m("ar", "Afleidingsregel", 4)
+    t1, t2, op = _m("t1", "Tijdsaanduiding", 5), _m("t2", "Tijdsaanduiding", 6), _m("op", "Operator", 7)
+    p1 = {"id": "p1", "soort": "impliciet", "klasse": "Rechtssubject", "tekst": "de ontvanger"}
+    relaties = [_r(rb, obj, "voorwerp"), _r(var, obj, "kenmerk"), _r(ar, var, "uitvoer"), _r(t1, ar, "invoer", volgorde=1),
+                _r(t2, ar, "invoer", volgorde=2), _r(op, ar, "operator_in"),
+                {"id": "r", "type": "rechthebbende", "lifecycle": "human_approved", "volgorde": None,
+                 "van": p1, "naar": {**rb, "soort": "element"}}]
+    d = diagram.diagrammen([rb, obj, var, ar, t1, t2, op], relaties)[0]
+    p = diagram.plaats(d)
+    vakken = [(k.x, k.y, k.b, k.h) for k in p.knopen]
+    for lijn, _, (lx, ly, w, h) in lijnstukken(d, p):
+        x, y = lx - w / 2, ly - h / 2
+        assert not any(x < vx + vb and vx < x + w and y < vy + vh and vy < y + h for vx, vy, vb, vh in vakken), lijn.leesvorm

@@ -312,7 +312,12 @@ def labelregels(tekst: str) -> list[str]:
 def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "begrippen"] = "formuleringen") -> Plaatsing:
     """Een vaste plaats per rol: voorwaarden en uitzonderingen boven, partijen links, het voorwerp rechts, de rest eronder, de centrale
     formulering in het midden. Binnen een zone de volgorde van `Diagram.knopen`."""
-    b = min(KNOOP_B, (breedte - 2 * TUSSEN_X) / 3)
+    # De ruimte tussen twee kolommen draagt het breedste label op een lijn, met marge: een label als "is invoer van (1)"
+    # is breder dan de vaste ruimte en viel anders onder de blokken (melding gebruiker 24 nov 2026). Bij drie kolommen
+    # worden de blokken smaller, zodat de tekening binnen de breedte blijft.
+    from .diagram_teken import _labelmaat, _labeltekst
+    tussen = max([TUSSEN_X] + [_labelmaat(_labeltekst(lijn))[0] + 8 for lijn in d.lijnen])
+    b = min(KNOOP_B, (breedte - 2 * tussen) / 3)
     per_zone: dict[str, list[Knoop]] = {z: [] for z in ("boven", "links", "midden", "rechts", "onder")}
     for k in d.knopen:
         per_zone["midden" if k.id == d.centraal and k.soort == "element" else k.zone].append(k)
@@ -360,15 +365,15 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
     naar_ouders([per_zone["midden"]] + rechts)
     naar_ouders([per_zone["midden"]] + links)
     banden = links[::-1] + [per_zone["midden"]] + rechts
-    bandbreedte = len(banden) * b + (len(banden) - 1) * TUSSEN_X
+    bandbreedte = len(banden) * b + (len(banden) - 1) * tussen
     totaal = max([breedte, bandbreedte] + [rijbreedte(r) for r in boven + onder])
 
     # Een rij boven of onder staat onder de centrale formulering, niet in het midden van een brede tekening (dan liep een
     # lange schuine lijn naar haar tijdsaanduiding); ze blijft binnen de tekening.
-    if len(banden) <= 3:
+    if len(banden) <= 3 and (breedte - 3 * b) / 2 >= tussen:
         midden_kolom = (totaal - b) / 2
     else:
-        midden_kolom = (totaal - bandbreedte) / 2 + len(links) * (b + TUSSEN_X)
+        midden_kolom = (totaal - bandbreedte) / 2 + len(links) * (b + tussen)
 
     def rij(knopen: list[Knoop], y: float) -> float:
         x0 = min(max(midden_kolom + b / 2 - rijbreedte(knopen) / 2, 0.0), totaal - rijbreedte(knopen))
@@ -380,13 +385,13 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
     for r in boven:
         y = rij(r, y)
     # Met één kolom aan elke kant de oude verdeling over de hele breedte; met meer kolommen sluiten ze aan.
-    if len(banden) <= 3:
+    if len(banden) <= 3 and (breedte - 3 * b) / 2 >= tussen:
         verschuif = (totaal - breedte) / 2
         xs = {"links": verschuif, "midden": verschuif + (breedte - b) / 2, "rechts": verschuif + breedte - b}
         kolom_x = ([xs["links"]] if links else []) + [xs["midden"]] + ([xs["rechts"]] if rechts else [])
     else:
         x0 = (totaal - bandbreedte) / 2
-        kolom_x = [x0 + j * (b + TUSSEN_X) for j in range(len(banden))]
+        kolom_x = [x0 + j * (b + tussen) for j in range(len(banden))]
     stapel = [sum(hoogte(k) for k in kol) + TUSSEN_Y * max(0, len(kol) - 1) for kol in banden]
     band = max(stapel)
     for kol, x, h in zip(banden, kolom_x, stapel):
