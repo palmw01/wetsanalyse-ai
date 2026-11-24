@@ -8,7 +8,9 @@ Lex), bouwt hier het `Diagram`; de tekenaars (`diagram_teken`) maken er een PDF-
 - **Alleen de structuur.** Methodische relaties (partijen, voorwerp, voorwaarden, invoer en uitvoer, …); een tekstuele
   relatie zoals "maakt een uitzondering op" staat in de lijst Relaties, niet in het diagram. Van een knoop in een
   andere bepaling gaat het niet verder.
-- **Alleen wat is vastgelegd.** Een afgewezen relatie of een verworpen markering staat er niet in. Wat de methode bij
+- **Alles behalve afgewezen.** Een voorstel van Lex, een goedgekeurde en een aangepaste markering staan erin, net als in
+  de graaf; een afgewezen of vervangen markering en een afgewezen relatie niet (besluit eigenaar 24 nov 2026). Een
+  voorstel is gestippeld, zodat je het in het diagram kunt beoordelen. Wat de methode bij
   een centrale klasse verwacht en ontbreekt, staat in `ontbreekt`: een signaal, geen oordeel.
 - **De hele samenhang binnen de bepaling** (Handleiding §3.4c, p. 34–35): het vertrekpunt is de centrale formulering,
   en wat aan de niet-centrale formuleringen hangt, staat in hetzelfde diagram – ook een afleidingsregel die een kenmerk

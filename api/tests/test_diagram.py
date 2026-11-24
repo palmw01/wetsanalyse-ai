@@ -231,3 +231,19 @@ def test_de_buurt_van_de_graaf_blijft_twee_relaties_ver():
     relaties = [_r(a, b, "onderdeel"), _r(b, c, "onderdeel"), _r(c, d_, "onderdeel")]
     assert sorted(diagram.buurt("a", relaties)) == ["element:a", "element:b", "element:c"]
     assert sorted(diagram.buurt("a", relaties, None)) == ["element:a", "element:b", "element:c", "element:d"]
+
+
+def test_het_diagram_toont_alles_behalve_afgewezen():
+    """Besluit eigenaar 24 nov 2026: graaf en diagram tonen voorstellen, goedgekeurde en aangepaste markeringen, maar
+    geen afgewezen. Een voorgestelde centrale formulering krijgt dus ook een diagram."""
+    rb = _m("rb", "Rechtsbetrekking", 1, lifecycle="voorgesteld")
+    obj = _m("obj", "Rechtsobject", 2)
+    ta = _m("ta", "Tijdsaanduiding", 3, lifecycle="edited")
+    weg = _m("weg", "Rechtssubject", 4, lifecycle="rejected")
+    vw = _m("vw", "Voorwaarde", 5)
+    relaties = [_r(rb, obj, "voorwerp", lifecycle="voorgesteld"), _r(rb, ta, "tijd"), _r(weg, rb, "rechthebbende"),
+                _r(rb, vw, "voorwaarde", lifecycle="rejected")]
+    ds = diagram.diagrammen([rb, obj, ta, weg, vw], relaties)
+    assert [d.centraal for d in ds] == ["rb"]
+    assert {k.id for k in ds[0].knopen} == {"rb", "obj", "ta"}
+    assert {l.code for l in ds[0].lijnen} == {"voorwerp", "tijd"}
