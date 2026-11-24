@@ -34,6 +34,22 @@ export function voorbeeldWaarden(regel: Regel, v: RegelVoorbeeld): string[] {
   return (v.waarden ?? []).map((w) => `${begripNaam(regel, w.begrip_id)}: ${w.waarde}`);
 }
 
+/** De voorbeelden van één geval als tabel (V3, de vorm van de praktijk): een kolom per voorbeeld, een rij per
+ *  invoerbegrip met zijn waarde. Alleen als minstens één voorbeeld zijn invoer per begrip noemt; anders `null`. */
+export function voorbeeldTabel(regel: Regel, voorbeelden: RegelVoorbeeld[]):
+  { kolommen: number[]; rijen: { begrip: string; waarden: string[] }[] } | null {
+  if (!voorbeelden.some((v) => (v.waarden?.length ?? 0) > 0)) return null;
+  const begrippen: string[] = [];
+  for (const v of voorbeelden) for (const w of v.waarden ?? []) if (!begrippen.includes(w.begrip_id)) begrippen.push(w.begrip_id);
+  return {
+    kolommen: voorbeelden.map((v) => voorbeeldNr(regel, v)),
+    rijen: begrippen.map((b) => ({
+      begrip: begripNaam(regel, b),
+      waarden: voorbeelden.map((v) => v.waarden?.find((w) => w.begrip_id === b)?.waarde ?? ""),
+    })),
+  };
+}
+
 export interface RegelInhoud {
   soort: RegelSoort;
   regelbegrip_id: string;
@@ -45,6 +61,8 @@ export interface RegelInhoud {
   toelichting: string;
   brontype: "wet" | "beleid";
   lidwoord: "de" | "het" | "";
+  /** Wie de regel beheert (V4). Een regel zonder eigenaar draagt het veld niet. */
+  eigenaar?: string;
 }
 
 export interface RegelDrager {
@@ -114,7 +132,11 @@ export interface Regel {
   geaccordeerd_revisie: number | null;
 }
 
-export interface KetenSignaal { soort: "zelfde_uitvoer" | "kring"; regel_ids: string[]; begrip_id?: string; melding: string }
+/** De signalen van de keten (api `regel_store.keten`). De werkplek toont `melding`; een soort die ze niet kent, telt gewoon mee. */
+export interface KetenSignaal {
+  soort: "zelfde_uitvoer" | "regelbegrip_meer_uitvoeren" | "voorwaarde_herhaald" | "kring";
+  code?: string; regel_ids: string[]; begrip_id?: string; element_ids?: string[]; melding: string;
+}
 export interface RegelKeten {
   regels: { id: string; naam: string; uitvoer: string; status: RegelStatus; soort: RegelSoort; gevallen: number; brontype: "wet" | "beleid" }[];
   /** Van onder naar boven: een regel staat na alles waarvan hij de uitkomst gebruikt. */

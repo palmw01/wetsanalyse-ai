@@ -9,6 +9,7 @@ import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BEGRIP_STATUS_TOON } from "@/components/werkgebieden/BegripInhoud";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
@@ -120,15 +121,25 @@ export function BegrippenKader({ id }: { id: string }) {
       {lijst === null ? (
         !fout && <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
       ) : (
-        <Groep kop="Begrippen" telling={getoond.length} label="Begrippen in dit werkgebied"
+        <Groep kop="Begrippen" telling={getoond.filter((b) => !b.regelbegrip).length} label="Begrippen in dit werkgebied"
           leeg={begrippen.length
             ? "Geen begrippen bij deze keuze."
             : `Nog geen begrippen. Kies bij de ${ARTEFACT_LABEL.annotaties} de passages waaruit een begrip ontstaat.`}>
-          {getoond.map((b) => <BegripRij key={b.id} id={id} begrip={b}
+          {getoond.filter((b) => !b.regelbegrip).map((b) => <BegripRij key={b.id} id={id} begrip={b}
             aandacht={geraakt.has(b.id)
               ? `Herbeoordelen: ${herbeoordelingZin(geraakt.get(b.id)!.passages, geraakt.get(b.id)!.relaties)}`
               : b.aandachtspunten[0]} />)}
         </Groep>
+      )}
+      {/* V11: een begrip dat een afleidingsregel benoemt ("bepalen …"), staat bij de regels, niet tussen de begrippen. */}
+      {lijst !== null && getoond.some((b) => b.regelbegrip) && (
+        <Uitklap vorm="sectie" samenvatting={`Regelbegrippen (${getoond.filter((b) => b.regelbegrip).length})`} data-regelbegrippen="">
+          <Groep kop="Begrippen die een regel benoemen" label="Begrippen die een afleidingsregel benoemen" className="mt-2"
+            sub="Het begrip van een regel staat bij de regel; je opent het hier of op de regelkaart.">
+            {getoond.filter((b) => b.regelbegrip).map((b) => <BegripRij key={b.id} id={id} begrip={b}
+              aandacht={b.aandachtspunten[0]} />)}
+          </Groep>
+        </Uitklap>
       )}
       </div>
       {gebruiken && <GeneriekGebruiken id={id} gebruikt={begrippen} onSluit={() => setGebruiken(false)} />}

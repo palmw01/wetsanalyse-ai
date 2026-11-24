@@ -182,6 +182,8 @@ class RegelInhoud(BaseModel):
     brontype: Brontype = Brontype.wet
     # Het lidwoord van de uitvoer in het taalpatroon ("Het termijnbedrag moet …"): het begrip draagt het niet.
     lidwoord: Literal["de", "het", ""] = "de"
+    # Wie de regel beheert (V4, plan lessen Termijnen-bibliotheek): een organisatieonderdeel. Optioneel.
+    eigenaar: str = Field(default="", max_length=200)
 
     @field_validator("gevallen")
     @classmethod

@@ -22,6 +22,7 @@ Het patroon is dat van de begrippen (`begrip_store`), met dezelfde bouwstenen in
 from __future__ import annotations
 
 import re
+from datetime import date
 import uuid
 from contextlib import asynccontextmanager
 
@@ -88,7 +89,8 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
     rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(
         b.c.id.in_(sorted(ids)), begrip_store.in_werkgebied(werkgebied_id)))).all()
     return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status,
-                   "definitie": (r.inhoud or {}).get("definitie", "")} for r in rows}
+                   "definitie": (r.inhoud or {}).get("definitie", ""),
+                   **({"waardebereik": wb} if (wb := (r.inhoud or {}).get("waardebereik")) else {})} for r in rows}
 
 
 #: De standen van een open punt die het accorderen tegenhouden (ADR-018 besluit 2, aangevuld 20 nov 2026: "Ja,
@@ -315,8 +317,59 @@ def smalle_voorbeelden(regel: dict) -> list[dict]:
             for i, v in enumerate(regel["inhoud"].get("voorbeelden", []), start=1)]
 
 
+_SOORTNAAM = {"ja_nee": "ja/nee-waarde", "datum": "datum", "bedrag": "bedrag", "aantal": "aantal",
+              "opsomming": "keuze uit een lijst"}
+_JA_NEE = {"ja", "nee", "waar", "onwaar", "true", "false"}
+_DATUM = re.compile(r"^(?:(\d{1,2})-(\d{1,2})-(\d{4})|(\d{4})-(\d{1,2})-(\d{1,2}))$")
+_GETAL = re.compile(r"^-?\d{1,3}(?:\.\d{3})*(?:,(\d+))?$|^-?\d+(?:[,.](\d+))?$")
+
+
+def past_in(waarde: str, wb: dict) -> bool | None:
+    """Past een waarde uit een voorbeeld in het waardebereik van haar begrip (V3)? `None` als het niet te zeggen is (een
+    duur, tekst, een waarde met een toelichting erachter). De api rekent niet: hij toetst alleen de vorm."""
+    w = re.sub(r"^\s*(?:€|eur(?:o)?)\s*", "", (waarde or "").strip(), flags=re.I).strip()
+    soort = wb.get("soort")
+    if not w or soort in ("duur", "tekst"):
+        return None
+    if soort == "ja_nee":
+        return w.casefold() in _JA_NEE
+    if soort == "opsomming":
+        return w.casefold() in {x.casefold() for x in wb.get("waarden") or []}
+    if soort == "datum":
+        if not (m := _DATUM.match(w)):
+            return False
+        d, mnd, j = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(6), m.group(5), m.group(4))
+        try:
+            date(int(j), int(mnd), int(d))
+        except ValueError:
+            return False
+        return True
+    if soort in ("bedrag", "aantal"):
+        if not (m := _GETAL.match(w)):
+            return False
+        decimalen = len(m.group(1) or m.group(2) or "")
+        if soort == "aantal" and decimalen:
+            return False
+        return wb.get("decimalen") is None or decimalen <= wb["decimalen"]
+    return None
+
+
+def _waarden_buiten_bereik(voorbeelden: list[dict], begrippen: dict[str, dict]) -> list[str]:
+    uit = []
+    for n, v in enumerate(voorbeelden, start=1):
+        if v.get("oordeel") == "kan_niet":
+            continue   # een invoer die zich niet voordoet, mag buiten het bereik liggen
+        for x in v.get("waarden") or []:
+            b = begrippen.get(x["begrip_id"]) or {}
+            if (wb := b.get("waardebereik")) and past_in(x["waarde"], wb) is False:
+                uit.append(f"Voorbeeld {n} noemt voor {b.get('naam') or 'een invoerbegrip'} de waarde "
+                           f"\"{x['waarde']}\", maar dat begrip is een {_SOORTNAAM.get(wb['soort'], wb['soort'])}"
+                           + (f" ({', '.join(wb['waarden'])})" if wb.get("waarden") else "") + ".")
+    return uit
+
+
 def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None,
-             geerfd: list[dict] | None = None) -> list[str]:
+             geerfd: list[dict] | None = None, begrippen: dict[str, dict] | None = None) -> list[str]:
     """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
     uit: list[str] = []
     # Een genomen keuze op een geval, waarvan de lezing op markeringen rust die dat geval niet draagt (vervolgronde
@@ -356,6 +409,7 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
         uit.append(_meervoud(len(los), "Voorbeeld <nrs> is niet na te rekenen: het noemt de invoer niet per invoerbegrip.",
                              "De voorbeelden <nrs> zijn niet na te rekenen: ze noemen de invoer niet per "
                              "invoerbegrip.").replace("<nrs>", _nrs(los)))
+    uit.extend(_waarden_buiten_bereik(voorbeelden, begrippen or {}))
     zelf = sum(bool(v.get("door")) and v.get("beoordeeld_door") == v.get("door") for v in voorbeelden
                if v.get("oordeel", "open") != "open")
     if zelf:
@@ -419,7 +473,7 @@ def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g
     for op in g["operatoren"]:
         if op["binnen"] & grondslag and op["id"] not in g["met_begrip"]:
             uit.append(gat("operator_zonder_begrip", tekst=op["tekst"]))
-    uit += dragen_gaten(inhoud, begrippen, g.get("regels", {}))
+    uit += dragen_gaten(inhoud, begrippen, g.get("regels", {}), g.get("begrip_van"))
     return uit
 
 
@@ -428,19 +482,26 @@ def _kort(tekst: str, n: int = 80) -> str:
     return tekst if len(tekst) <= n else tekst[: n - 1].rstrip() + "…"
 
 
-def dragen_gaten(inhoud: dict, begrippen: dict[str, dict], regels: dict[str, dict]) -> list[dict]:
+def dragen_gaten(inhoud: dict, begrippen: dict[str, dict], regels: dict[str, dict],
+                 begrip_van: dict[str, set[str]] | None = None) -> list[dict]:
     """Wat van een regel op niets rust (herleidbaarheid, rapport van 20 nov 2026): een voorwaarde zonder markering en
     zonder verwijzing, een verwijzing naar een geval dat niet (meer) geldt of waarvan de uitvoer geen invoer is, en een
     begrip in een uitkomst dat geen invoer is. `regels`: per regel-id van dit werkgebied `{status, labels, uitvoer,
-    naam}`. Een signaal, geen poort."""
+    naam}`. Met `begrip_van` (per element de begrippen die erop rusten) ook een voorwaarde waarvan geen markering een
+    invoerbegrip draagt (V6, plan lessen Termijnen-bibliotheek: wat ze toetst, is een begrip met een eigen regel). Een
+    signaal, geen poort."""
     uit: list[dict] = []
     invoer = {i["begrip_id"] for i in inhoud.get("invoer", [])}
+    genoemd = invoer | {inhoud.get("onderwerp_begrip_id") or ""}
     naam = lambda b: begrippen.get(b, {}).get("naam") or b  # noqa: E731
     for label, blad in voorwaarde_bladen(inhoud):
         v = blad.get("geval_van")
         if not v:
             if not blad.get("element_ids"):
                 uit.append(gat("voorwaarde_zonder_markering", tekst=_kort(blad.get("tekst", "")),
+                               geval=label or "de regel"))
+            elif begrip_van is not None and not any(begrip_van.get(e, set()) & genoemd for e in blad["element_ids"]):
+                uit.append(gat("voorwaarde_zonder_begrip", tekst=_kort(blad.get("tekst", "")),
                                geval=label or "de regel"))
             continue
         doel = regels.get(v["regel_id"])
@@ -486,8 +547,11 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
         k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None),
         (k.c.element_id.in_(sorted(elementen)) | k.c.begrip_id.in_(sorted(invoer)))))).all() if elementen or invoer else []
     rollen: dict[str, set[str]] = {}
+    begrip_van: dict[str, set[str]] = {}
     for x in koppel:
         rollen.setdefault(x.begrip_id, set()).add(x.rol)
+        if x.rol != "context":
+            begrip_van.setdefault(x.element_id, set()).add(x.begrip_id)
     w = db.parameter_waarden
     waarden: dict[str, list[dict]] = {}
     for x in (await conn.execute(select(w.c.parameter_begrip_id, w.c.geldig_vanaf, w.c.waarde, w.c.eenheid).where(
@@ -507,7 +571,8 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
     regels = {x.id: {"status": x.status, "uitvoer": x.inhoud["uitvoer_begrip_id"],
                      "labels": [gv.get("label", "") for gv in x.inhoud.get("gevallen", [])],
                      "naam": namen.get(x.inhoud["regelbegrip_id"], "")} for x in alle}
-    return {"regels": regels, "met_begrip": {x.element_id for x in koppel}, "rollen": rollen, "waarden": waarden,
+    return {"regels": regels, "met_begrip": {x.element_id for x in koppel}, "begrip_van": begrip_van, "rollen": rollen,
+            "waarden": waarden,
             "context": [c.bron_iri for c in ctx], "labels": {c.bron_iri: c.label or c.bron_iri for c in ctx},
             "operatoren": operatoren, "uitvoeren": uitvoeren}
 
@@ -526,7 +591,7 @@ def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: li
             "regeltekst": regeltekst(inhoud, namen),
             "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
             "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten, geerfd),
-            "signalen": signalen(inhoud, dragers, open_punten, geerfd), "gaten": gaten or [],
+            "signalen": signalen(inhoud, dragers, open_punten, geerfd, begrippen), "gaten": gaten or [],
             "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or []),
                             "bij_voorganger": len(geerfd or [])},
             "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
@@ -756,6 +821,19 @@ def keten(regels: list[dict]) -> dict:
             sig.append({"soort": "regelbegrip_meer_uitvoeren", "code": g["code"], "begrip_id": begrip,
                         "regel_ids": [x["id"] for x in actief if x["inhoud"]["regelbegrip_id"] == begrip],
                         "melding": g["tekst"]})
+    # V6: dezelfde voorwaarde (dezelfde markeringen, zonder verwijzing) in meer regels is één begrip met een eigen regel.
+    per_voorwaarde: dict[tuple[str, ...], list[str]] = {}
+    for x in actief:
+        for _, blad in voorwaarde_bladen(x["inhoud"]):
+            if blad.get("element_ids") and not blad.get("geval_van"):
+                ids = per_voorwaarde.setdefault(tuple(sorted(blad["element_ids"])), [])
+                if x["id"] not in ids:
+                    ids.append(x["id"])
+    for elementen, ids in per_voorwaarde.items():
+        if len(ids) > 1:
+            g = gat("voorwaarde_herhaald")
+            sig.append({"soort": "voorwaarde_herhaald", "code": g["code"], "regel_ids": ids, "element_ids": list(elementen),
+                        "melding": g["tekst"]})
     # Van onder naar boven: een regel komt na alles waar hij op volgt (Kahn); wat overblijft zit in een kring.
     na = {x["id"]: {p["van"] for p in pijlen if p["naar"] == x["id"] and p["van"] != x["id"]} for x in actief}
     volgorde: list[str] = []
@@ -884,6 +962,8 @@ def inhoud_van(model) -> dict:
         for k in ("waarden", "van_geval"):
             if not v.get(k):
                 v.pop(k, None)
+    if not inhoud.get("eigenaar"):                    # idem voor een regel zonder eigenaar (V4)
+        inhoud.pop("eigenaar", None)
     return inhoud
 
 async def _revisieregel(conn, regel_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
