@@ -103,7 +103,7 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Brongetrouwheid",
     tekst:
-      "Dit blok verschijnt alleen als er iets niet klopt: een verwijzing die niet uit de graaf komt, " +
+      "Dit blok verschijnt alleen als er iets niet klopt: een verwijzing die niet uit de gelezen bronnen komt, " +
       "of een citaat dat niet letterlijk in de opgehaalde tekst staat. Zo'n citaat kleurt geel in " +
       "de tekst zelf.",
     waarom: "Zo valt het op als het één keer misgaat.",

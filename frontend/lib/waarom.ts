@@ -120,7 +120,7 @@ export function graafStatusTekst(gc: LaagGraafcontrole): { tekst: string; ernst:
   const shacl = gc.shacl && gc.shacl.beschikbaar && !gc.shacl.conform ? gc.shacl.aantal : 0;
   switch (gc.status) {
     case "in_orde": return { tekst: "De graaf klopt met de database (revisie " + gc.revisie + ").", ernst: "goed" };
-    case "achterstand": return { tekst: "Nog niet in de graaf bijgewerkt; de api haalt dat zelf in.", ernst: "neutraal" };
+    case "achterstand": return { tekst: "Nog niet overal bijgewerkt; dat gebeurt vanzelf.", ernst: "neutraal" };
     case "onbeschikbaar": return { tekst: "De kennisgraaf is nu niet bereikbaar – geen oordeel.", ernst: "neutraal" };
     case "uit": return { tekst: "Deze omgeving projecteert niet naar de kennisgraaf.", ernst: "neutraal" };
     default: {

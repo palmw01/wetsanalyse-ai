@@ -43,7 +43,7 @@ export function BepalingFeiten({ bronIri, onOpen }: {
           {d.inwerking && <li data-feit="inwerking">Deze tekst in werking sinds {datumTekst(d.inwerking)}</li>}
           {d.terugwerkend_tot && <li>Terugwerkende kracht tot {datumTekst(d.terugwerkend_tot)}</li>}
           {d.gewijzigd_bij && <li data-feit="gewijzigd">Laatst gewijzigd bij {d.gewijzigd_bij}</li>}
-          {d.geldig_vanaf && <li data-feit="toestand">Tekst in de graaf geldt vanaf {datumTekst(d.geldig_vanaf)}</li>}
+          {d.geldig_vanaf && <li data-feit="toestand">Deze tekst geldt vanaf {datumTekst(d.geldig_vanaf)}</li>}
           {!d.inwerking && !d.gewijzigd_bij && !d.geldig_vanaf && <li className="text-muted">De graaf noemt geen datums.</li>}
         </ul>
       </Blok>
@@ -102,15 +102,15 @@ function TellingBlok({ kop, t, open = false, onOpen, feit }: {
   );
 }
 
-/** Het blok *Wat de graaf weet* onder een wettekst: één plek voor de kop en de inhoud, in het bronvenster en onder de
+/** Het blok *Over deze bepaling* onder een wettekst: één plek voor de kop en de inhoud, in het bronvenster en onder de
  *  annotatie (paneel, vergroot en pagina). `children` komt erachter (op de bronpagina: alle gegevens, ingeklapt). */
-export function WatDeGraafWeet({ bronIri, onOpen, children }: {
+export function OverDezeBepaling({ bronIri, onOpen, children }: {
   bronIri: string;
   onOpen: (v: AntwoordVindplaats) => void;
   children?: ReactNode;
 }) {
   return (
-    <Sectie titel="Wat de graaf weet" niveau={3} data-blok="graaf">
+    <Sectie titel="Over deze bepaling" niveau={3} data-blok="bepaling">
       <BepalingFeiten key={bronIri} bronIri={bronIri} onOpen={onOpen} />
       {children}
     </Sectie>

@@ -559,7 +559,7 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
             )}
             {grounding.unsupported.length > 0 && (
               <span className="block break-words">
-                Niet uit de graaf: {grounding.unsupported.join(", ")}
+                Niet in de gelezen bronnen: {grounding.unsupported.join(", ")}
               </span>
             )}
             {grounding.niet_letterlijk.length > 0 && (
