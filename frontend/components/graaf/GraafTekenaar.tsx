@@ -28,6 +28,9 @@ export interface GraafBediening {
   zoom: (factor: number) => void;
   /** Een groep knopen in beeld (de focus van het antwoord); leeg of onbekend = alles in beeld. */
   toon: (ids: Iterable<string>) => void;
+  /** Eén knoop van buiten aanwijzen (de zoeklijst): hij licht op zoals bij een hover, met zijn volle naam; `null`
+   *  haalt dat weg. Het beeld beweegt niet. */
+  wijsAan: (id: string | null) => void;
   /** Wat er nu in beeld is als PNG, op een witte achtergrond (*Exporteren* in `TekeningVenster`). */
   afbeelding: () => Promise<Blob>;
 }
@@ -103,6 +106,7 @@ const stijlen = (font: string) => ({
     },
     { whenState: "label", then: { labelVisibility: "visible" } },
     { whenState: "isHovered", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
+    { whenState: "isHighlighted", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes", size: 12 } },
   ],
   edges: [{
     size: { attribute: "size", defaultValue: 1 }, color: { attribute: "color", defaultValue: "#cccccc" },
@@ -342,6 +346,7 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, r
         const ratio = Math.min(1, Math.max(minRatio, Math.max(x1 - x0, y1 - y0) * 1.4));
         beweeg({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, ratio }, duur);
       };
+      let aangewezen: string | null = null;
       bedieningRef.current = {
         // De lagen van sigma samen op één doek. WebGL bewaart zijn buffer niet (`preserveDrawingBuffer: false`), dus
         // eerst opnieuw tekenen en dan meteen, in dezelfde taak, kopiëren.
@@ -358,6 +363,13 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, r
           ctx.fillRect(0, 0, b, h);
           for (const laag of lagen) ctx.drawImage(laag, 0, 0, b, h);
           return alsPng(doekUit);
+        },
+        wijsAan: (id) => {
+          const g = s.getGraph();
+          if (aangewezen && g.hasNode(aangewezen)) s.setNodeState(aangewezen, { isHighlighted: false });
+          aangewezen = id && g.hasNode(id) ? id : null;
+          if (aangewezen) s.setNodeState(aangewezen, { isHighlighted: true });
+          if (aangewezen) el.dataset.aangewezen = aangewezen; else delete el.dataset.aangewezen;
         },
         pasIn: () => beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, beweging()),
         toon,

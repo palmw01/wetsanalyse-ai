@@ -7,10 +7,12 @@ import type { GraafModel } from "@/lib/graaf/model";
 import { eigenKleur } from "@/lib/graaf/stijl";
 
 /** Zoeken in de graaf: een combobox linksboven in het canvas, over het hele model – ook wat een laag
- *  verbergt (dat staat erbij). Enter kiest, Escape sluit eerst de lijst en gaat niet door naar het
+ *  verbergt (dat staat erbij). Elke treffer noemt zijn regeling, want "Artikel 1" alleen zegt niets. Enter kiest, Escape sluit eerst de lijst en gaat niet door naar het
  *  paneel. Dit is ook de toetsenbordroute naar elke knoop. */
-export function GraafZoek({ model, verborgen, gekozen, onKies }: {
+export function GraafZoek({ model, verborgen, gekozen, onKies, onWijs }: {
   model: GraafModel; verborgen: ReadonlySet<string>; gekozen: string | null; onKies: (id: string) => void;
+  /** De treffer waar je op staat (muis of pijltjes) licht op in de graaf; `null` als de lijst dicht is. */
+  onWijs?: (id: string | null) => void;
 }) {
   const [vraag, setVraag] = useState("");
   const [open, setOpen] = useState(false);
@@ -22,6 +24,17 @@ export function GraafZoek({ model, verborgen, gekozen, onKies }: {
   const openLijst = () => { clearTimeout(sluitTimer.current); setOpen(true); };
   useEffect(() => () => clearTimeout(sluitTimer.current), []);
   const resultaten = useMemo(() => zoekKnopen(model, vraag), [model, vraag]);
+  // De regeling bij elke treffer: "Artikel 1" staat in bijna elke wet, dus zonder de wet zegt de lijst niets.
+  const regelingen = useMemo(() => {
+    const m = new Map<string, string>();
+    model.forEachNode((_, a) => { if (a.soort === "regeling" && a.bwb_id) m.set(a.bwb_id, a.naam); });
+    return m;
+  }, [model]);
+
+  const toonLijst = open && !!vraag.trim();
+  const aangewezen = toonLijst ? resultaten[actief] ?? null : null;
+  useEffect(() => { onWijs?.(aangewezen); }, [aangewezen, onWijs]);
+  useEffect(() => () => onWijs?.(null), [onWijs]);
 
   function kies(id: string) {
     onKies(id);
@@ -29,7 +42,6 @@ export function GraafZoek({ model, verborgen, gekozen, onKies }: {
     setVraag("");
   }
 
-  const toonLijst = open && !!vraag.trim();
   return <div className="pointer-events-auto relative w-[min(17rem,calc(100%-1.5rem))]">
     <div className="flex items-center gap-2 rounded-kaart border border-line bg-paper/95 px-2.5 shadow-kaart focus-within:border-lint/50">
       <Zoek className="text-muted" />
@@ -58,7 +70,7 @@ export function GraafZoek({ model, verborgen, gekozen, onKies }: {
           <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: eigenKleur(a) }} />
           <span className="min-w-0">
             <span className="block truncate">{a.naam}</span>
-            <span className="text-3xs text-faint">{SOORT_LABEL[a.soort]}{a.rand ? " · buiten wat geladen is" : ""}{verborgen.has(id) ? " · laag staat uit" : ""}</span>
+            <span className="block truncate text-3xs text-faint">{SOORT_LABEL[a.soort]}{a.soort !== "regeling" && regelingen.get(a.bwb_id) ? ` · ${regelingen.get(a.bwb_id)}` : ""}{a.rand ? " · buiten wat geladen is" : ""}{verborgen.has(id) ? " · laag staat uit" : ""}</span>
           </span>
         </li>;
       })}
