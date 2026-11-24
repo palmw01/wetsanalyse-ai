@@ -197,7 +197,7 @@ De originelen zelf zijn voor dit plan niet opnieuw gelezen (zie §9).
 | operatorbegrip | geen enkel, bij 39 operator-markeringen | een operator krijgt een begrip dat je hergebruikt | de skill (M01 h.3 stap 3b), volgens `plan-lessen-e2e` §0 |
 | begrip voor een rechtsbetrekking | geen; het werkbestand zegt dat dit later komt | een begrip met de handeling vooraan | de skill; de praktijk is hier niet af |
 | regelbegrip | de regel staat in een eigen bibliotheek, niet als begrip | eerst een begrip voor de regel, dan de regel | de skill |
-| termijn als parameter | "zes weken" is parameter, parameterwaarde én tijdsaanduiding; het begrip is een parameter | "een termijn is één Tijdsaanduiding, geef hem niet ook een Parameter" (`references/markeringslijst.md`) | open: de praktijk kiest voor het regelmodel de parameter |
+| termijn als parameter | "zes weken" is parameter, parameterwaarde én tijdsaanduiding; het begrip is een parameter | "een termijn is één Tijdsaanduiding, geef hem niet ook een Parameter" (`references/markeringslijst.md`) | het boek (M01 h.4 §12): één Tijdsaanduiding die een parameter verbijzondert en diens relaties overneemt; zie M3 (bijgesteld 24 nov 2026) |
 | naam van de regel | "bepaal …" | "bepalen …" | een vormkeuze |
 | rechtssubject | alleen impliciet, in de toelichting | markeren waar de tekst het noemt | geen verschil: de tekst noemt er hier geen |
 
@@ -502,17 +502,32 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
 - Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
   aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
 
-**M3 · De termijn als parameter** (alleen na een ja op vraag 3)
-(`references/markeringslijst.md`, `references/voorbeelden.md`, `SKILL.md` *Veelgemaakte fouten*; de detector die een
-duur als tijdsaanduiding met subtype *verbijzondert parameter* markeert; `tools/graph-qa/eval/extern_dossier.py`)
-- Toen: "Een termijn is één Tijdsaanduiding. Geef hem niet ook een Parameter omdat de duur voor iedereen gelijk is."
-  De waarde krijgt een eigen begrip naast het begrip voor de termijn.
-- Nu, als de eigenaar de praktijk volgt: "Een duur die voor iedereen gelijk is en die de wetgever kan wijzigen, is een
-  Parameter met een Parameterwaarde; de plaatsing in de tijd ('na de dagtekening') is de Tijdsaanduiding. De markeringen
-  mogen overlappen." Eén parameterbegrip, met de waarde in het waardebereik en per tijdvak.
-- Dit raakt de keten, de referentieset van activiteit 2 en de bestaande annotaties. Meting volgens het lichte regime op
-  de gerichte set, en opnieuw op de blinde sets, want de klasse Tijdsaanduiding verandert van omvang.
-- Zegt de eigenaar nee, dan blijft alles zoals het is en krijgt alleen de regel (V7) de waarde via de parameter.
+**M3 · De termijn als tijdsaanduiding die een parameter verbijzondert** (bijgesteld 24 nov 2026; de eerdere vorm,
+een markering Parameter naast de Tijdsaanduiding, vervalt)
+(`references/jas-klassen-referentie.md` §10, `references/markeringslijst.md`, `references/markeren-fragmentgrenzen.md`,
+`references/voorbeelden.md`, `relaties.json`; api, werkplek en keten)
+- Waarom bijgesteld: de bron zegt het anders dan de eerste versie van M3. Een formulering die zowel tijdsaanduiding als
+  parameter of variabele kan zijn, krijgt de specifiekere klasse, de tijdsaanduiding (H2:107). Het boek voegt toe dat de
+  analyse vastlegt of zij een parameter of een variabele verbijzondert, en dat zij de relaties van die klasse overneemt
+  (M01 h.4 §12, *Relatie met andere klassen*). Een termijn is dus geen markering Parameter, maar één Tijdsaanduiding
+  met het subtype *verbijzondert parameter*. De praktijkbibliotheek bedoelt hetzelfde: een vaste waarde, alleen in een
+  tijdsklasse. Wat de praktijk met de parameter wil (hem in een regel gebruiken, met een waarde per tijdvak), kan
+  daarmee ook: de tijdsaanduiding mag de relaties van een parameter aan (`invoer`, `operand`, `waarde`).
+- Toen: alleen het subtype *verbijzondert parameter*, en de catalogus liet een tijdsaanduiding geen relaties van een
+  parameter of variabele aangaan; "is kenmerk van" kon alleen van een Variabele komen. Het voorbeeld van art. 9 lid 1
+  Iw 1990 maakte van "de dagtekening" een Variabele (acceptatie, 24 nov 2026).
+- Nu (gebouwd, PR "Tijdsaanduiding verbijzondert een parameter of een variabele"):
+  - het subtype *verbijzondert variabele* naast *verbijzondert parameter*, in de skill, de api (contract en
+    `jas_klassen.JAS_SUBTYPEN`), de vocabulaire en de keten; de jurist kiest het in de werkplek (de chips onder de
+    klasse op de reviewkaart), en de api weigert een subtype van een andere klasse;
+  - de catalogus heeft `verbijzonderingen` (klasse → subtype → de klasse die zij verbijzondert); `toegestaan` laat een
+    kant met een verbijzondering ook gelden als die klasse, in api, werkplek en keten;
+  - het voorbeeld van art. 9 lid 1 (E05) is een Tijdsaanduiding die een variabele verbijzondert, kenmerk van het
+    aanslagbiljet; de termijn (E04) blijft *verbijzondert parameter*.
+- De keten zet *verbijzondert variabele* niet zelf: of een datum per geval verschilt, is een oordeel over de context.
+  Wat de keten markeert, verandert dus niet, en de tekst tussen de methodemarkers ook niet; daarom geen meting van de
+  keten. Een regel (V7) gebruikt de termijn via de tijdsaanduiding.
+- Open: de plaatsaanduiding kent volgens het boek dezelfde verbijzondering (M01 h.4 §13); die heeft nog geen subtype.
 
 **M4 · De regels-agent stelt hulpregels voor** (R5, staat op HOLD)
 - Toen: `opstellen` maakt per dragende formulering één regel met de voorwaarden als tekst.
@@ -561,7 +576,7 @@ de vorm die `tools/graph-qa/eval/extern_dossier.py` al heeft voor activiteit 2.
 |---|---|---|---|
 | 1 | klasse en waardebereik op het begrip | **ja, beide**: P15 wordt bijgesteld | V2 kan beginnen; de alinea over het waardebereik in de skill blijft; M1 krijgt zijn tweede zin zodra V2 er is |
 | 2 | operatorbegrippen | **houden zoals nu** | geen wijziging; de praktijk wordt hier niet gevolgd |
-| 3 | de termijn als parameter | **de praktijk volgen** | M3 wordt uitgevoerd, met een meting (ADR-010); tot die tijd staat de oude regel nog in de skill |
+| 3 | de termijn als parameter | **de praktijk volgen** | bijgesteld 24 nov 2026 naar de bron: een termijn is een Tijdsaanduiding die een parameter verbijzondert (M3) |
 | 4 | hoe ver gaat de ontleding | **een gedeelde set** in het generieke kader (ADR-006) | zo staat het in de skill (§5a); V9 stelt een hulpregel alleen voor als hij daar nog niet bestaat |
 | 5a | de naam van een kenmerk | **het object erbij waar verwarring dreigt**, en altijd bij een generiek begrip | zo staat het in de skill; V10 is het signaal daarbij |
 | 5b | "bepaal" of "bepalen" | **bepalen …**, zonder "van het" | de vorm van de skill blijft; de namen in Termijnen ("bepalen van het …") wijken daarvan af: nagaan waar "van het" vandaan komt (de naamgeving bij het maken van een regel) en dat generiek rechtzetten, in de bundel van V6 |
@@ -575,7 +590,7 @@ bij de regel (op de regelkaart en in de tab *Afleidingsregels*), met een filter 
 grondslag en de NL-SBB-projectie veranderen niet. De telling van begrippen noemt ze apart. Hoort in de bundel van V2–V4.
 
 **Bijgestelde volgorde.** (1) V1 met de nulmeting; (2) V2, V3, V4 en V11 in één bundel; (3) V6 met de naam zonder
-"van het"; (4) M3 met zijn meting, vóór V8, omdat beide de annotatieketen raken en niet door elkaar gemeten kunnen worden;
+"van het"; (4) M3 (gebouwd 24 nov 2026, zonder wijziging aan wat de keten markeert, dus zonder meting van de keten);
 (5) V7; (6) V8 met M2; (7) M1 na V2; (8) V9, V10 en M4 als R5 van start gaat.
 
 De vragen zoals ze gesteld zijn:

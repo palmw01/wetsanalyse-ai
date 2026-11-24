@@ -48,6 +48,7 @@ from urllib.parse import unquote
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from agent.jas_relaties import VERBIJZONDERINGEN as _VERBIJZONDERINGEN  # noqa: E402
 from eval.scoring import _norm, _token_iou, _zelfde_plek, klasse_dekking  # noqa: E402
 from eval.wortel import WORTEL as WORTEL_REPO
 
@@ -471,10 +472,10 @@ _STRENG = 0.5
 
 #: Een element van deze klasse met dit subtype dekt ook een referentie van de verbijzonderde klasse op dezelfde
 #: plek: JAS kiest bij samenloop de Tijdsaanduiding (H2:107), en het platform legt de parameter vast als subtype in
-#: plaats van als tweede markering (ADR-001 PR 8, aanvulling 7 nov 2026). Waarde zoals `jas_pipeline.subtype`.
+#: plaats van als tweede markering (ADR-001 PR 8, aanvulling 7 nov 2026). Uit de relatiecatalogus
+#: (`jas_relaties.VERBIJZONDERINGEN`): een tijdsaanduiding die een parameter of een variabele verbijzondert.
 VERBIJZONDERING: dict[tuple[str, str], str] = {
-    ("Tijdsaanduiding", "verbijzondert parameter"): "Parameter en parameterwaarde",
-}
+    (klasse, subtype): v["klasse"] for klasse, per in _VERBIJZONDERINGEN.items() for subtype, v in per.items()}
 
 
 def _klassen(e: dict[str, Any]) -> set[str]:

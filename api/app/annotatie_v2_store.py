@@ -20,6 +20,7 @@ from . import db
 from .auth import huidige_client
 from .annotatie_v2_contracts import (AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten, Lifecycle,
                                       is_vervangen)
+from .jas_klassen import JAS_SUBTYPEN, subtype_past
 from .validation import GELDIGE_JAS_KLASSEN
 
 
@@ -750,6 +751,23 @@ def _grens_wijziging(element: dict, wijziging: dict, nodes: dict) -> dict:
                         "bron_hash": node["bron_hash"]}], "tekst": tekst}
 
 
+def _herzien_subtype(oud: dict, wijziging: dict) -> dict:
+    """Het subtype hoort bij de klasse (`jas_klassen.JAS_SUBTYPEN`). De jurist kiest het mee (een tijdsaanduiding die
+    een parameter of een variabele verbijzondert, H2:107); een subtype dat niet bij de klasse past, is een 422. Wisselt
+    de klasse zonder eigen subtype en past het oude niet meer, dan vervalt het: een verbijzondering van een andere
+    klasse zegt over de nieuwe niets. De beslissing bewaart het oude in `voor`."""
+    klasse = wijziging.get("klasse", oud.get("klasse", "")) or ""
+    if "jas_subtype" in wijziging:
+        if not subtype_past(klasse, wijziging["jas_subtype"] or ""):
+            raise HTTPException(422, {"fout": "subtype_past_niet", "melding":
+                                      f"Het subtype ‘{wijziging['jas_subtype']}’ hoort niet bij de klasse {klasse or '(geen)'}; "
+                                      f"kies uit: {', '.join(JAS_SUBTYPEN.get(klasse, ())) or 'geen subtype'}."})
+        return {"jas_subtype": wijziging["jas_subtype"] or ""}
+    if not subtype_past(klasse, oud.get("jas_subtype") or ""):
+        return {"jas_subtype": ""}
+    return {}
+
+
 def _herzien_toelichting(oud: dict, wijziging: dict) -> dict:
     """Een klassewissel zonder nieuwe toelichting: de oude ging over de vorige klasse ("Een rechtsobject is…" bij een
     Rechtsfeit). Ze wijkt voor een zin die zegt wat er gebeurde; de beslissing bewaart haar in `voor`. Een nieuwe grens
@@ -792,13 +810,13 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
     if req.type in {"edit", "grens"}:
         if req.type == "grens":
             wijziging = _grens_wijziging(old, req.wijziging, nodes)
-        elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
+        elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers", "jas_subtype"}:
             raise HTTPException(422, "Niet-toegestane correctievelden.")
         elif not req.wijziging:
             # Termijnen e2e (20 nov 2026): `klasse` naast `wijziging` in plaats van erin gaf 200, lifecycle edited en
             # geen wijziging. Een bewerking zonder iets te wijzigen is geen oordeel.
             raise HTTPException(422, "Een bewerking zonder wijziging: zet de velden in `wijziging`.")
-        wijziging = {**wijziging, **_herzien_toelichting(old, wijziging)}
+        wijziging = {**wijziging, **_herzien_toelichting(old, wijziging), **_herzien_subtype(old, wijziging)}
         candidate = Element.model_validate({**old, **wijziging})
         value.update(valideer(candidate, snapshot, set(nodes)))
         owner = value["eigenaar_iri"]

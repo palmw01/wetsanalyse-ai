@@ -529,6 +529,11 @@
           "bron": "H2:107",
           "subtype": "verbijzondert parameter",
           "verbijzondert": "Parameter en parameterwaarde"
+        },
+        {
+          "bron": "H2:107",
+          "subtype": "verbijzondert variabele",
+          "verbijzondert": "Variabele en variabelewaarde"
         }
       ],
       "vraag": "Wanneer, op welk moment? Sinds wanneer of tot wanneer, vanaf welk moment of tot welk moment?"
@@ -1059,5 +1064,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "92094f422b19"
+  "vocabulaire_versie": "59e95542eb98"
 }

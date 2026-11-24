@@ -69,7 +69,7 @@ class Element(BaseModel):
     # contract zegt dat het meereist en tot in de opslag en de export bewaard blijft.
     trace: dict = Field(default_factory=dict)
     # JAS-subtype binnen een samengevoegde klasse; leeg = onbepaald. Expliciet, net als `trace`.
-    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling|verbijzondert parameter)$")
+    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling|verbijzondert parameter|verbijzondert variabele)$")
 
 
 class Dekking(BaseModel):
@@ -171,8 +171,8 @@ class Laagbesluit(BaseModel):
 
     @model_validator(mode="after")
     def _binnen_de_laag(self):
-        if set(self.wijziging) - {"klasse", "toelichting"}:
-            raise ValueError("In een bulk wijzig je alleen klasse en toelichting.")
+        if set(self.wijziging) - {"klasse", "toelichting", "jas_subtype"}:
+            raise ValueError("In een bulk wijzig je alleen klasse, subtype en toelichting.")
         return self
 
 
@@ -208,7 +208,7 @@ class Zoekvraag(BaseModel):
     aandacht: list[Literal["groen", "geel"]] = Field(default_factory=list)
     subtype: list[Literal["variabele", "variabelewaarde", "parameter", "parameterwaarde",
                           "delegatiebevoegdheid", "delegatie-invulling",
-                          "verbijzondert parameter"]] = Field(default_factory=list)
+                          "verbijzondert parameter", "verbijzondert variabele"]] = Field(default_factory=list)
     beslist_door: list[Literal["regel", "model", "specificiteit", "terugval"]] = Field(default_factory=list)
     # None = geen filter; True = alleen met twijfel in het spoor; False = alleen zonder.
     met_twijfel: bool | None = None

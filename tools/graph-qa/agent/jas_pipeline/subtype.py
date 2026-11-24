@@ -24,8 +24,10 @@ eerlijke "onbepaald", een verkeerd subtype is een stille fout.
 | Tijdsaanduiding | verbijzondert parameter | een duur of hoeveelheid als kern van de tijdtreffer (H2:107) |
 
 Delegatie-invulling vraagt de graaf (de bovenliggende grondslag) en blijft hier leeg. Een datum of een
-relatieve periode ('de overige dagen') zegt niet eenduidig of hij een parameter of een variabele
-verbijzondert, en blijft leeg.
+relatieve periode ('de overige dagen', 'de dagtekening van het aanslagbiljet') zegt niet eenduidig of hij een
+parameter of een variabele verbijzondert, en blijft leeg: of een moment per geval verschilt, vraagt de context. Het
+subtype *verbijzondert variabele* zet de keten dus nooit zelf; de jurist kiest het in de werkplek. Welke relaties
+een verbijzondering overneemt, zegt de relatiecatalogus (`jas_relaties.VERBIJZONDERINGEN`).
 """
 from __future__ import annotations
 
@@ -36,6 +38,7 @@ VAR, PAR, DEL = ("Variabele en variabelewaarde", "Parameter en parameterwaarde",
                  "Delegatiebevoegdheid en delegatie-invulling")
 TIJD = "Tijdsaanduiding"
 VERBIJZONDERT_PARAMETER = "verbijzondert parameter"
+VERBIJZONDERT_VARIABELE = "verbijzondert variabele"
 
 #: Tijdcodes waarvan de kern een duur of hoeveelheid is (`{TELWOORD} {PERIODE}`, zie `regels/tijd.yaml`).
 #: `TEMPORAL_RELATIVE_PERIOD` hoort er niet bij: zijn telwoord is optioneel ('de overige dagen').
@@ -56,11 +59,13 @@ REGELS: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {
 #: graaf). De api (`annotatie_v2_contracts`) en de zoektool staan precies deze waarden toe;
 #: `tests/test_contract_drift.py` bewaakt dat, `tests/test_subtype.py` dat REGELS er binnen blijft.
 ALLE_SUBTYPEN: tuple[str, ...] = ("variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                                  "delegatiebevoegdheid", "delegatie-invulling", VERBIJZONDERT_PARAMETER)
+                                  "delegatiebevoegdheid", "delegatie-invulling", VERBIJZONDERT_PARAMETER,
+                                  VERBIJZONDERT_VARIABELE)
 
 #: Subtypen die geen eigen officieel begrip zijn maar een verbijzondering:
 #: subtype → (klasse, verbijzonderde klasse, bron). De vocabulaire maakt er een eigen concept van.
-VERBIJZONDERINGEN: dict[str, tuple[str, str, str]] = {VERBIJZONDERT_PARAMETER: (TIJD, PAR, "H2:107")}
+VERBIJZONDERINGEN: dict[str, tuple[str, str, str]] = {VERBIJZONDERT_PARAMETER: (TIJD, PAR, "H2:107"),
+                                                      VERBIJZONDERT_VARIABELE: (TIJD, VAR, "H2:107")}
 
 
 def codes_van(evidence: Iterable) -> list[str]:

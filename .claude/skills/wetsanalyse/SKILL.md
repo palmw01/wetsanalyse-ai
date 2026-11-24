@@ -162,7 +162,8 @@ uitdrukkingswijze geeft. De JAS-tabel telt zestien rijen; drie paren zijn hier �
 **Samenloop.** Een fragment mag meer markeringen hebben als ze verschillende functies dragen. Er is geen regel
 "de diepste klasse wint". Eén voorrang geldt wel: bij dezelfde functie gaan tijd en plaats voor variabele en
 parameter. Een duur in een tijdsaanduiding ("zes weken na …") is één Tijdsaanduiding met het subtype *verbijzondert
-parameter*; een getal in cijfers daarin is een eigen, geneste parameterwaarde.
+parameter*, een datum die per geval verschilt ("de dagtekening") één met het subtype *verbijzondert variabele*; zij
+neemt de relaties van die klasse over. Een getal in cijfers daarin is een eigen, geneste parameterwaarde.
 
 ## Veelgemaakte fouten
 

@@ -57,8 +57,19 @@ def test_alle_subtypen_omvat_wat_de_regels_kunnen_zetten():
     from agent.jas_pipeline.subtype import ALLE_SUBTYPEN, REGELS, VERBIJZONDERINGEN
     gezet = {s for regels in REGELS.values() for s, _ in regels}
     assert gezet <= set(ALLE_SUBTYPEN) and len(set(ALLE_SUBTYPEN)) == len(ALLE_SUBTYPEN)
-    assert set(ALLE_SUBTYPEN) - gezet == {"delegatie-invulling"}  # vraagt de graaf, de keten zet het niet
+    # Delegatie-invulling vraagt de graaf; of een moment per geval verschilt (verbijzondert variabele) is een oordeel
+    # over de context. Beide zet de keten niet, de jurist wel.
+    assert set(ALLE_SUBTYPEN) - gezet == {"delegatie-invulling", "verbijzondert variabele"}
     assert set(VERBIJZONDERINGEN) <= set(ALLE_SUBTYPEN)
+
+
+def test_de_verbijzonderingen_zijn_die_van_de_relatiecatalogus():
+    """De vocabulaire leest `VERBIJZONDERINGEN` hier, de relaties lezen de catalogus (`jas_relaties`): dezelfde
+    subtypes en dezelfde verbijzonderde klassen (H2:107; M01 h.4 §12)."""
+    from agent.jas_pipeline.subtype import VERBIJZONDERINGEN
+    from agent.jas_relaties import VERBIJZONDERINGEN as CATALOGUS
+    assert {s: (k, v) for s, (k, v, _bron) in VERBIJZONDERINGEN.items()} == {
+        s: (k, w["klasse"]) for k, per in CATALOGUS.items() for s, w in per.items()}
 
 
 @pytest.mark.parametrize("tekst, verwacht", [

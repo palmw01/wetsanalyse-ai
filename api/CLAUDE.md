@@ -167,7 +167,12 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Relaties tussen markeringen** (ADR-011, `annotatie_v2_relaties.py`).
   - Een relatie hoort bij de laag van de drager: leggen, beoordelen en wissen lopen door het schrijfslot met
     revisie, 412 en audit.
-  - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet.
+  - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet. Een tijdsaanduiding met een
+    subtype *verbijzondert parameter* of *verbijzondert variabele* neemt de relaties van die klasse over
+    (`jas_relaties.als_klassen`, de sleutel `verbijzonderingen` in de catalogus; H2:107, M01 h.4 §12): de api toetst bij
+    elke relatie het subtype van beide eindpunten. Het subtype kiest de jurist met een `edit` (`jas_subtype`); het moet
+    bij de klasse horen (`jas_klassen.JAS_SUBTYPEN`, 422 `subtype_past_niet`), en wisselt de klasse, dan vervalt een
+    subtype dat niet meer past (`_herzien_subtype`).
   - **Een volgordeplek** (invoer, operand) is uniek per type en eindpunt, en alleen een geldende relatie bezet haar
     (`plek_bezet`, voor de jurist, de keten en heropenen): een afgewezen of vervangen relatie is historie. Een afgewezen
     relatie heropenen op een intussen bezette plek is 409 `volgorde_bezet`.

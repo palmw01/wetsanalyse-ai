@@ -270,6 +270,8 @@ export function beslissingNaarNode(
   const wijziging: Record<string, unknown> = {};
   if (w.klasse) wijziging.klasse = w.klasse;
   if (w.toelichting != null) wijziging.toelichting = w.toelichting;
+  // Het subtype (een tijdsaanduiding die een parameter of een variabele verbijzondert); "" maakt het onbepaald.
+  if (w.jas_subtype != null) wijziging.jas_subtype = w.jas_subtype;
   if (w.tekst) {
     const bereik = w.anker ? { start: w.anker.start, eind: w.anker.eind } : zoekFragment(nb, w.tekst, huidig?.anker);
     if (!bereik) throw new Error("Dit fragment staat niet letterlijk in de wettekst van deze bepaling.");

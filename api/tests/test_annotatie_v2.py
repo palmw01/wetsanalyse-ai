@@ -729,6 +729,30 @@ async def test_akkoord_vraagt_eerst_een_klasse_en_een_edit_kiest_hem():
     assert r["element"]["klasse"] == "Rechtsfeit" and r["element"]["id"] == eid
 
 
+async def test_de_jurist_kiest_welke_klasse_een_tijdsaanduiding_verbijzondert():
+    """H2:107; M01 h.4 §12: de analyse legt vast of een tijdsaanduiding een parameter of een variabele verbijzondert.
+    De jurist kiest het subtype bij een bewerking; een subtype van een andere klasse is een 422, en wisselt de klasse,
+    dan vervalt een subtype dat niet meer past."""
+    snap = snapshot(ONE)
+    tijd = {**element(snap), "klasse": "Tijdsaanduiding", "jas_subtype": "verbijzondert parameter"}
+    eid = (await store.batch(request(snap, [tijd]), snap, "lex"))["elementen"][0]["id"]
+
+    def edit(revisie: int, **wijziging):
+        return store.beslis(eid, Beslissing(type="edit", snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: revisie},
+                                            wijziging=wijziging), snap, "jurist")
+
+    r = await edit(1, jas_subtype="verbijzondert variabele")
+    assert r["element"]["jas_subtype"] == "verbijzondert variabele"
+    assert r["element"]["beslissingen"][-1]["voor"] == {"jas_subtype": "verbijzondert parameter"}
+    with pytest.raises(HTTPException) as exc:
+        await edit(2, jas_subtype="parameterwaarde")
+    assert exc.value.status_code == 422 and exc.value.detail["fout"] == "subtype_past_niet"
+    r = await edit(2, klasse="Rechtsobject")
+    assert r["element"]["jas_subtype"] == ""
+    r = await edit(3, klasse="Variabele en variabelewaarde", jas_subtype="variabele")
+    assert (r["element"]["klasse"], r["element"]["jas_subtype"]) == ("Variabele en variabelewaarde", "variabele")
+
+
 async def test_een_latere_klassekeuze_vervangt_de_onbeoordeelde_terugval():
     snap = snapshot(ONE)
     eid = (await store.batch(request(snap, [{**element(snap), **TERUGVAL}], batch_id="r1"), snap, "lex"))["elementen"][0]["id"]
@@ -738,3 +762,28 @@ async def test_een_latere_klassekeuze_vervangt_de_onbeoordeelde_terugval():
     # Andersom laat een nieuwe terugval de gekozen klasse staan.
     await store.batch(request(snap, [{**element(snap), **TERUGVAL}], batch_id="r3", revisions={ONE: 2}), snap, "lex")
     assert [e["klasse"] for e in (await store.weergave(snap))["elementen"]] == ["Rechtsfeit"]
+
+
+@pytest.mark.parametrize("bulk", [False, True])
+async def test_een_oud_subtype_bij_een_tijdsaanduiding_is_te_corrigeren(bulk):
+    """Acceptatie 24 nov 2026: "zes weken" (art. 9 lid 1 Iw 1990) stond als Tijdsaanduiding met het oude subtype
+    parameterwaarde. Een correctie zet het op verbijzondert parameter, los en in bulk; een correctie van iets anders
+    laat het subtype dat niet bij de klasse past niet staan."""
+    from app.annotatie_v2_contracts import Laagbesluiten
+    snap = snapshot(ONE)
+    oud = {**element(snap), "klasse": "Tijdsaanduiding", "jas_subtype": "parameterwaarde"}
+    r = await store.batch(request(snap, [oud, {**oud, "ankers": element(snap, start=7, end=11)["ankers"],
+                                               "tekst": element(snap, start=7, end=11)["tekst"]}]), snap, "lex")
+    eid, ander = (e["id"] for e in r["elementen"])
+    laag_id = r["elementen"][0]["laag_id"]
+    if bulk:
+        await store.beslis_laag(laag_id, Laagbesluiten(verwachte_revisie=1, snapshot_id=snap["snapshot_id"], besluiten=[
+            {"element_id": eid, "type": "edit", "wijziging": {"jas_subtype": "verbijzondert parameter"}},
+            {"element_id": ander, "type": "edit", "wijziging": {"toelichting": "De termijn."}}]), snap, "jurist")
+    else:
+        for i, (x, w) in enumerate(((eid, {"jas_subtype": "verbijzondert parameter"}), (ander, {"toelichting": "De termijn."}))):
+            await store.beslis(x, Beslissing(type="edit", snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: 1 + i},
+                                             wijziging=w), snap, "jurist")
+    per_id = {e["id"]: e for e in (await store.weergave(snap))["elementen"]}
+    assert per_id[eid]["jas_subtype"] == "verbijzondert parameter"
+    assert per_id[ander]["jas_subtype"] == ""   # parameterwaarde past niet bij een Tijdsaanduiding

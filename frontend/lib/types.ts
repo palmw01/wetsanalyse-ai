@@ -409,6 +409,9 @@ export interface AgentHergebruik {
 
 export interface Wijziging {
   klasse?: string | null;
+  // Hoort bij de klasse (`JAS_SUBTYPEN` in `lib/jas.ts`); "" is onbepaald. De api weigert een subtype van een andere
+  // klasse, en laat een subtype vallen dat na een klassewissel niet meer past.
+  jas_subtype?: string | null;
   tekst?: string | null;
   toelichting?: string | null;
   lid?: string | null;

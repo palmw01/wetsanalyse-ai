@@ -41,3 +41,21 @@ def test_frontend_draagt_dezelfde_kleuren():
         "frontend/lib/jas.ts wijkt af van de canonieke kleuren in de api "
         "(api/app/jas_klassen.py)"
     )
+
+
+@pytest.mark.skipif(not JAS_TS.exists(), reason="frontend niet aanwezig (api-only image)")
+def test_frontend_draagt_dezelfde_subtypen():
+    import json
+
+    from app.annotatie_v2_contracts import Element
+    from app.jas_klassen import JAS_SUBTYPEN
+
+    blok = re.search(r"export const JAS_SUBTYPEN[^=]*= \{(.*?)\n\};", JAS_TS.read_text(encoding="utf-8"), re.S)
+    assert blok, "JAS_SUBTYPEN staat niet in frontend/lib/jas.ts"
+    fe = {m.group(1): tuple(json.loads(m.group(2))) for m in re.finditer(r'^\s*"?([^":]+?)"?: (\[.*?\]),', blok.group(1), re.M)}
+    assert fe == JAS_SUBTYPEN
+    assert set(JAS_SUBTYPEN) <= GELDIGE_JAS_KLASSEN
+    # Het patroon van het contract kent precies deze subtypes.
+    patroon = Element.model_fields["jas_subtype"].metadata[0].pattern
+    assert set(re.fullmatch(r"\^\(\|(.*)\)\$", patroon).group(1).split("|")) == {
+        s for subtypen in JAS_SUBTYPEN.values() for s in subtypen}

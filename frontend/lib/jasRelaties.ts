@@ -17,7 +17,7 @@ export type RelatieType = {
   bron: readonly string[];
 };
 
-export const CATALOGUS_VERSIE = "86825c97b971";
+export const CATALOGUS_VERSIE = "6834a2fd062c";
 
 /** De pseudoklasse van een eindpunt dat een hele bepaling is (soort bron, M-1-1). */
 export const BRON = "Bron";
@@ -496,8 +496,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     ],
     "naar": [
       "Variabele en variabelewaarde",
-      "Parameter en parameterwaarde",
-      "Tijdsaanduiding"
+      "Parameter en parameterwaarde"
     ],
     "paren": [
       {
@@ -509,12 +508,6 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
         "van": "Parameter en parameterwaarde",
         "van_subtype": "parameterwaarde",
         "naar": "Parameter en parameterwaarde"
-      },
-      {
-        "van": "Parameter en parameterwaarde",
-        "van_subtype": "parameterwaarde",
-        "naar": "Tijdsaanduiding",
-        "naar_subtype": "verbijzondert parameter"
       }
     ],
     "drager": "naar",
@@ -562,17 +555,52 @@ export const IMPLICIET_TOEGESTAAN: readonly string[] = [
   "Rechtssubject"
 ];
 
-/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
- * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
-export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
-  const t = RELATIETYPEN[code];
-  if (!t || vanKlasse === BRON) return false;
-  if (naarKlasse === BRON) return t.eindpunt_bron && t.van.includes(vanKlasse);
+/** klasse → subtype → de klasse die zij verbijzondert en haar subtype daar (H2:107, M01 h.4 §12). */
+export const VERBIJZONDERINGEN: Record<string, Record<string, { klasse: string; subtype: string; bron: readonly string[] }>> = {
+  "Tijdsaanduiding": {
+    "verbijzondert parameter": {
+      "klasse": "Parameter en parameterwaarde",
+      "subtype": "parameter",
+      "bron": [
+        "H2:107",
+        "M01"
+      ]
+    },
+    "verbijzondert variabele": {
+      "klasse": "Variabele en variabelewaarde",
+      "subtype": "variabele",
+      "bron": [
+        "H2:107",
+        "M01"
+      ]
+    }
+  }
+};
+
+/** De klassen waarvan een markering de relaties mag aangaan: haar eigen klasse, en bij een verbijzondering ook de klasse
+ * die zij verbijzondert, met het subtype dat zij daar heeft (zoals `als_klassen` in de api). */
+export function alsKlassen(klasse: string, subtype = ""): [string, string][] {
+  const v = VERBIJZONDERINGEN[klasse]?.[subtype];
+  return v ? [[klasse, subtype], [v.klasse, v.subtype]] : [[klasse, subtype]];
+}
+
+function past(t: RelatieType, vanKlasse: string, naarKlasse: string, vanSubtype: string, naarSubtype: string): boolean {
   if (t.paren.length) {
     return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
       && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);
   }
   return t.van.includes(vanKlasse) && t.naar.includes(naarKlasse);
+}
+
+/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
+ * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten. Een kant met een verbijzondering telt ook als
+ * de klasse die zij verbijzondert (zoals `toegestaan` in de api). */
+export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
+  const t = RELATIETYPEN[code];
+  if (!t || vanKlasse === BRON) return false;
+  if (naarKlasse === BRON) return t.eindpunt_bron && alsKlassen(vanKlasse, vanSubtype).some(([k]) => t.van.includes(k));
+  return alsKlassen(vanKlasse, vanSubtype).some(([vk, vs]) =>
+    alsKlassen(naarKlasse, naarSubtype).some(([nk, ns]) => past(t, vk, nk, vs, ns)));
 }
 
 /** De typen die tussen deze twee klassen passen, in deze richting: de keuzelijst bij *Verbind met…*. */

@@ -11,6 +11,27 @@
   "impliciet_toegestaan": [
     "Rechtssubject"
   ],
+  "verbijzonderingen_toelichting": "Een formulering die zowel tijdsaanduiding als parameter of variabele kan zijn, krijgt de specifiekere klasse (H2:107); de analyse legt met het subtype vast welke klasse zij verbijzondert, en zij neemt de relaties van die klasse over (M01 h.4 §12, Relatie met andere klassen). Per klasse: subtype → de klasse waarvan zij de relaties overneemt, als welk subtype daar.",
+  "verbijzonderingen": {
+    "Tijdsaanduiding": {
+      "verbijzondert parameter": {
+        "klasse": "Parameter en parameterwaarde",
+        "subtype": "parameter",
+        "bron": [
+          "H2:107",
+          "M01"
+        ]
+      },
+      "verbijzondert variabele": {
+        "klasse": "Variabele en variabelewaarde",
+        "subtype": "variabele",
+        "bron": [
+          "H2:107",
+          "M01"
+        ]
+      }
+    }
+  },
   "typen": {
     "rechthebbende": {
       "leesvorm": "is rechthebbende van",
@@ -231,8 +252,7 @@
       ],
       "naar": [
         "Variabele en variabelewaarde",
-        "Parameter en parameterwaarde",
-        "Tijdsaanduiding"
+        "Parameter en parameterwaarde"
       ],
       "paren": [
         {
@@ -244,12 +264,6 @@
           "van": "Parameter en parameterwaarde",
           "van_subtype": "parameterwaarde",
           "naar": "Parameter en parameterwaarde"
-        },
-        {
-          "van": "Parameter en parameterwaarde",
-          "van_subtype": "parameterwaarde",
-          "naar": "Tijdsaanduiding",
-          "naar_subtype": "verbijzondert parameter"
         }
       ],
       "drager": "naar",
