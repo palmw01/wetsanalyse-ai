@@ -149,6 +149,9 @@ class Settings:
         self.graphdb_url = os.environ.get("GRAPHDB_URL", "").strip().rstrip("/")
         self.graphdb_repository = os.environ.get("GRAPHDB_REPOSITORY", "inning").strip()
         self.jas_projectie_interval_s = float(os.environ.get("JAS_PROJECTIE_INTERVAL", "60"))
+        # Hoe lang een verwijderde annotatie minstens in de prullenbak blijft (`annotatie_prullenbak`). Daarna mag een
+        # beheerder hem legen; vanzelf gaat er niets weg.
+        self.annotatie_prullenbak_dagen = int(os.environ.get("ANNOTATIE_PRULLENBAK_DAGEN", "30"))
 
 @lru_cache
 def get_settings() -> Settings:

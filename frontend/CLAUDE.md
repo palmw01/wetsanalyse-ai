@@ -368,7 +368,8 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
     - een gewone regel is `MenuKnop`, met een icoon ervoor;
     - een keuze die meteen geldt (de rol van een bron) is `MenuKeuze`, met een vinkje;
     - *Verwijderen* staat onderaan, rood, met een prullenbak (`MenuVerwijder`), en een tweede klik bevestigt. Een
-      gesprek gebruikt daar `MenuKnop gevaar`, omdat het eerst archiveren aanbiedt;
+      gesprek gebruikt daar `MenuKnop gevaar`, omdat het eerst archiveren aanbiedt, en een annotatie ook, omdat haar
+      venster noemt wat er verloren gaat (`VerwijderBevestiging`);
     - geen losse knop in een menu, en *Bewerken* staat niet in het menu maar bij het blok;
     - `app/knoppen.test.ts` bewaakt dat het icoon ⋯ alleen in `MeerKnop` staat;
     - een `Groep` heeft geen `overflow-hidden`, want dat knipt het menu van de onderste rij af;
@@ -1155,12 +1156,26 @@ sidebar blijft staan.
   `metSpoor` met `annotatie_verwijderen`,
   `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
 - **Verwijderen staat in het menu ⋯ van de kop**: onderaan in het menu van `AnnotatieKop`
-  (`onVerwijder`, alleen als er een laag in beeld is), als `MenuVerwijder`. Elke gebruiker mag het, ook
+  (`onVerwijder`, alleen als er een laag in beeld is), als `MenuKnop gevaar`. Elke gebruiker mag het, ook
   op een afgeronde annotatie; de audit legt vast wie. `NodeAnnotatiePaneel.verwijder` stuurt
   `weergave/verwijder` met de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt
-  opnieuw. De API haalt alle lagen van de bepaling in beeld weg, ook uit de graaf; de weergave draagt
-  dan `verwijderd: {op}` en het paneel zegt "Deze annotatie is verwijderd op …", ook als je hem later
-  vanuit een oud gesprek opent. Lex annoteert zo'n bepaling bij een volgende vraag opnieuw.
+  opnieuw. Lex annoteert zo'n bepaling bij een volgende vraag opnieuw.
+- **Een annotatie gaat naar de prullenbak** (24 nov 2026; api `annotatie_prullenbak.py`, rekenkern
+  `lib/annotatiePrullenbak.ts`, componenten in `components/annotaties/Prullenbak.tsx`):
+  - **De bevestiging noemt wat er verloren gaat** (`VerwijderBevestiging`, een venster, op beide plekken: het menu van het
+    paneel en de kaart in `/annotaties`): "9 markeringen, waarvan 7 beoordeeld, gaan naar de prullenbak", de begrippen en
+    afleidingsregels die ernaar verwijzen, en hoe lang je terug kunt (`POST weergave/verwijder-impact`, `impactZinnen`).
+    In de lijst staat het venster in `AnnotatiesClient`, niet in de kaart: die verschuift bij hover, en dat verplaatst
+    een `fixed` venster. `VerwijderKnop onKies` opent zo'n eigen bevestiging in plaats van de tweede klik.
+  - **Het paneel** (`PrullenbakBlok` in `NodeExtra`): "Deze annotatie is verwijderd op … door …", tot wanneer ze bewaard
+    blijft en *Terugzetten* (`POST prullenbak/{id}/terugzetten`). Staat er intussen een nieuwe annotatie, dan zegt het
+    paneel dat en biedt *Vergelijken* (toen naast nu, `Vergelijking`); terugzetten kan dan pas na het verwijderen van de
+    nieuwe. Zonder item (geleegd, of van vóór de prullenbak): definitief, geen knop.
+  - **De lijst** meldt na verwijderen "staat in de prullenbak" met *Terugzetten*.
+  - **Bron verwijderd**: een passage van een begrip (`BegripPassages`) en een drager van een regel (`DragerBron`) met
+    `bron_verwijderd` tonen `BronVerwijderdRegel` (wanneer, door wie, nog terug te zetten of definitief, en *Naar de
+    bepaling*), in plaats van een stil lege of "verdwenen" passage.
+  - Browserregressie: `scripts/test-annotatie-nodes.mjs` (met `PRULLENBAK_SCREENSHOT=<map>` beelden breed en op 390 px).
 - **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek** (`HergebruikMelding`).
   Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag kwamen; de melding blijft na
   herladen omdat graph-qa hem in het chatbericht zet (`Bericht.hergebruik`). *Lex opnieuw laten

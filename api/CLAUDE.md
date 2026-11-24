@@ -234,14 +234,32 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Verwijderen van de bepaling in beeld mag iedereen** (`POST weergave/verwijder`,
   `annotatie_v2_store.verwijder_weergave`): alle lagen op het doel en de bronnodes eronder, met hun
   elementen, in één transactie onder het schrijfslot en met de revisietoets (412).
+  - **Naar de prullenbak, niet definitief** (`annotatie_prullenbak.py`, tabel `annotatie_v2_prullenbak`, 24 nov 2026):
+    vóór het wissen gaan de lagen, elementen, relaties en impliciete partijen die meegaan, de dekkingsrijen van de
+    bronnodes en de artefactversies als één item de prullenbak in. De actuele tabellen en de graaf verliezen ze wel,
+    dus geen ander pad hoeft een `verwijderd`-vlag te kennen. De respons draagt `prullenbak: {id, bewaartermijn_dagen}`.
+  - **Terugzetten** (`POST prullenbak/{id}/terugzetten`, iedereen, zoals verwijderen) zet de rijen terug met hun eigen
+    id's, geeft elke laag een revisie (`laag-teruggezet` in de audit) en projecteert ze opnieuw. Staat er op een van de
+    bronnodes intussen een nieuwe laag, dan 409 `nieuwe_laag` met `bezet` en per bronnode de telling van nu; de
+    weergave noemt dan `prullenbak.terugzetbaar: false`, en `GET prullenbak/{id}` levert de markeringen van toen voor de
+    vergelijking. Een relatie met een drager buiten de bepaling komt terug als die laag en de andere kant er nog zijn.
+    Een dekkingsrij van een ruimere bepaling die bij het verwijderen inkromp, blijft ingekrompen (niet `voltooid`).
+  - **Bewaartermijn en legen**: minstens `ANNOTATIE_PRULLENBAK_DAGEN` (30); vanzelf gaat er niets weg. Legen is een
+    beheeractie: `GET /v1/admin/annotatie/prullenbak` en `POST /v1/admin/annotatie/prullenbak/legen` (zonder id wat
+    over de termijn is, met `id` dat ene item, met `alles` alles), met `prullenbak-geleegd` in de annotatie-audit.
+  - **De bevestiging** leest `POST weergave/verwijder-impact`: markeringen, hoeveel beoordeeld (`AFGEHANDELD`), historie,
+    relaties, en de begrippen en afleidingsregels die ernaar verwijzen (`annotatie_prullenbak.verwijzers`).
+  - **Bron verwijderd**: een begripkoppeling of regeldrager met `actualiteit: "verdwenen"` krijgt `bron_verwijderd: {op,
+    door, weergave, prullenbak_id}` (`met_bron_verwijderd`, uit de audit `laag-verwijderd`/`element-verwijderd`, dus ook
+    na legen en voor wat vóór de prullenbak verdween). `prullenbak_id` is `null` als het item er niet meer is.
   - **De dekking gaat mee**, anders leest Lex de bepaling bij de volgende beurt als "al
     geannoteerd". Een dekkingsrij van een ruimere bepaling houdt haar bereik buiten deze scope en
     verliest `voltooid`.
   - **Een element van een ruimere laag blijft staan.** Valt het met één anker in deze bepaling, dan
     is het daar een verwijzing, geen eigendom.
-  - **De audit blijft**: per laag een regel `laag-verwijderd` naast de bestaande regels. Daaruit
-    leest de weergave `verwijderd: {op}`, zodat een heropend gesprek "verwijderd" toont in plaats
-    van een leeg paneel.
+  - **De audit blijft**: per laag een regel `laag-verwijderd` (met `prullenbak_id`) naast de bestaande regels. Daaruit
+    leest de weergave `verwijderd: {op, door}`, zodat een heropend gesprek "verwijderd" toont in plaats
+    van een leeg paneel; `prullenbak` noemt het nieuwste item dat de bepaling raakt.
   - **Geen afhankelijkheid van de brongraaf.** De route neemt de bewaarde snapshot
     (`historische_snapshot`); alleen een bronstand die nooit is weggeschreven wordt opnieuw
     opgehaald, en die geeft 409 als hij intussen veranderde.
@@ -663,8 +681,9 @@ spoor D (*Werkgebied als node*).
   rol die dat element bij dit begrip al heeft geeft 409 `al_gekoppeld`. Een wijziging die niets
   verandert, is geen revisie.
 - **Een koppeling draagt haar bewijsstand** (tekst, klasse, ankers met `bron_hash`, eigenaar, laag,
-  snapshot, vindplaats, `element_hash`). Annotatie-elementen worden **hard** verwijderd
-  (`annotatie_v2_store.verwijder`/`verwijder_weergave`), dus er is geen foreign key en geen cascade.
+  snapshot, vindplaats, `element_hash`). Annotatie-elementen verdwijnen uit de actuele tabel
+  (`annotatie_v2_store.verwijder`, of via de prullenbak bij `verwijder_weergave`), dus er is geen foreign key en geen
+  cascade; een verdwenen element leest als `verdwenen` met `bron_verwijderd`.
   Koppelen kan alleen met elementen uit de inventaris van het werkgebied (`bewijzen`: actueel, niet
   verworpen, binnen de selecties; anders 422 `element_buiten_werkgebied`). Dat vraagt de graaf, en
   gebeurt dus vóór de schrijftransactie.
@@ -1556,8 +1575,9 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   - een onbekend id geeft 404;
   - `GET /v1/artefact-versies?sleutel=` geeft de lijst, van oud naar nieuw.
 - **Echt wissen, zoals het object.** De tabel staat in `werkgebied_store.WERKGEBIED_TABELLEN`. Een verwijderde
-  annotatie wist de versies van de bepaling in beeld en van haar bronnodes (`annotatie_v2_store.verwijder_weergave`).
-  De berichten blijven staan, en hun `versie` geeft dan 404.
+  annotatie neemt de versies van de bepaling in beeld en van haar bronnodes mee naar de prullenbak
+  (`annotatie_v2_store.verwijder_weergave`); terugzetten brengt ze terug. De berichten blijven staan, en hun `versie`
+  geeft zolang 404.
 - Tests: `tests/test_artefact_versies.py`.
 
 ## Gesprekken

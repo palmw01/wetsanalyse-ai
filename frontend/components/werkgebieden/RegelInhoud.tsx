@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BronVerwijderdRegel } from "@/components/annotaties/BronVerwijderdRegel";
 import { useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
@@ -255,8 +256,9 @@ function DragerBron({ d }: { d: RegelDrager }) {
           ? <a href={link} target="_blank" rel="noreferrer" className="focus-ring rounded text-lint hover:underline">{vindplaats || "Wettekst"}</a>
           : vindplaats || d.element_id}
         {d.bron?.soort === "anker" ? " · geen jci, link naar de vindplaats" : d.bron?.soort === "geen" ? " · geen bronreferentie" : ""}
-        {d.actualiteit && d.actualiteit !== "actueel" ? ` · passage ${d.actualiteit}` : ""}
+        {d.actualiteit && d.actualiteit !== "actueel" && !d.bron_verwijderd ? ` · passage ${d.actualiteit}` : ""}
       </span>
+      {d.bron_verwijderd && <BronVerwijderdRegel b={d.bron_verwijderd} />}
     </span>
   );
 }

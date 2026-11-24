@@ -72,6 +72,9 @@ async def _dragers_van(conn, werkgebied_id: str, regel_ids: list[str]) -> dict[s
     for r in rows:
         d = {**_drager(r), "bron": bron[_bronpaar(r.bewijs)]}
         uit.setdefault(r.regel_id, []).append(begrip_store.actualiteit(d, huidig.get(r.element_id)))
+    # Een drager waarvan de annotatie werd verwijderd, zegt dat (`bron_verwijderd`), in plaats van stil leeg te zijn.
+    from .annotatie_prullenbak import met_bron_verwijderd
+    await met_bron_verwijderd(conn, [d for ds in uit.values() for d in ds])
     return uit
 
 

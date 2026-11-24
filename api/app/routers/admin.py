@@ -937,6 +937,27 @@ async def get_annotatie_statistiek(limit: int = Query(1000, ge=1, le=5000)):
     return rapport(elementen, lagen=lagen)
 
 
+class PrullenbakLegenIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    # Eén item (ook binnen de bewaartermijn), of zonder id alles wat langer dan de termijn ligt; `alles` leegt alles.
+    id: str | None = Field(default=None, max_length=64)
+    alles: bool = False
+
+
+@router.get("/annotatie/prullenbak")
+async def get_annotatie_prullenbak() -> dict:
+    """De verwijderde annotaties, nieuwste eerst, met `over_termijn` voor wat langer dan de bewaartermijn ligt."""
+    from .. import annotatie_prullenbak
+    return {"bewaartermijn_dagen": get_settings().annotatie_prullenbak_dagen, "items": await annotatie_prullenbak.lijst()}
+
+
+@router.post("/annotatie/prullenbak/legen")
+async def post_annotatie_prullenbak_legen(body: PrullenbakLegenIn, admin_id: str = Depends(require_admin)) -> dict:
+    """Definitief verwijderen uit de prullenbak: de enige weg, en een beheeractie. Staat in de annotatie-audit."""
+    from .. import annotatie_prullenbak
+    return await annotatie_prullenbak.legen(admin_id, body.id, body.alles)
+
+
 @router.get("/annotatie/graafcontrole")
 async def graafcontrole(shacl: bool = Query(True, description="Ook SHACL per laag (duurder)")) -> dict:
     """Klopt de annotatiegraaf met Postgres, en is hij netjes opgebouwd? Alleen lezend.

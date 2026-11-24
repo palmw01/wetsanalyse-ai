@@ -25,8 +25,9 @@ function geleden(iso?: string | null): string {
 
 export function AnnotatieKaart({ doc, onVerwijder }: {
   doc: DocumentSamenvatting;
-  /** Verwijderen vanuit de lijst, zoals in het paneel (`lib/verwijderen.ts`). */
-  onVerwijder?: () => Promise<void>;
+  /** Verwijderen vanuit de lijst, zoals in het paneel (`lib/verwijderen.ts`): de klik opent de bevestiging van de lijst
+   *  (`VerwijderBevestiging`), die noemt wat er verloren gaat. Niet in de kaart zelf: die verschuift bij hover. */
+  onVerwijder?: () => void;
 }) {
   const href = nodeLink({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id });
   const beoordeeld = doc.aantal_elementen - doc.te_beoordelen;
@@ -34,7 +35,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
   return (
     <OverzichtKaart titel={naamVan(doc)} href={href} sub={`${bepalingKort(doc)} · ${doc.bwbId}`}
       status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
-      verwijder={onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" maat="sm" onBevestig={onVerwijder} />}>
+      verwijder={onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" maat="sm" onBevestig={onVerwijder} onKies={onVerwijder} />}>
       <KleurStrip perKlasse={doc.per_klasse} />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">

@@ -1127,6 +1127,8 @@ export interface Koppeling {
   toegevoegd: string;
   /** Bij het lezen bepaald, tegen het element zoals het nu is. */
   actualiteit: Actualiteit;
+  /** Bij `verdwenen`: de annotatie werd verwijderd – wanneer, door wie, en of ze nog in de prullenbak ligt. */
+  bron_verwijderd?: import("./annotatiePrullenbak").BronVerwijderd;
   lifecycle_nu: string | null;
   annotatie_beoordeeld: boolean;
   /** Herbeoordeling (fase F1): de analist zag de veranderde passage en het begrip klopt nog. Het

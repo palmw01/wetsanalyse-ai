@@ -62,7 +62,8 @@ async def test_verwijdert_de_lagen_in_beeld_met_elementen_dekking_audit_en_graaf
     view = await store.weergave(art)
     uit = await store.verwijder_weergave(art, revisies(view), "c")
 
-    assert uit == {"verwijderd": {"lagen": 3, "elementen": 3, "relaties": 0, "impliciet": 0}, "graaf": "verwijderd"}
+    assert uit["verwijderd"] == {"lagen": 3, "elementen": 3, "relaties": 0, "impliciet": 0}
+    assert uit["graaf"] == "verwijderd" and uit["prullenbak"]["id"]
     na = await store.weergave(art)
     assert not na["lagen"] and not na["elementen"] and na["verwijderd"]["op"]
     assert not await dekkingrijen()

@@ -256,6 +256,14 @@ annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
 annotatie_v2_dekking = Table("annotatie_v2_dekking", metadata,
     Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, index=True),
     Column("snapshot_id", String(128), nullable=False, index=True), Column("inhoud", _JSON, nullable=False))
+# De prullenbak van de annotaties: een verwijderde bepaling (`annotatie_v2_store.verwijder_weergave`) bewaart hier haar
+# lagen, elementen, relaties, impliciete partijen, dekking en artefactversies, tot een beheerder hem leegt
+# (`annotatie_prullenbak`). `samenvatting` is wat de weergave en de lijst tonen zonder de zware `inhoud` te lezen.
+annotatie_v2_prullenbak = Table("annotatie_v2_prullenbak", metadata,
+    Column("id", String(64), primary_key=True), Column("weergave_iri", Text, nullable=False),
+    Column("bron_iris", _JSON, nullable=False), Column("verwijderd_door", String(64), nullable=False),
+    Column("verwijderd_op", _DT, nullable=False, index=True), Column("samenvatting", _JSON, nullable=False),
+    Column("inhoud", _JSON, nullable=False))
 # `laag_id` is gezet waar een regel bij één laag hoort; de regel `revisie` (één per geraakte laag aan
 # het eind van een schrijftransactie) maakt er de revisiehistorie per laag van. Oudere regels hebben
 # hem niet – die laag heeft dan geen historie, geen verkeerde.
