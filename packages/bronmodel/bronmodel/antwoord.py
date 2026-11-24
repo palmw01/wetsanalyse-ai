@@ -9,9 +9,10 @@ de historie, de kopieerknop en de eval.
 """
 from __future__ import annotations
 
+import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
 
 from .definities import geldt_voor
 
@@ -224,7 +225,7 @@ class Extern(BaseModel):
     #: Uit de metadata van het gelezen stuk (`ConnectorBeschrijving.metadata`): de datum van het stuk en zijn soort
     #: ("Motie"). Uit de bron, niet uit de tekst van het model; leeg bij een ouder bericht.
     datum: str = ""
-    soort_stuk: str = ""
+    soort_stuk: SoortNaam = ""
     #: Bij welke tekst van de bepaling het stuk hoort, uit de zoekrij (zie `Stuk`); leeg als het stuk niet gezocht is.
     tekst_vanaf: str = ""
     tekst_tot: str = ""
@@ -240,6 +241,30 @@ class Extern(BaseModel):
     vervangen_door: list[str] = []
 
 
+#: Afkortingen in een soortnaam van de bron, voluit: "Nota n.a.v. het verslag" leest als zin.
+_AFKORTINGEN = (("n.a.v.", "naar aanleiding van"), ("t.b.v.", "ten behoeve van"), ("i.v.m.", "in verband met"),
+                ("m.b.t.", "met betrekking tot"))
+#: Een opsomming van varianten tussen haakjes: "(nader/tweede nader/enz.)".
+_VARIANTEN = re.compile(r"\s*\([^()]*/[^()]*\)")
+
+
+def soort_netjes(soort: str) -> str:
+    """Een soortnaam zoals de bron hem geeft, leesbaar voor de jurist en voor elke connector gelijk: zonder de opsomming
+    van varianten tussen haakjes, afkortingen voluit, en een naam in hoofdletters ("JAARVERSLAG") met één hoofdletter.
+    Acceptatie 24 nov 2026: "Nota n.a.v. het (nader/tweede nader/enz.) verslag" stond zo in de lijst. Alleen de weergave:
+    het filter van de zoektool krijgt de naam van de bron (`ConnectorBeschrijving.soorten`)."""
+    s = _VARIANTEN.sub("", soort or "")
+    for kort, voluit in _AFKORTINGEN:
+        s = re.sub(rf"(?<!\w){re.escape(kort)}", voluit, s, flags=re.IGNORECASE)
+    s = " ".join(s.split())
+    if len(s) > 3 and s.isupper():
+        s = s.capitalize()
+    return s[:1].upper() + s[1:]
+
+
+SoortNaam = Annotated[str, AfterValidator(soort_netjes)]
+
+
 class Stuk(BaseModel):
     """Eén gevonden stuk in een lijst, met de metadata uit de zoektool van de connector (de sleutels van
     `bronmodel.connectors.METADATA_SLEUTELS`). Gevonden, niet gelezen: over de inhoud zegt de lijst niets."""
@@ -247,7 +272,7 @@ class Stuk(BaseModel):
     id: str
     label: str
     link: str = ""
-    soort: str = ""
+    soort: SoortNaam = ""
     titel: str = ""
     datum: str = ""
     gepubliceerd: str = ""
