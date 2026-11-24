@@ -1,6 +1,6 @@
 # Plan: lessen uit de begrippen- en afleidingsregelbibliotheek van Termijnen
 
-24 nov 2026. Status: **concept, ter bespreking**. Analyse en voorstel. De methode-skill is aangevuld buiten de
+24 nov 2026. Status: **concept**; de eigenaar heeft de acht vragen beantwoord (§7). Analyse en voorstel. De methode-skill is aangevuld buiten de
 methodemarkers (§5a); er is geen code van Lex gewijzigd, en wat het gedrag van Lex raakt, staat als voorstel in §5b.
 
 Dit plan legt gevalideerd praktijkwerk naast de methode en naast Lex. Het vult
@@ -439,9 +439,8 @@ generatoren zijn gedraaid (`--check` groen) en `tests/methode/` en `tests/poort/
 operatorbegrippen, geen begrip voor een rechtsbetrekking, "bepaal" in plaats van "bepalen", en de termijn als parameter
 én tijdsaanduiding. De regel "een termijn is één Tijdsaanduiding" staat ongewijzigd in de skill.
 
-**Een kanttekening.** Het waardebereik staat nu in de skill als iets wat je vastlegt "in de toelichting, tot het
-platform een veld heeft". Dat loopt vooruit op V2 en op het besluit over P15. Zegt de eigenaar nee op vraag 1, dan
-gaat die alinea terug naar een aandachtspunt.
+**Het waardebereik.** De skill zegt dat je het vastlegt "in de toelichting, tot het platform een veld heeft". De
+eigenaar heeft P15 bijgesteld (§7, besluit 1); met V2 wordt dat een veld en gaat die bijzin eruit.
 
 ## 5b. Voorstellen die het gedrag van Lex veranderen (niet doorgevoerd; vragen een meting, ADR-010)
 
@@ -523,7 +522,31 @@ de vorm die `tools/graph-qa/eval/extern_dossier.py` al heeft voor activiteit 2.
 - **In het meetlogboek** (`docs/architectuur/metingen/README.md`) komt per meting alleen de uitkomst in getallen, met
   de naam en de hash van de set, niet de inhoud.
 
-## 7. Open vragen aan de eigenaar
+## 7. Besluiten van de eigenaar (24 nov 2026), en de vragen waarop ze antwoord geven
+
+| nr | vraag | besluit | gevolg |
+|---|---|---|---|
+| 1 | klasse en waardebereik op het begrip | **ja, beide**: P15 wordt bijgesteld | V2 kan beginnen; de alinea over het waardebereik in de skill blijft; M1 krijgt zijn tweede zin zodra V2 er is |
+| 2 | operatorbegrippen | **houden zoals nu** | geen wijziging; de praktijk wordt hier niet gevolgd |
+| 3 | de termijn als parameter | **de praktijk volgen** | M3 wordt uitgevoerd, met een meting (ADR-010); tot die tijd staat de oude regel nog in de skill |
+| 4 | hoe ver gaat de ontleding | **een gedeelde set** in het generieke kader (ADR-006) | zo staat het in de skill (§5a); V9 stelt een hulpregel alleen voor als hij daar nog niet bestaat |
+| 5a | de naam van een kenmerk | **het object erbij waar verwarring dreigt**, en altijd bij een generiek begrip | zo staat het in de skill; V10 is het signaal daarbij |
+| 5b | "bepaal" of "bepalen" | **bepalen …**, zonder "van het" | de vorm van de skill blijft; de namen in Termijnen ("bepalen van het …") wijken daarvan af: nagaan waar "van het" vandaan komt (de naamgeving bij het maken van een regel) en dat generiek rechtzetten, in de bundel van V6 |
+| 6 | het regelbegrip | **blijft een begrip, maar apart getoond** | nieuw voorstel V11 hieronder |
+| 7 | vervaldag en begindatum invorderbaar | **twee begrippen in Termijnen** | een wijziging in het werkgebied op acceptatie, door de jurist; niet in deze sessie gedaan (het account is gedeeld, en er was alleen leestoegang afgesproken) |
+| 8 | de andere trajecten als blinde set | **niet gekozen** | de referentie blijft bij Termijnen; een blinde set voor M2 en M3 komt uit de bestaande blinde families |
+
+**V11 · Het regelbegrip staat bij zijn regel** (frontend, api-leesvorm; S; geen meting). De begrippenlijst van een
+werkgebied en het overzicht *Begrippen* tonen een begrip met de rol regelbegrip niet tussen de gewone begrippen, maar
+bij de regel (op de regelkaart en in de tab *Afleidingsregels*), met een filter om ze toch te zien. Het begrip zelf, zijn
+grondslag en de NL-SBB-projectie veranderen niet. De telling van begrippen noemt ze apart. Hoort in de bundel van V2–V4.
+
+**Bijgestelde volgorde.** (1) V1 met de nulmeting; (2) V2, V3, V4 en V11 in één bundel; (3) V6 met de naam zonder
+"van het"; (4) M3 met zijn meting, vóór V8, omdat beide de annotatieketen raken en niet door elkaar gemeten kunnen worden;
+(5) V7; (6) V8 met M2; (7) M1 na V2; (8) V9, V10 en M4 als R5 van start gaat.
+
+De vragen zoals ze gesteld zijn:
+
 
 1. **Klasse en waardebereik op het begrip (V2).** Mag het besluit van 13 nov 2026 (P15: een begrip draagt geen type)
    worden bijgesteld, met de klasse afgeleid uit de markeringen en het waardebereik als optioneel veld? De praktijk en
