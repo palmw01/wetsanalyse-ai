@@ -74,6 +74,13 @@ def test_vindplaats_label():
     assert vindplaats_label("urn:jas:x") == "urn:jas:x"
 
 
+def test_vindplaats_label_van_een_knoop_id():
+    """Een slottekst heeft als IRI zijn knoop-id; het label leest die uit in plaats van hem gecodeerd te tonen."""
+    iri = "urn:bwb:BWBR0004770:id:BWBR0004770%2FHoofdstukIV%2FAfdeling2%2FArtikel24%2FLid1%2FSlottekst1"
+    assert vindplaats_label(iri) == "BWBR0004770 art. 24 lid 1 slottekst"
+    assert vindplaats_label("urn:bwb:BWBR0004770:id:iets%2Fonbekends") == "BWBR0004770 id iets%2Fonbekends"
+
+
 def test_een_ongeldige_zoekvraag_zegt_waarom():
     body = {"detail": [{"loc": ["body", "jas_klassen", 0], "msg": "onbekende klasse"}]}
     port = AnnotatieReadApi(make_settings(wetsanalyse_api_url="http://api", wetsanalyse_api_token="t"),

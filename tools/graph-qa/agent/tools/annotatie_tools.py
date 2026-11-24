@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any
+from urllib.parse import unquote
 
 from ..jas_pipeline.subtype import ALLE_SUBTYPEN
 
@@ -182,6 +183,23 @@ def _normaliseer_klassen(args: dict[str, Any]) -> dict[str, Any]:
     return uit
 
 
+#: De delen van een knoop-id ("BWBR…/HoofdstukIV/Afdeling2/Artikel24/Lid1/Slottekst1") die een vindplaats noemt.
+_KNOOPDEEL = re.compile(r"(Artikel|Lid|Onderdeel|Bepaling|Slottekst|Bijlage)(.*)")
+_KNOOPWOORD = {"Artikel": "art.", "Lid": "lid", "Onderdeel": "onderdeel", "Bepaling": "bepaling",
+               "Slottekst": "slottekst", "Bijlage": "bijlage"}
+
+
+def _knooplabel(knoop_id: str) -> str:
+    """"BWBR0004770/HoofdstukIV/Afdeling2/Artikel24/Lid1/Slottekst1" → "art. 24 lid 1 slottekst"; leeg als er niets
+    herkenbaars in staat. Een slottekst krijgt geen volgnummer: dat is een telling van de importer, geen vindplaats."""
+    uit = []
+    for deel in knoop_id.split("/")[1:]:
+        if m := _KNOOPDEEL.fullmatch(deel):
+            soort, waarde = m.groups()
+            uit.append(_KNOOPWOORD[soort] if soort == "Slottekst" or not waarde else f"{_KNOOPWOORD[soort]} {waarde}")
+    return " ".join(uit)
+
+
 def vindplaats_label(iri: str) -> str:
     """"urn:bwb:BWBR0004770:artikel:9:lid:1" → "BWBR0004770 art. 9 lid 1".
 
@@ -189,6 +207,10 @@ def vindplaats_label(iri: str) -> str:
     if not iri.startswith("urn:bwb:"):
         return iri
     delen = iri[len("urn:bwb:"):].split(":")
+    if len(delen) == 3 and delen[1] == "id" and (knoop := _knooplabel(unquote(delen[2]))):
+        # Een node zonder eigen nummerpad (een slottekst, een bijlage) heeft als IRI zijn knoop-id: lees die uit in
+        # plaats van hem gecodeerd te tonen (acceptatie 24 nov 2026: "id BWBR0004770%2FHoofdstukIV%2F…%2FSlottekst1").
+        return f"{delen[0]} {knoop}"
     woorden = {"artikel": "art.", "lid": "lid", "onderdeel": "onderdeel", "bepaling": "bepaling"}
     uit = [delen[0]]
     for i in range(1, len(delen) - 1, 2):
