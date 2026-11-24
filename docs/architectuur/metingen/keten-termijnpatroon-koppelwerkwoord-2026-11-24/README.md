@@ -53,6 +53,15 @@ Mogelijke vervolgstappen, ter keuze van de hoofdsessie. Elk verandert het gedrag
   generiek, maar raakt elke kandidaat in elke bepaling.
 - **Deterministisch accepteren** kan niet: Variabele heeft determinisme *laag* en daarom geen sterke code.
 
+## Besluit na deze meting
+
+De eigenaar besloot daarna (24 nov 2026), op grond van de bron, dat de variabele het kenmerk **zonder** koppelwerkwoord
+is: "invorderbaar". H2-JAS geeft bij de booleaanse waarde "geregistreerd in het donorregister"; het boek markeert bij
+art. 23 lid 5 MRB 1994 ("niet is geregistreerd in het kentekenregister") als variabele "geregistreerd in het
+kentekenregister", zonder "is" en "niet"; het werkwoord hoort bij de rechtsbetrekking of het rechtsfeit. De regel staat
+nu in de skill (`markeren-fragmentgrenzen.md`), de span gaat terug, en de operandfout is generiek hersteld: zie
+[`keten-termijnpatroon-kenmerk-2026-11-24/`](../keten-termijnpatroon-kenmerk-2026-11-24/README.md).
+
 ## Gegevens
 
 - Run-id's: zie de tabel. De events staan in de runstore van acceptatie; de laag staat op Awir 33 lid 4, met alle
