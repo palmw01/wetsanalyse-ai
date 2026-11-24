@@ -286,10 +286,20 @@ async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
     if e.get("klasse") not in CENTRALE_KLASSEN:
         raise HTTPException(422, {"fout": "geen_centrale_klasse",
                                   "melding": "Een diagram staat rond een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde."})
-    # Tot de diepte van het diagram: eerst de relaties van de markering, dan die van haar buren.
-    rel = await relaties.bij_elementen({element_id})
-    buren = {k["id"] for r in rel for k in (r["van"], r["naar"]) if k["soort"] == "element"} | {element_id}
-    rel = await relaties.bij_elementen(buren)
+    # De hele samenhang binnen de bepaling (`diagram.bouw`): steeds de relaties van wat er bij kwam, zolang dat in dezelfde
+    # bepaling staat; een knoop elders is een eindpunt. Begrensd, zodat een kapotte graaf geen eindeloze lus wordt.
+    gezien: set[str] = set()
+    nieuw = {element_id}
+    rel: list[dict] = []
+    for _ in range(12):
+        if not nieuw:
+            break
+        gezien |= nieuw
+        rel = await relaties.bij_elementen(gezien)
+        nieuw = {k["id"] for r in rel for k in (r["van"], r["naar"])
+                 if k["soort"] == "element" and k["id"] not in gezien
+                 and (k.get("eigenaar_iri") or e["eigenaar_iri"]) == e["eigenaar_iri"]}
+    rel = await relaties.bij_elementen(gezien | {k["id"] for r in rel for k in (r["van"], r["naar"]) if k["soort"] == "element"})
 
     def info(kant: dict) -> dict:
         iri = kant.get("eigenaar_iri") or (e["eigenaar_iri"] if kant["id"] == element_id else "")

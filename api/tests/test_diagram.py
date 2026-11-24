@@ -197,3 +197,37 @@ def test_een_brede_rij_breekt_niet_af_en_lijnen_en_labels_raken_geen_knoop():
                 assert not (g.x < x < g.x + g.b and g.y < y < g.y + g.h), (lijn.van, lijn.naar, g.knoop.id)
     tekening = diagram_teken.als_drawing(d, 480)
     assert tekening.width == 480
+
+
+def test_een_afleidingsregel_aan_het_voorwerp_staat_in_het_diagram_van_de_rechtsbetrekking():
+    """Handleiding §3.4c (p. 34–35): het vertrekpunt is de rechtsbetrekking; wat aan de niet-centrale formuleringen hangt,
+    staat in hetzelfde diagram. Acceptatie 24 nov 2026, art. 9 lid 1 IW: rechtsbetrekking → voorwerp ← kenmerk ←
+    uitvoer afleidingsregel, met haar invoer en operator. Met een vaste diepte van twee kreeg de afleidingsregel een eigen
+    diagram. Ook als de afleidingsregel een lager nummer heeft: de rechtsbetrekking is de wortel."""
+    ar = _m("ar", "Afleidingsregel", 1)
+    rb = _m("rb", "Rechtsbetrekking", 2)
+    obj, var, par = _m("obj", "Rechtsobject", 3), _m("var", "Variabele en variabelewaarde", 4), _m("par", "Parameter en parameterwaarde", 5)
+    tijd, op = _m("tijd", "Tijdsaanduiding", 6), _m("op", "Operator", 7)
+    relaties = [_r(rb, obj, "voorwerp"), _r(rb, tijd, "tijd"), _r(var, obj, "kenmerk"), _r(ar, var, "uitvoer"),
+                _r(par, ar, "invoer", volgorde=2), _r(tijd, ar, "invoer", volgorde=1), _r(op, ar, "operator_in")]
+    ds = diagram.diagrammen([ar, rb, obj, var, par, tijd, op], relaties)
+    assert [d.centraal for d in ds] == ["rb"]
+    assert {k.id for k in ds[0].knopen} == {"rb", "obj", "var", "ar", "par", "tijd", "op"}
+    assert len(ds[0].lijnen) == len(relaties)
+
+
+def test_een_andere_rechtsbetrekking_is_een_eindpunt_en_krijgt_haar_eigen_diagram():
+    rb1, rb2 = _m("rb1", "Rechtsbetrekking", 1), _m("rb2", "Rechtsbetrekking", 2)
+    obj, vw = _m("obj", "Rechtsobject", 3), _m("vw2", "Voorwaarde", 4)
+    relaties = [_r(rb1, obj, "voorwerp"), _r(rb2, obj, "voorwerp"), _r(rb2, vw, "voorwaarde")]
+    ds = diagram.diagrammen([rb1, rb2, obj, vw], relaties)
+    assert [d.centraal for d in ds] == ["rb1", "rb2"]
+    assert {k.id for k in ds[0].knopen} == {"rb1", "obj", "rb2"}      # rb2 als eindpunt, zonder haar voorwaarde
+    assert {k.id for k in ds[1].knopen} == {"rb2", "obj", "vw2", "rb1"}
+
+
+def test_de_buurt_van_de_graaf_blijft_twee_relaties_ver():
+    a, b, c, d_ = (_m(x, "Rechtsobject", i) for i, x in enumerate("abcd", 1))
+    relaties = [_r(a, b, "onderdeel"), _r(b, c, "onderdeel"), _r(c, d_, "onderdeel")]
+    assert sorted(diagram.buurt("a", relaties)) == ["element:a", "element:b", "element:c"]
+    assert sorted(diagram.buurt("a", relaties, None)) == ["element:a", "element:b", "element:c", "element:d"]
