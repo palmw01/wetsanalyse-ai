@@ -105,6 +105,10 @@ Toelichting bij enkele documenten:
   Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
   end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
   oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).
+  En [`architectuur/plan-lessen-termijnen-bibliotheek.md`](architectuur/plan-lessen-termijnen-bibliotheek.md): gevalideerd
+  praktijkwerk over hetzelfde onderwerp (een begrippen- en een afleidingsregelbibliotheek, lokaal, niet in de repo)
+  naast de methode en naast Lex, met een verbeterplan en een voorstel voor een lokale referentieset (24 nov 2026;
+  concept, ter bespreking).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
