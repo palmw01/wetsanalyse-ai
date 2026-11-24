@@ -211,10 +211,12 @@ def parse_rows(result: Any) -> list[dict[str, str]]:
         if not line.strip():
             continue
         velden = line.split("\t")
-        # Een rij met meer of minder velden dan de kop is geen SPARQL-TSV: zip zou de waarden stil onder de verkeerde
-        # variabele zetten of laten vallen.
-        if len(velden) != len(keys):
+        # Te weinig velden: de lege staart van een rij (ongebonden variabelen achteraan) valt weg als de transport de
+        # uitvoer bijsnijdt, zoals de MCP-poort bij de laatste rij doet. Tabs scheiden de velden, dus wat ontbreekt
+        # zit altijd achteraan en is leeg. Te veel velden is geen SPARQL-TSV: zip zou ze stil laten vallen.
+        if len(velden) > len(keys):
             raise BronFout("Ongeldige SPARQL-TSV-rij: het aantal velden past niet bij de kop")
+        velden += [""] * (len(keys) - len(velden))
         rijen.append({k: decode(v) for k, v in zip(keys, velden, strict=True)})
     return rijen
 
