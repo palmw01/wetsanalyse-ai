@@ -473,7 +473,7 @@ def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g
     for op in g["operatoren"]:
         if op["binnen"] & grondslag and op["id"] not in g["met_begrip"]:
             uit.append(gat("operator_zonder_begrip", tekst=op["tekst"]))
-    uit += dragen_gaten(inhoud, begrippen, g.get("regels", {}))
+    uit += dragen_gaten(inhoud, begrippen, g.get("regels", {}), g.get("begrip_van"))
     return uit
 
 
@@ -482,19 +482,26 @@ def _kort(tekst: str, n: int = 80) -> str:
     return tekst if len(tekst) <= n else tekst[: n - 1].rstrip() + "…"
 
 
-def dragen_gaten(inhoud: dict, begrippen: dict[str, dict], regels: dict[str, dict]) -> list[dict]:
+def dragen_gaten(inhoud: dict, begrippen: dict[str, dict], regels: dict[str, dict],
+                 begrip_van: dict[str, set[str]] | None = None) -> list[dict]:
     """Wat van een regel op niets rust (herleidbaarheid, rapport van 20 nov 2026): een voorwaarde zonder markering en
     zonder verwijzing, een verwijzing naar een geval dat niet (meer) geldt of waarvan de uitvoer geen invoer is, en een
     begrip in een uitkomst dat geen invoer is. `regels`: per regel-id van dit werkgebied `{status, labels, uitvoer,
-    naam}`. Een signaal, geen poort."""
+    naam}`. Met `begrip_van` (per element de begrippen die erop rusten) ook een voorwaarde waarvan geen markering een
+    invoerbegrip draagt (V6, plan lessen Termijnen-bibliotheek: wat ze toetst, is een begrip met een eigen regel). Een
+    signaal, geen poort."""
     uit: list[dict] = []
     invoer = {i["begrip_id"] for i in inhoud.get("invoer", [])}
+    genoemd = invoer | {inhoud.get("onderwerp_begrip_id") or ""}
     naam = lambda b: begrippen.get(b, {}).get("naam") or b  # noqa: E731
     for label, blad in voorwaarde_bladen(inhoud):
         v = blad.get("geval_van")
         if not v:
             if not blad.get("element_ids"):
                 uit.append(gat("voorwaarde_zonder_markering", tekst=_kort(blad.get("tekst", "")),
+                               geval=label or "de regel"))
+            elif begrip_van is not None and not any(begrip_van.get(e, set()) & genoemd for e in blad["element_ids"]):
+                uit.append(gat("voorwaarde_zonder_begrip", tekst=_kort(blad.get("tekst", "")),
                                geval=label or "de regel"))
             continue
         doel = regels.get(v["regel_id"])
@@ -540,8 +547,11 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
         k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None),
         (k.c.element_id.in_(sorted(elementen)) | k.c.begrip_id.in_(sorted(invoer)))))).all() if elementen or invoer else []
     rollen: dict[str, set[str]] = {}
+    begrip_van: dict[str, set[str]] = {}
     for x in koppel:
         rollen.setdefault(x.begrip_id, set()).add(x.rol)
+        if x.rol != "context":
+            begrip_van.setdefault(x.element_id, set()).add(x.begrip_id)
     w = db.parameter_waarden
     waarden: dict[str, list[dict]] = {}
     for x in (await conn.execute(select(w.c.parameter_begrip_id, w.c.geldig_vanaf, w.c.waarde, w.c.eenheid).where(
@@ -561,7 +571,8 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
     regels = {x.id: {"status": x.status, "uitvoer": x.inhoud["uitvoer_begrip_id"],
                      "labels": [gv.get("label", "") for gv in x.inhoud.get("gevallen", [])],
                      "naam": namen.get(x.inhoud["regelbegrip_id"], "")} for x in alle}
-    return {"regels": regels, "met_begrip": {x.element_id for x in koppel}, "rollen": rollen, "waarden": waarden,
+    return {"regels": regels, "met_begrip": {x.element_id for x in koppel}, "begrip_van": begrip_van, "rollen": rollen,
+            "waarden": waarden,
             "context": [c.bron_iri for c in ctx], "labels": {c.bron_iri: c.label or c.bron_iri for c in ctx},
             "operatoren": operatoren, "uitvoeren": uitvoeren}
 
@@ -809,6 +820,19 @@ def keten(regels: list[dict]) -> dict:
             g = gat("regelbegrip_meer_uitvoeren")
             sig.append({"soort": "regelbegrip_meer_uitvoeren", "code": g["code"], "begrip_id": begrip,
                         "regel_ids": [x["id"] for x in actief if x["inhoud"]["regelbegrip_id"] == begrip],
+                        "melding": g["tekst"]})
+    # V6: dezelfde voorwaarde (dezelfde markeringen, zonder verwijzing) in meer regels is één begrip met een eigen regel.
+    per_voorwaarde: dict[tuple[str, ...], list[str]] = {}
+    for x in actief:
+        for _, blad in voorwaarde_bladen(x["inhoud"]):
+            if blad.get("element_ids") and not blad.get("geval_van"):
+                ids = per_voorwaarde.setdefault(tuple(sorted(blad["element_ids"])), [])
+                if x["id"] not in ids:
+                    ids.append(x["id"])
+    for elementen, ids in per_voorwaarde.items():
+        if len(ids) > 1:
+            g = gat("voorwaarde_herhaald")
+            sig.append({"soort": "voorwaarde_herhaald", "code": g["code"], "regel_ids": ids, "element_ids": list(elementen),
                         "melding": g["tekst"]})
     # Van onder naar boven: een regel komt na alles waar hij op volgt (Kahn); wat overblijft zit in een kring.
     na = {x["id"]: {p["van"] for p in pijlen if p["naar"] == x["id"] and p["van"] != x["id"]} for x in actief}

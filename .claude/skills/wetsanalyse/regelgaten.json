@@ -32,6 +32,8 @@
       "melding": "De invoer {naam} rust op geen formulering en geen regel leidt haar af. Een impliciete invoer: ontbrekend uitvoeringsbeleid?"},
     "voorwaarde_zonder_markering": {"plek": "regel", "herkomst": "methode", "bron": ["M01 h.3 stap 3b"],
       "melding": "De voorwaarde \"{tekst}\" ({geval}) rust op geen markering en verwijst naar geen geval van een andere regel: waarop staat ze in de tekst?"},
+    "voorwaarde_zonder_begrip": {"plek": "regel", "herkomst": "methode", "bron": ["M01 §2.2.2", "M02 §1.2"],
+      "melding": "De voorwaarde \"{tekst}\" ({geval}) noemt geen invoerbegrip van de regel en verwijst naar geen geval van een andere regel: wat ze toetst, is een begrip met een eigen regel, of een invoer die ontbreekt."},
     "verwijzing_niet_geldig": {"plek": "regel", "herkomst": "methode", "bron": ["M02 §3.5.5"],
       "melding": "De voorwaarde \"{tekst}\" ({geval}) verwijst naar een regel of geval dat niet meer geldt."},
     "verwijzing_zonder_invoer": {"plek": "regel", "herkomst": "methode", "bron": ["M04 H2 Afleidingsregel"],
@@ -40,6 +42,8 @@
       "melding": "De uitkomst noemt het begrip {naam}, maar dat is geen invoer van de regel: de keten ziet het niet."},
     "zelfde_uitvoer": {"plek": "keten", "herkomst": "regelspecialist", "bron": ["M02 §3.5.5"],
       "melding": "Meer regels leiden hetzelfde begrip af: hun gevallen moeten elkaar uitsluiten, of het is één regel met meer gevallen."},
+    "voorwaarde_herhaald": {"plek": "keten", "herkomst": "methode", "bron": ["M01 §2.2.2", "M02 §1.2"],
+      "melding": "Dezelfde voorwaarde staat in meer regels: maak er één begrip met een eigen regel van, en laat de regels daarnaar verwijzen."},
     "regelbegrip_meer_uitvoeren": {"plek": "keten", "herkomst": "methode", "bron": ["M01 h.3 stap 3b"],
       "melding": "Eén regelbegrip hoort bij regels met verschillende uitvoeren; elke uitvoer heeft zijn eigen regel en regelbegrip."}
   }

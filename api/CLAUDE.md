@@ -1169,9 +1169,12 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
     regelbegrip zonder "bepalen", een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
     operator in de grondslag zonder begrip, een impliciete invoer, en wat op niets rust (`dragen_gaten`): een voorwaarde
     zonder markering en zonder verwijzing, een verwijzing die niet meer geldt of waarvan de uitvoer geen invoer is, en
-    een begrip in een uitkomst dat geen invoer is. De gegevens leest `_gatgegevens` in een paar
+    een begrip in een uitkomst dat geen invoer is, en een voorwaarde waarvan geen markering een invoerbegrip (of het
+    onderwerp) draagt (`voorwaarde_zonder_begrip`, V6 van het plan lessen Termijnen-bibliotheek; `_gatgegevens` levert
+    `begrip_van`). De gegevens leest `_gatgegevens` in een paar
     queries voor alle regels samen; de operatoren alleen uit de laag van de grondslag;
-  - **keten**: `regel_store.keten` geeft `zelfde_uitvoer` en `regelbegrip_meer_uitvoeren` (L-3a-1), met `code`.
+  - **keten**: `regel_store.keten` geeft `zelfde_uitvoer` en `regelbegrip_meer_uitvoeren` (L-3a-1), en `voorwaarde_herhaald`
+    (dezelfde markeringen in een voorwaarde van meer regels, V6), met `code`.
   Een gat is een signaal: `accorderen` en `signalen` veranderen er niet door.
 - **De eenduidigheid van een begrip** (L-3a-2, `begrip_store.eenduidigheid`): de lijst en de kaart van een begrip noemen
   in `aandachtspunten` een alternatieve term die de naam van een ander begrip in het werkgebied is (een homoniem), en een
