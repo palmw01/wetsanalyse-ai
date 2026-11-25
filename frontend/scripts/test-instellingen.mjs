@@ -8,6 +8,10 @@
  *  - een nieuwe gebruiker via *Nieuwe gebruiker*, en het tijdelijke wachtwoord dat je kunt kopiëren;
  *  - de acties van een gebruiker in het menu ⋯; Escape sluit het menu en niet het venster;
  *  - het tokenbudget: een samenvatting per rol, en bewerken ter plekke; alleen de gewijzigde rol gaat over de lijn;
+ *  - de periode is een keuze (per dag, week of maand) met een resetmoment: per week een weekdag en tijd (standaard
+ *    maandag 00:00), per maand een dag (standaard de 1e); het anker is de vorige keer dat dat moment was
+ *    (wandkloktijd); het bewerkscherm noemt wie in het nieuwe venster boven zijn budget zit, en een ongewijzigde
+ *    keuze stuurt geen anker;
  *  - per gebruiker geen budgetveld: alleen het budget van zijn rol, en een reset met twee klikken;
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
@@ -50,7 +54,8 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
   page.on("pageerror", (e) => fouten.push(e.message));
   const stand = {
     users: [gebruiker("wpalm", "beheerder"), gebruiker("jdevries", "analist")],
-    budget: { periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks,
+    budget: { periode_dagen: 7, periode_maanden: 0, anker: nu, actief: true, updated_by: "wpalm", updated: nu, venster_start: nu, reset_op: straks,
+      tijdzone: "Europe/Amsterdam",
       rollen: [{ rol: "beheerder", tokens: 1000000, updated_by: "seed", updated: nu }, { rol: "analist", tokens: 500000, updated_by: "seed", updated: nu }] },
     verbruik: [],
     verzoeken: [],
@@ -87,8 +92,16 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
       rol.tokens = body.tokens;
       return route.fulfill({ json: rol });
     }
+    if (p === "/api/admin/budget/proef") {
+      return route.fulfill({ json: { anker: body.anker ?? stand.budget.anker, venster_start: "2026-11-01T23:00:00Z",
+        reset_op: "2026-11-08T23:00:00Z", boven_budget: body.anker ? ["jdevries"] : [] } });
+    }
     if (p === "/api/admin/budget") {
-      if (m !== "GET") Object.assign(stand.budget, body);
+      if (m !== "GET") {
+        // Zoals de api: een anker zonder tijdzone is Nederlandse tijd (november: UTC+1).
+        const anker = body.anker ? new Date(`${body.anker}+01:00`).toISOString() : stand.budget.anker;
+        Object.assign(stand.budget, body, { anker });
+      }
       return route.fulfill({ json: stand.budget });
     }
     if (p === "/api/admin/registraties") return route.fulfill({ json: [aanvraag(1, "sanne")] });
@@ -159,16 +172,52 @@ try {
 
   // Het budget is een samenvatting; bewerken gebeurt ter plekke.
   const budget = page.locator("[data-budget-beleid]");
-  await budget.getByText("Per 7 dagen, per rol", { exact: false }).waitFor();
+  await budget.getByText("Per week, reset op donderdag 12 november om 10:42.").waitFor();
   await budget.getByText("Beheerder: 1.000.000 tokens").waitFor();
   await budget.getByText("Analist: 500.000 tokens").waitFor();
   await budget.getByRole("button", { name: /bewerken/i }).click();
+  // Het resetmoment staat op wat het anker zegt: donderdag 5 november 10:42 Nederlandse tijd.
+  assert.equal(await budget.getByLabel(/^Periode/).inputValue(), "week");
+  assert.equal(await budget.getByLabel(/^Reset op(?! dag)/).inputValue(), "3");
+  assert.equal(await budget.getByLabel(/^Om/).inputValue(), "10:42");
   await budget.getByLabel(/Analist: tokens per periode/).fill("300000");
   await budget.getByRole("button", { name: "Opslaan" }).click();
   await budget.getByText("Analist: 300.000 tokens").waitFor();
   await budget.getByText("Beheerder: 1.000.000 tokens").waitFor();
   assert.deepEqual(stand.verzoeken.filter((v) => v.p.startsWith("/api/admin/budget/rollen/")),
     [{ p: "/api/admin/budget/rollen/analist", m: "PUT", body: { tokens: 300000 } }], "alleen wat veranderde gaat over de lijn");
+  assert.deepEqual(stand.verzoeken.filter((v) => v.p === "/api/admin/budget" && v.m === "PUT").at(-1).body,
+    { periode_dagen: 7, periode_maanden: 0, actief: true }, "een ongewijzigd resetmoment stuurt geen anker");
+
+  // Maandag 00:00: het anker is de vorige maandag, en de beheerder ziet wie daardoor boven zijn budget zit.
+  await budget.getByRole("button", { name: /bewerken/i }).click();
+  await budget.getByLabel(/^Reset op(?! dag)/).selectOption({ label: "Maandag" });
+  await budget.getByLabel(/^Om/).fill("00:00");
+  await budget.locator("[data-budget-boven]").getByText("Eén gebruiker zit in het nieuwe venster boven zijn budget: jdevries.").waitFor();
+  await budget.locator("[data-budget-proef]").getByText("maandag 2 november om 00:00", { exact: false }).waitFor();
+  await budget.getByRole("button", { name: "Opslaan" }).click();
+  await budget.getByText("Per week, reset op", { exact: false }).waitFor();
+  const put = stand.verzoeken.filter((v) => v.p === "/api/admin/budget" && v.m === "PUT").at(-1).body;
+  assert.match(put.anker, /^\d{4}-\d{2}-\d{2}T00:00:00$/, "wandkloktijd zonder tijdzone");
+  const anker = new Date(`${put.anker}Z`);
+  assert.equal(anker.getUTCDay(), 1, "een maandag");
+  assert.ok(Date.now() - anker.getTime() < 8 * 86_400_000 && anker.getTime() <= Date.now() + 86_400_000, "de vorige maandag, niet de volgende");
+
+  // Per maand: standaard de 1e om 00:00, en de vorige 1e als anker.
+  await budget.getByRole("button", { name: /bewerken/i }).click();
+  await budget.getByLabel(/^Periode/).selectOption({ label: "Per maand" });
+  assert.equal(await budget.getByLabel(/^Reset op dag/).inputValue(), "1");
+  assert.equal(await budget.getByLabel(/^Om/).inputValue(), "00:00");
+  await budget.getByRole("button", { name: "Opslaan" }).click();
+  await budget.getByText("Per maand, reset op", { exact: false }).waitFor();
+  const maand = stand.verzoeken.filter((v) => v.p === "/api/admin/budget" && v.m === "PUT").at(-1).body;
+  assert.equal(maand.periode_maanden, 1);
+  assert.match(maand.anker, /^\d{4}-\d{2}-01T00:00:00$/, "de 1e van de maand om middernacht");
+  // Terug naar de week brengt maandag 00:00 terug.
+  await budget.getByRole("button", { name: /bewerken/i }).click();
+  await budget.getByLabel(/^Periode/).selectOption({ label: "Per week" });
+  assert.equal(await budget.getByLabel(/^Reset op(?! dag)/).inputValue(), "0");
+  await budget.getByRole("button", { name: "Annuleren" }).click();
 
   // Toevoegen staat dicht tot je erom vraagt.
   assert.equal(await page.locator("[data-gebruiker-nieuw]").count(), 0);

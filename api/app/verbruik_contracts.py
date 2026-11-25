@@ -27,6 +27,9 @@ class BudgetBeleid(BaseModel):
     """
 
     periode_dagen: int = 7
+    # Groter dan 0: vensters van zoveel kalendermaanden, vanaf de dag van de maand van het anker (op een kortere
+    # maand de laatste dag). `periode_dagen` telt dan niet.
+    periode_maanden: int = 0
     # Vast anker: alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk.
     anker: datetime = Field(default_factory=_utcnow)
     # Uit = wel meten, niet begrenzen.

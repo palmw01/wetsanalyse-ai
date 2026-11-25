@@ -182,6 +182,7 @@ TABEL: dict[str, tuple[str, ...]] = {
     "PATCH /v1/werkgebieden/{werkgebied_id}/regels/{regel_id}/dragers/{drager_id}": ('require_client', 'actieve_userid'),
     "POST /v1/admin/api-tokens": ('require_admin',),
     "POST /v1/admin/berichten": ('require_admin',),
+    "POST /v1/admin/budget/proef": ('require_admin',),
     "POST /v1/admin/feedback/markeer-gezien": ('require_admin', 'huidige_beheerder'),
     "POST /v1/admin/profiles/{name}/default": ('require_admin',),
     "POST /v1/admin/profiles/{name}/test": ('require_admin', 'rate_limited_admin_test'),

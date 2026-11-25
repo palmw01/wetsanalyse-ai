@@ -116,13 +116,27 @@ export interface ConnectorAuditRegel {
 
 export interface BudgetBeleid {
   periode_dagen: number;
+  /** Groter dan 0: vensters van zoveel kalendermaanden; `periode_dagen` telt dan niet. */
+  periode_maanden: number;
   anker: string;
   actief: boolean;
   updated_by: string;
   updated: string;
-  /** Afgeleid: einde van het huidige venster. */
+  /** Afgeleid: begin en einde van het huidige venster. */
+  venster_start: string;
   reset_op: string;
+  /** De tijdzone waarin de vensters lopen ("Europe/Amsterdam"). */
+  tijdzone: string;
   rollen: RolBudget[];
+}
+
+/** Wat een beleid zou doen als het nu werd opgeslagen (`POST /api/admin/budget/proef`). */
+export interface BudgetProef {
+  anker: string;
+  venster_start: string;
+  reset_op: string;
+  /** Wie in dat venster al op of boven zijn budget zit. */
+  boven_budget: string[];
 }
 
 /** Eén regel in het beheeroverzicht. */
