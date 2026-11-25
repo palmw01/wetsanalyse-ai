@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten, paneelTab, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
+  maskRechthoeken, moetStarten, paneelTab, spotKader, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
-  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, demoDiagrammen, demoSamenhang, maakDemoOpslag, maakDemoScene,
+  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, demoDiagrammen, demoSamenhang, demoSamenvatting, maakDemoOpslag, maakDemoScene,
   maakDemoWeergave, pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
 } from "./rondleidingDemo";
 import { vindPositie } from "./selectie";
@@ -212,24 +212,25 @@ describe("de voorbeeldscène", () => {
     expect(niveaus).toEqual(new Set([null, "geel"]));
   });
 
-  it("vat de voorstellen samen zoals graph-qa dat doet", () => {
-    // Dezelfde tellingen als `agent/nodes/annotatie_samenvatting.py`, over wat Lex voorstelde.
-    const els = maakDemoWeergave().elementen.filter((e) => e.herkomst === "agent");
-    const door = (e: (typeof els)[number]) => e.trace?.beslissing?.door;
-    const keuze = els.filter((e) => e.aandacht === "geel" || door(e) === "terugval").length;
-    const vast = els.filter((e) => door(e) === "regel").length;
-    const model = els.filter((e) => door(e) === "model").length;
-    const getal = ["", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf"];
-    expect(DEMO_SAMENVATTING).toContain(`${getal[els.length]} JAS-elementen gevonden`);
-    expect(keuze).toBe(1);
-    expect(DEMO_SAMENVATTING).toContain("Eén voorstel heeft een plausibel alternatief");
-    expect([vast, model]).toEqual([0, els.length]);
+  it("telt in de samenvatting en de tijdlijn wat het paneel en de graaf tonen", () => {
+    const view = maakDemoWeergave();
+    const vanLex = view.elementen.filter((e) => e.herkomst === "agent");
+    // Dezelfde aantallen als de reviewlijst ("3/9 beoordeeld") en de graaf ("9 markeringen").
+    expect(demoSamenvatting(view)).toBe(DEMO_SAMENVATTING);
+    expect(DEMO_SAMENVATTING).toContain(`telt ${view.elementen.length} JAS-elementen: ${vanLex.length} voorstellen van mij en ` +
+      `${view.elementen.length - vanLex.length} markeringen die de jurist al vastlegde.`);
+    expect(demoSamenhang(view).knopen.filter((k) => k.soort === "markering")).toHaveLength(view.elementen.length);
+    expect(DEMO_SAMENVATTING).toContain("vooral Tijdsaanduiding en Rechtsobject.");
+    expect(DEMO_SAMENVATTING).toContain("Extra aandacht: 1 voorstel met een plausibel alternatief.");
     expect(DEMO_SAMENVATTING).toContain("Alle voorstellen koos het model.");
-    // Hoogstens twee klassen, elk minstens twee keer (zoals graph-qa).
-    const telling = new Map<string, number>();
-    for (const e of els) telling.set(e.klasse, (telling.get(e.klasse) ?? 0) + 1);
-    const top = [...telling.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).filter(([, n]) => n >= 2).map(([k]) => k);
-    expect(DEMO_SAMENVATTING).toContain(`vooral ${top.join(" en ")}.`);
+    const chip = maakDemoScene().items.find((i) => i.type === "annotatie")!;
+    expect(chip.type === "annotatie" && chip.denk).toContain(`Klaar · ${vanLex.length} elementen ter beoordeling`);
+  });
+
+  it("rekent altijd op de weergave die ze krijgt", () => {
+    const view = maakDemoWeergave();
+    const minder = { ...view, elementen: view.elementen.filter((e) => e.herkomst === "agent") };
+    expect(demoSamenvatting(minder)).toContain("telt 6 JAS-elementen: 6 voorstellen van mij en 0 markeringen");
   });
 
   it("heeft, zoals op acceptatie, geen ongedekt zinsdeel", () => {
@@ -532,6 +533,14 @@ describe("waar de bubbel komt te staan", () => {
     expect(binnenBeeld(p, BUBBEL, TELEFOON)).toBe(true);
   });
 
+  it("zet de bubbel op een smal scherm ook onderaan als hij nergens naast het element past", () => {
+    // Het diagram op een telefoon: geen scherm vol, maar boven noch onder is plaats.
+    const diagram: Vak = { top: 220, left: 8, breedte: 374, hoogte: 430 };
+    const p = plaatsBubbel(diagram, { breedte: 340, hoogte: 245 }, TELEFOON);
+    expect(p.modus).toBe("onder");
+    expect(p.modus !== "midden" && p.top).toBe(TELEFOON.hoogte - 245 - BUBBEL_MARGE);
+  });
+
   it("zet de bubbel op een smal scherm onderaan bij een element dat het scherm vult", () => {
     // De graaf op een telefoon: in het midden dekte de bubbel juist de kaart af.
     const graaf: Vak = { top: 200, left: 0, breedte: 390, hoogte: 640 };
@@ -697,6 +706,28 @@ describe("het artefactpaneel volgt de stap", () => {
     const i = STAPPEN.findIndex((s) => s.id === "artefact-openen");
     expect(artefactActie(true, STAPPEN[i])).toBe("sluiten"); // terug vanaf de wettekst
     expect(artefactActie(false, STAPPEN[i + 1])).toBe("openen"); // vooruit naar de wettekst
+  });
+});
+
+describe("het kader om het aangewezen element", () => {
+  const SCHERM = { breedte: 1440, hoogte: 900 };
+
+  it("valt met marge om een element midden in beeld", () => {
+    expect(spotKader({ top: 100, left: 100, breedte: 200, hoogte: 50 }, SCHERM, 6, 4))
+      .toEqual({ top: 94, left: 94, breedte: 212, hoogte: 62 });
+  });
+
+  it("blijft met zijn rand binnen het venster bij een paneel tegen de schermrand", () => {
+    // De graaf in het paneel rechts: tot de rand van het scherm, en eronder door.
+    const k = spotKader({ top: 155, left: 890, breedte: 560, hoogte: 800 }, SCHERM, 6, 4)!;
+    expect(k.left + k.breedte).toBe(SCHERM.breedte - 4);
+    expect(k.top + k.hoogte).toBe(SCHERM.hoogte - 4);
+    expect(k.left).toBe(884);
+  });
+
+  it("tekent niets als er niets van het element te zien is", () => {
+    expect(spotKader({ top: -200, left: 0, breedte: 100, hoogte: 100 }, SCHERM, 6, 4)).toBeNull();
+    expect(spotKader(null, SCHERM, 6, 4)).toBeNull();
   });
 });
 

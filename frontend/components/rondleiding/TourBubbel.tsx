@@ -7,12 +7,14 @@ import { knopKlasse } from "@/components/ui/Button";
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import {
-  FASE_LABEL, klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
+  FASE_LABEL, klikGat, maskRechthoeken, plaatsBubbel, spotKader, uitsnede, vakVan, zichtbaarDeel,
   type Afmeting, type Plaatsing, type Stap, type Vak,
 } from "@/lib/rondleiding";
 
 /** Hoe ver de spotlight om het element heen valt. */
 const SPOT_MARGE = 6;
+/** De outline van het kader (2px) plus haar afstand (2px): ook die hoort binnen het venster. */
+const SPOT_RAND = 4;
 /** Hoe ver het klikbare gat om het element heen valt, in een stap die om een handeling vraagt.
  *  Ruimer dan de spotlight: het gat mag best iets over de rand vallen, maar een meting die een paar
  *  pixels achterloopt mag nooit de knop afdekken waar de rondleiding juist om vraagt. */
@@ -163,7 +165,7 @@ export function TourBubbel({
   // `plaatsing.modus === "midden"`, dan verdween hij precies bij het gespreksvenster en de sidebar:
   // die vullen bijna het scherm, dus de bubbel centreert, en dan openden de eerste twee stappen van
   // de rondleiding met een kaart die niets aanwees. Juist daar gáát de stap over dat hele gebied.
-  const spotVak = zichtbaar;
+  const spotVak = spotKader(actiefVak, viewport, SPOT_MARGE, SPOT_RAND);
 
   // Wat de dimlaag openlaat. Dat is er in élke stap: gedimd wijst het aangewezen element niets aan –
   // dan staat er een rand om iets grijs. Bedienen mag alleen waar de stap erom vraagt; buiten die
@@ -227,10 +229,10 @@ export function TourBubbel({
           <div
             className="pointer-events-none absolute rounded-kaart transition-all duration-150 motion-reduce:transition-none"
             style={{
-              top: spotVak.top - SPOT_MARGE,
-              left: spotVak.left - SPOT_MARGE,
-              width: spotVak.breedte + SPOT_MARGE * 2,
-              height: spotVak.hoogte + SPOT_MARGE * 2,
+              top: spotVak.top,
+              left: spotVak.left,
+              width: spotVak.breedte,
+              height: spotVak.hoogte,
               outline: "2px solid rgb(var(--lint))",
               outlineOffset: "2px",
             }}

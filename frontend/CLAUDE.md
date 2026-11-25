@@ -171,7 +171,9 @@ stand komt uit `lib/herkomst.ts`.
   De bediening is die van de graaf, uit één hook (`lib/useBeeld.ts`, voor elke SVG-tekening die je verschuift): het
   muiswiel zoomt rond de cursor, slepen verschuift, twee vingers knijpen en verschuiven tegelijk (op mobiel), rechtsonder
   `GraafBeeld` (*Alles in beeld*, inzoomen, uitzoomen). Een nieuwe tekening die je kunt verschuiven, gebruikt die hook en
-  geen eigen wijzercode: de graaf (sigma) knijpt, dus een eigen bediening die dat vergeet, verschilt op mobiel; geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Een
+  geen eigen wijzercode: de graaf (sigma) knijpt, dus een eigen bediening die dat vergeet, verschilt op mobiel; geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Zou de hele tekening in de breedte
+  onleesbaar klein worden, dan begint het beeld op leesbare schaal (`leesbaarBegin`, `LEESBARE_SCHAAL` in `lib/diagram2c.ts`)
+  rond de centrale formulering, en gaat *terug* daarheen; *Groot bekijken* toont alles. Een
   klik zonder slepen kiest nog steeds. Smaller dan 56rem staat de keuze onder het diagram in één doorlopende
   scroll (`TekstEnLijst smal="doorlopend"`), niet in twee vensters van 45/55. Het diagram volgt de weergave: elke nieuwe
   revisie van een laag (besluit, markering, relatie, heropenen) haalt het opnieuw op bij de api.

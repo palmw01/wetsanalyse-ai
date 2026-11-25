@@ -32,6 +32,7 @@ import type { GraafDataBron } from "./graaf/databron";
 import type { Samenhang, SamenhangKnoop, SamenhangRelatie } from "./samenhang";
 import diagramBestand from "./rondleidingDemo.diagram.json";
 import graafBestand from "./rondleidingDemo.graaf.json";
+import { aantal } from "./aantal";
 import type { ThreadItem } from "./threadItem";
 import type { Aandacht, AgentRun, Beslissing, BeslissingType, ElementTrace, GesprekSamenvatting } from "./types";
 
@@ -611,14 +612,32 @@ export function maakDemoOpslag(): NodeOpslag {
 // --- de thread en de sidebar ----------------------------------------------------------------
 
 /** Wat Lex onder de annotatie zegt. Elke zin volgt uit `DEMO_SPECS`, zoals bij graph-qa. */
-export const DEMO_SAMENVATTING =
-  "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en zes JAS-elementen gevonden. " +
-  "De markeringen zijn vooral Rechtsobject en Tijdsaanduiding. " +
-  "Eén voorstel heeft een plausibel alternatief en verdient daarom extra aandacht. " +
-  "Alle voorstellen koos het model.";
+/** Wat Lex onder de annotatie zegt, uit dezelfde weergave als het paneel en de graaf: de tellingen kloppen dus altijd
+ *  met de reviewlijst ("3/9 beoordeeld") en de graaf ("9 markeringen"). De opbouw volgt graph-qa
+ *  (`agent/nodes/annotatie_samenvatting.py`): het aantal, de klassen die het vaakst voorkomen, de twijfel, wie koos. */
+export function demoSamenvatting(view: NodeWeergave): string {
+  const els = view.elementen.filter((e) => !e.verouderd);
+  const vanLex = els.filter((e) => e.herkomst === "agent");
+  const telling = new Map<string, number>();
+  for (const e of els) telling.set(e.klasse, (telling.get(e.klasse) ?? 0) + 1);
+  const top = [...telling.entries()].sort((x, y) => y[1] - x[1]).slice(0, 2).filter(([, n]) => n >= 2).map(([k]) => k);
+  const keuze = vanLex.filter((e) => e.aandacht === "geel").length;
+  return [
+    `Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd. De annotatie telt ${aantal(els.length, "JAS-element", "JAS-elementen")}: ` +
+      `${aantal(vanLex.length, "voorstel", "voorstellen")} van mij en ` +
+      `${aantal(els.length - vanLex.length, "markering", "markeringen")} die de jurist al vastlegde.`,
+    top.length ? `De markeringen zijn vooral ${top.join(" en ")}.` : "",
+    keuze ? `Extra aandacht: ${aantal(keuze, "voorstel", "voorstellen")} met een plausibel alternatief.` : "",
+    vanLex.every((e) => e.trace?.beslissing?.door === "model") ? "Alle voorstellen koos het model." : "",
+  ].filter(Boolean).join(" ");
+}
+
+export const DEMO_SAMENVATTING = demoSamenvatting(maakDemoWeergave());
 
 /** De twee beurten die in de thread staan: een vraag met bronnen, en de annotatie met zijn tijdlijn. */
 function maakDemoItems(): ThreadItem[] {
+  // De tijdlijn telt uit dezelfde weergave als de samenvatting, het paneel en de graaf.
+  const lex = maakDemoWeergave().elementen.filter((e) => e.herkomst === "agent");
   return [
     { id: "demo-1", type: "user", tekst: "Wat betekent het begrip 'belastingschuldige'?" },
     {
@@ -655,13 +674,13 @@ function maakDemoItems(): ThreadItem[] {
       denk: [
         `· Bron · artikel 9 lid 1 van de Invorderingswet 1990 (${DEMO_LEDEN.reduce((n, l) => n + l.tekst.length, 0)} tekens)`,
         "· Taalanalyse · nl_core_news_md, 1 zin(nen) (0,4 s)",
-        "· Detectie · 6 kandidaten uit 18 detectoren (0,1 s)",
-        "· Besluit · 0 op vaste regels, 6 naar het model (0,0 s)",
-        "· Classificatie · 6 kandidaten in 4 modelaanroep(en) (3,2 s)",
+        `· Detectie · ${lex.length} kandidaten uit 18 detectoren (0,1 s)`,
+        `· Besluit · 0 op vaste regels, ${lex.length} naar het model (0,0 s)`,
+        `· Classificatie · ${lex.length} kandidaten in 4 modelaanroep(en) (3,2 s)`,
         "· Review · 1 twijfelgeval(len), 1 naar de reviewer (2,9 s)",
-        "· Resultaat · 6 voorgesteld, 1 ter keuze aan de jurist (0,1 s)",
+        `· Resultaat · ${lex.length} voorgesteld, ${lex.filter((e) => e.aandacht === "geel").length} ter keuze aan de jurist (0,1 s)`,
         "· Relaties · 1 relatie(s) voorgesteld (0,0 s)",
-        "· Klaar · 6 elementen ter beoordeling",
+        `· Klaar · ${lex.length} elementen ter beoordeling`,
       ].join("\n"),
     },
   ];

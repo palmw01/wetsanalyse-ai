@@ -340,18 +340,18 @@ export function plaatsBubbel(
   const vastgehouden = voorkeur ? kandidaat(voorkeur) : null;
   if (vastgehouden) return vastgehouden;
 
-  if (domineert(vak, viewport)) {
-    // Op een breed scherm in het midden. Op een tablet of telefoon vult zo'n element (de graaf, het diagram) het scherm
-    // juist omdat het de inhoud ís, en dan dekte een gecentreerde bubbel precies het midden af: daar onderaan, over de
-    // rand van het paneel.
-    if (viewport.breedte >= SMAL_BREEDTE) return { modus: "midden" };
-    return { modus: "onder", ...binnen(viewport.hoogte - bubbel.hoogte - m, (viewport.breedte - bubbel.breedte) / 2) };
-  }
+  // Op een breed scherm in het midden. Op een tablet of telefoon vult zo'n element (de graaf, het diagram) het scherm
+  // juist omdat het de inhoud ís, en dan dekte een gecentreerde bubbel precies het midden af: daar onderaan, over de
+  // rand van het paneel. Hetzelfde als de bubbel er nergens naast past.
+  const terugval: Plaatsing = viewport.breedte >= SMAL_BREEDTE
+    ? { modus: "midden" }
+    : { modus: "onder", ...binnen(viewport.hoogte - bubbel.hoogte - m, (viewport.breedte - bubbel.breedte) / 2) };
+  if (domineert(vak, viewport)) return terugval;
   for (const modus of ["onder", "boven", "rechts", "links"] as const) {
     const plek = kandidaat(modus);
     if (plek) return plek;
   }
-  return { modus: "midden" };
+  return terugval;
 }
 
 /** Waar de dimlaag een gat laat, zodat de gebruiker de aangewezen knop kan indrukken.
@@ -384,6 +384,20 @@ export function uitsnede(vak: Vak, marge: number): Vak {
     breedte: vak.breedte + marge * 2,
     hoogte: vak.hoogte + marge * 2,
   };
+}
+
+/** Het kader om het aangewezen element: het zichtbare deel plus `marge`, geklemd zodat het kader mét zijn rand (`rand`:
+ *  de outline en haar afstand) binnen het venster blijft. Een paneel tegen de schermrand (de graaf, het diagram) gaf
+ *  anders een kader dat aan die kant buiten beeld liep. `null` als er niets te zien is. */
+export function spotKader(vak: Vak | null, viewport: Afmeting, marge: number, rand: number): Vak | null {
+  const zichtbaar = vak ? zichtbaarDeel(vak, viewport) : null;
+  if (!zichtbaar) return null;
+  const top = Math.max(rand, zichtbaar.top - marge);
+  const links = Math.max(rand, zichtbaar.left - marge);
+  const onder = Math.min(viewport.hoogte - rand, zichtbaar.top + zichtbaar.hoogte + marge);
+  const rechts = Math.min(viewport.breedte - rand, zichtbaar.left + zichtbaar.breedte + marge);
+  if (onder <= top || rechts <= links) return null;
+  return { top, left: links, breedte: rechts - links, hoogte: onder - top };
 }
 
 /** Het gemeten vak van een element, in viewport-coördinaten.

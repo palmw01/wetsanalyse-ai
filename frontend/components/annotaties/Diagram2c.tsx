@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GraafBeeld } from "@/components/graaf/GraafBeeld";
 import {
-  MAAT, RAND_CENTRAAL, inhoudKader, knoopKleuren, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
+  MAAT, RAND_CENTRAAL, inhoudKader, knoopKleuren, leesbaarBegin, knoopSleutel, lijnNaam, pijlpunt, type DiagramData, type DiagramKnoop,
   type DiagramLijn,
 } from "@/lib/diagram2c";
 import { useBeeld, type Beeld } from "@/lib/useBeeld";
@@ -41,17 +41,33 @@ export function Diagram2c({ data, gekozenKnoop, gekozenLijn, onKiesKnoop, onKies
   // Het kader van de inhoud, niet van de pagina: anders is één kolom op een telefoon een postzegel.
   const alles: Beeld = useMemo(() => inhoudKader({ plaatsing, lijnen }, rand), [plaatsing, lijnen]);
   const svg = useRef<SVGSVGElement>(null);
-  const { beeld, pasIn, sleept, handlers } = useBeeld(alles, svg);
+  // De breedte die het paneel de tekening geeft: daarop kiest het beeld een leesbaar begin (`leesbaarBegin`). In het
+  // venster van *Groot bekijken* niet: dat vult de ruimte en toont alles.
+  const kader = useRef<HTMLDivElement>(null);
+  const [breedte, setBreedte] = useState(0);
+  useEffect(() => {
+    const el = kader.current;
+    if (!el || venster) return;
+    const meet = () => setBreedte(Math.round(el.getBoundingClientRect().width));
+    meet();
+    const kijker = new ResizeObserver(meet);
+    kijker.observe(el);
+    return () => kijker.disconnect();
+  }, [venster]);
+  const middelpunt = plaatsing.knopen.find((g) => g.knoop.soort === "element" && g.knoop.id === diagram.centraal);
+  const begin = useMemo(() => (venster ? alles : leesbaarBegin(alles, middelpunt, breedte)),
+    [venster, alles, middelpunt, breedte]);
+  const { beeld, pasIn, sleept, handlers } = useBeeld(alles, svg, begin);
   const terug = onTerug && (() => { onTerug(); pasIn(); });
 
   return (
-    <div className={venster ? "relative min-h-0 flex-1" : "relative"} data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
+    <div ref={kader} className={venster ? "relative min-h-0 flex-1" : "relative"} data-diagram-zoom={(alles.b / beeld.b).toFixed(2)}>
     <svg ref={svg} role={kiesbaar ? "group" : "img"} aria-label={label} data-diagram-2c={diagram.centraal}
       viewBox={`${beeld.x} ${beeld.y} ${beeld.b} ${beeld.h}`} preserveAspectRatio="xMidYMid meet"
       className={`block w-full select-none touch-none ${venster ? "h-full" : ""} ${sleept ? "cursor-grabbing" : "cursor-grab"}`}
-      // In het paneel heeft het canvas de verhouding van de hele tekening, nooit hoger dan 60% van het scherm; in het
-      // venster vult het de ruimte onder de kop en de exportknop, op elke schermmaat.
-      style={venster ? { fontFamily: "inherit" } : { fontFamily: "inherit", aspectRatio: `${alles.b} / ${alles.h}`, maxHeight: "60vh", minHeight: "8rem" }}
+      // In het paneel heeft het canvas de verhouding van het begin (de hele tekening, of de leesbare uitsnede), nooit hoger
+      // dan 60% van het scherm; in het venster vult het de ruimte onder de kop en de exportknop, op elke schermmaat.
+      style={venster ? { fontFamily: "inherit" } : { fontFamily: "inherit", aspectRatio: `${begin.b} / ${begin.h}`, maxHeight: "60vh", minHeight: "8rem" }}
       {...handlers}
       // Een klik op de achtergrond (niet op een knoop of lijn) is terug, zoals in de graaf. Na slepen komt die klik
       // niet aan (`useBeeld`).
