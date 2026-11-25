@@ -119,7 +119,7 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
       default: {
         const basis = { periode_dagen: Math.max(1, Number(keuze.dagen) || 1), periode_maanden: 0, actief };
         if (!datum || (datum === nu.datum && tijd === nu.tijd)) return basis;
-        return { ...basis, anker: ankerVoorDatum(datum, tijd) };
+        return { ...basis, anker: ankerVoorDatum(datum, tijd, tz) };
       }
     }
   }, [beleid, keuze, actief]);

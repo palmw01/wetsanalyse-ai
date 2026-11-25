@@ -4,6 +4,7 @@
 // (`vindplaatsVan`). Zuiver, zodat vitest het zonder DOM toetst.
 
 import { aantal } from "./aantal";
+import { stapLabel } from "./bepalingLabel";
 import { vindplaatsVan } from "./samenhang";
 
 export interface PlaatsStap { iri: string; type: string; nummer: string; label: string }
@@ -53,7 +54,8 @@ function stappen(iri: string, plaats: Plaats | undefined): { delen: { sleutel: s
     if (a < 0) a = laatste(pad, (p) => DELEN.has(p.type));
     if (a < 0) a = pad.length - 1;
     const delen = pad.slice(0, a).map((p) => ({ sleutel: p.iri, label: p.label || hoofdletter(p.type) }));
-    const rest = pad.slice(a + 1).map((p) => p.label || hoofdletter(p.type)).join(", ");
+    // Onder het artikel alleen de stap zelf, en een kaal "Onderdeel –" als zijn plaats ("1e streepje", `stapLabel`).
+    const rest = pad.slice(a + 1).map((p) => stapLabel(p.iri, p.label) || hoofdletter(p.type)).join(", ");
     return { delen, artikel: { sleutel: pad[a].iri, label: pad[a].label || hoofdletter(pad[a].type) }, rest };
   }
   const vp = vindplaatsVan(iri);
@@ -65,9 +67,8 @@ function stappen(iri: string, plaats: Plaats | undefined): { delen: { sleutel: s
   for (const [k, v] of vp.pad) {
     pad += `:${k}:${v}`;
     if (DEEL_SLEUTELS[k] && !artikel) delen.push({ sleutel: pad, label: `${DEEL_SLEUTELS[k]} ${v}` });
-    else if (k === "artikel") artikel = { sleutel: pad, label: `Artikel ${v}` };
-    else if (k === "lid") rest.push(`Lid ${v}`);
-    else if (k === "o") rest.push(`Onderdeel ${v}`);
+    else if (k === "artikel") artikel = { sleutel: pad, label: stapLabel(pad) };
+    else if (k === "lid" || k === "o") rest.push(stapLabel(pad));
   }
   // Een hoofdstuk zonder artikel eronder: de laatste stap is de bepaling zelf.
   if (!artikel && delen.length) artikel = delen.pop();

@@ -382,6 +382,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     werkvoorraad_id=request.werkvoorraad_id,
                     bronnen=request.bronnen,
                     bronnen_herkomst=request.bronnen_herkomst,
+                    plugins=request.plugins,
                     beurtcontext_plek=request.beurtcontext_plek,
                     # Een subagent (ADR-016 §A3): zijn profiel en opdracht, en wat hij oplevert voor de ouder.
                     profiel=request.profiel,

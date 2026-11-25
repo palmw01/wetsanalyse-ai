@@ -58,6 +58,8 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
+import { actievePlugins, beurtPlugins, wisselPlugin, type PluginStand } from "@/lib/plugins";
+import { usePlugins } from "@/lib/usePlugins";
 import { CommandoMenu } from "@/components/werkplek/CommandoMenu";
 import { menuRegels, type Regel, type Uitvoer } from "@/lib/commandos";
 import { actieveConnectors, beurtBronnen, moetVerversen, toonMenu, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
@@ -178,6 +180,13 @@ export function WerkplekClient({
   const connectorRef = useRef(connectorStand);
   connectorRef.current = connectorStand;
   const connectorsTeBewaren = useRef(false);
+  // De plugins (plan contenttoets, C4): wat de beheerder aanbiedt en de eigen keuze van dit gesprek, in hetzelfde menu.
+  const aangebodenPlugins = usePlugins(!demo);
+  const [gesprekPlugins, setGesprekPlugins] = useState<string[] | null>(null);
+  const pluginStand: PluginStand = { aangeboden: aangebodenPlugins, gesprek: gesprekPlugins };
+  const pluginRef = useRef(pluginStand);
+  pluginRef.current = pluginStand;
+  const pluginsTeBewaren = useRef(false);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
   // De open vraag die je met ✕ wegklikte (het item-id); "Een vraag stellen ›" opent hem weer.
   const [weggeklikt, setWeggeklikt] = useState<string | null>(null);
@@ -410,6 +419,7 @@ export function WerkplekClient({
         if (!geldt()) return;
         onGesprekGeladen?.(g);
         setGesprekConnectors(g.connectors ?? null);
+        setGesprekPlugins(g.plugins ?? null);
         const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
         // De beurten met een meting, vóór wat een lopende beurt intussen meldde (zoals de thread hieronder).
         setContextBeurten((xs) => xs.reduce((alle, b) => metBeurt(alle, b.contextopbouw), beurtenUitBerichten(g.berichten)));
@@ -548,6 +558,13 @@ export function WerkplekClient({
     else connectorsTeBewaren.current = connectors != null;
   }
 
+  function kiesPlugin(naam: string) {
+    const plugins = wisselPlugin(pluginRef.current, naam);
+    setGesprekPlugins(plugins);
+    if (gesprekId) void wijzigGesprek(gesprekId, { plugins }).catch(() => {});
+    else pluginsTeBewaren.current = true;
+  }
+
   function kiesConnector(naam: string) {
     zetGesprekConnectors(wisselConnector(connectorRef.current, naam));
   }
@@ -621,6 +638,10 @@ export function WerkplekClient({
           connectorsTeBewaren.current = false;
           void wijzigGesprek(gid, { connectors: connectorRef.current.gesprek }).catch(() => {});
         }
+        if (pluginsTeBewaren.current && pluginRef.current.gesprek != null) {
+          pluginsTeBewaren.current = false;
+          void wijzigGesprek(gid, { plugins: [...pluginRef.current.gesprek] }).catch(() => {});
+        }
       } catch (e) {
         updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
         beurt.vrij();
@@ -643,6 +664,8 @@ export function WerkplekClient({
         ...startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }),
         // Alleen met een menu: zonder connector bij de beheerder beslist graph-qa zelf (alleen wetgeving).
         ...beurtBronnen(stand),
+        // De plugins van dit gesprek; zonder aangeboden plugin niets (graph-qa beslist dan met zijn proefvlag).
+        ...beurtPlugins(pluginRef.current),
       });
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
@@ -1009,7 +1032,8 @@ export function WerkplekClient({
   const contextSuggesties = onderwerp ? suggestiesVan(onderwerp) : werkgebiedId && !demo ? werkgebiedSuggesties() : [];
   const suggesties = onderwerp || !invoer.trim() ? contextSuggesties : [];
   const commandoRegels = demo || menuDicht ? null
-    : menuRegels(invoer, { suggesties: contextSuggesties, connectors: connectorStand, bezig, geblokkeerd });
+    : menuRegels(invoer, { suggesties: contextSuggesties, connectors: connectorStand, bezig, geblokkeerd,
+      plugins: actievePlugins(pluginStand) });
   const actieveRegel = commandoRegels?.length ? Math.min(menuCursor, commandoRegels.length - 1) : -1;
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
@@ -1411,11 +1435,12 @@ export function WerkplekClient({
               ))}
             </div>
           )}
-          {!demo && (toonMenu(connectorStand) || contextBeurten.length > 0 || items.length > 0) && (
+          {!demo && (toonMenu(connectorStand) || aangebodenPlugins.length > 0 || contextBeurten.length > 0 || items.length > 0) && (
             <div className="mb-1 flex min-w-0 items-center gap-2">
               <div className="flex min-w-0 flex-1" data-connectors-ruimte>
-                {toonMenu(connectorStand) && (
+                {(toonMenu(connectorStand) || aangebodenPlugins.length > 0) && (
                   <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
+                    plugins={pluginStand} onWisselPlugin={kiesPlugin}
                     onOpnieuw={connectorLijst.ververs}
                     onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
                     onTerugNaarStandaard={() => zetGesprekConnectors(null)} />

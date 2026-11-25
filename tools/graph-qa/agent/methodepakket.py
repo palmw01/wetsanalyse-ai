@@ -2,6 +2,10 @@
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c111d21f46e3accbbe633976309',
                    'agentrollen.json': 'a87a8bc9a2c6cb16a46fa33150f32cc83f1f2a47c1f0e01184f38a8b7c5994fa',
+                   'contenttoets/SKILL.md': '93b72233a02725844b15c42914f4b39b69629e4e1c712788659b3065bafcbbeb',
+                   'contenttoets/agentrollen.json': '75a21f94f4ff6c7ed9d228c1e92fcb0d7a578aa1de5bc64d6a07b371de002082',
+                   'contenttoets/references/agentrollen.md': 'ffebe30fa08efa1f5d212542d806189ad5387149f10b1722a733e9d9a55539b1',
+                   'contenttoets/references/bronnen.md': '04f9fe22cf049b18bc8d09a57ce78b38850d5f6395e03736ed20377fabe013f6',
                    'references/agentrollen.md': '26e1550d15e59ed7fa2c7910b09337cb7e8aa7d476a80d8990a9d8e4cef5564f',
                    'references/bronnen.md': 'ab5d92391edce2613217efc77e829f14ac93745c8d914bb0404820d176b84852',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
@@ -36,6 +40,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c1
  'regels': {},
  'rollen': {'agent': ['basis', 'definitie', 'duiding', 'nl-sbb-taalniveau'],
             'algemeen': ['basis', 'nl-sbb-taalniveau'],
+            'contenttoets': ['contenttoets'],
             'deelvragen': ['basis', 'deelvragen'],
             'duiding': ['basis', 'duiding'],
             'retrieval': ['basis', 'retrieval']},
@@ -54,6 +59,62 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c1
                                 'of opslag van een dossier zonder uitvoering. Volg het bestaande '
                                 'uitvoercontract van je rol; deze methoderegels verlenen geen '
                                 'extra tools of bevoegdheden.'},
+             'contenttoets': {'bestand': 'references/agentrollen.md',
+                              'bronnen': ['CT01', 'CT02', 'CT03'],
+                              'sha256': '0f2f84e6f5bccfd5a83235946fe5ab5a8681587f1bea6bfd6095f6ba9b32212b',
+                              'skill': 'contenttoets',
+                              'tekst': 'METHODE CONTENTTOETS (eigen werk van het project, versie '
+                                       '0.1). Je toetst content, zoals een webtekst, op juistheid '
+                                       'en volledigheid tegen de wet- en regelgeving die je in '
+                                       'deze beurt leest. Je bent geen wetsanalist: je maakt geen '
+                                       'markeringen in wettekst en gebruikt geen JAS-klassen.\n'
+                                       'Drie regels gelden altijd. Een oordeel over juistheid rust '
+                                       'op een letterlijke passage uit wat je in deze beurt las; '
+                                       'zonder passage is het oordeel niet_in_de_bron. Je stelt '
+                                       'voor, de mens beslist: twijfel en aannames schrijf je '
+                                       'apart. Een publiekstekst mag vereenvoudigen: weglaten is '
+                                       'pas onvolledig als de lezer er anders door zou handelen.\n'
+                                       'Werkwijze. 1) Haal de toetsbare beweringen uit de content: '
+                                       'bedragen, termijnen en datums, voorwaarden en '
+                                       'uitzonderingen, rechtsgevolgen, bevoegdheden (kan, mag, '
+                                       'moet, recht op), voor wie iets geldt. Procesinformatie '
+                                       '(formulier, DigiD, per post), toon en aansporing toets je '
+                                       'niet; noem ze onder niet_getoetst. 2) Zoek per bewering de '
+                                       'bepaling die haar draagt: de grondslag in de wet en de '
+                                       'uitwerking in de regeling of beleidsregel (zoals de '
+                                       'Leidraad Invordering 2008). Lees de tekst zelf, ook de kop '
+                                       'en de bepalingen eromheen. 3) Kies per bewering één '
+                                       'oordeel en noem het criterium. 4) Lees elke '
+                                       'mogelijk_onjuist opnieuw: gaat de bepaling over dezelfde '
+                                       'groep, belasting en regeling? Bij twijfel is het '
+                                       'niet_in_de_bron, met de twijfel erbij. 5) Kijk naar de '
+                                       'tekst als geheel: spreekt hij zichzelf tegen (J6), '
+                                       'ontbreekt er iets wezenlijks (ontbreekt)? 6) Stel per '
+                                       'bevinding die niet juist is een betere zin voor, in de '
+                                       'taal van de content, zonder nieuwe bewering die de bron '
+                                       'niet draagt; bij niet_in_de_bron een vraag aan de '
+                                       'redacteur.\n'
+                                       'Criteria. Juistheid: J1 waarde (bedrag, termijn, '
+                                       'percentage, datum gelijk aan de bron); J2 voorwaarde en '
+                                       'uitzondering (dezelfde grens); J3 reikwijdte (dezelfde '
+                                       'groep, belasting, schuld of regeling); J4 modaliteit (niet '
+                                       'sterker of zwakker dan de bron); J5 telmoment (de termijn '
+                                       'begint en eindigt op het moment van de bron); J6 samenhang '
+                                       '(de tekst spreekt zichzelf niet tegen); J7 geldigheid (de '
+                                       'bron geldt op de peildatum). Volledigheid, alleen als het '
+                                       'materieel is: V1 een voorwaarde ontbreekt, V2 een gevolg '
+                                       'ontbreekt, V3 een uitzondering ontbreekt.\n'
+                                       'Oordelen: juist, mogelijk_onjuist, onvolledig, '
+                                       'niet_in_de_bron, en voor de tekst als geheel ontbreekt. '
+                                       'Niet in de bron is geen verkapt onjuist: een '
+                                       'werkinstructie of formuliervoorwaarde staat vaak niet in '
+                                       'de wet; noem dat als aanname.\n'
+                                       'Veelgemaakte fouten: een regel van een andere groep '
+                                       'toepassen (de standaardregeling voor toeslagschulden is '
+                                       'niet die voor belastingschulden); een termijn op het '
+                                       'verkeerde moment laten ingaan; elke vereenvoudiging '
+                                       'onvolledig noemen; een bewering onjuist noemen zonder '
+                                       'citaat; uit het hoofd citeren.'},
              'deelvragen': {'bestand': 'references/deelvragen-en-bronnen.md',
                             'bronnen': ['M03', 'P13', 'P14'],
                             'sha256': '99aa88287d4332442ad3e40346943a2984b6b25922756fe27bada6fdd09f8057',
@@ -228,8 +289,37 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c1
                                     'doelcontract; verricht geen juridische duiding. Gebruik '
                                     'alleen aangetroffen versiegegevens, geen veronderstelde '
                                     'geldigheid.'}},
- 'sha256': '54a37a2ce188516d9f4bd25fbab97a93e274dab36bc60bfdec185ef333e0e5ef',
- 'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
+ 'sha256': 'c8d1c5286b621f1fb463737c3daebc717d01a0f81913aadc0e2f0f04722d2c23',
+ 'skills': {'contenttoets': {'lex': {'beschrijving': 'Toetst een stuk content, zoals een webtekst, '
+                                                     'brief of FAQ, op juistheid en volledigheid '
+                                                     'tegen de bron: de geldende wet- en '
+                                                     'regelgeving en de beleidsregels. Haalt de '
+                                                     'toetsbare beweringen uit de tekst (bedragen, '
+                                                     'termijnen, voorwaarden, uitzonderingen, '
+                                                     'rechtsgevolgen, bevoegdheden), legt elke '
+                                                     'bewering naast de letterlijke brontekst, '
+                                                     'geeft per bewering een oordeel (juist, '
+                                                     'mogelijk onjuist, onvolledig, niet in de '
+                                                     'bron) met criterium, vindplaats, '
+                                                     'toelichting, twijfels en een voorstel voor '
+                                                     'een betere zin, en noemt wat de bron zegt en '
+                                                     'de tekst weglaat. Gebruik deze skill zodra '
+                                                     'iemand content wil valideren, controleren, '
+                                                     'checken of toetsen tegen de wet, vraagt of '
+                                                     'een tekst klopt, of /contenttoets gebruikt. '
+                                                     'Niet voor een wetsanalyse of het annoteren '
+                                                     'van wettekst, en niet voor juridisch advies.',
+                                     'herkomst': 'Eigen werk van het project (plan '
+                                                 'docs/architectuur/plan-contenttoets.md); de '
+                                                 'bronnen staan in references/bronnen.md',
+                                     'label': 'Contenttoets: content toetsen op juistheid en '
+                                              'volledigheid',
+                                     'letterlijk': 'nee',
+                                     'licentie': 'eigen tekst in deze repo',
+                                     'soort': 'methode'},
+                             'map': '.claude/skills/contenttoets',
+                             'versie': '0.1'},
+            'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
                                                     'afbakenen (analysevraag, deelvragen, '

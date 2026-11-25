@@ -9,6 +9,7 @@ import { MenuKeuze, MenuKnop, MenuLijst } from "@/components/ui/MeerMenu";
 import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
 import { MENU_RIJ } from "@/components/ui/Menu";
+import { actievePlugins, type PluginStand } from "@/lib/plugins";
 import { herkomstVan, menuKort, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
 
 const HERKOMST = {
@@ -26,9 +27,13 @@ const REDEN = {
 /** *Bronnen en tools* boven het invoerveld (ADR-013): welke bronnen buiten de wettekst Lex in dit gesprek mag
  *  raadplegen. Zonder connector die de beheerder aanzette, is er geen menu: dan is er alleen wetgeving. Het menu
  *  verdwijnt nooit stil: lukt het ophalen niet, of biedt de omgeving een aangezette bron niet aan, dan zegt het dat. */
-export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarStandaard, onOpen, onOpnieuw }: {
+export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarStandaard, onOpen, onOpnieuw, plugins,
+  onWisselPlugin }: {
   stand: ConnectorStand;
   onWissel: (naam: string) => void;
+  /** De plugins (plan contenttoets, C4): wat de beheerder aanbiedt en wat in dit gesprek aanstaat. */
+  plugins?: PluginStand;
+  onWisselPlugin?: (naam: string) => void;
   /** Bij het openen: de werkplek haalt de stand opnieuw op als er een beschikbaarheid onbekend is. */
   onOpen?: () => void;
   /** Alleen in een werkgebied: deze stand wordt de standaard voor de gesprekken daarin. */
@@ -39,7 +44,10 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
 }) {
   const volRef = useRef<HTMLSpanElement>(null);
   const kort = useTePast(volRef);
-  if (!toonMenu(stand)) return null;
+  const metBronnen = toonMenu(stand);
+  const aangeboden = plugins?.aangeboden ?? [];
+  if (!metBronnen && !aangeboden.length) return null;
+  const pluginsAan = plugins ? actievePlugins(plugins) : [];
   const aan = actieveConnectors(stand);
   const samenvatting = menuKort(stand);
   const herkomst = herkomstVan(stand);
@@ -71,6 +79,14 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
                 : d.stand === "laden" ? null
                 : d.stand === "uit" ? <span aria-hidden className="text-muted">{STAND_WOORD.uit}</span>
                 : <StatusLabel toon="geel" klein aria-hidden>{STAND_WOORD[d.stand]}</StatusLabel>}
+            </span>
+          ))}
+          {aangeboden.map((p) => (
+            <span key={p.naam} className={`inline-flex items-center gap-1 ${pluginsAan.includes(p.naam) ? "text-ink" : "text-muted"}`}
+              data-plugin={p.naam} data-aan={pluginsAan.includes(p.naam) ? "" : undefined}>
+              <span aria-hidden className="text-muted">·</span>
+              {p.label}
+              {pluginsAan.includes(p.naam) ? <Vinkje className="text-lint" /> : <span aria-hidden className="text-muted">{STAND_WOORD.uit}</span>}
             </span>
           ))}
           </span>
@@ -110,7 +126,21 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
               <MenuKnop onClick={() => { onTerugNaarStandaard(); sluit(); }}>Terug naar de standaard</MenuKnop>
             )}
           </MenuLijst>
-          <p className="px-2 pb-1.5 pt-1 text-xs text-muted" data-connectors-herkomst={herkomst}>{HERKOMST[herkomst]}</p>
+          {metBronnen && <p className="px-2 pb-1.5 pt-1 text-xs text-muted" data-connectors-herkomst={herkomst}>{HERKOMST[herkomst]}</p>}
+          {aangeboden.length > 0 && (
+            <div className="border-t border-line" data-plugins-menu>
+              <p className="px-2 pb-1 pt-1.5 text-xs text-muted">
+                Plugins staan naast de wetsanalyse. Je start er een met zijn commando, zoals /contenttoets met de tekst erachter.
+              </p>
+              <MenuLijst>
+                {aangeboden.map((p) => (
+                  <MenuKeuze key={p.naam} gekozen={pluginsAan.includes(p.naam)} onClick={() => onWisselPlugin?.(p.naam)}>
+                    {p.label}
+                  </MenuKeuze>
+                ))}
+              </MenuLijst>
+            </div>
+          )}
         </div>
       )}
     </Popover>

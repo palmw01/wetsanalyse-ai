@@ -27,6 +27,8 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
+from bronmodel.vindplaats import bepaling_label
+
 from .agents import Context, Uitkomst, geweigerd
 from .narratie import _stap, denk_bij
 from .reeks import beurt_fabriek, reeks_stroom
@@ -342,8 +344,10 @@ async def werkgebied_annotatie_beurt(
         yield stap("Lex", f"annoteert {len(doelen_aantal := te[:PLAFOND])} {_bepalingen(len(doelen_aantal))}, elk in een "
                           "eigen bericht")
         per_iri = {e["bron_iri"]: e for e in wv.get("eenheden") or []}
+        # Het label via `bepaling_label`: in een werkgebied staat een bepaling niet onder haar artikel, dus "Onderdeel –"
+        # zegt daar niets ("Artikel 25.3a.1, 1e streepje").
         doelen = [{"bron_iri": i, "label": ", ".join(x for x in (per_iri.get(i, {}).get("regeling"),
-                                                                  per_iri.get(i, {}).get("label")) if x) or i}
+                                                                  bepaling_label(i, per_iri.get(i, {}).get("label") or "")) if x) or i}
                   for i in te[:PLAFOND]]
         if not _deelvragen(wv):
             ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}", "label": f"werkgebied {naam}"}

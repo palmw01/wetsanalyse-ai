@@ -345,6 +345,17 @@ jobs:
               if "--relatie-voorstellen" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--relatie-voorstellen` zonder acceptatie-conditie: {regel.strip()}")
 
+          # De contenttoets (plan contenttoets, C2) is een proefvlag: alleen acceptatie, tot de meting beslist.
+          m = re.search(r"^param contenttoets bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param contenttoets bool = false` niet gevonden")
+          regels = re.findall(r".*name: 'CONTENTTOETS'.*", bicep)
+          if len(regels) != 2 or any("value: contenttoets ?" not in r for r in regels):
+              fout.append("main.bicep: CONTENTTOETS hoort met de parameter in de env van graph-qa én de eval-job")
+          for regel in flow.splitlines():
+              if "--contenttoets" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--contenttoets` zonder acceptatie-conditie: {regel.strip()}")
+
           # Regels uit een methode-skill (ADR-014 §7) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
           m = re.search(r"^param skillRegels bool = (\w+)$", bicep, re.M)
           if not m or m.group(1) != "false":

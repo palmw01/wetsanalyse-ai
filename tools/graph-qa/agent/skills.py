@@ -16,6 +16,8 @@ import json
 import re
 from pathlib import Path
 
+from bronmodel.plugins import SKILLS as PLUGIN_SKILLS
+
 PAKKET = Path(__file__).resolve().parent / "bronpakket.json"
 #: Hoeveel tekens een reference hoogstens meegeeft; de rest staat er niet, en het resultaat zegt dat.
 MAX_REFERENCE = 20_000
@@ -33,7 +35,9 @@ def _skills() -> dict[str, dict[str, str]]:
 
 
 def namen() -> tuple[str, ...]:
-    return tuple(sorted(_skills()))
+    """De methode-skills die de centrale agent kent. Een plugin-skill (`bronmodel.plugins.SKILLS`) niet: die werkt via
+    de route van zijn plugin, en staat zo niet in het vaste voorvoegsel (plan contenttoets, C2)."""
+    return tuple(sorted(n for n in _skills() if n not in PLUGIN_SKILLS))
 
 
 def _frontmatter(tekst: str) -> tuple[str, str]:
@@ -105,7 +109,7 @@ def lees(skill: str, sectie: str) -> str | None:
 
 def antwoord(soort: str, skill: str, sectie: str = "") -> tuple[str, bool]:
     """(de tekst voor het model, geslaagd)."""
-    if skill not in _skills():
+    if skill not in namen():
         return f"De skill '{skill}' bestaat niet. Kies uit: {', '.join(namen())}.", False
     if soort == "laad":
         return kern(skill), True

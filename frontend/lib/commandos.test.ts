@@ -56,17 +56,35 @@ describe("het register", () => {
     }
   });
 
-  it("de commando's van een context zijn de suggesties van die context, dan de clientcommando's", () => {
+  it("de commando's van een context zijn de suggesties van die context, dan de plugins en de clientcommando's", () => {
     const namen = beschikbaar(stand(werkgebiedSuggesties())).map((c) => c.naam);
     expect(namen.slice(0, 3)).toEqual(["dossier", "thema", "deelvragen"]);
     expect(namen).toContain("annoteer");
     expect(namen.slice(-2)).toEqual(["context", "help"]);
     // Zonder bron om om te zetten geen /bron.
     expect(namen).not.toContain("bron");
-    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["nieuw", "bron", "context", "help"]);
+    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["contenttoets", "nieuw", "bron", "context", "help"]);
     // Bij een deelvraag de handelingen op de deelvraag, niet die van het werkgebied.
     const bijDeelvraag = beschikbaar(stand(suggestiesVan(deelvraag))).map((c) => c.naam);
-    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "nieuw", "context", "help"]);
+    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "contenttoets", "nieuw", "context", "help"]);
+  });
+});
+
+describe("een plugin", () => {
+  it("/contenttoets staat in het menu, vult aan en sluit het menu zodra er tekst achter staat", () => {
+    const regels = menuRegels("/content", stand([]))!;
+    expect(regels[0]).toMatchObject({ label: "/contenttoets", aanvulling: "/contenttoets ", uitvoer: null });
+    expect(menuRegels("/contenttoets U kunt betalen in 24 maanden.", stand([]))).toBeNull();
+  });
+
+  it("staat er alleen als de plugin in het gesprek aanstaat", () => {
+    expect(beschikbaar(stand([], { plugins: [] })).map((c) => c.naam)).not.toContain("contenttoets");
+    expect(beschikbaar(stand([], { plugins: ["contenttoets"] })).map((c) => c.naam)).toContain("contenttoets");
+  });
+
+  it("kan niet tijdens een beurt of zonder budget", () => {
+    expect(menuRegels("/contenttoets", stand([], { bezig: true }))![0].uit).toBe("Lex is nog bezig");
+    expect(menuRegels("/contenttoets", stand([], { geblokkeerd: true }))![0].uit).toBe("je tokenbudget is op");
   });
 });
 

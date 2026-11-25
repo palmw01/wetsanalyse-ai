@@ -7,7 +7,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any
 
 from bronmodel.antwoord import Vindplaats
-from bronmodel.vindplaats import vindplaats
+from bronmodel.vindplaats import bepaling_label, vindplaats
 
 from ..tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -180,6 +180,8 @@ def met_toestand(jci: str, staarten: dict[str, str]) -> str:
 
 
 def vindplaats_van(iri: str, *, jci: str = "", regeling: str = "", label: str = "") -> Vindplaats:
-    """De vindplaats zoals `bronmodel` hem leest; `label` is de terugval voor een wet-lokale node."""
+    """De vindplaats zoals `bronmodel` hem leest; `label` is de terugval voor een wet-lokale node, behalve als het kaal is
+    ("Onderdeel –", "Onderdeel c."): dan de plek uit het knoop-id (`bepaling_label`)."""
     vp = vindplaats(iri)
-    return Vindplaats(iri=iri, jci=jci, regeling=regeling, label=(vp.label if vp else "") or label or iri)
+    plek = vp.label if vp and vp.soort != "node" else bepaling_label(iri, label)
+    return Vindplaats(iri=iri, jci=jci, regeling=regeling, label=plek or label or iri)

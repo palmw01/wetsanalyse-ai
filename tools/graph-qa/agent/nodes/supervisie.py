@@ -18,6 +18,7 @@ from langgraph.config import get_stream_writer
 
 from dataclasses import asdict
 
+from ..contenttoets import is_contenttoets
 from .. import bronstand
 from ..aanwijzing import lees_aanwijzing
 from ..agentvorm import CENTRAAL
@@ -93,6 +94,28 @@ def _begrippen_lees(writer, vraag: str) -> dict[str, Any]:
     return {"specialist": "begrippen_lezen", "worker_plan": ["begrippen_lezen"],
             "worker_idx": 0, "plan": "vastgelegde begrippen raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": False, "begrippen_lezen": True}
+
+
+def _contenttoets(b: Bouw, writer, state: State) -> dict[str, Any]:
+    """`/contenttoets <tekst>` of de actie `contenttoets` (plan contenttoets, C2): zonder model naar het profiel
+    `contenttoets`; de node `contenttoets_voorbereiden` zet de content in het bronspoor. Staat de proefvlag uit, of is er
+    geen (of te veel) tekst, dan een vaste zin."""
+    from .. import contenttoets as ct
+
+    content, _ = ct.ontleed(state.get("question", ""))
+    plugins = state.get("plugins")
+    reden = (ct.UIT if not b.settings.contenttoets
+             else ct.UIT_IN_GESPREK if plugins is not None and "contenttoets" not in plugins
+             else ct.melding(content))
+    if reden:
+        _stap(writer, "Lex", "toetst niet", route="contenttoets")
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": reden, "afwijs_stap": "niets getoetst", "annotaties_lezen": False}
+    _stap(writer, "Lex", "toetst de content aan de bron", route="contenttoets")
+    logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": "contenttoets"})
+    return {"specialist": "contenttoets", "worker_plan": ["contenttoets"], "worker_idx": 0,
+            "plan": "content toetsen op juistheid en volledigheid", "afwijzen": False, "annotaties_lezen": False,
+            "begrippen_lezen": False, "regels_lezen": False, "contenttoets": True}
 
 
 def _regels_lees(writer, vraag: str) -> dict[str, Any]:
@@ -572,6 +595,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(SUBAGENT_PREFIX):
             return _subagent_vervolg(b, writer, state)
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if state.get("actie") == "contenttoets" or is_contenttoets(state.get("question", "")):
+        # Een plugin naast de wetsanalyse (plan contenttoets): vóór elke andere route, want de content kan alles noemen.
+        return _contenttoets(b, writer, state)
     if state.get("actie") == "bepaling_toevoegen":
         return _bronselectie(writer, "zoekt met je een bepaling op")
     if state.get("actie") in BRONSELECTIE_ACTIES:
@@ -870,6 +896,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "begrippen_zoeken"
     if state.get("regels_lezen"):
         return "regels_zoeken"
+    if state.get("contenttoets"):
+        return "contenttoets_voorbereiden"
     if state.get("annotaties_lezen"):
         # Eerst zoeken, dan formuleren.
         return "annotaties_zoeken"

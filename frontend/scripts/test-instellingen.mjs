@@ -98,8 +98,8 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
     }
     if (p === "/api/admin/budget") {
       if (m !== "GET") {
-        // Zoals de api: een anker zonder tijdzone is Nederlandse tijd (november: UTC+1).
-        const anker = body.anker ? new Date(`${body.anker}+01:00`).toISOString() : stand.budget.anker;
+        // De werkplek stuurt het anker mét offset; de api bewaart het moment.
+        const anker = body.anker ? new Date(body.anker).toISOString() : stand.budget.anker;
         Object.assign(stand.budget, body, { anker });
       }
       return route.fulfill({ json: stand.budget });
@@ -198,9 +198,10 @@ try {
   await budget.getByRole("button", { name: "Opslaan" }).click();
   await budget.getByText("Per week, reset op", { exact: false }).waitFor();
   const put = stand.verzoeken.filter((v) => v.p === "/api/admin/budget" && v.m === "PUT").at(-1).body;
-  assert.match(put.anker, /^\d{4}-\d{2}-\d{2}T00:00:00$/, "wandkloktijd zonder tijdzone");
-  const anker = new Date(`${put.anker}Z`);
-  assert.equal(anker.getUTCDay(), 1, "een maandag");
+  // Met de offset van dat moment: zonder las een oudere api "00:00" als UTC, en dat is 01:00 in Nederland.
+  assert.match(put.anker, /^\d{4}-\d{2}-\d{2}T00:00:00\+0[12]:00$/, "wandkloktijd met de offset van Nederland");
+  assert.equal(new Date(`${put.anker.slice(0, 10)}T00:00:00Z`).getUTCDay(), 1, "een maandag");
+  const anker = new Date(put.anker);
   assert.ok(Date.now() - anker.getTime() < 8 * 86_400_000 && anker.getTime() <= Date.now() + 86_400_000, "de vorige maandag, niet de volgende");
 
   // Per maand: standaard de 1e om 00:00, en de vorige 1e als anker.
@@ -212,7 +213,7 @@ try {
   await budget.getByText("Per maand, reset op", { exact: false }).waitFor();
   const maand = stand.verzoeken.filter((v) => v.p === "/api/admin/budget" && v.m === "PUT").at(-1).body;
   assert.equal(maand.periode_maanden, 1);
-  assert.match(maand.anker, /^\d{4}-\d{2}-01T00:00:00$/, "de 1e van de maand om middernacht");
+  assert.match(maand.anker, /^\d{4}-\d{2}-01T00:00:00\+0[12]:00$/, "de 1e van de maand om middernacht");
   // Terug naar de week brengt maandag 00:00 terug.
   await budget.getByRole("button", { name: /bewerken/i }).click();
   await budget.getByLabel(/^Periode/).selectOption({ label: "Per week" });

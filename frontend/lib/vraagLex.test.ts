@@ -125,7 +125,9 @@ describe("contract met graph-qa", () => {
     expect(bronselectie).toEqual(["bronselectie", "bronnen_zoeken", "bepaling_toevoegen"]);
     const regie = [...(models.match(/^REGIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
     expect(regie).toEqual(["regie_bronnen", "regie_annoteren"]);
-    expect([...taken, ...intake, ...bronselectie, ...regie].sort()).toEqual([...ACTIES].sort());
+    const plugin = [...(models.match(/^PLUGIN_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(plugin).toEqual(["contenttoets"]);
+    expect([...taken, ...intake, ...bronselectie, ...regie, ...plugin].sort()).toEqual([...ACTIES].sort());
     const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
     expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());
   });

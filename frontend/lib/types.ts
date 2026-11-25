@@ -773,6 +773,8 @@ export interface Gesprek {
   gearchiveerd?: string | null;
   /** ADR-013: de bronconnectors die in dit gesprek aanstaan; `null` = de standaard (werkgebied, anders de beheerder). */
   connectors?: string[] | null;
+  /** De plugins die in dit gesprek aanstaan (plan contenttoets, C4); `null` = wat de beheerder aanbiedt. */
+  plugins?: string[] | null;
   berichten: Bericht[];
   created?: string;
   updated?: string;

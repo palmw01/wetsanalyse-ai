@@ -1280,7 +1280,7 @@ def test_zonder_definitie_toont_de_code_de_gelezen_bepaling_die_de_term_gebruikt
     assert [b.soort for b in a.blokken] == ["leemte", "wettekst"]
     assert a.blokken[0].tekst.endswith("De gelezen bepaling hieronder gebruikt de term wel.")
     assert [(b.tekst, b.vindplaats.iri) for b in a.blokken[1].items] == [(tekst, _LEIDRAAD_1441)]
-    assert a.blokken[1].items[0].vindplaats.label == "artikel 14.4.1", "niet de kale IRI (meting na #1755)"
+    assert a.blokken[1].items[0].vindplaats.label == "Artikel 14.4.1", "niet de kale IRI (meting na #1755)"
     assert a.doelen == [], "de bepaling gebruikt de term; ze is niet waar het antwoord naar wijst"
 
 

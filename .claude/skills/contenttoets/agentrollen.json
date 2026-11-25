@@ -1,0 +1,11 @@
+{
+  "secties": {
+    "contenttoets": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": ["CT01", "CT02", "CT03"]
+    }
+  },
+  "rollen": {
+    "contenttoets": ["contenttoets"]
+  }
+}

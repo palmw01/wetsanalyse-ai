@@ -51,7 +51,11 @@ def _methode_herkomst(codes: tuple[str, ...] = (), skill: str | None = None) -> 
 
 
 def _basis() -> str:
-    return next(iter(PAKKET["skills"]))
+    """De basis-skill (`bronmodel.skill.BASIS`), niet de eerste in het pakket: dat staat op naam, en een methode als
+    `contenttoets` komt alfabetisch vóór wetsanalyse."""
+    from bronmodel.skill import BASIS
+
+    return BASIS if BASIS in PAKKET["skills"] else next(iter(PAKKET["skills"]))
 
 
 def _andere_skills() -> tuple[str, ...]:

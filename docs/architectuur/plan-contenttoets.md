@@ -223,6 +223,23 @@ voorbeeld in de skill en de eerste casus voor de meting in C5.
 content staat in de trace als `contenttoets_content`, gezet door de route van C2), de spiegel `frontend/lib/contenttoets.ts`
 met de drift-test, en het blok in het gesprek (`ContenttoetsBlok`). Nog geen route, profiel of commando.
 
+**C2 staat er** (26 nov 2026): de skill is een methode met een eigen rol `contenttoets` (`bronmodel.skill.EIGEN_ROLLEN`,
+de basis vult haar niet), het pluginregister `bronmodel/plugins.py` (een plugin-skill staat niet in het voorvoegsel van
+de centrale agent), het profiel `.claude/lex-agents/contenttoets.md`, de route (`/contenttoets` of de actie
+`contenttoets`, `agent/contenttoets.py`, node `contenttoets_voorbereiden`) en de proefvlag `CONTENTTOETS` (bicep
+`contenttoets`, alleen acceptatie, met een guard in `poort.yml`). Na de merge vraagt de vlag een `azure-infra` deploy op
+acceptatie.
+
+**C3 staat er** (26 nov 2026): `/contenttoets` in het menu van de werkplek (een plugincommando, `lib/plugins.ts` en
+`PLUGIN_COMMANDOS` in `lib/commandos.ts`). Enter vult aan; met tekst erachter gaat de hele tekst als vraag naar Lex. Het
+rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie
+`frontend/scripts/test-contenttoets.mjs`.
+
+**C4 staat er** (26 nov 2026): het pluginregister bij de api (`app/plugins.py`, `/v1/plugins`, beheer met audit) en
+`gesprekken.plugins`; in de werkplek de plugins in *Bronnen en tools*, het commando alleen als de plugin in het gesprek
+aanstaat, en de groep *Plugins* onder *Aanpassingen › Connectors*. Graph-qa weigert de route als de beurt de plugin niet
+draagt (`ChatRequest.plugins`). De skill staat als methode onder *Methodes*; een rij in de groep *Plugins* opent haar.
+
 C0 staat los. C1 en C4 kunnen naast elkaar. C2 en C3 hebben C1 nodig. Bij UI-werk komen eerst screenshots.
 
 **Fase 2: het zijpaneel**

@@ -47,7 +47,7 @@ const gelijk = (a: Posities, b: Posities) => [...a].every(([id, [x, y]]) => b.ge
 describe("model", () => {
   it("noemt een lid naar zijn artikel en houdt het kaartlabel kort", () => {
     const g = bouwModel([BRON]);
-    expect(g.getNodeAttributes(L1)).toMatchObject({ naam: "Artikel 9 · lid 1", kort: "Lid 1" });
+    expect(g.getNodeAttributes(L1)).toMatchObject({ naam: "Artikel 9, lid 1", kort: "Lid 1" });
     expect(g.getNodeAttribute(IW, "kort")).toBe("Invorderingswet 1990");
   });
 
@@ -59,7 +59,8 @@ describe("model", () => {
     };
     expect(bouwModel([bron]).getNodeAttributes(O)).toMatchObject({ naam: "Artikel 9.2, onderdeel d", kort: "Onderdeel d." });
     const zonder: GraafBron = { knopen: [knoop(O, "onderdeel", "Onderdeel d.", { bwb_id: "BWBR0024096" })], relaties: [] };
-    expect(bouwModel([zonder]).getNodeAttribute(O, "naam")).toBe("Onderdeel d.");
+    // Zonder vindplaats uit de boom: de plek uit de IRI (`bepalingLabel`), niet het kale "Onderdeel d.".
+    expect(bouwModel([zonder]).getNodeAttribute(O, "naam")).toBe("Artikel 9, onderdeel d");
   });
 
   it("een knoop is alleen rand als hij dat in élk antwoord is", () => {

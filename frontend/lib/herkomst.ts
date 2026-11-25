@@ -6,6 +6,7 @@
  *  werkgebied). Wat er niet is, blijft weg; er wordt niets geraden. */
 import type { AntwoordVindplaats, TekstBij } from "@/lib/antwoord";
 import type { BronDoel } from "@/lib/bronDoel";
+import { bepalingLabel } from "@/lib/bepalingLabel";
 import { bepalingEnRegeling } from "@/lib/bronnenPerDeelvraag";
 import { datumTekst } from "@/lib/graaf/knoopinfo";
 import { vindplaatsVan } from "@/lib/samenhang";
@@ -65,17 +66,6 @@ export function plaatsKort(plaats: readonly Deel[]): string {
     .join(" › ");
 }
 
-/** Het label van de bron, tenzij het alleen de staart is van het volle pad uit de IRI: een kaal "Lid 2" of "onderdeel k"
- *  wordt dan "Artikel 9, lid 2". Een eigen naam (een Leidraad-divisie, een anker) blijft staan. */
-function eigenLabel(gegeven: string, uitIri: string): string {
-  if (!gegeven) return uitIri;
-  if (!uitIri) return gegeven;
-  const g = gegeven.toLowerCase().replace(/\.$/, "");
-  const i = uitIri.toLowerCase();
-  // Gelijk op hoofdletters na ("Artikel 9, Lid 2"): de vorm van bronmodel, dan staat er overal hetzelfde.
-  return i === g || i.endsWith(` ${g}`) || i.endsWith(`, ${g}`) ? uitIri : gegeven;
-}
-
 /** De herkomst van een bepaling uit wat de plek weet. Het label komt uit de IRI (`vindplaatsVan`, de spiegel van
  *  `bronmodel.vindplaats`) als de bron alleen een staart gaf; de regeling is de citeertitel, anders het BWB-id. */
 export function herkomstVan(b: HerkomstBron): Herkomst {
@@ -88,7 +78,8 @@ export function herkomstVan(b: HerkomstBron): Herkomst {
   const staart = uitIri && gesplitst.bepaling.toLowerCase().startsWith(`${uitIri.toLowerCase()}, `)
     ? gesplitst.bepaling.slice(uitIri.length + 2).trim() : "";
   const regeling = (b.regeling ?? "").trim() || gesplitst.regeling || staart || bwb;
-  const eigen = staart ? uitIri : eigenLabel(gesplitst.bepaling, uitIri);
+  // Een kaal label ("Lid 2", "Onderdeel –", "Onderdeel c.") wordt de plek uit de IRI; een eigen naam blijft (`bepalingLabel`).
+  const eigen = staart ? uitIri : bepalingLabel(b.iri, gesplitst.bepaling);
   const bepaling = eigen || regeling || b.iri;
   const jci = b.jci ? normaliseerJci(b.jci) : "";
   return {

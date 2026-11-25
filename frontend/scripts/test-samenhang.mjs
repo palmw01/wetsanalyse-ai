@@ -445,7 +445,7 @@ async function wachtGereed(page) {
   // Geen beginkeuze: het begin is de focus – lid 2 met wat erop ligt en waarnaar het verwijst.
   assert.equal(await gekozen(page), "", "het begin is de focus, geen keuze");
   assert.match(await page.getByTestId("graaf-focus").innerText(), /Nadruk op wat het antwoord noemt \(1 deel of bepaling/);
-  assert.match(await detail(page).innerText(), /Dit antwoord[\s\S]*Artikel 9 · lid 2/i);
+  assert.match(await detail(page).innerText(), /Dit antwoord[\s\S]*Artikel 9, lid 2/i);
   await page.getByTestId("graaf-hint").waitFor();
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${shots}/1-graaf.png` });
@@ -454,7 +454,7 @@ async function wachtGereed(page) {
   // verdwijnt.
   await zoekEnKies(page, "lid 2", L2);
   await page.getByTestId("graaf-hint").waitFor({ state: "detached" });
-  assert.match(await detail(page).innerText(), /Artikel 9 · lid 2[\s\S]*In afwijking van het eerste lid[\s\S]*Verwijst naar/);
+  assert.match(await detail(page).innerText(), /Artikel 9, lid 2[\s\S]*In afwijking van het eerste lid[\s\S]*Verwijst naar/);
   // De lijn naar artikel 10 is alleen uit de tekst herkend: dat staat bij de regel, met een badge.
   await detail(page).getByTestId("graaf-verwijzing").first().waitFor();
   assert.match(await detail(page).getByTestId("graaf-verwijzing").first().innerText(), /uit de tekst herkend · artikel[\s\S]*lage betrouwbaarheid/);
@@ -482,7 +482,7 @@ async function wachtGereed(page) {
   // De hover noemt de volledige naam, niet het kaartlabel "Lid 1".
   await page.mouse.move(doek.x + doek.width / 2, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && !(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam")); i++) await page.waitForTimeout(100);
-  assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam"), "Artikel 9 · lid 1");
+  assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam"), "Artikel 9, lid 1");
   // Een klik op het label telt als een klik op de knoop (`nodeLabelEvents: "extend"`): de hover toont
   // het label rechts van de knoop.
   await trilKlik(page, doek.x + doek.width / 2 + 40, doek.y + doek.height / 2);
@@ -949,7 +949,7 @@ async function wachtGereed(page) {
   await zoekveld(page).fill("lid 1");
   await page.keyboard.press("Enter");
   // De details staan meteen open; inklappen kan.
-  assert.match(await detail(page).innerText(), /Artikel 9 · lid 1[\s\S]*Onderdeel van/);
+  assert.match(await detail(page).innerText(), /Artikel 9, lid 1[\s\S]*Onderdeel van/);
   await page.getByRole("button", { name: "Details inklappen" }).click();
   const hoogte = (await page.getByTestId("graaf-tekenaar").boundingBox()).height;
   assert.ok(hoogte >= 200, `het canvas houdt hoogte (${hoogte}px)`);
@@ -994,7 +994,7 @@ async function wachtGereed(page) {
   await openGraaf(page);
   await page.getByText("Deze browser kan de graaf niet tekenen.", { exact: false }).waitFor();
   await zoekEnKies(page, "lid 1", L1);
-  assert.match(await detail(page).innerText(), /Artikel 9 · lid 1/);
+  assert.match(await detail(page).innerText(), /Artikel 9, lid 1/);
   await page.getByRole("button", { name: "Lagen" }).click();
   await page.getByRole("group", { name: "Lagen en legenda" }).waitFor();
   await page.screenshot({ path: `${shots}/4-zonder-webgl.png` });

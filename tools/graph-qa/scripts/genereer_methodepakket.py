@@ -96,7 +96,7 @@ def compileer(skill: Path = SKILL, extra: list[Path] | None = None) -> dict:
         secties |= s.secties
         if pad is not skill:
             for rol, ids in s.rollen.items():
-                rollen[rol] += ids
+                rollen.setdefault(rol, []).extend(ids)
         voorvoegsel = '' if pad is skill else f'{s.naam}/'
         bronbestanden |= {f'{voorvoegsel}{p}': sha((pad / p).read_text()) for p in sorted(bestanden)}
         skills[s.naam] = {'versie': s.versie, 'lex': s.lex, 'map': f'.claude/skills/{s.naam}'}

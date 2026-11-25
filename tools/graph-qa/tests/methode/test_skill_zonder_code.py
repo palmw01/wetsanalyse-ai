@@ -26,7 +26,7 @@ from agent.begrippen_pipeline import patronen
 from agent.jas_pipeline.detectoren import BronTekst
 from agent.jas_pipeline.detectoren.regels import RegelDetector, alle_regels
 from agent.methodepakket import PAKKET
-from scripts.genereer_methodepakket import SKILL, compileer
+from scripts.genereer_methodepakket import SKILL, compileer, methode_skills
 
 TEKST = "Een scenario beschrijft wat een burger doorloopt; noem bij elke stap de bepaling die hem draagt."
 
@@ -75,7 +75,7 @@ def _met_pakket(monkeypatch, pakket: dict) -> None:
 
 @pytest.fixture
 def met_nep_skill(tmp_path, monkeypatch):
-    pakket = compileer(SKILL, extra=[_nep_skill(tmp_path)])
+    pakket = compileer(SKILL, extra=[*methode_skills(SKILL), _nep_skill(tmp_path)])
     _met_pakket(monkeypatch, pakket)
     yield pakket
     monkeypatch.undo()
@@ -97,7 +97,7 @@ def test_een_methode_zonder_rollen_komt_in_pakket_en_catalogus_en_verandert_geen
 
 
 def test_een_methode_mag_de_centrale_agent_aanvullen_en_alleen_die_vingerafdruk_verandert(tmp_path, monkeypatch):
-    pakket = compileer(SKILL, extra=[_nep_skill(tmp_path, rollen={"agent": ["nep-scenario"]})])
+    pakket = compileer(SKILL, extra=[*methode_skills(SKILL), _nep_skill(tmp_path, rollen={"agent": ["nep-scenario"]})])
     oud = {r: methode.vingerafdruk(r) for r in PAKKET["rollen"]}
     _met_pakket(monkeypatch, pakket)
     nieuw = {r: methode.vingerafdruk(r) for r in PAKKET["rollen"]}

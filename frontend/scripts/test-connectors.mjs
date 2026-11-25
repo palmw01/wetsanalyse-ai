@@ -9,13 +9,16 @@
  *    wijziging;
  *  - een weigering van de api (geen 2FA) staat als melding in het paneel, en de stand blijft *Uit*;
  *  - een beheerder zonder 2FA ziet waarom er geen knop staat; een analist ziet de lijst zonder knop;
- *  - op 375 px scrolt niets horizontaal.
+ *  - op 375 px scrolt niets horizontaal;
+ *  - de plugins (plan contenttoets, C4) staan als eigen groep: een beheerder biedt er een aan met `PUT {aan: true}`, een
+ *    analist ziet wat aangeboden is zonder knop (met `CONNECTORS_SCREENSHOT=<map>` beelden op 1280 en 390 px).
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
+const shots = process.env.CONNECTORS_SCREENSHOT || "";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const nu = "2026-11-08T10:00:00+00:00";
 
@@ -37,7 +40,10 @@ async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = f
   page.on("pageerror", (e) => errors.push(e.message));
   await context.addCookies(await sessieCookies(base, { role, userid: "wpalm" }));
   await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
-  const stand = { aan: false, door: "", audit: [], puts: [] };
+  const stand = { aan: false, door: "", audit: [], puts: [], plugin: false, pluginPuts: [] };
+  const plugin = () => ({ naam: "contenttoets", label: "Contenttoets", commando: "contenttoets",
+    beschrijving: "Toetst content, zoals een webtekst, op juistheid en volledigheid tegen de wet- en regelgeving.",
+    aan: stand.plugin, door: stand.plugin ? "wpalm" : "", bijgewerkt: stand.plugin ? nu : "" });
   const connector = () => ({
     naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk",
     beschrijving: "Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies van de Raad van State. Openbaar, zonder sleutel.",
@@ -63,6 +69,14 @@ async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = f
       return route.fulfill({ json: connector() });
     }
     if (p === "/api/admin/connectors/kamerstukken/audit") return route.fulfill({ json: stand.audit });
+    if (p === "/api/admin/plugins" && role !== "beheerder") return route.fulfill({ status: 403, json: { detail: "Alleen voor beheerders." } });
+    if (p === "/api/admin/plugins") return route.fulfill({ json: [plugin()] });
+    if (p === "/api/admin/plugins/contenttoets" && m === "PUT") {
+      stand.pluginPuts.push(req.postDataJSON());
+      stand.plugin = req.postDataJSON().aan;
+      return route.fulfill({ json: plugin() });
+    }
+    if (p === "/api/plugins") return route.fulfill({ json: { aan: ["contenttoets"], plugins: [{ ...plugin(), aan: undefined }] } });
     if (p.endsWith("/ongelezen-aantal")) return route.fulfill({ json: { aantal: 0 } });
     return route.fulfill({ json: [] });
   });
@@ -124,7 +138,31 @@ for (const [opties, uitleg] of [[{ tfaNodig: true }, true], [{ role: "analist" }
   await context.close();
 }
 
-// 4. Op een telefoon scrolt niets horizontaal.
+// 4. De plugins: een beheerder biedt de contenttoets aan, een analist ziet wat aangeboden is.
+{
+  const { page, context, stand, errors } = await open({ width: 1280, height: 900 });
+  const rij = page.locator('[data-plugin-rij="contenttoets"]');
+  await rij.waitFor();
+  assert.match(await rij.innerText(), /Contenttoets[\s\S]*Commando \/contenttoets[\s\S]*Uit/);
+  await rij.getByRole("button", { name: "Aanbieden" }).click();
+  await rij.getByText("Aangeboden door wpalm").waitFor();
+  assert.deepEqual(stand.pluginPuts, [{ aan: true }]);
+  if (shots) await page.screenshot({ path: `${shots}/plugins-beheer-1280.png` });
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+{
+  const { page, context, errors } = await open({ width: 390, height: 844 }, { role: "analist" });
+  const rij = page.locator('[data-plugin-rij="contenttoets"]');
+  await rij.waitFor();
+  assert.equal(await rij.getByRole("button", { name: /Aanbieden|Uitzetten/ }).count(), 0);
+  await rij.scrollIntoViewIfNeeded();
+  if (shots) await page.screenshot({ path: `${shots}/plugins-analist-390.png` });
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 5. Op een telefoon scrolt niets horizontaal.
 {
   const { page, context, errors } = await open({ width: 375, height: 812 });
   await page.locator('[data-connector="kamerstukken"]').waitFor();

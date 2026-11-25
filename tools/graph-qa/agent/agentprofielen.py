@@ -566,6 +566,57 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                             'verwijst_naar_deze',
                                             'zoek_definitie',
                                             'zoek_opbouw')},
+               'contenttoets': {'beschrijving': 'Toetst content, zoals een webtekst, op juistheid '
+                                                'en volledigheid tegen de wet- en regelgeving in '
+                                                'de graaf.',
+                                'budget': 400000,
+                                'connectors': ('kennisgroepen',),
+                                'instructie': 'De content die je toetst staat in de vraag, na '
+                                              '/contenttoets. Staat vooraan peildatum=…, dan toets '
+                                              'je tegen de bron zoals die op die datum gold; '
+                                              'anders tegen de tekst van nu. Toets volgens de '
+                                              'METHODE CONTENTTOETS hierboven. Zoek gericht: begin '
+                                              'bij de regeling en de hoofdstukken die het '
+                                              'onderwerp dragen (zoek_opbouw, inhoudsopgave), lees '
+                                              'dan de bepalingen zelf met get_artikel, get_lid of '
+                                              'get_bepaling. Een webtekst over de uitvoering volgt '
+                                              'meestal een beleidsregel, zoals de Leidraad '
+                                              'Invordering 2008: bedragen, termijnen en '
+                                              'voorwaarden staan daar, de bevoegdheid in de wet. '
+                                              'Haal in één ronde op wat je samen nodig hebt. Een '
+                                              'kennisgroepstandpunt mag een bewering dragen als '
+                                              'die connector aanstaat; het is beleid, geen wet.\n'
+                                              'AFRONDEN: je schrijft geen antwoord in tekst. Rond '
+                                              'als laatste stap af met antwoord_contenttoets. Per '
+                                              'bewering wijs je het citaat uit de content '
+                                              'letterlijk aan, het oordeel, het criterium en de '
+                                              'bronpassage (de iri van de bepaling uit het '
+                                              'toolresultaat, met de eerste en laatste woorden); '
+                                              'de werkplek zet de brontekst, de vindplaats en de '
+                                              'plek in de content er zelf bij. Een oordeel juist, '
+                                              'mogelijk_onjuist of onvolledig zonder passage uit '
+                                              'wat je las, weigert de code: dan is het '
+                                              'niet_in_de_bron. Schrijf voor_redacteur in gewone '
+                                              'taal, met het nummer van de bevinding in de '
+                                              'volgorde van de content, zoals [2].',
+                                'kiesbaar': False,
+                                'max_rondes': 12,
+                                'mcp': (),
+                                'methoderol': 'contenttoets',
+                                'naam': 'contenttoets',
+                                'sjablonen': ('antwoord_contenttoets',),
+                                'skills': (),
+                                'tools': ('follow_verwijzingen',
+                                          'geldigheid',
+                                          'get_artikel',
+                                          'get_bepaling',
+                                          'get_context',
+                                          'get_lid',
+                                          'inhoudsopgave',
+                                          'search_wetgeving',
+                                          'semantic_search',
+                                          'zoek_definitie',
+                                          'zoek_opbouw')},
                'duiding': {'beschrijving': 'Legt uit wat een bepaling betekent en hoe bepalingen '
                                            'samenhangen, onderbouwd met letterlijke passages.',
                            'budget': None,
@@ -885,4 +936,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': '77ebe12e41c9291c4af7617de87a5f88adedee23c204b6b7a3e8eb3b8bf0d262'}
+ 'sha256': 'b2a8d1f3874a2c5d64dd6b523958af42c1a2860dae68c998ab4259628538e928'}

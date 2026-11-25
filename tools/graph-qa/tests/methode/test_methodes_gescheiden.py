@@ -96,3 +96,23 @@ def test_de_toets_vindt_een_vermenging():
     assert VERBODEN.search("Leg het rechtsgevolg vast volgens JRM 2.") and not VERWIJST.search("volgens JRM 2")
     assert _alineas("a\n\n| x | JRM |\n| y | z |\n\nb") == ["a", "| x | JRM |", "| y | z |", "b"]
     assert not VERBODEN.search("Aan een rechtsfeit zijn rechtsgevolgen verbonden; de juridische toestand wijzigt.")
+
+
+# De contenttoets (plan contenttoets, C2) is een eigen methode naast wetsanalyse: hij gebruikt alleen de brondata. Zijn
+# skill noemt geen JAS-klasse en zijn profiel krijgt geen annotatie-, begrippen- of JAS-tool.
+CONTENTTOETS = SKILL.parent / "contenttoets"
+
+
+def test_de_contenttoets_werkt_niet_met_het_jas():
+    """Elke zin van de skill die het JAS, een markering of annoteren noemt, zegt dat de contenttoets dat níét doet."""
+    noemt = re.compile(r"\bJAS\b|annot|markering", re.I)
+    ontkent = re.compile(r"\b(geen|niet|los van)\b", re.I)
+    for pad in sorted(p for p in CONTENTTOETS.rglob("*") if p.is_file() and p.suffix in {".md", ".json", ".yaml"}):
+        for zin in re.split(r"(?<=[.!?])\s+|\n\s*\n", pad.read_text(encoding="utf-8")):
+            assert not noemt.search(zin) or ontkent.search(zin), f"{pad.name}: {zin.strip()[:120]}"
+
+
+def test_het_profiel_contenttoets_heeft_geen_tool_van_wetsanalyse():
+    from agent import profielen
+
+    assert not set(profielen.PROFIELEN["contenttoets"].tools) & profielen.TOOLS_VAN_WETSANALYSE

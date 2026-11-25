@@ -447,6 +447,7 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
 - de bronconnectors (`connectoren`, ADR-013: één lijst, één weg naar de env) staan default uit in de bicep; elke straat biedt ze aan sinds 15 nov 2026, het register in de beheertab zet ze aan;
 - de regels uit een methode-skill (`skillRegels`, ADR-014 §7, een proefvlag) staan default uit en alleen op acceptatie aan;
+- de contenttoets (`contenttoets`, plan contenttoets, een proefvlag) staat default uit en alleen op acceptatie aan;
 - de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
   acceptatie aan;
 - de werkplaats van de api (`werkplaats`, ADR-016 deel B) staat default uit en alleen op acceptatie aan;
