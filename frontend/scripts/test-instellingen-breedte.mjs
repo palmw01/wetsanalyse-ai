@@ -70,7 +70,8 @@ async function open(viewport) {
     if (p === "/api/admin/users" && m === "POST") return route.fulfill({ status: 201, json: { ...gebruiker("nieuw", "analist"), temp_password: "tijdelijk-wachtwoord-1234" } });
     if (p === "/api/admin/verbruik") return route.fulfill({ json: [{ userid: "wpalm", gebruikt: 10000, budget: 1000000, percentage: 1, rol: "beheerder", gereset_op: null, geblokkeerd: false },
       { userid: lang, gebruikt: 1000000, budget: 1000000, percentage: 100, rol: "beheerder", gereset_op: nu, gereset_door: "wpalm", geblokkeerd: true }] });
-    if (p === "/api/admin/budget") return route.fulfill({ json: { rollen: [{ rol: "beheerder", tokens: 2000000 }, { rol: "analist", tokens: 1000000 }], periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks } });
+    if (p === "/api/admin/budget") return route.fulfill({ json: { rollen: [{ rol: "beheerder", tokens: 2000000 }, { rol: "analist", tokens: 1000000 }], periode_dagen: 7, anker: nu, actief: true, updated_by: "seed", updated: nu, venster_start: nu, reset_op: straks, tijdzone: "Europe/Amsterdam" } });
+    if (p === "/api/admin/budget/proef") return route.fulfill({ json: { anker: nu, venster_start: "2026-11-01T23:00:00Z", reset_op: "2026-11-08T23:00:00Z", boven_budget: [lang, "jdevries"] } });
     if (p === "/api/admin/registraties") return route.fulfill({ json: [aanvraag(1, "aangevraagd"), aanvraag(2, "goedgekeurd")] });
     if (p === "/api/admin/profiles") return route.fulfill({ json: [profiel("azure-sonnet-standaard-profiel", { is_default: true }), profiel("anthropic-reserve", { api_key_set: false })] });
     if (p.endsWith("/test") && p.includes("/profiles/")) return route.fulfill({ json: { ok: false, model: "", tokens_in: 0, tokens_out: 0, detail: "De verbinding met https://voorbeeld.services.ai.azure.example.test/openai/deployments is verbroken." } });
@@ -131,6 +132,7 @@ const SCHERMEN = [
   { naam: "budget-bewerken", tab: "Gebruikers", klaar: async (p) => {
     await p.locator("[data-budget-beleid]").getByRole("button", { name: /bewerken/i }).click();
     await p.getByLabel(/tokens per periode/).first().waitFor();
+    await p.locator("[data-budget-boven]").waitFor();
   } },
   { naam: "aanvragen", tab: "Aanvragen", klaar: (p) => p.getByRole("button", { name: "Goedkeuren" }).waitFor() },
   { naam: "aanvraag-afwijzen", tab: "Aanvragen", klaar: async (p) => {

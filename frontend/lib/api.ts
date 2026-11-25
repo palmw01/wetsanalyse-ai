@@ -38,6 +38,7 @@ import type {
   LlmProfileOut,
   LoginVerifyResult,
   BudgetBeleid,
+  BudgetProef,
   Connector,
   ConnectorAuditRegel,
   RolBudget,
@@ -431,16 +432,30 @@ export async function getBudgetBeleid(): Promise<BudgetBeleid> {
   return json<BudgetBeleid>(res);
 }
 
-export async function zetBudgetBeleid(body: {
+/** `anker` weglaten laat het staan; zonder tijdzone ("2026-11-23T00:00:00") is het wandkloktijd van het beleid. */
+export interface BudgetBeleidIn {
   periode_dagen: number;
   actief: boolean;
-}): Promise<BudgetBeleid> {
+  anker?: string;
+}
+
+export async function zetBudgetBeleid(body: BudgetBeleidIn): Promise<BudgetBeleid> {
   const res = await fetch("/api/admin/budget", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   return json<BudgetBeleid>(res);
+}
+
+/** Wat dit beleid zou doen, zonder het op te slaan: het venster en wie daarin boven zijn budget zit. */
+export async function proefBudgetBeleid(body: BudgetBeleidIn): Promise<BudgetProef> {
+  const res = await fetch("/api/admin/budget/proef", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return json<BudgetProef>(res);
 }
 
 export async function zetRolBudget(rol: string, tokens: number): Promise<RolBudget> {

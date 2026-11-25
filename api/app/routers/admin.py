@@ -22,6 +22,7 @@ DELETE /v1/admin/registraties/{id}             – ruim een goedgekeurde aanvraa
 GET    /v1/admin/budget                   – het tokenbudget-beleid
 PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode, aan/uit)
 PUT    /v1/admin/budget/rollen/{rol}      – het tokenbudget van een rol zetten
+POST   /v1/admin/budget/proef             – wat een beleid zou doen (venster, wie boven budget), zonder op te slaan
 GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
 POST   /v1/admin/users/{id}/verbruik/reset – geef een gebruiker zijn budget terug voor dit venster
 """
@@ -464,16 +465,29 @@ class BudgetOut(BaseModel):
     actief: bool
     updated_by: str = ""
     updated: str = ""
-    # Afgeleid, puur voor de UI: wanneer het huidige venster afloopt.
+    # Afgeleid, puur voor de UI: wanneer het huidige venster begon en afloopt.
+    venster_start: str = ""
     reset_op: str = ""
+    # De tijdzone waarin de vensters lopen; de UI rekent een gekozen weekdag en tijd daarin om.
+    tijdzone: str = ""
     rollen: list[RolBudgetOut] = []
 
 
 class BudgetIn(BaseModel):
     periode_dagen: int = Field(ge=1, le=365)
     actief: bool = True
-    # Alleen meesturen om de vensters te herankeren; weglaten laat het anker staan.
+    # Alleen meesturen om de vensters te herankeren; weglaten laat het anker staan. Zonder tijdzone
+    # ("2026-11-23T00:00:00") is het wandkloktijd in de budgettijdzone.
     anker: datetime | None = None
+
+
+class BudgetProefOut(BaseModel):
+    """Wat er gebeurt als dit beleid nu wordt opgeslagen. Er verandert niets."""
+    anker: str
+    venster_start: str
+    reset_op: str
+    # Wie in dat venster al op of boven zijn budget zit, de zwaarste verbruiker eerst.
+    boven_budget: list[str] = []
 
 
 class RolBudgetIn(BaseModel):
@@ -493,7 +507,9 @@ async def _budget_to_out(b) -> BudgetOut:
     return BudgetOut(
         periode_dagen=b.periode_dagen, anker=b.anker.isoformat(),
         actief=b.actief, updated_by=b.updated_by, updated=b.updated.isoformat(),
+        venster_start=verbruik_svc.venster_start(b).isoformat(),
         reset_op=verbruik_svc.venster_einde(b).isoformat(),
+        tijdzone=verbruik_svc.tijdzone().key,
         rollen=[_rol_to_out(r) for r in await verbruik_svc.rolbudgetten()],
     )
 
@@ -517,6 +533,23 @@ async def zet_budget(body: BudgetIn, door: str = Depends(beheerder_met_2fa)):
                "periode_dagen": body.periode_dagen, "actief": body.actief, "door": door},
     )
     return await _budget_to_out(beleid)
+
+
+@router.post("/budget/proef", response_model=BudgetProefOut)
+async def proef_budget(body: BudgetIn):
+    """Het beleid zoals het na opslaan zou gelden: het venster en wie daarin boven zijn budget zit.
+
+    Leest alleen, dus het admin-token volstaat (net als `GET /verbruik`, dat dezelfde standen toont).
+    """
+    beleid, standen = await verbruik_svc.proef_beleid(
+        periode_dagen=body.periode_dagen, actief=body.actief, anker=body.anker,
+    )
+    return BudgetProefOut(
+        anker=beleid.anker.isoformat(),
+        venster_start=verbruik_svc.venster_start(beleid).isoformat(),
+        reset_op=verbruik_svc.venster_einde(beleid).isoformat(),
+        boven_budget=[s.userid for s in standen if s.budget > 0 and s.gebruikt >= s.budget],
+    )
 
 
 @router.put("/budget/rollen/{rol}", response_model=RolBudgetOut)

@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ankerVoorDatum,
+  ankerVoorWeekdag,
+  bovenBudgetMelding,
   budgetHerkomst,
   dagenTotReset,
   resetdatum,
   resetRegel,
+  resetRitme,
   rolLabel,
   tokens,
   tokensKort,
   verbruikSamenvatting,
   WAARSCHUWINGSDREMPEL,
+  wandklok,
 } from "./tokenbudget";
 import type { Verbruiksstand } from "./types";
 
@@ -128,5 +133,55 @@ describe("drempel", () => {
   it("staat gelijk aan de api-drempel", () => {
     // Loopt dit uiteen, dan kleurt de meter op een ander moment dan de melding komt.
     expect(WAARSCHUWINGSDREMPEL).toBe(90);
+  });
+});
+
+describe("het resetmoment kiezen", () => {
+  const NL = "Europe/Amsterdam";
+
+  it("leest de wandklok in de tijdzone van het beleid, niet in die van de machine", () => {
+    // Zondag 22 november 23:00 UTC is maandag 23 november 00:00 in Nederland.
+    expect(wandklok("2026-11-22T23:00:00Z", NL)).toEqual({ datum: "2026-11-23", weekdag: 0, tijd: "00:00" });
+    expect(wandklok("2026-07-05T22:00:00Z", NL)).toEqual({ datum: "2026-07-06", weekdag: 0, tijd: "00:00" });
+    expect(wandklok("2026-11-25T20:28:00Z", NL)).toEqual({ datum: "2026-11-25", weekdag: 2, tijd: "21:28" });
+  });
+
+  it("kiest de vorige maandag 00:00, niet de volgende", () => {
+    // Woensdag 25 november 2026, 21:28 Nederlandse tijd.
+    const nu = new Date("2026-11-25T20:28:00Z");
+    expect(ankerVoorWeekdag(0, "00:00", NL, nu)).toBe("2026-11-23T00:00:00");
+    expect(ankerVoorWeekdag(3, "09:00", NL, nu)).toBe("2026-11-19T09:00:00"); // donderdag
+  });
+
+  it("neemt vandaag als het moment vandaag al geweest is, anders een week eerder", () => {
+    const maandagOchtend = new Date("2026-11-23T08:00:00Z"); // 09:00 in Nederland
+    expect(ankerVoorWeekdag(0, "00:00", NL, maandagOchtend)).toBe("2026-11-23T00:00:00");
+    expect(ankerVoorWeekdag(0, "12:00", NL, maandagOchtend)).toBe("2026-11-16T12:00:00");
+  });
+
+  it("rekent over een maandgrens en in de zomertijd", () => {
+    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-04-01T10:00:00Z"))).toBe("2026-03-30T00:00:00");
+    // Zondagavond 23:30 zomertijd is in UTC al 21:30: nog steeds dezelfde week.
+    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-10-25T22:30:00Z"))).toBe("2026-10-19T00:00:00");
+  });
+
+  it("een datum en tijd gaan als wandkloktijd mee", () => {
+    expect(ankerVoorDatum("2026-12-01", "09:30")).toBe("2026-12-01T09:30:00");
+  });
+
+  it("noemt het ritme alleen bij een week of een dag", () => {
+    expect(resetRitme(7, "2026-11-22T23:00:00Z", NL)).toBe("elke maandag om 00:00");
+    expect(resetRitme(1, "2026-11-25T08:00:00Z", NL)).toBe("elke dag om 09:00");
+    expect(resetRitme(30, "2026-11-22T23:00:00Z", NL)).toBe("");
+  });
+
+  it("de resetdatum staat in de tijdzone van het beleid", () => {
+    expect(resetdatum("2026-11-29T23:00:00Z", NL)).toBe("maandag 30 november om 00:00");
+  });
+
+  it("de melding telt wie boven zijn budget zit", () => {
+    expect(bovenBudgetMelding([])).toBe("");
+    expect(bovenBudgetMelding(["jdevries"])).toBe("Eén gebruiker zit in het nieuwe venster boven zijn budget: jdevries.");
+    expect(bovenBudgetMelding(["a", "b"])).toBe("2 gebruikers zitten in het nieuwe venster boven hun budget: a, b.");
   });
 });

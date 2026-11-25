@@ -133,6 +133,9 @@ class Settings:
         # een limiet aanpassen mag geen redeploy vragen.
         self.token_budget = int(os.environ.get("WETSANALYSE_TOKEN_BUDGET", "500000"))
         self.token_budget_dagen = int(os.environ.get("WETSANALYSE_TOKEN_BUDGET_DAGEN", "7"))
+        # De tijdzone waarin de vensters lopen. Geen seedwaarde maar rekenregel: een venster van 7 dagen
+        # begint altijd op dezelfde wandkloktijd, ook over de overgang van zomer- naar wintertijd heen.
+        self.token_budget_tijdzone = os.environ.get("WETSANALYSE_TOKEN_BUDGET_TIJDZONE", "Europe/Amsterdam")
 
         # --- Observability (gestructureerde logging + OpenTelemetry) ---
         # Niet-geheim → gewone env (geen *_FILE). `log_format=text` is prettiger lokaal; json is default.
