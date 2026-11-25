@@ -99,3 +99,29 @@ def test_een_reeks_gaat_naar_het_taakprofiel_van_zijn_bron():
     assert profiel_voor("Vat per uitspraak samen wat de rechter zegt.", []) == "rechtspraak_lezen"
     assert profiel_voor("Vat per memorie van toelichting samen.", []) == "wetsgeschiedenis_lezen"
     assert profiel_voor("Vat per stuk samen.", []) == "algemeen"
+
+
+#: Een lange tekst om te beoordelen (25 nov 2026, acceptatie): langer dan het `doel` van een opdracht mag zijn.
+LANG = "Valideer deze content: " + "Betaalt u uw belastingschuld liever in termijnen? " * 50
+
+
+def test_een_lange_vraag_komt_door_de_ingang():
+    """Voorheen bouwde `plan` de opdracht al voor de toets, en liep elke vraag boven de 2.000 tekens vast op de
+    validatie van `doel`; nu beantwoordt de centrale agent haar zelf."""
+    assert len(LANG) > route.MAX_DOEL
+    assert route.plan(LANG, AAN) == []
+    assert not route.past(LANG, AAN)
+
+
+def test_een_lange_vraag_per_uitspraak_gaat_niet_naar_een_subagent():
+    vraag = "Vat per uitspraak samen wat de rechter zegt over deze tekst: " + LANG
+    assert not route.past(vraag, AAN)
+
+
+def test_een_vraag_per_bron_die_met_haar_deel_te_lang_wordt_valt_terug():
+    stand = {**AAN, "kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": True, "reden": "aan"}}
+    kort = "Zoek in de rechtspraak en de Kamerstukken en vat ze per bron apart samen. "
+    vraag = kort + "x" * (route.MAX_DOEL - len(kort) - 10)
+    assert len(vraag) <= route.MAX_DOEL
+    assert route.plan(vraag, stand) == []
+    assert route.plan(kort, stand)
