@@ -101,6 +101,26 @@ def toepassingskeuze(a, i: int) -> dict | None:
     }
 
 
+def _tijdstip_zonder_van(a, bron, met_van: set[str]) -> list[tuple[tuple[int, int], str]]:
+    """Hetzelfde tijdstip zonder zijn van-bepaling: 'Als de dagtekening 28 februari is' nadat de tekst 'de dagtekening
+    van een aanslagbiljet' noemde. Het is dezelfde formulering met dezelfde betekenis, dus hetzelfde begrip (M01 h.3
+    stap 3) en dezelfde klasse: tijd gaat voor variabele (H2:107). Alleen met een bepaald lidwoord en alleen als de tekst
+    het tijdstip (`met_van`, de hoofdwoorden) met van-bepaling al noemt: een losse 'de datum' zegt niet welk moment
+    (meting keten-rekenvoorbeelden-model, 25 nov 2026: vier keer 'de dagtekening' als Variabele)."""
+    uit = []
+    for t in a.tokens:
+        kinderen = [k for k in a.kinderen(t.i)]
+        det = [k for k in kinderen if a.tokens[k].deprel == "det"]
+        if (t.tekst.lower() not in met_van or t.feat("Number") == "Plur"
+                or any(a.tokens[k].deprel in {"acl:relcl", "nmod"} for k in kinderen)
+                or not any((a.tokens[d].lemma or a.tokens[d].tekst).lower() in {"de", "het"} for d in det)):
+            continue
+        g = bereik(a, {t.i, *det})
+        if g and not in_verwijzing(bron, *g):
+            uit.append((g, t.tekst))
+    return uit
+
+
 class FunctieDetector:
     naam = "functie"
     # 3: afleiding en toepassingskeuze op hun eigen span, het segment als optie
@@ -211,4 +231,8 @@ class FunctieDetector:
             if (g and _elliptisch().match(bron.tekst[g[0]:g[1]])
                     and not any(a.tokens[i].feat("VerbForm") == "Fin" for i in ids)):
                 voeg(*g, VW, "CONDITIONAL_ELLIPSIS", self.REGELS[4], hoofd=t.tekst, governor=t.head)
+        met_van = {json.loads(k.evidence[0].detail).get("hoofd", "").lower()
+                   for k in ks if k.evidence[0].code == "TEMPORAL_VALUE"}
+        for g, hoofd in _tijdstip_zonder_van(a, bron, met_van):
+            voeg(*g, (VAR, T), "TEMPORAL_VALUE", self.REGELS[6], hoofd=hoofd, terug_naar="van-bepaling")
         return resultaat(self, bron, ks)

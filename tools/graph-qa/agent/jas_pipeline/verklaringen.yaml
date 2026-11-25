@@ -88,7 +88,8 @@ detectie:
   # rekenvoorbeeld (voorbeeld.py)
   IN_VOORBEELD: {naam: "In een rekenvoorbeeld", uitleg: "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."}
   VOORBEELD_WAARDE: {naam: "Waarde in een rekenvoorbeeld", uitleg: "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."}
-  VOORBEELD_GEEN_NORM: {naam: "Een voorbeeld stelt geen norm", uitleg: "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."}
+  VOORBEELD_GEEN_NORM: {naam: "Een voorbeeld stelt geen norm", uitleg: "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin, en de operator ook: die verbindt daar de waarden van het voorbeeld, geen kenmerken van een regel."}
+  HOOFDZIN_VAN_REGEL: {naam: "Hoofdzin van een regel", uitleg: "Het fragment is het gevolg in een als-dan-regel. De regel is de hele zin met de voorwaarde; de hoofdzin alleen draagt geen eigen afleidingsregel, rechtsbetrekking of rechtsfeit."}
 
 besluit:
   regel: {naam: "vaste regel", uitleg: "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."}

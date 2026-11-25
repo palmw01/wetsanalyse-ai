@@ -151,9 +151,18 @@ def test_een_voorbeeld_stelt_geen_norm():
     zin = "Is de dagtekening bijvoorbeeld 14 mei, dan vervalt hij dus op 14 juni."
     alleen_norm, = _toegepast(_k(zin, ("Afleidingsregel", "Voorwaarde")))
     assert alleen_norm.status is CandidateStatus.REJECTED and alleen_norm.evidence[-1].code == V.CODE_GEEN_NORM
-    gemengd, = _toegepast(_k("dan vervalt hij", ("Rechtsbetrekking", "Operator")))
-    assert gemengd.possible_classes == ("Operator",)
+    gemengd, = _toegepast(_k("dan vervalt hij", ("Rechtsbetrekking", "Rechtsobject")))
+    assert gemengd.possible_classes == ("Rechtsobject",)
     assert {e.code for e in gemengd.evidence} >= {V.CODE_IN, V.CODE_GEEN_NORM}
+
+
+def test_een_operator_in_een_voorbeeld_vervalt():
+    """De operator verbindt in een voorbeeld de waarden van het voorbeeld, geen kenmerken die een regel nodig heeft."""
+    op, = _toegepast(_k("vervalt hij", ("Operator",), "VALUE_EQUATION", na=48))
+    assert op.status is CandidateStatus.REJECTED and op.evidence[-1].code == V.CODE_GEEN_NORM
+    assert deterministisch(op).reden == V.REGEL_GEEN_NORM
+    buiten, = _toegepast(_k("vervalt", ("Operator",), "VALUE_EQUATION"))
+    assert buiten.status is CandidateStatus.UNHANDLED and buiten.possible_classes == ("Operator",)
 
 
 def test_buiten_het_voorbeeld_verandert_niets():
