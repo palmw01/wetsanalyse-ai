@@ -1,5 +1,6 @@
 import { downloadAntwoord, parseError, type ExportFormaat } from "./api";
 import { RELATIETYPEN } from "./jasRelaties";
+import { OPSOMMINGSTEKENS, stapLabel } from "./bepalingLabel";
 import { pathSegment } from "./url";
 import { haalDiagrammen, type DiagramSet } from "@/lib/diagram2c";
 
@@ -20,20 +21,23 @@ export interface NodeSegment {
    *  hem niet. */
   status?: string;
 }
-/** Opsommingstekens die de graaf als "nummer" van een ongenummerd onderdeel draagt. */
-const OPSOMMINGSTEKENS = new Set(["–", "—", "-", "•", "·", "●"]);
 const BEGIN_TEKENS = 60;
 
-/** Het leesbare label van een segment. Een ongenummerd onderdeel heet in de graaf "Onderdeel –": dat zegt niets en is
- *  niet te onderscheiden van zijn buren, dus het krijgt het begin van zijn tekst erbij ("Onderdeel – Onder de overige …"). */
-export function segmentLabel(s: Pick<NodeSegment, "label" | "nummer" | "tekst">): string {
+/** Het leesbare label van een segment, binnen zijn eigen bepaling. Een ongenummerd onderdeel heet in de graaf
+ *  "Onderdeel –": dat zegt niets en is niet te onderscheiden van zijn buren. Het krijgt zijn plaats uit de IRI
+ *  (`stapLabel`: "1e streepje") en het begin van zijn tekst erbij ("1e streepje – voorlopige aanslagen …"). */
+export function segmentLabel(s: Pick<NodeSegment, "label" | "nummer" | "tekst"> & { bron_iri?: string }): string {
   const label = (s.label ?? "").trim();
   const nummer = (s.nummer ?? label.split(/\s+/).pop() ?? "").trim();
-  if (!OPSOMMINGSTEKENS.has(nummer) && /[\p{L}\p{N}]/u.test(label.replace(/^Onderdeel\b/i, ""))) return label;
+  const opsomming = new Set<string>(OPSOMMINGSTEKENS);
+  if (!opsomming.has(nummer) && /[\p{L}\p{N}]/u.test(label.replace(/^Onderdeel\b/i, ""))) return label;
+  const plaats = s.bron_iri ? stapLabel(s.bron_iri, label) : "";
+  const naam = plaats && plaats !== label ? plaats
+    : label.replace(new RegExp(`\\s*[${[...opsomming].map((t) => t.replace(/[-\]\\^]/g, "\\$&")).join("")}]\\s*$`), "") || "Onderdeel";
   const tekst = (s.tekst ?? "").replace(/\s+/g, " ").trim();
-  if (!tekst) return label;
+  if (!tekst) return plaats && plaats !== label ? plaats : label;
   const begin = tekst.length <= BEGIN_TEKENS ? tekst : `${tekst.slice(0, BEGIN_TEKENS).replace(/\s+\S*$/, "")} …`;
-  return `${label.replace(new RegExp(`\\s*[${[...OPSOMMINGSTEKENS].join("")}]\\s*$`), "") || "Onderdeel"} – ${begin}`;
+  return `${naam} – ${begin}`;
 }
 
 export interface NodeAnker { bron_iri: string; start: number; eind: number; tekst: string; bron_hash: string }

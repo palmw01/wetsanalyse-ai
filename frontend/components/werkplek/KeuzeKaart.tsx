@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { kandidaatNaam } from "@/lib/annotatie";
+import { stapLabel } from "@/lib/bepalingLabel";
 import type { AgentKandidaat, AgentKeuze, KandidaatStand } from "@/lib/types";
 import { knopKlasse } from "@/components/ui/Button";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -27,6 +29,9 @@ export function KeuzeKaart({
   onKies: (gekozen: AgentKandidaat[]) => void;
 }) {
   const meer = keuze.soort === "onderdeel";
+  // De onderdelen van één bepaling staan onder hun ouder: alleen de stap ("Lid 2", "1e streepje"). Een keuze tussen
+  // bepalingen noemt de hele plek (`kandidaatNaam`).
+  const naam = (k: AgentKandidaat) => (meer && stapLabel(k.bron_iri ?? "", k.label ?? "")) || kandidaatNaam(k);
   const [actief, setActief] = useState(0);
   const [selectie, setSelectie] = useState<Set<number>>(
     () => new Set(meer ? kandidaten.flatMap((k, i) => (k.gekozen ? [i] : [])) : []),
@@ -102,7 +107,7 @@ export function KeuzeKaart({
                 tabIndex={-1}
                 checked={selectie.has(i)}
                 disabled={uitgeschakeld}
-                aria-label={`Selecteer ${k.label || k.artikel}`}
+                aria-label={`Selecteer ${naam(k)}`}
                 onClick={(e) => e.stopPropagation()}
                 onChange={() => wissel(i)}
                 className="mt-0.5 h-4 w-4 shrink-0 accent-lint"
@@ -110,7 +115,7 @@ export function KeuzeKaart({
             )}
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2">
-                <span className="text-sm font-medium text-ink">{k.label || `Artikel ${k.artikel}${k.lid ? `, lid ${k.lid}` : ""}`}</span>
+                <span className="text-sm font-medium text-ink">{naam(k)}</span>
                 {k.stand && <StandBadge stand={k.stand} />}
               </span>
               {k.fragment && <span className="mt-0.5 block line-clamp-2 text-xs text-muted">{k.fragment}</span>}

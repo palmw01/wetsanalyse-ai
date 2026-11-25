@@ -1,7 +1,7 @@
 /** De bediening van de graaf: zoeken, de relaties van een knoop, de ene hoofdactie en het doel waarop
  *  het paneel opent. Pure functies over het model, getest zonder DOM. */
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
-import { iriSegment } from "@/lib/samenhang";
+import { iriSegment, vindplaatsLabel } from "@/lib/samenhang";
 import { voegToe, type GraafModel, type KnoopData, type KnoopSoort, type RelatieData } from "./model";
 
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
@@ -114,7 +114,7 @@ export function knopenInWeergave(g: GraafModel, w: Pick<NodeWeergave, "doel" | "
 export function paneelDoel(id: string, a: Pick<KnoopData, "bwb_id" | "artikel" | "naam">): NodeDoel | undefined {
   if (id.startsWith("urn:bwb:")) return { bron_iri: id, bwb_id: a.bwb_id, label: a.naam };
   if (a.bwb_id && a.artikel) {
-    return { bron_iri: `urn:bwb:${a.bwb_id}:artikel:${iriSegment(a.artikel)}`, bwb_id: a.bwb_id, artikel: a.artikel, label: `Artikel ${a.artikel}` };
+    return { bron_iri: `urn:bwb:${a.bwb_id}:artikel:${iriSegment(a.artikel)}`, bwb_id: a.bwb_id, artikel: a.artikel, label: vindplaatsLabel([["artikel", a.artikel]]) };
   }
   return undefined;
 }

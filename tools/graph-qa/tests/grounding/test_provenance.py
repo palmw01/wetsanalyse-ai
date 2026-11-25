@@ -83,10 +83,15 @@ def test_wet_lokale_id_node_krijgt_het_label_uit_het_toolresultaat():
     assert bron.label == "Voortzetting van de invordering na afwijzing verzoek om kwijtschelding"
 
 
-def test_id_node_zonder_label_houdt_zijn_iri():
+def test_id_node_zonder_label_heet_naar_zijn_knoop_id():
+    """Zonder label uit het toolresultaat zegt het knoop-id waar de node staat (`bepaling_label`), niet de kale IRI."""
     iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.5"
     [bron] = collect_sources([("raw_sparql", f"?s\n<{iri}>\n")])
-    assert bron.label == iri
+    assert bron.label == "Artikel 26.5"
+    # Een knoop-id zonder herkenbare stap houdt zijn IRI.
+    kaal = "urn:bwb:BWBR0024096:id:BWBR0024096%2FIntitule"
+    [bron] = collect_sources([("raw_sparql", f"?s\n<{kaal}>\n")])
+    assert bron.label == kaal
 
 
 def test_structuurdeel_krijgt_zijn_titel_uit_het_toolresultaat():
@@ -375,5 +380,5 @@ def test_het_begin_van_een_subdivisie_is_geen_steun():
 def test_geen_kale_iri_in_de_bronnenlijst():
     """Het label uit de rij, en anders het nummer, zoals het denkproces ("artikel 14.4.1")."""
     labels = {s.uri: s.label for s in collect_sources([LEIDRAAD_14_4])}
-    assert labels == {_L144: "artikel 14.4", _sub("1"): "artikel 14.4.1", _sub("5"): "Beslagvrije voet",
+    assert labels == {_L144: "Artikel 14.4", _sub("1"): "Artikel 14.4.1", _sub("5"): "Beslagvrije voet",
                       _sub("12"): "Onverschuldigde betaling en derdenbeslag"}

@@ -1355,3 +1355,15 @@ async def test_het_begrip_van_een_markering_komt_uit_een_dragende_koppeling_aan_
             {"element_id": "c", "rol": "duiding", "beoordeling": "afgewezen"}]},
         {"status": "concept", "inhoud": {"naam": "concept"}, "koppelingen": [{"element_id": "d", "rol": "duiding", "beoordeling": "open"}]}]}
     assert export._begrip_per_element(data) == {"a": "termijn"}
+
+
+def test_een_ongenummerd_onderdeel_heet_naar_zijn_plaats_niet_naar_de_vindplaats_van_zijn_ouder():
+    """Een streepje draagt in de graaf de vindplaats van zijn ouder ("Artikel 25.3a.1", voor elk streepje dezelfde) en het
+    label "Onderdeel –": in het rapport heet het naar zijn plaats (`bronmodel.bepaling_label`)."""
+    from app.werkgebied_export import _plek, _vindplaats
+
+    ouder = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1"
+    nodes = {f"{ouder}%2FTekst%2FOnderdeel._{n}": {"label": "Onderdeel –", "vindplaats": "Artikel 25.3a.1"} for n in (1, 2)}
+    assert [_vindplaats(i, nodes) for i in nodes] == ["Artikel 25.3a.1, 1e streepje", "Artikel 25.3a.1, 2e streepje"]
+    assert _plek(f"{ouder}%2FTekst%2FOnderdeel._2", {}, "Onderdeel –").label == "Artikel 25.3a.1, 2e streepje"
+    assert _plek(ouder, {}, "Voorwaarden standaardbetalingsregeling").label == "Voorwaarden standaardbetalingsregeling"

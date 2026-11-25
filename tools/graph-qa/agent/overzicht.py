@@ -30,7 +30,7 @@ import re
 from typing import Any
 from urllib.parse import unquote
 
-from bronmodel.vindplaats import vindplaats
+from bronmodel.vindplaats import plek_label
 
 from . import procestoestand
 from .graph import queries
@@ -245,8 +245,7 @@ def soortwoord(soort: str, bronlabel: str) -> str:
 def definitie_vindplaats(iri: str) -> str:
     """"Artikel 2, lid 2, onderdeel e" – de vindplaats uit de IRI, met dezelfde regels als de
     bronnenlijst (`bronmodel.vindplaats`), in plaats van het kale "Onderdeel e."."""
-    vp = vindplaats(iri)
-    return vp.label if vp and vp.label else ""
+    return plek_label(iri)
 
 
 _DIEPTE = {"Paragraaf": 4, "Afdeling": 3, "Titeldeel": 2, "Hoofdstuk": 1, "Divisie": 0}

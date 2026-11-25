@@ -171,6 +171,33 @@ try {
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  // Onderdelen zonder eigen nummer (melding gebruiker 25 nov 2026): de Leidraad-onderdelen heten in de graaf "Onderdeel –" en
+  // "Onderdeel c.". In de lijst noemt elke rij waar het onderdeel staat (`lib/bepalingLabel.ts`), uit het knoop-id in de IRI.
+  const LR = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25";
+  const leidraad = (pad, label) => ({ iri: `${LR}%2F${pad}`, label, regeling: "Leidraad Invordering 2008", jci: "" });
+  const D = "Circulaire.divisie25.3a%2FCirculaire.divisie25.3a.1";
+  const ZEVEN = [leidraad(D, "Voorwaarden standaardbetalingsregeling"),
+    ...[1, 2, 3].map((n) => leidraad(`${D}%2FTekst%2FOnderdeel._${n}`, "Onderdeel –")),
+    leidraad("Circulaire.divisie25.5%2FCirculaire.divisie25.5.3", "Kort uitstel particulieren"),
+    leidraad("Circulaire.divisie25.5%2FCirculaire.divisie25.5.4", "Behandeling verzoek betalingsregeling particulieren"),
+    leidraad("Circulaire.divisie25.5%2FCirculaire.divisie25.5.3%2FTekst%2FOnderdeelc", "Onderdeel c.")];
+  const betalingsregeling = { sjabloon: "duiding", versie: 1, doelen: ZEVEN, blokken: [
+    { soort: "toelichting", door: "lex", kop: "Kort antwoord", tekst: "Een standaardbetalingsregeling loopt hoogstens twaalf maanden." },
+    { soort: "citaten", door: "bron", items: ZEVEN.map((v) => ({ tekst: `Tekst van ${v.label}.`, vindplaats: v, waarom: "Omdat." })) }] };
+  huidige = sjabloonStroom(betalingsregeling);
+  bewaar(betalingsregeling);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Welke betalingsregelingen kent de Leidraad?");
+  await vraag.press("Enter");
+  await page.locator("[data-bepaling-lijst]").click();
+  await page.locator("[data-context-paneel=bepalingen]").waitFor();
+  assert.deepEqual(await page.locator("[data-bepalingen-rij]").evaluateAll((els) => els.map((e) => e.innerText.trim())), [
+    "Voorwaarden standaardbetalingsregeling", "Artikel 25.3a.1, 1e streepje", "Artikel 25.3a.1, 2e streepje",
+    "Artikel 25.3a.1, 3e streepje", "Kort uitstel particulieren", "Behandeling verzoek betalingsregeling particulieren",
+    "Artikel 25.5.3, onderdeel c"], "geen kaal \"Onderdeel –\" of \"Onderdeel c.\": elke rij noemt waar het onderdeel staat");
+  await page.screenshot({ path: `${shots}/leidraad-onderdelen.png` });
+  await page.keyboard.press("Escape");
+
   // Een bepaling met leden: één kop voor het artikel, "lid N" bij elke tekst.
   const lid = (n, tekst) => ({ tekst, vindplaats: { iri: `${IRI}:lid:${n}`, label: `Artikel 9, lid ${n}`,
     jci: `jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=${n}&z=2026-10-01&g=2026-10-01`, regeling: "Invorderingswet 1990" }, nog_niet_in_werking: false });
