@@ -37,7 +37,7 @@ export function WerkgebiedSchil({ titel, onFout, breed = false, bewaak = (doe) =
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobieleTopbar titel={titel} onOpenSidebar={() => setDrawerOpen(true)} />
-          <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto">
+          <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto outline-none">
             <div className={`mx-auto w-full ${breed ? "max-w-7xl" : "max-w-5xl"} px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]`}>
               {children}
             </div>

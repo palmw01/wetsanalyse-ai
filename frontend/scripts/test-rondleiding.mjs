@@ -174,6 +174,56 @@ async function doorloop(page, vast = () => true) {
   if (schermMap && vast("Slot")) await vastleggen("13-slot");
 }
 
+/** De rand die de browser om een element tekent: `none`, of de breedte en kleur van de outline. */
+const ring = (loc) => loc.evaluate((el) => {
+  // Tailwinds `outline-none` is een transparante outline: die telt als geen ring.
+  const st = getComputedStyle(el);
+  const zichtbaar = st.outlineStyle !== "none" && st.outlineWidth !== "0px" && !/rgba\(.*,\s*0\)$|transparent/.test(st.outlineColor);
+  return zichtbaar ? `${st.outlineWidth} ${st.outlineColor}` : "none";
+});
+
+/** Melding gebruiker 25 nov 2026: een blauw kader om elke staptitel. De focus staat op de titel (voor de schermlezer),
+ *  maar dat is geen bediening: geen ring, met de muis en met het toetsenbord. Een knop houdt zijn ring bij Tab. Met
+ *  `RONDLEIDING_SCREENSHOT` legt hij stap 2 en 5 vast, beide manieren. */
+async function focusZonderRing(viewport) {
+  for (const manier of ["toetsenbord", "muis"]) {
+    const page = await nieuwePagina(viewport);
+    await page.goto(`${base}/workbench`);
+    const start = page.getByRole("button", { name: "Start de rondleiding" });
+    await start.waitFor();
+    if (manier === "toetsenbord") { await start.focus(); await page.keyboard.press("Enter"); } else await start.click();
+    await bubbel(page).waitFor();
+    for (let n = 1; n <= 5; n++) {
+      const stap = await titel(page);
+      if (n === 2 || n === 5) {
+        await page.waitForTimeout(400);
+        const kop = bubbel(page).locator("[data-rondleiding-titel]");
+        assert.ok(await kop.evaluate((el) => el === document.activeElement), `${stap}: de focus staat op de titel`);
+        assert.equal(await ring(kop), "none", `${stap} (${manier}, ${viewport.width}): geen ring om de titel`);
+        if (schermMap) {
+          await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+          await page.screenshot({ path: `${schermMap}/focus-${viewport.width}-stap${n}-${manier}.png` });
+        }
+        if (manier === "toetsenbord") {
+          // Tab vanaf de titel: de volgende bediening krijgt een zichtbare ring.
+          await page.keyboard.press("Tab");
+          const actief = page.locator(":focus");
+          assert.notEqual(await ring(actief), "none", `${stap}: een knop houdt zijn ring bij Tab`);
+          if (schermMap) await page.screenshot({ path: `${schermMap}/focus-${viewport.width}-stap${n}-toetsenbord-tab.png` });
+        }
+      }
+      if (n === 5) break;
+      if (manier === "toetsenbord") {
+        await kop(page).focus();
+        await page.keyboard.press("ArrowRight");
+      } else await bubbel(page).getByRole("button", { name: "Volgende" }).click();
+      await page.waitForFunction((nr) => document.querySelector("[data-rondleiding-bubbel]")?.getAttribute("aria-label")?.includes(`stap ${nr} van`), n + 1);
+    }
+    await page.close();
+  }
+}
+const kop = (page) => bubbel(page).locator("[data-rondleiding-titel]");
+
 /** De levensloop van de knop, over twee computers. */
 async function knopVolgtDeGebruiker() {
   const account = nieuwAccount(), patches = [];
@@ -331,6 +381,10 @@ try {
   await start(mobiel);
   await openenWachtOpKlik(mobiel);
   await mobiel.close();
+
+  // --- Geen focusring om de staptitel, wel om een knop ---
+  await focusZonderRing({ width: 1440, height: 900 });
+  await focusZonderRing({ width: 390, height: 844 });
 
   // --- Alle stappen op desktop, tablet en telefoon ---
   for (const [viewport, vast] of [
