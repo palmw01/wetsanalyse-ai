@@ -41,7 +41,7 @@ from .review import beoordeel
 from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer, VERSIE as FUSIE_VERSIE
-from . import voorbeeld
+from . import hoofdzin, voorbeeld
 from .kandidaten import Candidate, CandidateStatus
 from .taal import maak_provider
 from .taal.grenzen import VERSIE as GRENS_VERSIE
@@ -244,6 +244,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                                 else f"gedegradeerd voor {len(gedegradeerd)} bronnode(s): alleen lexicale detectoren"))
     resultaten = [r for t in teksten for r in detecteer_alles(t)]
     fusie = fuseer(resultaten)
+    # De hoofdzin van een ALS→DAN-regel draagt geen eigen norm: de regel is de hele zin (skill, markeringslijst).
+    fusie = hoofdzin.op_fusie(fusie)
     # Een rekenvoorbeeld is geen norm maar wel bron (skill, markeringslijst): vóór de besluiten, zonder model.
     fusie, voorbeeldmeting = voorbeeld.op_fusie(fusie, teksten)
     detectoren = len({r.detector for r in resultaten})

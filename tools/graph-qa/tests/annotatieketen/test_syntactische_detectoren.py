@@ -476,27 +476,22 @@ def _gevolg_met_codes(tekst, parser):
     ("De vergunning vervalt.", [("De vergunning vervalt", ("Rechtsbetrekking", "Rechtsfeit"), ["LEGAL_EFFECT_CLAUSE"])]),
     ("De vordering vervalt na vijf jaar.",
      [("De vordering vervalt na vijf jaar", ("Rechtsbetrekking", "Rechtsfeit"), ["LEGAL_EFFECT_CLAUSE"])]),
-    # rand: een inversie als voorwaarde; de als-dan-zin is de afleidingsregel met de clause als optie, de clause zelf
-    # alleen een gevolg (geen tweede afleidingsregel)
+    # rand: een inversie als voorwaarde; de als-dan-zin is een eigen kandidaat, de clause een optie
     ("Is de termijn zes weken, dan vervalt de termijn op 26 april.",
-     [("Is de termijn zes weken, dan vervalt de termijn op 26 april.", ("Afleidingsregel", "Rechtsbetrekking"),
-       ["DATE_ASSIGNMENT"]),
-      ("dan vervalt de termijn op 26 april", ("Rechtsbetrekking", "Rechtsfeit"), ["LEGAL_EFFECT_CLAUSE"])]),
+     [("dan vervalt de termijn op 26 april", BETR_FEIT_AR, ["DATE_ASSIGNMENT", "LEGAL_EFFECT_CLAUSE"]),
+      ("Is de termijn zes weken, dan vervalt de termijn op 26 april.", ("Afleidingsregel", "Rechtsbetrekking"),
+       ["DATE_ASSIGNMENT"])]),
 ])
 def test_een_rechtsgevolg_dat_een_moment_vastlegt_is_ook_een_afleiding(parser, tekst, verwacht):
     assert _gevolg_met_codes(tekst, parser) == verwacht
 
 
 def test_de_afleiding_laat_de_tijdsaanduiding_en_de_voorwaarde_bestaan(parser):
-    """Overlap: de als-dan-zin, de tijdsaanduiding en de voorwaarde blijven elk een eigen kandidaat. De clause is geen
-    tweede afleidingsregel: een afleidingsregel markeer je met werkwoord en voorwaarden (skill, markeren-fragmentgrenzen;
-    Leidraad 9.5, meting keten-rekenvoorbeelden-model 25 nov 2026)."""
+    """Overlap: de als-dan-zin, de clause, de tijdsaanduiding en de voorwaarde blijven elk een eigen kandidaat."""
     from agent.jas_pipeline.fusie import fuseer
     tekst = "Indien de aanslag is opgelegd, vervalt de termijn één maand na de dagtekening."
     per = {k.span.tekst: k.possible_classes for k in fuseer(detecteer_alles(_bron(tekst, parser))).kandidaten}
-    assert "Afleidingsregel" in per[tekst]
-    assert "Afleidingsregel" not in per["vervalt de termijn één maand na de dagtekening"]
-    assert "Rechtsfeit" in per["vervalt de termijn één maand na de dagtekening"]
+    assert "Afleidingsregel" in per[tekst] and "Afleidingsregel" in per["vervalt de termijn één maand na de dagtekening"]
     assert "Tijdsaanduiding" in per["één maand na de dagtekening"]
     assert "Voorwaarde" in per["Indien de aanslag is opgelegd"]
     [seg] = [k for k in GevolgDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == tekst]

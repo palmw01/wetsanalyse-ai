@@ -16,6 +16,11 @@ from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
 from agent.jas_pipeline.fusie import fuseer
 from agent.jas_pipeline.taal import maak_provider
 
+try:                                      # de stap van de hoofdzin bestaat op master (nog) niet
+    from agent.jas_pipeline import hoofdzin
+except ImportError:
+    hoofdzin = None
+
 
 def main() -> None:
     print(agent.__file__, file=sys.stderr)       # welke code er draait
@@ -29,7 +34,10 @@ def main() -> None:
         if not patroon.search(x["tekst"]) or sleutel in uit:
             continue
         bron = BronTekst.van_tekst(sleutel, x["tekst"], analyse=provider.analyseer(x["tekst"]))
-        fusie, _ = voorbeeld.op_fusie(fuseer(detecteer_alles(bron)), [bron])
+        fusie = fuseer(detecteer_alles(bron))
+        if hoofdzin is not None:
+            fusie = hoofdzin.op_fusie(fusie)
+        fusie, _ = voorbeeld.op_fusie(fusie, [bron])
         rijen = []
         for k in fusie.kandidaten:
             b = deterministisch(k)

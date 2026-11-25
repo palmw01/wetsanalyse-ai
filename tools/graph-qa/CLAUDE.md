@@ -1484,9 +1484,15 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   inleiding, of aan een voorwaardelijke zin met een kalenderdatum als gegeven in de voorwaarde én als uitkomst. Een datum
   als grens ("vóór 1 april", "met ingang van") telt niet: zo schrijft een overgangsregeling een norm; een bedrag zonder
   inleiding ook niet: dat is even vaak een drempel. Binnen het voorbeeld: een datum of bedrag `REJECTED`
-  (`VOORBEELD_WAARDE`), de normklassen weg (`VOORBEELD_GEEN_NORM`), de rest het kenmerk `IN_VOORBEELD` (administratief in
+  (`VOORBEELD_WAARDE`), de normklassen en de operator weg (`VOORBEELD_GEEN_NORM`; de operator verbindt daar de waarden
+  van het voorbeeld, versie 2), de rest het kenmerk `IN_VOORBEELD` (administratief in
   `besluit`, zichtbaar in de signalen, de toelichting en voor de reviewer, die er één zin over krijgt). Een duur is geen
   waarde: in een voorbeeld noemt die de parameter. Zonder voorbeeld is de uitkomst bitgelijk. `tests/annotatieketen/test_voorbeeld.py`.
+- **De hoofdzin van een ALS→DAN-regel draagt geen eigen norm** (`jas_pipeline/hoofdzin.py`, na de fusie, zonder model;
+  besluit eigenaar 25 nov 2026). Biedt een kandidaat-Afleidingsregel de span van een andere kandidaat als optie `clause`
+  aan (de GevolgDetector bij een voorwaarde vóór het gevolg), dan verliest die andere kandidaat Afleidingsregel,
+  Rechtsbetrekking en Rechtsfeit (`HOOFDZIN_VAN_REGEL`, administratief in `besluit`); de regel is de hele zin. Wat in de
+  hoofdzin staat, blijft een eigen kandidaat. `tests/annotatieketen/test_hoofdzin.py`.
 - **Een duur is één Tijdsaanduiding** (JAS-PRIORITY-001) met subtype "verbijzondert parameter"; alleen een
   getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
   code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem

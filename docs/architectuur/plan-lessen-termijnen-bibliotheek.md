@@ -542,9 +542,11 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
   2. *De duur binnen een herhaling.* "een maand" in "een maand later" kreeg een eigen markering; de skill zegt dat de
      duur binnen een termijn er geen krijgt (markeren-fragmentgrenzen, uit het boek en H2:107). De regel
      `jas.tijd.herhaling` maakt de duur nu de kern, zoals `jas.tijd.duur` bij "na …".
-  3. *Geen afleidingsregel op alleen het gevolg.* Met een voorwaarde ervoor is de ALS→DAN-zin de regel, met de clause
-     als optie; "een afleidingsregel markeer je met werkwoord en voorwaarden" (markeren-fragmentgrenzen). De clause is
-     geen tweede kandidaat-Afleidingsregel meer.
+  3. *De hoofdzin van een ALS→DAN-regel draagt geen eigen norm.* De regel is de hele zin, met de hoofdzin als optie;
+     "een afleidingsregel markeer je met werkwoord en voorwaarden" (markeren-fragmentgrenzen), en bij één normzin is de
+     hele zin het dragende fragment (markeringslijst). Eerst haalde alleen de Afleidingsregel weg van de hoofdzin; het
+     model maakte er toen een Rechtsfeit van. Besluit eigenaar (25 nov 2026): "alleen de hele zin". Een eigen stap na de
+     fusie (`hoofdzin.py`) haalt Afleidingsregel, Rechtsbetrekking en Rechtsfeit van de hoofdzin weg.
   4. *De operator in een rekenvoorbeeld vervalt*, zoals de normklassen: hij verbindt daar de waarden van het voorbeeld,
      geen kenmerken van een regel (`voorbeeld.py` versie 2). Wat het model ervan afwees, verschilde per run.
   5. *De herkomst in de skill.* P23 in `references/bronnen.md` zegt nu dat de rekenvoorbeeldregel alleen op M15 rust.
@@ -554,11 +556,10 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
   Variabele gecorrigeerd en in IW 9 lid 1 als Tijdsaanduiding goedgekeurd, wat H2:107 niet toelaat; en "het jaartal",
   "een schrikkeljaar" en "hetzelfde nummer" zijn afgewezen vóór de regel in de skill, die ze juist als kenmerk noemt.
   Gemeten (`metingen/keten-rekenvoorbeelden-vervolg-2026-11-25/`): zonder model raakt het 15 van 1873 nodes in vier
-  regelingen, alle op de bedoelde punten, en verdwijnt er geen kandidaat. Met het model (twee runs, identiek) gaat 9.5 van
-  44–46 naar 39 voorstellen, in een voorbeeldzin van 20–22 naar 16, afgewezen-aandeel van 59–61% naar 54%; de 17
-  geaccordeerde staan er alle, één met de klasse van H2:107 in plaats van die van de jurist. IW 9 lid 1 ongewijzigd.
-  Open: de reviewerzin (in geen run een twijfelgeval), en of de hoofdzin van een ALS→DAN-regel een eigen Rechtsbetrekking
-  of Rechtsfeit mag dragen (punt 3: het model maakte er een Rechtsfeit van).
+  regelingen, alle op de bedoelde punten; de hele ALS→DAN-zin houdt overal Afleidingsregel. Met het model (twee runs) gaat
+  9.5 van 44–46 naar 38–40 voorstellen, in een voorbeeldzin van 20–22 naar 16–19, afgewezen-aandeel van 59–61% naar
+  53–55%; de hoofdzin wordt niet meer voorgesteld; de 17 geaccordeerde staan er alle, één met de klasse van H2:107 in
+  plaats van die van de jurist. IW 9 lid 1 ongewijzigd. Open: de reviewerzin (in geen run een twijfelgeval).
 
 **M3 · De termijn als tijdsaanduiding die een parameter verbijzondert** (bijgesteld 24 nov 2026; de eerdere vorm,
 een markering Parameter naast de Tijdsaanduiding, vervalt)

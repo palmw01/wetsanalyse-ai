@@ -226,6 +226,11 @@
     skos:prefLabel "Opsommingsonderdeel"@nl ;
     jas:codeWaarde "ENUMERATED_NP" .
 
+<urn:jas-ns:code:HOOFDZIN_VAN_REGEL> a jas:Detectiecode ;
+    skos:definition "Het fragment is het gevolg in een als-dan-regel. De regel is de hele zin met de voorwaarde; de hoofdzin alleen draagt geen eigen afleidingsregel, rechtsbetrekking of rechtsfeit."@nl ;
+    skos:prefLabel "Hoofdzin van een regel"@nl ;
+    jas:codeWaarde "HOOFDZIN_VAN_REGEL" .
+
 <urn:jas-ns:code:IN_VOORBEELD> a jas:Detectiecode ;
     skos:definition "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."@nl ;
     skos:prefLabel "In een rekenvoorbeeld"@nl ;
@@ -1592,5 +1597,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "9bd932b52c2e" .
+    jas:vocabulaireVersie "5a582d1bbf5a" .
 

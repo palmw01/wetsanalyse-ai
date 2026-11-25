@@ -4,31 +4,30 @@
    "bepaling": "Leidraad 9.5",
    "iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
    "voorbeeldzinnen": 4,
-   "voorstellen": 39,
-   "in_voorbeeld": 16,
+   "voorstellen": 40,
+   "in_voorbeeld": 19,
    "per_klasse": {
     "Variabele en variabelewaarde": 14,
     "Rechtsobject": 3,
     "Operator": 4,
-    "Tijdsaanduiding": 14,
+    "Tijdsaanduiding": 16,
     "Afleidingsregel": 1,
-    "Voorwaarde": 2,
-    "Rechtsfeit": 1
+    "Voorwaarde": 2
    },
    "per_klasse_in_voorbeeld": {
     "Rechtsobject": 1,
     "Variabele en variabelewaarde": 10,
-    "Tijdsaanduiding": 5
+    "Tijdsaanduiding": 8
    },
    "kenmerken": {
-    "VOORBEELD_GEEN_NORM": 18,
+    "VOORBEELD_GEEN_NORM": 16,
     "IN_VOORBEELD": 21,
     "VOORBEELD_WAARDE": 12
    },
    "voorbeeldmeting": {
     "versie": "2",
     "aantal": 4,
-    "afgewezen": 29
+    "afgewezen": 27
    },
    "relaties": 7,
    "acc_geaccordeerd": {
@@ -38,10 +37,19 @@
     "weg": []
    },
    "acc_afgewezen": {
-    "nog_voorgesteld": 21,
-    "niet_meer_voorgesteld": 29
+    "niet_meer_voorgesteld": 28,
+    "nog_voorgesteld": 22
    },
    "modelaanroepen": [
+    {
+     "tool": "classificeer",
+     "stop": "tool_use",
+     "seconden": 2.7,
+     "input_tokens": 1623,
+     "output_tokens": 84,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
     {
      "tool": "classificeer",
      "stop": "tool_use",
@@ -54,16 +62,16 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 3.7,
-     "input_tokens": 1623,
-     "output_tokens": 84,
+     "seconden": 2.9,
+     "input_tokens": 1541,
+     "output_tokens": 81,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.1,
+     "seconden": 2.2,
      "input_tokens": 1717,
      "output_tokens": 84,
      "cache_creation_input_tokens": 0,
@@ -73,51 +81,24 @@
      "tool": "classificeer",
      "stop": "tool_use",
      "seconden": 9.1,
-     "input_tokens": 1636,
-     "output_tokens": 106,
-     "cache_creation_input_tokens": 0,
-     "cache_read_input_tokens": 0
-    },
-    {
-     "tool": "classificeer",
-     "stop": "tool_use",
-     "seconden": 8.8,
-     "input_tokens": 1731,
-     "output_tokens": 131,
-     "cache_creation_input_tokens": 0,
-     "cache_read_input_tokens": 0
-    },
-    {
-     "tool": "classificeer",
-     "stop": "tool_use",
-     "seconden": 8.1,
-     "input_tokens": 1633,
-     "output_tokens": 140,
-     "cache_creation_input_tokens": 0,
-     "cache_read_input_tokens": 0
-    },
-    {
-     "tool": "classificeer",
-     "stop": "tool_use",
-     "seconden": 16.9,
      "input_tokens": 1568,
-     "output_tokens": 558,
+     "output_tokens": 499,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 4.1,
-     "input_tokens": 1523,
-     "output_tokens": 106,
+     "seconden": 8.7,
+     "input_tokens": 1731,
+     "output_tokens": 372,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 10.4,
+     "seconden": 2.7,
      "input_tokens": 1508,
      "output_tokens": 109,
      "cache_creation_input_tokens": 0,
@@ -126,21 +107,39 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 14.5,
+     "seconden": 7.1,
      "input_tokens": 2652,
      "output_tokens": 640,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    {
+     "tool": "classificeer",
+     "stop": "tool_use",
+     "seconden": 10.0,
+     "input_tokens": 1633,
+     "output_tokens": 451,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    {
+     "tool": "classificeer",
+     "stop": "tool_use",
+     "seconden": 2.5,
+     "input_tokens": 1523,
+     "output_tokens": 106,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     }
    ],
    "tokens": {
-    "input_tokens": 17202,
-    "output_tokens": 2041,
+    "input_tokens": 17107,
+    "output_tokens": 2509,
     "cache_creation_input_tokens": 0,
     "cache_read_input_tokens": 0
    },
-   "tokens_totaal": 19243,
-   "seconden": 32.7,
+   "tokens_totaal": 19616,
+   "seconden": 25.8,
    "voorstellen_lijst": [
     {
      "klasse": "Variabele en variabelewaarde",
@@ -235,6 +234,14 @@
      "tekst": "zes weken",
      "start": 258,
      "eind": 267,
+     "in_voorbeeld": true,
+     "aandacht": ""
+    },
+    {
+     "klasse": "Tijdsaanduiding",
+     "tekst": "de dagtekening",
+     "start": 296,
+     "eind": 310,
      "in_voorbeeld": true,
      "aandacht": ""
     },
@@ -343,22 +350,6 @@
      "aandacht": ""
     },
     {
-     "klasse": "Tijdsaanduiding",
-     "tekst": "de kalendermaand",
-     "start": 643,
-     "eind": 659,
-     "in_voorbeeld": false,
-     "aandacht": ""
-    },
-    {
-     "klasse": "Rechtsfeit",
-     "tekst": "vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening",
-     "start": 661,
-     "eind": 800,
-     "in_voorbeeld": false,
-     "aandacht": ""
-    },
-    {
      "klasse": "Variabele en variabelewaarde",
      "tekst": "de termijn",
      "start": 669,
@@ -423,6 +414,14 @@
      "aandacht": ""
     },
     {
+     "klasse": "Tijdsaanduiding",
+     "tekst": "de dagtekening",
+     "start": 806,
+     "eind": 820,
+     "in_voorbeeld": true,
+     "aandacht": ""
+    },
+    {
      "klasse": "Variabele en variabelewaarde",
      "tekst": "de termijn",
      "start": 855,
@@ -443,6 +442,14 @@
      "tekst": "zes weken",
      "start": 906,
      "eind": 915,
+     "in_voorbeeld": true,
+     "aandacht": ""
+    },
+    {
+     "klasse": "Tijdsaanduiding",
+     "tekst": "de dagtekening",
+     "start": 922,
+     "eind": 936,
      "in_voorbeeld": true,
      "aandacht": ""
     },
@@ -484,17 +491,8 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.1,
+     "seconden": 2.0,
      "input_tokens": 1171,
-     "output_tokens": 81,
-     "cache_creation_input_tokens": 0,
-     "cache_read_input_tokens": 0
-    },
-    {
-     "tool": "classificeer",
-     "stop": "tool_use",
-     "seconden": 2.4,
-     "input_tokens": 1286,
      "output_tokens": 81,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
@@ -512,6 +510,15 @@
      "tool": "classificeer",
      "stop": "tool_use",
      "seconden": 2.6,
+     "input_tokens": 1286,
+     "output_tokens": 81,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    {
+     "tool": "classificeer",
+     "stop": "tool_use",
+     "seconden": 3.1,
      "input_tokens": 1178,
      "output_tokens": 79,
      "cache_creation_input_tokens": 0,
@@ -520,7 +527,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.6,
+     "seconden": 2.5,
      "input_tokens": 1409,
      "output_tokens": 106,
      "cache_creation_input_tokens": 0,
@@ -538,7 +545,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.4,
+     "seconden": 2.3,
      "input_tokens": 1258,
      "output_tokens": 87,
      "cache_creation_input_tokens": 0,
@@ -552,7 +559,7 @@
     "cache_read_input_tokens": 0
    },
    "tokens_totaal": 9384,
-   "seconden": 4.9,
+   "seconden": 5.0,
    "voorstellen_lijst": [
     {
      "klasse": "Rechtsfeit",
@@ -618,7 +625,7 @@
    "bepaling": "Leidraad 9.5",
    "iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
    "voorbeeldzinnen": 4,
-   "voorstellen": 39,
+   "voorstellen": 38,
    "in_voorbeeld": 16,
    "per_klasse": {
     "Variabele en variabelewaarde": 14,
@@ -626,8 +633,7 @@
     "Operator": 4,
     "Tijdsaanduiding": 14,
     "Afleidingsregel": 1,
-    "Voorwaarde": 2,
-    "Rechtsfeit": 1
+    "Voorwaarde": 2
    },
    "per_klasse_in_voorbeeld": {
     "Rechtsobject": 1,
@@ -635,14 +641,14 @@
     "Tijdsaanduiding": 5
    },
    "kenmerken": {
-    "VOORBEELD_GEEN_NORM": 18,
+    "VOORBEELD_GEEN_NORM": 16,
     "IN_VOORBEELD": 21,
     "VOORBEELD_WAARDE": 12
    },
    "voorbeeldmeting": {
     "versie": "2",
     "aantal": 4,
-    "afgewezen": 29
+    "afgewezen": 27
    },
    "relaties": 7,
    "acc_geaccordeerd": {
@@ -652,14 +658,14 @@
     "weg": []
    },
    "acc_afgewezen": {
-    "nog_voorgesteld": 21,
-    "niet_meer_voorgesteld": 29
+    "niet_meer_voorgesteld": 30,
+    "nog_voorgesteld": 20
    },
    "modelaanroepen": [
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.4,
+     "seconden": 2.3,
      "input_tokens": 1623,
      "output_tokens": 84,
      "cache_creation_input_tokens": 0,
@@ -668,7 +674,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.9,
+     "seconden": 2.3,
      "input_tokens": 1611,
      "output_tokens": 83,
      "cache_creation_input_tokens": 0,
@@ -677,18 +683,9 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 3.2,
-     "input_tokens": 1636,
-     "output_tokens": 106,
-     "cache_creation_input_tokens": 0,
-     "cache_read_input_tokens": 0
-    },
-    {
-     "tool": "classificeer",
-     "stop": "tool_use",
-     "seconden": 2.4,
-     "input_tokens": 1731,
-     "output_tokens": 131,
+     "seconden": 2.6,
+     "input_tokens": 1541,
+     "output_tokens": 81,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
@@ -704,7 +701,16 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.7,
+     "seconden": 2.2,
+     "input_tokens": 1731,
+     "output_tokens": 131,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    {
+     "tool": "classificeer",
+     "stop": "tool_use",
+     "seconden": 2.6,
      "input_tokens": 1508,
      "output_tokens": 109,
      "cache_creation_input_tokens": 0,
@@ -713,9 +719,9 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 9.2,
+     "seconden": 8.0,
      "input_tokens": 1568,
-     "output_tokens": 468,
+     "output_tokens": 422,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
@@ -731,30 +737,30 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 8.6,
-     "input_tokens": 1633,
-     "output_tokens": 433,
+     "seconden": 6.8,
+     "input_tokens": 2652,
+     "output_tokens": 640,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 7.7,
-     "input_tokens": 2652,
-     "output_tokens": 640,
+     "seconden": 9.3,
+     "input_tokens": 1633,
+     "output_tokens": 443,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     }
    ],
    "tokens": {
-    "input_tokens": 17202,
-    "output_tokens": 2244,
+    "input_tokens": 17107,
+    "output_tokens": 2183,
     "cache_creation_input_tokens": 0,
     "cache_read_input_tokens": 0
    },
-   "tokens_totaal": 19446,
-   "seconden": 22.3,
+   "tokens_totaal": 19290,
+   "seconden": 23.8,
    "voorstellen_lijst": [
     {
      "klasse": "Variabele en variabelewaarde",
@@ -965,14 +971,6 @@
      "aandacht": ""
     },
     {
-     "klasse": "Rechtsfeit",
-     "tekst": "vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening",
-     "start": 661,
-     "eind": 800,
-     "in_voorbeeld": false,
-     "aandacht": ""
-    },
-    {
      "klasse": "Variabele en variabelewaarde",
      "tekst": "de termijn",
      "start": 669,
@@ -1098,7 +1096,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 1.8,
+     "seconden": 1.6,
      "input_tokens": 1171,
      "output_tokens": 81,
      "cache_creation_input_tokens": 0,
@@ -1107,7 +1105,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.0,
+     "seconden": 1.9,
      "input_tokens": 1178,
      "output_tokens": 79,
      "cache_creation_input_tokens": 0,
@@ -1116,7 +1114,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.2,
+     "seconden": 2.0,
      "input_tokens": 1286,
      "output_tokens": 81,
      "cache_creation_input_tokens": 0,
@@ -1125,7 +1123,7 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.7,
+     "seconden": 2.4,
      "input_tokens": 1253,
      "output_tokens": 84,
      "cache_creation_input_tokens": 0,
@@ -1135,15 +1133,15 @@
      "tool": "classificeer",
      "stop": "tool_use",
      "seconden": 2.2,
-     "input_tokens": 1199,
-     "output_tokens": 112,
+     "input_tokens": 1409,
+     "output_tokens": 106,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     },
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 2.3,
+     "seconden": 2.0,
      "input_tokens": 1258,
      "output_tokens": 87,
      "cache_creation_input_tokens": 0,
@@ -1152,9 +1150,9 @@
     {
      "tool": "classificeer",
      "stop": "tool_use",
-     "seconden": 3.0,
-     "input_tokens": 1409,
-     "output_tokens": 106,
+     "seconden": 2.3,
+     "input_tokens": 1199,
+     "output_tokens": 112,
      "cache_creation_input_tokens": 0,
      "cache_read_input_tokens": 0
     }
@@ -1166,7 +1164,7 @@
     "cache_read_input_tokens": 0
    },
    "tokens_totaal": 9384,
-   "seconden": 4.9,
+   "seconden": 4.2,
    "voorstellen_lijst": [
     {
      "klasse": "Rechtsfeit",
