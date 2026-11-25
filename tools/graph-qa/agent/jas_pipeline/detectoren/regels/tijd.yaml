@@ -115,8 +115,13 @@
   code: TEMPORAL_RECURRENCE
   bewijs: sterk
   bron: "H2:109"
-  versie: 2
-  patroon: '\b(?:telkens\s+)?{TELWOORD}\s+{PERIODE}\s+(?:later|eerder)\b'
+  versie: 3
+  # 3: de duur is de kern ('een maand'), 'later' of 'eerder' de uitbreiding. Zo registreert de fusie de duur als
+  # kern van dezelfde tijdsfunctie en krijgt hij geen eigen markering, zoals 'zes weken' in 'zes weken na …'
+  # (skill, markeren-fragmentgrenzen: de duur binnen een termijn; meting keten-rekenvoorbeelden-model 25 nov 2026).
+  patroon: '\b{TELWOORD}\s+{PERIODE}(?=\s+(?:later|eerder)\b)'
+  links: '\btelkens\s+'
+  rechts: '\s+(?:later|eerder)\b'
   tests:
     positief: [{tekst: "telkens een maand later.", span: "telkens een maand later"}]
     negatief: [{tekst: "de latere bestuurder", span: "latere"}]

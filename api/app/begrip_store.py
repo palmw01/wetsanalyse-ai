@@ -247,11 +247,47 @@ _WAARDE = re.compile(r"\d|€|%|\bprocent\b", re.IGNORECASE)
 _PARAMETER = "Parameter en parameterwaarde"
 
 
-def eenduidigheid(inhoud: dict, koppelingen: list[dict], andere_namen: dict[str, str]) -> list[str]:
+#: De naamregels van de methode die zich mechanisch laten zien (M02 §3.5.2a; plan lessen Termijnen §10, B2).
+_LIDWOORD_VOORAAN = re.compile(r"^(?:de|het|een|van|voor|in|op|bij|met|aan|door|uit|over|naar|om|tot)\s", re.IGNORECASE)
+#: Een Romeins cijfer als los woord in hoofdletters (II, IV, XII); één letter (I, V, X) telt niet: dat is vaak een
+#: afkorting of een letter uit een opsomming.
+_ROMEINS = re.compile(r"\b(?=[IVXLC]{2,}\b)C{0,3}(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})\b")
+_ONTKENNING = re.compile(r"\b(?:niet|geen)\b", re.IGNORECASE)
+_VOOR = re.compile(r"\bvoor\b", re.IGNORECASE)
+#: Een markering die een kenmerk van een object is (M02 §3.6.1): een variabele, of een tijdsaanduiding die er een
+#: verbijzondert (M3).
+_VARIABELE = "Variabele en variabelewaarde"
+
+
+def naamregels(inhoud: dict) -> list[str]:
+    """De naam en de definitie naast de vuistregels van de methode (B2). Een signaal, geen poort: de analist beslist."""
+    naam = (inhoud.get("naam") or "").strip()
+    uit = []
+    if _LIDWOORD_VOORAAN.match(naam):
+        uit.append(f"De naam begint met \"{naam.split()[0]}\": een naam begint met het woord dat de kern draagt, zonder "
+                   "lidwoord of voorzetsel.")
+    elif naam[:1].isupper() and not naam[1:2].isupper():
+        uit.append("De naam begint met een hoofdletter: schrijf een naam met kleine letters, tenzij de spelling het vraagt.")
+    if _ROMEINS.search(naam):
+        uit.append("De naam bevat een Romeins cijfer: dat lijkt op letters; gebruik een gewoon getal.")
+    if _ONTKENNING.search(naam):
+        uit.append("De naam bevat een ontkenning: in een regel geeft dat een dubbele ontkenning.")
+    if _VOOR.search(naam) and not _LIDWOORD_VOORAAN.match(naam):
+        uit.append("De naam bevat \"voor\": dat is vaak voor meer uitleg vatbaar (vóór of ten behoeve van).")
+    if (inhoud.get("definitie") or "").rstrip().endswith("."):
+        uit.append("De definitie eindigt op een punt: zonder punt kan ze de naam in een zin vervangen.")
+    return uit
+
+
+def eenduidigheid(inhoud: dict, koppelingen: list[dict], andere_namen: dict[str, str],
+                  met_kenmerk: set[str] | None = None) -> list[str]:
     """Aandachtspunten die het hele werkgebied vragen (L-3a-2): een alternatieve term die de naam van een ander begrip is
     (een homoniem), en een waarde in de definitie van een begrip dat op een parameter rust (de waarde is een eigen
-    begrip). Een signaal, geen poort. `andere_namen` is naam (zonder hoofdletters) → naam van de andere begrippen."""
-    uit = []
+    begrip). Daarbij de naamregels (B2), en twee controlemiddelen van activiteit 4 (B4): elk begrip heeft een
+    voorbeeld, en bij een variabele staat van welk object zij een kenmerk is (`met_kenmerk`: de elementen die de kant
+    *van* zijn van een relatie `kenmerk`; `None` = niet nagegaan). Een signaal, geen poort. `andere_namen` is naam
+    (zonder hoofdletters) → naam van de andere begrippen."""
+    uit = naamregels(inhoud)
     for term in inhoud.get("alternatieve_termen") or []:
         if (naam := andere_namen.get(term.strip().casefold())):
             uit.append(f"De alternatieve term \"{term}\" is ook de naam van het begrip \"{naam}\" in dit werkgebied: "
@@ -260,6 +296,27 @@ def eenduidigheid(inhoud: dict, koppelingen: list[dict], andere_namen: dict[str,
     if (any(((k.get("bewijs") or {}).get("klasse")) == _PARAMETER for k in dragend)
             and _WAARDE.search(inhoud.get("definitie") or "")):
         uit.append("De definitie noemt een waarde; bij een parameter is de waarde een eigen begrip in een tijdvak.")
+    if not inhoud.get("voorbeelden"):
+        uit.append("Er is nog geen voorbeeld: elk begrip krijgt er minstens één (dat houdt het accorderen niet tegen).")
+    variabelen = {k.get("element_id") for k in dragend if _is_kenmerk((k.get("bewijs") or {}))} - {None}
+    if met_kenmerk is not None and variabelen and not variabelen & met_kenmerk:
+        uit.append("Bij deze variabele staat niet van welk object zij een kenmerk is: leg bij de markering de relatie "
+                   "\"is kenmerk van\".")
+    return uit
+
+
+def _is_kenmerk(bewijs: dict) -> bool:
+    return bewijs.get("klasse") == _VARIABELE or (
+        bewijs.get("klasse") == "Tijdsaanduiding" and bewijs.get("jas_subtype") == "verbijzondert variabele")
+
+
+async def _met_kenmerk(conn) -> set[str]:
+    """De elementen die de kant *van* zijn van een relatie `kenmerk` die niet is afgewezen of vervangen (B4)."""
+    uit = set()
+    for (r,) in (await conn.execute(select(db.annotatie_v2_relaties.c.inhoud))).all():
+        if (r or {}).get("type") == "kenmerk" and r.get("lifecycle") not in ("rejected", "vervangen") \
+                and (r.get("van") or {}).get("soort") == "element":
+            uit.add(r["van"]["id"])
     return uit
 
 
@@ -280,7 +337,17 @@ def klasse_van(inhoud: dict, koppelingen: list[dict]) -> dict:
     volgorde = {kl: i for i, kl in enumerate(JAS_KLASSEN_VOLGORDE)}
     afgeleid = min(tel, key=lambda kl: (-tel[kl], volgorde.get(kl, 99))) if tel else ""
     keuze = inhoud.get("klasse_keuze") or None
-    return {"klasse": (keuze or {}).get("klasse") or afgeleid, "afgeleid": afgeleid, "uit_passages": tel,
+    klasse = (keuze or {}).get("klasse") or afgeleid
+    # B6 (plan lessen Termijnen §10; M02 §3.5.2a): de verdieping van de klasse, zoals de soort rechtsbetrekking. Uit de
+    # dragende passages van de klasse die geldt; wijkt het af, dan kiest de analist het op de markering.
+    sub: dict[str, int] = {}
+    for k in koppelingen:
+        bw = k.get("bewijs") or {}
+        if (k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen" and bw.get("klasse") == klasse
+                and (st := bw.get("jas_subtype"))):
+            sub[st] = sub.get(st, 0) + 1
+    subtype = min(sub, key=lambda st: (-sub[st], st)) if sub else ""
+    return {"klasse": klasse, "afgeleid": afgeleid, "uit_passages": tel, "subtype": subtype,
             "gekozen": (keuze or {}).get("klasse", ""), "reden": (keuze or {}).get("reden", "")}
 
 
@@ -409,7 +476,8 @@ async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
         if row.status != "vervangen":
             rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(in_werkgebied(werkgebied_id)))).all()
             uit["aandachtspunten"] = [*uit["aandachtspunten"],
-                                      *eenduidigheid(row.inhoud, ks, _namen(rows).get(begrip_id, {}))]
+                                      *eenduidigheid(row.inhoud, ks, _namen(rows).get(begrip_id, {}),
+                                                     await _met_kenmerk(conn))]
         return uit
 
 
@@ -463,6 +531,7 @@ async def lijst(werkgebied_id: str) -> list[dict]:
         r = db.regels
         regelbegrippen = {(x.inhoud or {}).get("regelbegrip_id") for x in (await conn.execute(
             select(r.c.inhoud).where(r.c.werkgebied_id == werkgebied_id))).all()}
+        met_kenmerk = await _met_kenmerk(conn)
     uit = []
     namen = _namen(rows)
     for row in rows:
@@ -470,7 +539,7 @@ async def lijst(werkgebied_id: str) -> list[dict]:
         volledig = _begrip(row, ks, opvolging)
         if row.status != "vervangen":
             volledig["aandachtspunten"] = [*volledig["aandachtspunten"],
-                                           *eenduidigheid(row.inhoud, ks, namen.get(row.id, {}))]
+                                           *eenduidigheid(row.inhoud, ks, namen.get(row.id, {}), met_kenmerk)]
         uit.append({**{k: v for k, v in volledig.items() if k != "koppelingen"},
                     "aantal_koppelingen": len(ks), "regelbegrip": row.id in regelbegrippen,
                     "element_ids": sorted({k["element_id"] for k in ks})})
@@ -674,11 +743,8 @@ VERVALLEN = ("jas_klasse", "jas_subtype", "begripstype", "geldigheid", "eigensch
 
 
 def slank(inhoud: dict) -> dict:
-    """De inhoud zonder de velden die vervielen, en voorbeelden zonder toelichting."""
-    uit = {k: v for k, v in (inhoud or {}).items() if k not in VERVALLEN}
-    if "voorbeelden" in uit:
-        uit["voorbeelden"] = [{k: v for k, v in x.items() if k != "toelichting"} for x in uit["voorbeelden"] or []]
-    return uit
+    """De inhoud zonder de velden die vervielen. De toelichting bij een voorbeeld is terug (B5, 25 nov 2026)."""
+    return {k: v for k, v in (inhoud or {}).items() if k not in VERVALLEN}
 
 
 MIN_WOORDEN_LETTERLIJK = 6

@@ -395,6 +395,8 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
               {b.concept.map((v, i) => (
                 <div key={i} className="space-y-2 border-b border-line pb-3 last:border-b-0">
                   <AutoTextarea value={v.tekst} onChange={(e) => zet(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
+                  <AutoTextarea value={v.toelichting ?? ""} onChange={(e) => zet(i, { toelichting: e.target.value })} rows={1}
+                    placeholder="Toelichting: waarom is dit wel of niet het begrip?" aria-label={`Toelichting bij voorbeeld ${i + 1}`} />
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <OordeelKeuze waarde={v.oordeel} onKies={(o) => zet(i, { oordeel: o })}
                       label={`Oordeel bij voorbeeld ${i + 1}`} naam={`oordeel-${begrip.id}-${i}`} />

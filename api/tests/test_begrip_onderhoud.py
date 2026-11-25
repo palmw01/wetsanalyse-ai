@@ -114,7 +114,9 @@ async def test_een_gewijzigde_dragende_passage_verschijnt_en_de_oude_bewijsstand
     assert kn["vervangt"]["element_id"] == ids["lid2"] and kn["vervangt"]["bewijs"]["tekst"] == "Beta"
     # Geaccordeerd blijft geaccordeerd; de aandacht zegt wat er nog openstaat.
     assert b2["status"] == "geaccordeerd"
-    assert b2["aandachtspunten"] == ["1 dragende annotatie is nog niet door een jurist beoordeeld."]
+    # Daarna volgen de signalen van de methode (naamregels, geen voorbeeld; plan lessen Termijnen §10).
+    assert b2["aandachtspunten"][0] == "1 dragende annotatie is nog niet door een jurist beoordeeld."
+    assert not any("passage" in p for p in b2["aandachtspunten"][1:])
     assert (await _herbeoordelingen(client, wg))["begrippen"] == []
     acties = [x["actie"] for x in (await client.get(_url(wg, b, "revisies"))).json()["revisies"]]
     assert acties[0] == "koppeling-herkoppeld"

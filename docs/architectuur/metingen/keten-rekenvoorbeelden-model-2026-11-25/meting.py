@@ -5,7 +5,10 @@ Draait `jas_pipeline.keten.analyseer` met het echte model op de tekst van een be
 van de jurist blijven waar ze zijn. Vergelijkt de voorstellen met de beslissingen op acceptatie (dezelfde grens).
 
     cd tools/graph-qa && uv run python ../../docs/architectuur/metingen/keten-rekenvoorbeelden-model-2026-11-25/meting.py \
-        --env <pad naar een .env met AZURE_FOUNDRY_*> --uit <uit.json>
+        --env <pad naar een .env met AZURE_FOUNDRY_*> --uit <uit.json> [--zonder-voorbeeldstap]
+
+Met `--zonder-voorbeeldstap` is het de nulmeting op dezelfde code: de keten slaat de stap uit `voorbeeld.py` over, zodat
+het verschil met een gewone run alleen van die stap komt (en niet van wat er sinds de run op acceptatie veranderde).
 
 Het model en de instellingen zijn die van acceptatie op 25 nov 2026: `claude-sonnet-4-6` voor classifier en reviewer
 (de modelkeuzes in het beheer), de standaardinstellingen van `Settings` en `RELATIE_VOORSTELLEN=true`.
@@ -117,7 +120,11 @@ def main() -> None:
     p.add_argument("--env", type=Path, required=True)
     p.add_argument("--uit", type=Path, required=True)
     p.add_argument("--alleen", choices=list(BEPALINGEN))
+    p.add_argument("--zonder-voorbeeldstap", action="store_true",
+                   help="de nulmeting: dezelfde code, maar de stap uit voorbeeld.py doet niets")
     a = p.parse_args()
+    if a.zonder_voorbeeldstap:
+        voorbeeld.op_fusie = lambda fusie, teksten: (fusie, None)
     s = Settings.from_env({**dotenv_values(a.env)}).model_copy(update={
         "llm_model": "claude-sonnet-4-6", "relatie_voorstellen": True, "llm_max_retries": 2})
     live = AnthropicLLM(s)

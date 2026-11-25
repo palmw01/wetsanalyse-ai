@@ -116,6 +116,9 @@ regel:
 - dan de uitvoer die de regel geeft, als voorspelling;
 - dan de vraag: **is deze uitkomst juridisch juist?** Een jurist beantwoordt die, niet de opsteller.
 
+Neem ook een geval met een **onbekende invoer**, een waarde die ontbreekt ("onbekend"). Zo zie je of de regels
+compleet zijn, en wat een regel doet als hij een invoer mist (M01 h.3 stap 4a). Zo'n waarde past in elk waardebereik.
+
 Kies de gevallen bij de regel: elk geval van een beslistabel minstens één keer, de precieze grens van elke vergelijking
 (de dag zelf, de dag ervoor, de dag erna), en bij een datum de randen van de kalender (de laatste dag van een maand, 28
 en 29 februari, de jaarwisseling). Dit zijn voorbeelden om de regel te begrijpen en af te stemmen; het is geen

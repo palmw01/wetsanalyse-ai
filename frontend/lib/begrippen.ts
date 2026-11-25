@@ -37,7 +37,8 @@ export function volledigeInhoud(inhoud: Partial<BegripInhoud>): BegripInhoud {
     if (k in inhoud) uit[k] = (inhoud as Record<string, unknown>)[k];
   }
   const i = uit as unknown as BegripInhoud;
-  return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel })) };
+  return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel,
+    ...(v.toelichting ? { toelichting: v.toelichting } : {}) })) };
 }
 
 export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
@@ -227,7 +228,8 @@ export function klasseZin(k: BegripKlasse | undefined): { klasse: string; herkom
     return { klasse: k.gekozen, herkomst: k.afgeleid ? `gekozen; de passages zeggen ${k.afgeleid}` : "gekozen" };
   }
   const n = Object.values(k.uit_passages).reduce((s, x) => s + x, 0);
-  return { klasse: k.klasse, herkomst: n ? `uit ${aantal(n, "passage", "passages")}` : "" };
+  // B6: de verdieping van de klasse (de soort rechtsbetrekking, of wat een tijdsaanduiding verbijzondert).
+  return { klasse: k.subtype ? `${k.klasse} (${k.subtype})` : k.klasse, herkomst: n ? `uit ${aantal(n, "passage", "passages")}` : "" };
 }
 
 /** Het waardebereik uit de velden van het formulier; zonder soort geen waardebereik. Een opsomming leest één waarde

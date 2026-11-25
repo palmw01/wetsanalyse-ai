@@ -97,13 +97,17 @@ async def test_de_api_geeft_de_gaten_bij_de_regel(client):
 
 # --- L-3a-2: het begrip zelf ------------------------------------------------------------------------------------------
 
+#: Een voorbeeld, zodat het signaal "nog geen voorbeeld" (B4) de toetsen hieronder niet stoort.
+_VB = [{"tekst": "x", "oordeel": "wel"}]
+
+
 def _k(klasse, rol="duiding"):
     return {"rol": rol, "beoordeling": "open", "bewijs": {"klasse": klasse}}
 
 
 def test_een_homoniem_in_de_alternatieve_termen():
     from app.begrip_store import eenduidigheid
-    punten = eenduidigheid({"naam": "aanslag", "alternatieve_termen": ["Termijn", "aanslagbiljet"]},
+    punten = eenduidigheid({"naam": "aanslag", "alternatieve_termen": ["Termijn", "aanslagbiljet"], "voorbeelden": _VB},
                            [_k("Rechtsobject")], {"termijn": "termijn", "belastingaanslag": "belastingaanslag"})
     assert punten == ['De alternatieve term "Termijn" is ook de naam van het begrip "termijn" in dit werkgebied: '
                       "een homoniem?"]
@@ -111,7 +115,7 @@ def test_een_homoniem_in_de_alternatieve_termen():
 
 def test_een_waarde_in_de_definitie_van_een_parameter():
     from app.begrip_store import eenduidigheid
-    par = {"naam": "drempel", "definitie": "Het bedrag van € 49 per jaar."}
+    par = {"naam": "drempel", "definitie": "bedrag van € 49 per jaar", "voorbeelden": _VB}
     assert eenduidigheid(par, [_k("Parameter en parameterwaarde")], {}) == [
         "De definitie noemt een waarde; bij een parameter is de waarde een eigen begrip in een tijdvak."]
     # Een variabele mag een getal in de definitie hebben ("de 1e dag"); een afgewezen koppeling telt niet.
@@ -144,3 +148,48 @@ def test_bepalen_van_het_heet_bepalen_met_de_uitvoer():
         assert f'"{voorstel}"' in gaten[0]["tekst"] and f'"{naam}"' in gaten[0]["tekst"]
     for naam in ("bepalen termijnbedrag", "bepalen termijn van betaling", "bepalen vandaag", "bepalen van"):
         assert regel_store.regelbegrip_voorstel(naam) is None, naam
+
+
+# --- Plan lessen Termijnen §10: de naamregels (B2), de controlemiddelen (B4) en het subtype (B6) --------------------------
+
+def test_de_naamregels_van_de_methode():
+    from app.begrip_store import naamregels
+
+    def codes(naam, definitie=""):
+        return [p.split(":")[0] for p in naamregels({"naam": naam, "definitie": definitie})]
+    assert codes("de termijn") == ['De naam begint met "de"']
+    assert codes("Termijnbedrag") == ["De naam begint met een hoofdletter"]
+    assert codes("termijn II") == ["De naam bevat een Romeins cijfer"]
+    assert codes("niet invorderbaar") == ["De naam bevat een ontkenning"]
+    assert codes("aftrek voor kalenderjaar") == ['De naam bevat "voor"']
+    assert codes("termijnbedrag", "Het bedrag van één termijn.") == ["De definitie eindigt op een punt"]
+    # Wat de methode vraagt, geeft niets: een werkwoord vooraan, een eigennaam verderop, een afkorting, één letter.
+    for naam in ("bepalen vervaldag", "verzekerde Wet langdurige zorg", "BSN", "onderdeel a", "artikel I"):
+        assert codes(naam, "bedrag waarboven de regel geldt") == [], naam
+
+
+def test_een_begrip_zonder_voorbeeld_en_een_variabele_zonder_object():
+    from app.begrip_store import eenduidigheid
+    var = {"element_id": "v", "rol": "duiding", "beoordeling": "open", "bewijs": {"klasse": "Variabele en variabelewaarde"}}
+    inhoud = {"naam": "dagtekening", "voorbeelden": []}
+    punten = eenduidigheid(inhoud, [var], {}, met_kenmerk=set())
+    assert any(p.startswith("Er is nog geen voorbeeld") for p in punten)
+    assert any(p.startswith("Bij deze variabele staat niet") for p in punten)
+    # Met een voorbeeld en een relatie "is kenmerk van" zwijgen beide; zonder relatiegegevens wordt niets beweerd.
+    vol = {**inhoud, "voorbeelden": [{"tekst": "x", "oordeel": "wel"}]}
+    assert eenduidigheid(vol, [var], {}, met_kenmerk={"v"}) == []
+    assert eenduidigheid(vol, [var], {}) == []
+    # Een tijdsaanduiding die een variabele verbijzondert, is ook een kenmerk (M3); een afgewezen koppeling telt niet.
+    tijd = {**var, "bewijs": {"klasse": "Tijdsaanduiding", "jas_subtype": "verbijzondert variabele"}}
+    assert any(p.startswith("Bij deze variabele") for p in eenduidigheid(vol, [tijd], {}, met_kenmerk=set()))
+    assert eenduidigheid(vol, [{**var, "beoordeling": "afgewezen"}], {}, met_kenmerk=set()) == []
+
+
+def test_het_subtype_komt_uit_de_passages_van_de_klasse_die_geldt():
+    from app.begrip_store import klasse_van
+    rb = {"rol": "duiding", "beoordeling": "open",
+          "bewijs": {"klasse": "Rechtsbetrekking", "jas_subtype": "aanspraak – verplichting"}}
+    assert klasse_van({}, [rb, rb])["subtype"] == "aanspraak – verplichting"
+    # Kiest de analist een andere klasse, dan zegt het subtype van de passages daar niets over.
+    keuze = {"klasse_keuze": {"klasse": "Rechtsobject", "reden": "r"}}
+    assert klasse_van(keuze, [rb])["subtype"] == ""

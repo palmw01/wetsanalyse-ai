@@ -16,7 +16,9 @@ de kandidaat; er verdwijnt niets stil:
   duur ("zes weken") valt er bewust niet onder: in een voorbeeld noemt die de parameter zelf ("de betalingstermijn van
   zes weken"), niet een uitkomst;
 - `VOORBEELD_GEEN_NORM`: de klassen die een norm dragen (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit)
-  vallen weg; blijft er niets over, dan `REJECTED`;
+  vallen weg, en de operator ook: in een voorbeeld verbindt die de waarden van het voorbeeld ("vervalt op", "en",
+  "dan wel"), geen kenmerken die een regel nodig heeft (versie 2; meting keten-rekenvoorbeelden-model 25 nov 2026: wat
+  het model ervan afwees, verschilde per run). Blijft er niets over, dan `REJECTED`;
 - `IN_VOORBEELD`: wat overblijft, krijgt dit kenmerk. Het zegt niets over de klasse (`besluit` telt het niet als
   bewijs), maar de classifier en de reviewer zien het als signaal en de jurist in de toelichting.
 
@@ -41,10 +43,13 @@ from dataclasses import dataclass
 from .detectoren.regels import woordenlijsten
 from .kandidaten import Candidate, CandidateStatus, Evidence
 
-VERSIE = "1"
+VERSIE = "2"   # 2: ook de operator vervalt in een voorbeeld
 
 #: De klassen die een norm dragen. Een voorbeeld stelt geen regel (skill, markeringslijst).
 NORMKLASSEN = ("Afleidingsregel", "Voorwaarde", "Rechtsbetrekking", "Rechtsfeit")
+#: De klassen die in een voorbeeld vervallen: de normklassen en de operator, die daar alleen de waarden van het voorbeeld
+#: verbindt. Wat overblijft, zijn de kenmerken (variabele, tijdsaanduiding, rechtsobject …).
+VERVALT = (*NORMKLASSEN, "Operator")
 
 CODE_IN = "IN_VOORBEELD"
 CODE_WAARDE = "VOORBEELD_WAARDE"
@@ -162,8 +167,8 @@ def pas_toe(kandidaten: Iterable[Candidate], voorbeelden: Iterable[Voorbeeld]) -
             bewijs = Evidence(detector="voorbeeld", code="VOORBEELD_WAARDE", regel=REGEL_WAARDE, detail=_plek(v))
             uit.append(k.model_copy(update={"status": CandidateStatus.REJECTED, "evidence": (*k.evidence, bewijs)}))
             continue
-        weg = tuple(c for c in k.possible_classes if c in NORMKLASSEN)
-        over = tuple(c for c in k.possible_classes if c not in NORMKLASSEN)
+        weg = tuple(c for c in k.possible_classes if c in VERVALT)
+        over = tuple(c for c in k.possible_classes if c not in VERVALT)
         geen_norm = (Evidence(detector="voorbeeld", code="VOORBEELD_GEEN_NORM", regel=REGEL_GEEN_NORM,
                               detail=_plek(v, f"vervalt: {', '.join(weg)}")),) if weg else ()
         if weg and not over:

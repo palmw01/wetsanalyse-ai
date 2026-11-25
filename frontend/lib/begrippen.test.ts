@@ -13,7 +13,10 @@ describe("volledigeInhoud", () => {
     const oud = volledigeInhoud({ naam: "X", jas_klasse: "Rechtssubject", open_vragen: ["v"],
       voorbeelden: [{ tekst: "a", oordeel: "wel", toelichting: "t" }] } as never);
     expect(Object.keys(oud).sort()).toEqual(Object.keys(LEGE_INHOUD).sort());
-    expect(oud.voorbeelden).toEqual([{ tekst: "a", oordeel: "wel" }]);
+    // De toelichting bij een voorbeeld is terug (B5); een lege valt weg.
+    expect(oud.voorbeelden).toEqual([{ tekst: "a", oordeel: "wel", toelichting: "t" }]);
+    expect(volledigeInhoud({ naam: "X", voorbeelden: [{ tekst: "a", oordeel: "wel", toelichting: "" }] }).voorbeelden)
+      .toEqual([{ tekst: "a", oordeel: "wel" }]);
   });
 });
 

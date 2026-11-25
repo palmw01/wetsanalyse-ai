@@ -44,6 +44,9 @@ class Voorbeeld(BaseModel):
 
     tekst: str = Field(min_length=1, max_length=2000)
     oordeel: Oordeel
+    # Waarom de stelling wel of niet waar is (M02 §3.5.5b, M03 ad 3a). Optioneel. Spoor I1 schrapte haar; besluit
+    # eigenaar 25 nov 2026 haalt haar terug (plan lessen Termijnen §10, B5).
+    toelichting: str = Field(default="", max_length=2000)
 
 
 #: De soorten waarde die een begrip kan hebben (plan lessen Termijnen-bibliotheek, V2; D5 van het plan afleidingsregels).

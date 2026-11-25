@@ -520,7 +520,8 @@ def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, di
         definitie=i.get("definitie") or "", definitie_herkomst=i.get("definitie_herkomst") or "", definitie_door=i.get("definitie_door") or "",
         definitie_vindplaats=_plek(o["definitie_bron_iri"], nodes, o.get("definitie_vindplaats") or "") if o.get("definitie_bron_iri") else None,
         uitleg=i.get("uitleg") or "", toelichting=i.get("context") or "",
-        voorbeelden=[Voorbeeld(oordeel=v["oordeel"], tekst=v["tekst"]) for v in i.get("voorbeelden") or []],
+        voorbeelden=[Voorbeeld(oordeel=v["oordeel"], tekst=v["tekst"], toelichting=v.get("toelichting") or "")
+                     for v in i.get("voorbeelden") or []],
         onderbouwing_aangepast=bool(o.get("aangepast")),
         fragmenten=[Fragment(tekst=f["tekst"], vindplaats=_plek(f["bron_iri"], nodes)) for f in o.get("fragmenten") or []],
         passages=[_passage(k, elementen, nodes) for k in koppelingen],
