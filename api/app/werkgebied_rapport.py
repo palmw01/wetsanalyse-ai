@@ -472,6 +472,7 @@ class OpenPunt(_Deel):
     door: str = ""
     te_toetsen: list[OpenPuntToets] = []
     toelichting: str = ""
+    geadresseerde: str = ""            # bij een gesignaleerd punt: beleid of wetgever (B9)
 
 
 class Rapport(_Deel):
@@ -1233,6 +1234,15 @@ _BRONSOORT = {"wettekst": "de wettekst", "wetsgeschiedenis": "de wetsgeschiedeni
               "uitvoeringspraktijk": "de uitvoeringspraktijk", "literatuur": "de literatuur"}
 
 
+def _stand_open_punt(p: OpenPunt) -> str:
+    """De stand in woorden. Een gesignaleerde interpretatiekeuze is gekozen én voorgelegd (B9)."""
+    aan = {"wetgever": "de wetgever", "beleid": "het beleid"}.get(p.geadresseerde, p.geadresseerde)
+    if p.status == "gesignaleerd" and p.soort_naam == "interpretatiekeuze":
+        return f"gekozen en gesignaleerd aan {aan or 'het beleid'}"
+    # Ontbrekend beleid gaat naar het beleid; dat hoeft er niet bij.
+    return _OPEN_PUNT_STATUS.get(p.status, p.status) + (f", aan {aan}" if aan and p.geadresseerde != "beleid" else "")
+
+
 def open_punten_regels(punten: list[OpenPunt]) -> list[Regel]:
     """Hoofdstuk 7: wat de analyse niet stil beslist (L-X-1). Per punt de lezingen met hun grondslag, de keuze met wie
     die maakte en de methode, en wat nog getoetst moet worden. Lijsten, geen tabellen."""
@@ -1243,7 +1253,7 @@ def open_punten_regels(punten: list[OpenPunt]) -> list[Regel]:
         uit.append(("Meta", "Er zijn geen open punten vastgelegd."))
     for p in punten:
         uit += [*BLOK, ("Heading4", p.vraag),
-                ("Meta", f"Soort: {p.soort_naam} · stand: {_OPEN_PUNT_STATUS.get(p.status, p.status)}"
+                ("Meta", f"Soort: {p.soort_naam} · stand: {_stand_open_punt(p)}"
                          + (f" · hangt aan: {'; '.join(p.hangt_aan)}" if p.hangt_aan else ""))]
         for x in p.lezingen:
             gekozen = " (gekozen)" if x.label == p.gekozen else ""

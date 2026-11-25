@@ -259,7 +259,8 @@ export function TourBubbel({
               ref={kopRef}
               data-rondleiding-titel=""
               tabIndex={-1}
-              className="focus-ring rounded font-display text-base font-semibold text-lint outline-none"
+              // De focus staat hier voor de schermlezer, niet als bediening: geen zichtbare ring (`globals.css`).
+              className="font-display text-base font-semibold text-lint outline-none"
             >
               {stap.titel}
             </p>

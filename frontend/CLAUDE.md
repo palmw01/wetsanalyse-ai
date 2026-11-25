@@ -2433,6 +2433,11 @@ leest als "hij laadt", niet als "log eerst in".
   muispositie en klemt zichzelf via `plaatsPopover`.
 - Eén **`.focus-ring`-utility** in `globals.css` (2.4.13, AAA): een dubbele ring die ook op de donkere
   JAS-kleuren opvalt. Gebruik die in plaats van een eigen `focus-visible:outline`.
+- **Een element met `tabIndex={-1}` krijgt geen ring** (melding gebruiker 25 nov 2026: een blauw kader om elke staptitel van
+  de rondleiding). Zo'n element krijgt alleen programmatisch focus (de staptitel van de rondleiding, het paneel van een
+  venster, de hoofdinhoud na de skip-link) en is geen bediening; een programmatische focus na een klik of toets is voor
+  de browser toch `:focus-visible`. Dus geen `focus-ring` en wel `outline-none`; een knop houdt zijn ring bij Tab.
+  `app/focusRing.test.ts` bewaakt het, `scripts/test-rondleiding.mjs` meet het in de browser.
 - Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in
   `NodeAnnotatiePaneel`; anders is annoteren voor een schermlezer stil.
 - **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het

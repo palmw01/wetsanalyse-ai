@@ -654,7 +654,7 @@ def _open_punten(data: dict, nodes: dict[str, dict]) -> list[OpenPunt]:
                                      grondslag=[g.get("label") or (_vindplaats(g["id"], nodes) if g["soort"] == "bron" else g["id"])
                                                 for g in x.get("grondslag") or []]) for x in i.get("lezingen") or []],
             gekozen=k.get("gekozen", ""), motivering=k.get("motivering", ""), methode=k.get("methode", ""),
-            door=k.get("door", ""), toelichting=i.get("toelichting", ""),
+            door=k.get("door", ""), toelichting=i.get("toelichting", ""), geadresseerde=k.get("geadresseerde", ""),
             te_toetsen=[OpenPuntToets(**{f: t.get(f) for f in ("bronsoort", "omschrijving", "getoetst", "uitkomst")
                                          if t.get(f) is not None}) for t in i.get("te_toetsen") or []]))
     return uit

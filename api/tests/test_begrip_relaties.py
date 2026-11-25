@@ -250,3 +250,34 @@ async def test_combineren_zonder_de_naam_als_alternatieve_term(client):
         "reden": "Smallere regel gaat op in de ruimere.", "naam_als_alternatieve_term": False})
     assert r.status_code == 200, r.text
     assert r.json()["inhoud"]["alternatieve_termen"] == a["inhoud"].get("alternatieve_termen", [])
+
+
+# --- B8: de geldigheid (plan lessen Termijnen §10; besluit eigenaar 25 nov 2026) ---------------------------------------
+
+def test_de_geldigheid_is_een_datum_en_eindigt_niet_voor_ze_begint():
+    import pytest
+    from pydantic import ValidationError
+    from app.begrip_contracts import BegripInhoud
+    assert BegripInhoud(naam="x", geldig_vanaf="2026-01-01").geldig_tot == ""
+    for fout in ({"geldig_vanaf": "1-1-2026"}, {"geldig_vanaf": "2026-02-30"},
+                 {"geldig_vanaf": "2026-03-01", "geldig_tot": "2026-02-28"}):
+        with pytest.raises(ValidationError):
+            BegripInhoud(naam="x", **fout)
+
+
+async def test_een_nieuwe_betekenis_per_datum_sluit_het_oude_begrip_af(client):
+    ids = await _annoteer()
+    await _beslis(ids["lid1"], "approve", snapshot())
+    wg = await _werkgebied(client)
+    oud = await _geaccordeerd(client, wg, [ids["lid1"]])
+    r = await client.post(_url(wg, oud, "nieuwe-betekenis"), json={
+        "verwachte_revisie": oud["revisie"], "reden": "Wetswijziging.", "geldig_vanaf": "2027-01-01"})
+    assert r.status_code == 201, r.text
+    nieuw = r.json()
+    assert (nieuw["inhoud"]["geldig_vanaf"], nieuw["inhoud"]["geldig_tot"]) == ("2027-01-01", "")
+    o = (await client.get(_url(wg, oud))).json()
+    assert o["inhoud"]["geldig_tot"] == "2026-12-31" and o["status"] == "vervangen"
+    # Een ingangsdatum vóór die van het oude begrip kan niet.
+    r = await client.post(_url(wg, nieuw, "nieuwe-betekenis"), json={
+        "verwachte_revisie": nieuw["revisie"], "reden": "x", "geldig_vanaf": "2026-06-01"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geldig_vanaf"

@@ -683,8 +683,8 @@ markeringen per bepaling). Het pad staat in het bericht bij de PR-sessie, niet h
 
 ## 9. Wat niet is nagegaan
 
-- **De originelen van de methode** (het boek, de Handleiding, de Leidraad) zijn voor dit plan niet opnieuw gelezen. §2
-  steunt op de skill en op `plan-lessen-e2e-termijnen.md` §0.
+- ~~**De originelen van de methode** (het boek, de Handleiding, de Leidraad) zijn voor dit plan niet opnieuw gelezen.~~
+  Nagegaan op 25 nov 2026: zie §10.
 - ~~**Waarom de markeringen in Leidraad 9.5 zijn afgewezen.**~~ Nagegaan op 24 nov 2026 (V8): 42 van de 50 met de reden
   "Rekenvoorbeeld, niet de regel", alle in de voorbeeldzinnen; zie V8 en `metingen/keten-rekenvoorbeelden-2026-11-24/`.
 - **De afbeeldingen** in de export (de gemarkeerde teksten van activiteit 2 en de schermafdrukken van de regels in de
@@ -697,3 +697,176 @@ markeringen per bepaling). Het pad staat in het bericht bij de PR-sessie, niet h
 - **Wat de keten zou voorstellen op een schoon werkgebied.** Er is geen run van Lex gestart; de vergelijking gaat over
   wat er op acceptatie ligt, na beoordeling door het agentteam.
 - **De vijf andere trajecten** in de begrippenbibliotheek zijn alleen geteld, niet vergeleken.
+
+## 10. Naast de bronnen van de methode (25 nov 2026)
+
+Gelezen, lokaal en in eigen woorden: de Handleiding (M02) §3.5 (activiteit 3), §3.6 (activiteit 4), §3.7 (activiteit 5)
+en §3.8 (het kennismodel); de Leidraad (M03) §2.4 (de deelactiviteiten per hoofdactiviteit); het boek (M01) h.3 stap 3
+en 4 en h.4 de klassen Voorwaarde, Afleidingsregel en Variabele. Daarnaast de skill en de code op master (`d10beadb`).
+De Handleiding is de actuele versie van h.3 van het boek. Waar ze verschillen, volgt dit plan de Handleiding.
+
+### 10.1 Wat de bronnen bevestigen
+
+Hier hoeft niets te gebeuren. De bronnen zeggen hetzelfde als het plan of de skill, of het staat er al.
+
+| onderwerp | de bron | stand |
+|---|---|---|
+| "bepalen <uitvoer>" zonder lidwoord | M02 §3.5.2a: de naam van een afleidingsregel of rechtsfeit begint met een werkwoord, en een naam begint nooit met een lidwoord of voorzetsel | besluit 5b en het gat `regelbegrip_bepalen_van` (#1852) |
+| het object of de wet in de naam | M02 §3.5.2a: voeg de context toe als hetzelfde woord in verschillende wetten iets anders aanduidt | besluit 5a; V10 |
+| ja/nee en waardebereik | M01 h.4 *Variabele*: een waarde is een getal of datum, tekst, een opsomming of een booleaanse waarde; M02 §3.5.2a noemt de soort als eigenschap | V2 gebouwd; M1 wacht op een meting |
+| klasse op het begrip | M02 §3.8.2a: de begrippenlijst van het kennismodel noemt per begrip de klasse | V2 gebouwd |
+| ontleding in hulpregels | M01 h.4 *Afleidingshiërarchie*; het uitgewerkte voorbeeld in M02 §3.5.5c is een keten van regels die elkaars uitvoer gebruiken | §5a; V9 op HOLD |
+| de voorbeeldreeks per regel | M02 §3.6.2b en M03 ad 4b: per regel elk in- en uitvoerbegrip een waarde, om te toetsen of de uitkomst juridisch juist en volledig is | V3 gebouwd |
+| de regeltaal voor voorwaarden | M02 §3.5.5c: "aan alle volgende voorwaarden" of "ten minste één", ook genest, en "moet berekend worden als" | staat in `api/app/regeltekst.py` |
+| een operator krijgt een begrip | M02 §3.5.2b: "verminderd met" wordt het begrip "min" | besluit 2 (houden) |
+| interpretatie en ontbrekend uitvoeringsbeleid | M02 §3.5.3 en §3.7; M03 ad 5 | open punten, met een bronsoort per lezing |
+| een betekeniswijziging geeft een nieuw begrip | M02 §3.5.2a | de opvolger (spoor M); de geldigheid ontbreekt, zie B3 |
+
+### 10.2 Wat er nog ontbreekt
+
+De punten staan in de volgorde waarin ze het meeste opleveren voor de minste moeite. Ze zijn generiek: geen enkel
+punt kent een bepaling of begrip uit Termijnen. Geen punt raakt de tekst tussen de methodemarkers, dus geen punt vraagt
+een meting. B2 vraagt er wel een als de begrippenketen de naamregels ook gaat toepassen.
+
+**B1 · Twee verouderde zinnen in de skill** (`references/begrippen.md`; S; geen meting)
+- `references/begrippen.md` (§*Begrippen*) zegt dat je geen begripstype of JAS-duiding voorstelt. Bij het waardebereik
+  zegt het dat het platform er geen veld voor heeft en dat het in de toelichting moet. Sinds V2 (#1833) heeft het begrip
+  een afgeleide klasse met een keuze van de analist (`klasse_keuze`), en een veld `waardebereik`.
+- Oplossing:
+  - zeg dat de klasse uit de markeringen komt en dat de analist haar met een reden kan verleggen;
+  - zeg dat het waardebereik in zijn eigen veld staat.
+- Het bestand staat buiten de methodemarkers, maar is een build-input: het bronpakket wordt opnieuw gegenereerd.
+
+**B2 · De naamregels van de methode als signaal** (api `begrip_store.eenduidigheid`; S; geen meting)
+- Probleem: M02 §3.5.2a geeft vuistregels voor de naam en de definitie. De skill noemt er een deel van. De code toetst
+  alleen de kringdefinitie, de rekenregel in de definitie, de homoniem en de parameterwaarde, en bij een regelbegrip de
+  vorm "bepalen van het".
+- Oplossing: een aandachtspunt, geen poort, voor wat mechanisch te zien is:
+  - de naam begint met een lidwoord of voorzetsel;
+  - de naam begint met een hoofdletter;
+  - er staat een Romeins cijfer in de naam;
+  - er staat een ontkenning in de naam ("niet", "geen");
+  - het woord "voor" staat in de naam;
+  - de definitie eindigt op een punt.
+- De regels die zich niet mechanisch laten toetsen, komen in de skill, in §*De naam*:
+  - het enkelvoud, behalve waar het meervoud iets anders betekent;
+  - een afkorting in de naam staat voluit in de definitie;
+  - gebruik in de naam begrippen die er al zijn.
+- `regelbegrip_bepalen_van` (#1852) is één geval van de eerste regel. Hij gaat in dezelfde toets op, of blijft het gat
+  bij de regel met de naam als voorstel.
+- Eerst nagaan: hoe schrijft Lex nu definities (met of zonder slotpunt), en wat schrijft NL-SBB voor? Botsen die met
+  M02, dan beslist de eigenaar. Laat de begrippenketen de regels ook toepassen bij het voorstellen, dan is dat een
+  wijziging van gedrag, en dus een meting (ADR-010).
+
+**B3 · Ontbrekende waarden in een voorbeeldreeks** (api `regel_store.past_in`; S; geen meting)
+- Probleem: in M01 stap 4a staan in de voorbeeldreeks met opzet kolommen met een onbekende invoer. Zo toets je of de
+  regels compleet zijn. `past_in` geeft bij "onbekend" in een datumveld `False`, dus een onterecht signaal.
+- Oplossing: "onbekend", "leeg" en "n.v.t." passen in elk waardebereik (`None`), met een test. Neem in de skill
+  (`references/afleidingsregels.md`, *Toetsen met een voorbeeldtabel*) op dat een kolom met een onbekende invoer erbij
+  hoort.
+
+**B4 · De controlemiddelen van activiteit 4 als signaal** (api, inventaris; S–M; geen meting)
+- M02 §3.6.1 noemt vaste controles. Twee ervan raken activiteit 3, en geen van beide wordt nu gemeld.
+  - **Elk begrip heeft een definitie en minstens één voorbeeld.** De poort vraagt nu een definitie en een toelichting,
+    geen voorbeeld. Voorstel: een aandachtspunt "nog geen voorbeeld". Of het een voorwaarde voor accorderen wordt, is een
+    vraag aan de eigenaar, want het verandert de werkwijze van het acceptatieteam (M5).
+  - **Bij elke variabele staat van welk object zij een kenmerk is.** De relatie `kenmerk` bestaat in de catalogus, maar
+    niets meldt een variabele zonder die relatie. Voorstel: een signaal in de inventaris bij een Variabele zonder
+    actieve relatie `kenmerk`. Dat geldt ook voor een Tijdsaanduiding die een variabele verbijzondert (M3).
+- Het tweede punt geeft V10 houvast: het object volgt dan uit de relatie, niet uit de naam.
+
+**B5 · Het voorbeeld bij een begrip als stelling met toelichting** (api `begrip_contracts.Voorbeeld`, kaart, skill; S;
+geen meting)
+- Probleem: in M03 ad 3a en het uitgewerkte voorbeeld in M02 §3.5.5b is elk voorbeeld bij een begrip een stelling. Ze
+  is waar of niet waar en heeft een toelichting die zegt waarom. Er zijn ook met opzet onware stellingen bij. Lex heeft
+  de tekst en een oordeel (`wel`, `niet`, `onzeker`), maar geen toelichting. De skill (§*De vorm van een voorbeeld*)
+  noemt de stelling niet.
+- Oplossing:
+  - een optioneel veld `toelichting` bij het voorbeeld, met dezelfde vorm als bij een regelvoorbeeld;
+  - in de skill één alinea: een voorbeeld bij een begrip is een stelling die waar of niet waar is, en de toelichting
+    zegt waarom. M03 maakt dat onderscheid zelf: zo'n stelling toetst de naam en de definitie, en de voorbeeldreeks
+    toetst de regel.
+- Stelt de begrippen-agent de voorbeelden voor, dan valt de toelichting onder de meting van M1.
+- **Eerst een besluit van de eigenaar.** Spoor I1 (#753, 27 okt 2026) heeft de toelichting bij een voorbeeld bewust
+  geschrapt, om het model gelijk te trekken met NL-SBB. Het waarom staat sindsdien in de motivatie van het voorstel van
+  Lex, en niet bij het voorbeeld zelf. Dit punt draait dat terug, zoals V2 dat met P15 deed. **Besluit van de eigenaar
+  (25 nov 2026): de toelichting komt terug.** Gebouwd in dezelfde PR als B1 en B3.
+
+**B6 · De subklasse op het begrip** (api `klasse_van`, kaart; S; geen meting)
+- Probleem: volgens M01 stap 3a en M02 §3.5.2a horen bij de eigenschappen van een begrip de klasse en haar verdieping,
+  zoals de soort rechtsbetrekking of rechtsfeit. V2 leidt de klasse af. Het subtype staat wel op de markering
+  (`JAS_SUBTYPEN`), maar niet op het begrip.
+- Oplossing: leid het subtype af zoals de klasse, uit de dragende markeringen, en toon het naast de klasse. Geen nieuw
+  invoerveld: wijkt het af, dan kiest de analist het op de markering.
+
+**B7 · Primaire bron en interpretatiebron** (skill `references/werkgebied.md` en `references/begrippen.md`; S; geen
+meting)
+- Probleem: volgens M03 §2.4 en M02 §3.7 zijn de parlementaire geschiedenis en de jurisprudentie geen primaire bron
+  maar een interpretatiebron. Ze worden pas primair als de wet of een beleidsregel ze overneemt. Afwijkende
+  jurisprudentie neem je niet over zonder een standpunt van het verantwoordelijke ministerie, en jurisprudentie die de
+  gangbare lezing steunt, noem je in de toelichting (M02 §3.5.4). De skill kent de rollen *analyseren* en *context*,
+  maar zegt dit niet. De open punten kennen de bronsoorten wel.
+- Oplossing:
+  - één alinea in `werkgebied.md` bij de rol van een bron: een interpretatiebron heeft de rol *context*;
+  - één alinea in `begrippen.md`: jurisprudentie en wetsgeschiedenis onderbouwen een lezing in de toelichting of in
+    een open punt, maar dragen geen begrip.
+- Het gat `rust_op_contextbron` doet dit al voor een regel.
+
+**B8 · De geldigheid van een begrip** (api, projectie; M; besluit van de eigenaar)
+- Probleem: volgens M01 stap 3a en M02 §3.5.2a horen bij een begrip een ingangsdatum en, als die bekend is, een
+  einddatum. Wijzigt de betekenis, dan komt er een nieuw begrip, en de data op het oude en het nieuwe begrip leggen
+  vast per wanneer. Lex legt bij een opvolger vast wanneer iemand het oude begrip verving. Dat is de datum van de
+  registratie, niet de juridische datum.
+- Voorstel: optionele velden `geldig_vanaf` en `geldig_tot` op het begrip. De opvolger stelt de ingangsdatum voor uit
+  de versie van de dragende passage, en het oude begrip krijgt de dag ervoor als einddatum. De velden gaan buiten de
+  kern van NL-SBB mee, net als het waardebereik (ADR-003).
+- Ook hier heeft spoor I1 (#753) een veld `geldigheid` geschrapt, samen met de JAS-duiding en de eigenschappen. V2 haalde
+  de klasse terug; dit punt zou de geldigheid terughalen.
+- Vraag aan de eigenaar: een eigen veld, of afleiden uit de versies van de bronnen waarop het begrip rust? Het tweede
+  is minder werk voor de analist, maar mist een wijziging die uit jurisprudentie komt.
+
+**B9 · Een signaal aan de wetgever** (api `open_punt_contracts`; S; besluit van de eigenaar)
+- Probleem: volgens M02 §3.5.2a signaleer je synoniemen, homoniemen en inconsistenties tussen termen bij de
+  wetgevingsafdeling, zodat de wetgever ze bij een volgende wijziging kan oplossen. Lex kan bij een open punt alleen
+  *gesignaleerd* zeggen als het om ontbrekend uitvoeringsbeleid gaat.
+- Voorstel: *gesignaleerd* ook bij een interpretatiekeuze, met de geadresseerde (beleid of wetgever) erbij. Een nieuwe
+  soort is niet nodig.
+
+### 10.2a Besluiten van de eigenaar (25 nov 2026)
+
+| punt | besluit | gevolg |
+|---|---|---|
+| B4 | **alleen een signaal**: "nog geen voorbeeld" is een aandachtspunt, geen voorwaarde voor accorderen | gaat mee in de signalenbundel met B2 en B6 |
+| B5 | **de toelichting komt terug** | gebouwd in #1861 |
+| B8 | **een eigen veld** `geldig_vanaf` / `geldig_tot`; de opvolger stelt de ingangsdatum voor uit de versie van de dragende passage | eigen PR (api, projectie, kaart, rapport) |
+| B9 | ***gesignaleerd* ook bij een interpretatiekeuze**, met de geadresseerde (beleid of wetgever); geen nieuwe soort | eigen kleine PR |
+| V9 / R5 | **eerst M1 meten**; R5 blijft op HOLD | M1 als lichte meting (één run, Termijnen, de ja/nee-begrippen van V1 als toets) |
+
+### 10.3 Wat buiten deze methode valt
+
+- **Juridische scenario's** (activiteit 1c, 3c en 4a in M02 en M03): de begintoestand, het rechtsfeit, de
+  rechtsgevolgen en de eindtoestand per gebeurtenis. Dat is de skill *wetsuitvoering* (JRM), en de methodes blijven
+  gescheiden (`plan-methodes-scheiden.md`). Met een wetsanalyse verbonden is alleen de verwijzing van een scenario naar
+  het dossier.
+- **Het kennismodel** (activiteit 6): het gegevens-, regel- en procesmodel. De begrippenlijst die M02 §3.8.2a noemt,
+  is met V2 en B6 compleet: naam, definitie, de formulering in de primaire bron, de klasse, de voorbeelden, de
+  eigenschappen, de relaties en de interpretatiebronnen. De rest valt onder RegelSpraak, en dat is nog geen
+  functionaliteit.
+- **Het diagram per centrale klasse** en de volgorde waarin je gebeurtenissen afwerkt (M02 §3.4, M03 ad 2c): dat zit in
+  activiteit 2 en het diagram (`api/app/diagram.py`), niet in dit plan.
+
+### 10.4 Volgorde
+
+1. B1, B3 en B5, in één bundel: kleine correcties in de skill en het model, zonder gedragsverandering. **Gebouwd** (PR
+   #1861, branch `claude/bundel-methodebronnen-1`); B5 na het besluit van de eigenaar.
+2. B2, B4 en B6, in één bundel met signalen. **Gebouwd** (PR #1864). Nagegaan voor B2: NL-SBB schrijft geen slotpunt
+   voor, en de begrippenketen haalt hem bij een brondefinitie al weg; geen botsing.
+3. B7, met B1, als de skill toch wordt gewijzigd.
+4. B8 en B9: besloten (§10.2a), elk een eigen PR. B8 **gebouwd** (PR #1866): de velden, en de datum bij een nieuwe
+   betekenis. Niet gebouwd: de ingangsdatum voorstellen uit de versie van de passage (een passage draagt geen
+   versiedatum), en de geldigheid in de NL-SBB-projectie en het rapport (dat kan samen met het waardebereik). B9 **gebouwd**
+   (PR #1868): *gesignaleerd* bij een interpretatiekeuze, met de geadresseerde (beleid of wetgever).
+5. M1, als lichte meting; R5 en V9 blijven op HOLD.
+
+B2 en B6 raken `api/app/begrip_store.py`, en B3 raakt `api/app/regel_store.py`. Er werkt één schrijver tegelijk aan
+een bestand.

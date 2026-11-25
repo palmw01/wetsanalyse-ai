@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: reguliere-regeling-niet-in-de-bron
+expected_outcome: |
+  Een toetsrapport dat de regeling van 24 maanden als mogelijk onjuist of onvolledig aanwijst: de bron zegt ten
+  hoogste twaalf maanden, en langer alleen bij bijzondere omstandigheden. De beslistermijn van 8 weken is niet in de
+  bron, niet mogelijk onjuist. Het formulier en het opsturen zijn niet getoetst (procesinformatie). Dat te weinig
+  betalingscapaciteit leidt tot behandeling als verzoek om kwijtschelding, staat als onvolledig of ontbreekt.

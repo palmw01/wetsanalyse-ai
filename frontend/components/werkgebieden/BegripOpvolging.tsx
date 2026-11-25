@@ -26,6 +26,7 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
 }) {
   const [fout, setFout] = useState<string | null>(null);
   const [reden, setReden] = useState("");
+  const [geldigVanaf, setGeldigVanaf] = useState("");
   const [ander, setAnder] = useState("");
   // Een generiek begrip krijgt zijn nieuwe betekenis in een werkgebied met passages: die gaan mee naar de opvolger.
   const bronnen = (begrip.gebruik ?? []).filter((g) => g.passages > 0);
@@ -68,7 +69,7 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
           {soort === "nieuw" ? (
             <form aria-label="Nieuwe betekenis" className="space-y-2" onSubmit={(e) => {
               e.preventDefault();
-              const body = { verwachte_revisie: begrip.revisie, reden: reden.trim() };
+              const body = { verwachte_revisie: begrip.revisie, reden: reden.trim(), geldig_vanaf: geldigVanaf };
               if (!reden.trim() || (!id && !herkomstWg)) return;
               void voer(() => id ? geefNieuweBetekenis(id, begrip.id, body)
                 : geefGeneriekNieuweBetekenis(begrip.id, { ...body, werkgebied_id: herkomstWg }));
@@ -93,6 +94,11 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
               )}
               <Input autoFocus value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom de betekenis verandert"
                 aria-label="Reden voor de nieuwe betekenis" maxLength={2000} />
+              <label className="block text-xs text-muted">
+                Geldig vanaf (leeg als het niet vastligt): dit begrip geldt dan tot en met de dag ervoor.
+                <Input type="date" value={geldigVanaf} onChange={(e) => setGeldigVanaf(e.target.value)}
+                  aria-label="Geldig vanaf" className="mt-1" />
+              </label>
               <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={!!reden.trim() && (!!id || !!herkomstWg)} opslaanTekst="Maak opvolger" />
             </form>
           ) : soort === "generiek" ? (

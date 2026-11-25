@@ -110,7 +110,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
 
         <div className="flex min-w-0 flex-1 flex-col">
         <MobieleTopbar titel="Annotaties" onOpenSidebar={() => setDrawerOpen(true)} />
-        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto">
+        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto outline-none">
           <div className="mx-auto w-full max-w-5xl px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <header className="mb-5">
               <h1 className="font-display text-lg font-semibold text-lint">Annotaties</h1>
