@@ -801,6 +801,16 @@ meting)
 - Voorstel: *gesignaleerd* ook bij een interpretatiekeuze, met de geadresseerde (beleid of wetgever) erbij. Een nieuwe
   soort is niet nodig.
 
+### 10.2a Besluiten van de eigenaar (25 nov 2026)
+
+| punt | besluit | gevolg |
+|---|---|---|
+| B4 | **alleen een signaal**: "nog geen voorbeeld" is een aandachtspunt, geen voorwaarde voor accorderen | gaat mee in de signalenbundel met B2 en B6 |
+| B5 | **de toelichting komt terug** | gebouwd in #1861 |
+| B8 | **een eigen veld** `geldig_vanaf` / `geldig_tot`; de opvolger stelt de ingangsdatum voor uit de versie van de dragende passage | eigen PR (api, projectie, kaart, rapport) |
+| B9 | ***gesignaleerd* ook bij een interpretatiekeuze**, met de geadresseerde (beleid of wetgever); geen nieuwe soort | eigen kleine PR |
+| V9 / R5 | **eerst M1 meten**; R5 blijft op HOLD | M1 als lichte meting (één run, Termijnen, de ja/nee-begrippen van V1 als toets) |
+
 ### 10.3 Wat buiten deze methode valt
 
 - **Juridische scenario's** (activiteit 1c, 3c en 4a in M02 en M03): de begintoestand, het rechtsfeit, de
@@ -820,7 +830,8 @@ meting)
    #1861, branch `claude/bundel-methodebronnen-1`); B5 na het besluit van de eigenaar.
 2. B2, B4 en B6, in één bundel met signalen. Eerst de toets uit B2 (slotpunt, NL-SBB).
 3. B7, met B1, als de skill toch wordt gewijzigd.
-4. B8 en B9, na het besluit van de eigenaar.
+4. B8 en B9: besloten (§10.2a), elk een eigen PR.
+5. M1, als lichte meting; R5 en V9 blijven op HOLD.
 
 B2 en B6 raken `api/app/begrip_store.py`, en B3 raakt `api/app/regel_store.py`. Er werkt één schrijver tegelijk aan
 een bestand.
