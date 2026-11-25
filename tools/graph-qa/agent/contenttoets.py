@@ -23,6 +23,8 @@ _PEILDATUM = re.compile(r"^\s*peildatum\s*[=:]?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}-\d{
 
 UIT = ("De contenttoets staat in deze omgeving nog niet aan. Hij is in proef op acceptatie; zodra hij hier beschikbaar "
        "is, toets je een tekst met /contenttoets en de tekst erachter.")
+UIT_IN_GESPREK = ("De contenttoets staat in dit gesprek uit. Zet hem aan in Bronnen en tools, boven het invoerveld, en "
+                  "stuur de tekst opnieuw met /contenttoets ervoor.")
 LEEG = ("Plak de tekst die ik moet toetsen achter /contenttoets. Wil je toetsen tegen een andere datum dan vandaag, zet "
         "dan vooraan peildatum=2026-03-01.")
 TE_LANG = ("Deze tekst is langer dan {max} tekens. Toets hem in delen, bijvoorbeeld per kop, zodat elk rapport "

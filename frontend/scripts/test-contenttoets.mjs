@@ -4,8 +4,10 @@
  * en draai `node scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
  *
  * Bewaakt:
+ *  - de plugin staat in *Bronnen en tools* (C4); uitgezet is `/contenttoets` uit het menu, aangezet weer erin;
  *  - `/content` toont `/contenttoets` in het menu; Enter vult het commando aan en verstuurt niets;
- *  - met tekst erachter is het menu dicht, en Enter verstuurt de hele tekst als vraag, zonder actie of doel;
+ *  - met tekst erachter is het menu dicht, en Enter verstuurt de hele tekst als vraag, zonder actie of doel, met de
+ *    plugins van het gesprek;
  *  - het rapport staat als blok in het gesprek: de telling, *Voor de redacteur*, per bewering het oordeel met de
  *    letterlijke bron en de vindplaats, het voorstel van Lex, *Ontbreekt* en *Niet getoetst*;
  *  - op een telefoon (390 px) loopt niets buiten beeld.
@@ -76,6 +78,8 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/annotatie/run") return route.fulfill({ json: null });
   if (p === "/api/annotatie/run/r1/events") return route.fulfill({ contentType: "text/event-stream", body: sse(STROOM) });
+  if (p === "/api/plugins") return route.fulfill({ json: { aan: ["contenttoets"], plugins: [{ naam: "contenttoets",
+    label: "Contenttoets", beschrijving: "Toetst content op juistheid en volledigheid.", commando: "contenttoets" }] } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   return onbekend(route, { stil: SCHIL, leeg: [] });
@@ -85,6 +89,23 @@ try {
   await page.goto(`${base}/workbench`);
   const veld = page.locator('[data-tour="invoer"] textarea');
   const menu = page.locator("[data-commandomenu]");
+
+  // De plugin staat in *Bronnen en tools*: uitgezet is het commando weg, aangezet weer terug.
+  const bronnenKnop = page.locator("[data-connectors-menu]");
+  await bronnenKnop.waitFor();
+  assert.ok(await bronnenKnop.locator('[data-plugin="contenttoets"][data-aan]').count(), "de plugin staat standaard aan");
+  await bronnenKnop.click();
+  const pluginsMenu = page.locator("[data-plugins-menu]");
+  if (shots) { await pluginsMenu.waitFor(); await page.screenshot({ path: `${shots}/contenttoets-bronnen-en-tools-1440.png` }); }
+  await pluginsMenu.getByText("Contenttoets", { exact: true }).click();
+  await page.keyboard.press("Escape");
+  await veld.fill("/content");
+  await page.waitForTimeout(200);
+  assert.equal(await menu.getByText("/contenttoets").count(), 0, "uitgezet staat het commando niet in het menu");
+  await veld.fill("");
+  await bronnenKnop.click();
+  await pluginsMenu.getByText("Contenttoets", { exact: true }).click();
+  await page.keyboard.press("Escape");
 
   // Het commando staat in het menu en vult aan; er gaat niets weg.
   await veld.fill("/content");
@@ -102,6 +123,7 @@ try {
   assert.equal(runs.length, 1);
   assert.equal(runs[0].question, `/contenttoets ${CONTENT}`);
   assert.ok(!runs[0].actie && !runs[0].doel, "graph-qa herkent het commando zelf");
+  assert.deepEqual(runs[0].plugins, ["contenttoets"], "de beurt draagt de plugins van het gesprek");
 
   // Het rapport in het gesprek.
   const rapport = page.locator("[data-contenttoets]");

@@ -17,3 +17,32 @@ describe("de spiegel van bronmodel/plugins.py", () => {
     }
   });
 });
+
+import { actievePlugins, beurtPlugins, parsePlugins, wisselPlugin } from "./plugins";
+
+const CT = { naam: "contenttoets", label: "Contenttoets", beschrijving: "", commando: "contenttoets" };
+
+describe("de pluginstand van een gesprek", () => {
+  it("zonder eigen keuze staat aan wat de beheerder aanbiedt", () => {
+    expect(actievePlugins({ aangeboden: [CT], gesprek: null })).toEqual(["contenttoets"]);
+    expect(actievePlugins({ aangeboden: [], gesprek: ["contenttoets"] })).toEqual([]);
+  });
+
+  it("een keuze van het gesprek gaat voor, en wisselen zet hem om", () => {
+    expect(actievePlugins({ aangeboden: [CT], gesprek: [] })).toEqual([]);
+    expect(wisselPlugin({ aangeboden: [CT], gesprek: null }, "contenttoets")).toEqual([]);
+    expect(wisselPlugin({ aangeboden: [CT], gesprek: [] }, "contenttoets")).toEqual(["contenttoets"]);
+    expect(wisselPlugin({ aangeboden: [CT], gesprek: [] }, "onbekend")).toEqual([]);
+  });
+
+  it("de beurt draagt de stand alleen als er iets aangeboden is", () => {
+    expect(beurtPlugins({ aangeboden: [], gesprek: null })).toEqual({});
+    expect(beurtPlugins({ aangeboden: [CT], gesprek: [] })).toEqual({ plugins: [] });
+  });
+
+  it("leest streng wat de BFF teruggaf", () => {
+    expect(parsePlugins({ plugins: [CT, { naam: "onbekend", label: "x" }, { label: "zonder naam" }] })).toEqual([CT]);
+    expect(parsePlugins([])).toEqual([]);
+    expect(parsePlugins(null)).toEqual([]);
+  });
+});

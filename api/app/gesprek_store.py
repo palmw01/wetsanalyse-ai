@@ -175,6 +175,7 @@ class GesprekStore:
             profiel=d["profiel"] or "",
             gearchiveerd=db.aware(d["gearchiveerd"]),
             connectors=d["connectors"],
+            plugins=d.get("plugins"),
             berichten=[_bericht_uit_row(b) for b in berichten],
             created=db.aware(d["created"]),
             updated=db.aware(d["updated"]),
@@ -334,6 +335,7 @@ class GesprekStore:
         self, gesprek_id: str, *, titel: str | None = None,
         werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
         connectors: list[str] | None = None, connectors_zetten: bool = False,
+        plugins: list[str] | None = None, plugins_zetten: bool = False,
     ) -> None:
         """Titel, werkgebied of archief. Alleen een nieuwe titel telt als bijwerken (`updated`):
         verplaatsen of archiveren mag een gesprek niet bovenaan de lijst zetten."""
@@ -348,6 +350,8 @@ class GesprekStore:
         if connectors_zetten:
             # Geen `updated`: het menu omzetten zet een gesprek niet bovenaan de lijst.
             waarden["connectors"] = list(dict.fromkeys(connectors)) if connectors is not None else None
+        if plugins_zetten:
+            waarden["plugins"] = list(dict.fromkeys(plugins)) if plugins is not None else None
         if not waarden:
             return
         async with db.get_engine().begin() as conn:

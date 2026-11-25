@@ -1761,6 +1761,20 @@ Daaruit volgt:
   én `beheerder_met_2fa`: de BFF zet `X-User-Id` uit de sessie, een kaal admin-token (de admin-MCP) komt er niet
   door, en de `door` komt in `budget_audit`, append-only, met de oude en de nieuwe waarde.
 
+## Plugins (plan contenttoets, C4)
+
+`app/plugins.py`: het register van de plugins, in hetzelfde patroon als de bronconnectors hieronder. Welke er bestaan
+staat in de code (`bronmodel.plugins`: nu de contenttoets); het register zegt alleen of de beheerder hem aanbiedt
+(tabel `plugins`, een rij ontbreekt = uit), en elke wijziging is een regel in `plugin_audit`.
+
+- `GET /v1/admin/plugins`, `GET …/{naam}/audit`: admin-token; `PUT /v1/admin/plugins/{naam}` `{aan}`: een beheerder mét
+  2FA uit de sessie.
+- `GET /v1/plugins` (`routers/plugins.py`, `require_client`): `{aan, plugins}` voor de werkplek (het menu *Bronnen en
+  tools* en de commando's).
+- Per gesprek de eigen stand: `gesprekken.plugins` (JSON, `null` = wat de beheerder aanbiedt), te zetten met
+  `PATCH /v1/gesprekken/{id}` `{plugins}`. De werkplek stuurt de stand mee met de beurt; graph-qa draait een plugin alleen
+  als hij daarin staat én zijn straatvlag hem aanzet. `tests/test_plugins.py`.
+
 ## Bronconnectors (ADR-013)
 
 `app/connectors.py`: het register van de bronconnectors; de beheerroutes staan in `routers/admin.py`. **Welke er bestaan staat in de code** (`BEKEND`, gelijk aan

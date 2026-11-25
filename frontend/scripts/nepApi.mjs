@@ -45,7 +45,7 @@ export function stroomInDelen(events, { breek, ping = false }) {
 export const SCHIL = [
   /^GET \/api\/account\/me$/, /^GET \/api\/account\/verbruik$/, /^GET \/api\/berichten\/ongelezen-aantal$/,
   /^GET \/api\/connectors$/, /^GET \/api\/gesprekken$/, /^GET \/api\/annotatie\/run$/, /^POST \/api\/ui-spoor$/,
-  /^GET \/api\/werkgebieden\/[^/]+\/regels$/,
+  /^GET \/api\/werkgebieden\/[^/]+\/regels$/, /^GET \/api\/plugins$/,
 ];
 
 /** Beantwoord een pad dat de nep-api niet kent met 501 en onthoud het, tenzij het onder `stil` valt (een lijst van

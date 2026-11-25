@@ -103,7 +103,10 @@ def _contenttoets(b: Bouw, writer, state: State) -> dict[str, Any]:
     from .. import contenttoets as ct
 
     content, _ = ct.ontleed(state.get("question", ""))
-    reden = ct.UIT if not b.settings.contenttoets else ct.melding(content)
+    plugins = state.get("plugins")
+    reden = (ct.UIT if not b.settings.contenttoets
+             else ct.UIT_IN_GESPREK if plugins is not None and "contenttoets" not in plugins
+             else ct.melding(content))
     if reden:
         _stap(writer, "Lex", "toetst niet", route="contenttoets")
         return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
