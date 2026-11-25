@@ -70,13 +70,13 @@ async function nieuwePagina(viewport, account = nieuwAccount(), patches = []) {
 }
 
 const bubbel = (page) => page.locator("[data-rondleiding-bubbel]");
-const titel = async (page) => (await bubbel(page).locator("p").first().innerText()).trim();
+const titel = async (page) => (await bubbel(page).locator("[data-rondleiding-titel]").innerText()).trim();
 
 /** Blader met → tot de bubbel deze titel draagt. De focus staat na elke stap op de kop van de bubbel. */
 async function naarStap(page, gezocht) {
   for (let i = 0; i < 20; i++) {
     if ((await titel(page)) === gezocht) return;
-    await bubbel(page).locator("p").first().focus();
+    await bubbel(page).locator("[data-rondleiding-titel]").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(150);
   }
@@ -111,7 +111,7 @@ async function openenWachtOpKlik(page) {
   await page.locator('[data-tour="chip"]').click();
   await page.locator('[data-tour="wettekst"]').waitFor();
   await page.waitForFunction(() =>
-    document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === "Wettekst en markeringen");
+    document.querySelector("[data-rondleiding-titel]")?.textContent?.trim() === "Wettekst en markeringen");
 }
 
 const knop = (page) => page.getByRole("button", { name: "Laat me de werkplek zien" });
@@ -131,11 +131,22 @@ async function totHetSlot(page) {
  *  inhoud. `vast`: de stappen die een schermafbeelding krijgen (alle, of alleen Diagram en Graaf). */
 async function doorloop(page, vast = () => true) {
   const { width } = page.viewportSize();
-  await start(page);
-  const totaal = Number((await bubbel(page).innerText()).match(/Stap 1 van (\d+)/)[1]);
+  const vastleggen = async (naam) => {
+    // De indicator van de Next-devserver hoort niet bij de app.
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+    await page.waitForTimeout(500); // een venster schuift in
+    await page.screenshot({ path: `${schermMap}/rondleiding-${width}-${naam}.png` });
+  };
+  await page.goto(`${base}/workbench`);
+  await page.getByRole("button", { name: "Start de rondleiding" }).waitFor();
+  if (schermMap && vast("Welkom")) await vastleggen("00-welkom");
+  await page.getByRole("button", { name: "Start de rondleiding" }).click();
+  await bubbel(page).waitFor();
+  await binnenBeeld(page);
+  const totaal = Number((await bubbel(page).getAttribute("aria-label")).match(/stap 1 van (\d+)/)[1]);
   assert.equal(totaal, 12, "de rondleiding heeft twaalf stappen");
   for (let n = 1; n <= totaal; n++) {
-    await page.waitForFunction((nr) => document.querySelector("[data-rondleiding-bubbel]")?.textContent?.includes(`Stap ${nr} van`), n);
+    await page.waitForFunction((nr) => document.querySelector("[data-rondleiding-bubbel]")?.getAttribute("aria-label")?.includes(`stap ${nr} van`), n);
     const stap = await titel(page);
     if (stap === "Diagram") {
       await page.locator('[data-tour="diagram"] svg').first().waitFor();
@@ -152,7 +163,7 @@ async function doorloop(page, vast = () => true) {
     await binnenBeeld(page);
     if (schermMap && vast(stap)) {
       const naam = stap.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      await page.screenshot({ path: `${schermMap}/rondleiding-${width}-${String(n).padStart(2, "0")}-${naam}.png` });
+      await vastleggen(`${String(n).padStart(2, "0")}-${naam}`);
     }
     if (n === totaal) break;
     if (stap === "De annotatie openen") await page.locator('[data-tour="chip"]').click();
@@ -160,6 +171,7 @@ async function doorloop(page, vast = () => true) {
   }
   await bubbel(page).getByRole("button", { name: /Klaar|Afronden|Volgende/ }).click();
   await page.getByRole("button", { name: "Aan de slag" }).waitFor();
+  if (schermMap && vast("Slot")) await vastleggen("13-slot");
 }
 
 /** De levensloop van de knop, over twee computers. */
@@ -255,11 +267,11 @@ try {
   // --- Breed scherm ---
   const page = await nieuwePagina({ width: 1440, height: 1000 });
   await start(page);
-  assert.match(await bubbel(page).innerText(), /Stap 1 van \d+/);
+  assert.match(await bubbel(page).getAttribute("aria-label"), /stap 1 van \d+/);
 
   // Enter op de kop gaat verder; Enter op *Vorige* gaat terug.
   const eerste = await titel(page);
-  await bubbel(page).locator("p").first().focus();
+  await bubbel(page).locator("[data-rondleiding-titel]").focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(150);
   assert.notEqual(await titel(page), eerste, "Enter op de kop hoort een stap verder te gaan");
@@ -310,7 +322,7 @@ try {
   await verder.waitFor();
   await verder.click();
   await page.waitForFunction((t) =>
-    document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === t, waar);
+    document.querySelector("[data-rondleiding-titel]")?.textContent?.trim() === t, waar);
   await page.locator('[data-tour="wettekst"]').waitFor();
   await page.close();
 

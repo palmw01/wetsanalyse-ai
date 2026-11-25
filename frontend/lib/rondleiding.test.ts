@@ -49,16 +49,17 @@ describe("de stappenlijst", () => {
 
   it("gaat alleen over annoteren: geen werkgebieden, begrippen of afleidingsregels", () => {
     for (const s of STAPPEN) {
-      expect(`${s.tekst} ${s.waarom ?? ""}`, s.id).not.toMatch(/werkgebied|begrip|afleidingsregel/i);
+      expect(s.tekst, s.id).not.toMatch(/werkgebied|begrip|afleidingsregel/i);
     }
   });
 
-  it("houdt elke stap kort: hoogstens twee zinnen, en altijd een waarom", () => {
+  it("houdt elke stap kort en to the point: hoogstens twee zinnen, zonder motivatie", () => {
     // "Waarom?" is de naam van de uitklap op de kaart, geen zin.
     const zinnen = (t: string) => (t.replaceAll("Waarom?", "Waarom").match(/[.?!][”"]?(\s|$)/g) ?? []).length;
     for (const s of STAPPEN) {
       expect(zinnen(s.tekst), `${s.id}: ${s.tekst}`).toBeLessThanOrEqual(2);
-      expect(s.waarom, s.id).toBeTruthy();
+      expect(s.tekst.length, s.id).toBeLessThanOrEqual(170);
+      expect(Object.keys(s), s.id).not.toContain("waarom");
     }
   });
 
@@ -67,7 +68,7 @@ describe("de stappenlijst", () => {
     expect(i("diagram")).toBeLessThan(i("afronden"));
     expect(STAPPEN[i("diagram")].tab).toBe("diagram");
     expect(STAPPEN[i("graaf")].tab).toBe("graaf");
-    expect(STAPPEN[i("diagram")].waarom).toMatch(/afrond/i);
+    expect(STAPPEN[i("diagram")].tekst).toMatch(/vóór je afrondt/);
   });
 
   it("laat elke stap iets aanwijzen", () => {
@@ -748,7 +749,7 @@ describe("de dimlaag laat het gat echt door", () => {
   });
 
   it("laat de losse dimvlakken wél vangen", () => {
-    expect(bubbel).toContain("pointer-events-auto absolute bg-ink/55");
+    expect(bubbel).toContain("pointer-events-auto absolute bg-ink/40");
   });
 
   it("houdt de rand om het element doorlaatbaar", () => {

@@ -4,8 +4,10 @@ import { SluitKnop } from "@/components/ui/PaneelKop";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { knopKlasse } from "@/components/ui/Button";
+import { Melding } from "@/components/ui/Melding";
+import { Meter } from "@/components/ui/Meter";
 import {
-  klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
+  FASE_LABEL, klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
   type Afmeting, type Plaatsing, type Stap, type Vak,
 } from "@/lib/rondleiding";
 
@@ -15,9 +17,9 @@ const SPOT_MARGE = 6;
  *  Ruimer dan de spotlight: het gat mag best iets over de rand vallen, maar een meting die een paar
  *  pixels achterloopt mag nooit de knop afdekken waar de rondleiding juist om vraagt. */
 const GAT_MARGE = 14;
-const BUBBEL_BREEDTE = 340;
+const BUBBEL_BREEDTE = 360;
 /** Waar we vanuit gaan zolang de bubbel nog niet gemeten is (eerste frame van een stap). */
-const BUBBEL_HOOGTE_SCHATTING = 220;
+const BUBBEL_HOOGTE_SCHATTING = 230;
 
 interface Props {
   stap: Stap;
@@ -206,7 +208,7 @@ export function TourBubbel({
           <div
             key={i}
             onClick={() => setPulse(true)}
-            className="pointer-events-auto absolute bg-ink/55"
+            className="pointer-events-auto absolute bg-ink/40"
             style={{ top: v.top, left: v.left, width: v.breedte, height: v.hoogte }}
           />
         ))}
@@ -236,76 +238,56 @@ export function TourBubbel({
         )}
       </div>
 
+      {/* De bubbel heeft de vorm van een venster in de app (`DialoogKop`, `PaneelKop`): kop met de soort klein boven de titel
+          en het kruisje, dan de tekst, dan een voet met de voortgang en de knoppen. Geen eigen knopstijl: `knopKlasse`. */}
       <div
         ref={bubbelRef}
         data-rondleiding-bubbel=""
         role="dialog"
         aria-label={`Rondleiding, stap ${nummer} van ${totaal}: ${stap.titel}`}
-        className={`fixed z-[61] rounded-kaart border bg-paper p-4 shadow-kaart animate-rise transition-[border-color,box-shadow,transform] duration-200 motion-reduce:animate-none motion-reduce:transition-none ${
-          pulse ? "scale-[1.03] border-accent ring-2 ring-accent/40" : "border-line"
+        className={`fixed z-[61] overflow-hidden rounded-kaart border bg-paper shadow-kaart animate-rise transition-[border-color,box-shadow,transform] duration-200 motion-reduce:animate-none motion-reduce:transition-none ${
+          pulse ? "scale-[1.02] border-accent ring-2 ring-accent/40" : "border-line"
         }`}
         style={stijl}
       >
-        <div className="mb-2 flex items-start gap-2">
-          <p
-            ref={kopRef}
-            tabIndex={-1}
-            className="focus-ring min-w-0 flex-1 rounded font-display text-sm font-semibold text-lint outline-none"
-          >
-            {stap.titel}
-          </p>
-          <SluitKnop onSluit={onSluit} label="Rondleiding afsluiten" className="-mt-1" />
+        <div className="flex items-start gap-3 border-b border-line px-5 pb-3 pt-3.5">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted">{FASE_LABEL[stap.fase]} · {nummer} van {totaal}</p>
+            <p
+              ref={kopRef}
+              data-rondleiding-titel=""
+              tabIndex={-1}
+              className="focus-ring rounded font-display text-base font-semibold text-lint outline-none"
+            >
+              {stap.titel}
+            </p>
+          </div>
+          <div className="flex h-10 shrink-0 items-center">
+            <SluitKnop onSluit={onSluit} label="Rondleiding afsluiten" />
+          </div>
         </div>
 
-        <p className="text-meta leading-6 text-ink">{stap.tekst}</p>
-        {stap.waarom && (
-          <p className="mt-2 border-l-2 border-lint/30 pl-2.5 text-xs leading-5 text-muted">
-            <span className="font-semibold text-ink">Waarom: </span>
-            {stap.waarom}
-          </p>
-        )}
-        {gedaan && (
-          <p className="mt-2 rounded-kaart bg-aandacht-groen-bg px-2.5 py-1.5 text-xs text-aandacht-groen-tekst">
-            {gedaan}
-          </p>
-        )}
-
-        {/* Voortgang: een teller voor wie leest, streepjes voor wie scant. */}
-        <div className="mt-3.5 flex items-center gap-1" aria-hidden>
-          {Array.from({ length: totaal }, (_, i) => (
-            <span
-              key={i}
-              className={`h-1 flex-1 rounded-full ${i < nummer ? "bg-lint" : "bg-line"}`}
-            />
-          ))}
+        <div className="px-5 py-3.5">
+          <p className="text-sm leading-6 text-ink">{stap.tekst}</p>
+          {gedaan && <Melding type="bevestiging" compact className="mt-3">{gedaan}</Melding>}
         </div>
 
-        <div className="mt-2.5 flex items-center gap-2">
-          <span className="text-2xs text-faint">
-            Stap {nummer} van {totaal}
-          </span>
-          <button
-            type="button"
-            onClick={onSluit}
-            className="focus-ring ml-auto min-h-[24px] rounded px-1 text-xs text-muted underline underline-offset-2 transition-colors hover:text-ink coarse:min-h-[44px]"
-          >
-            Overslaan
-          </button>
-          <button
-            type="button"
-            onClick={onVorige}
-            disabled={!onVorige}
-            className="focus-ring min-h-[28px] rounded-knop-xs border border-line px-2.5 text-xs text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
-          >
-            Vorige
-          </button>
-          <button
-            type="button"
-            onClick={onVolgende}
-            className={knopKlasse("primary", "sm")}
-          >
-            {nummer === totaal ? "Afronden" : "Volgende"}
-          </button>
+        <div className="border-t border-line bg-surface/60 px-5 py-3">
+          <Meter percentage={(nummer / totaal) * 100} label={`Voortgang rondleiding: stap ${nummer} van ${totaal}`} dun />
+          <div className="mt-3 flex items-center gap-2">
+            <button type="button" onClick={onSluit} className={`${knopKlasse("ghost", "sm")} -ml-2`}>
+              Overslaan
+            </button>
+            <span className="ml-auto" />
+            {onVorige && (
+              <button type="button" onClick={onVorige} className={knopKlasse("secondary", "sm")}>
+                Vorige
+              </button>
+            )}
+            <button type="button" onClick={onVolgende} className={knopKlasse("primary", "sm")}>
+              {nummer === totaal ? "Afronden" : "Volgende"}
+            </button>
+          </div>
         </div>
       </div>
     </>

@@ -2387,7 +2387,10 @@ leest als "hij laadt", niet als "log eerst in".
   (25 nov 2026) gaat alleen over annoteren**, in twaalf stappen: oriëntatie (Lex, gesprek en zijbalk met alleen
   *Annotaties*), opdracht (vragen om een annotatie, Lex werkt), beoordelen (openen, wettekst, beoordelen, jij beslist,
   zelf markeren), samenhang (*Diagram* en *Graaf*, vóór het afronden) en afronden. Werkgebieden, begrippen en
-  afleidingsregels krijgen later een eigen deel; per stap hoogstens twee zinnen en een *waarom* (`rondleiding.test.ts`).
+  afleidingsregels krijgen later een eigen deel. To the point (besluit gebruiker 25 nov 2026): per stap hoogstens twee
+  korte zinnen, geen motivatie (`rondleiding.test.ts`). De bubbel (`TourBubbel`) heeft de vorm van een venster in de app:
+  de fase en de stap klein boven de titel, `SluitKnop`, de tekst, en een voet met `Meter` en knoppen uit `knopKlasse`; het
+  welkomst- en slotvenster gebruiken de kop van `Dialog` en `ButtonRow`.
   Een stap kiest de tab van het paneel (`Stap.tab`, `paneelTab`): de motor geeft hem via `WorkbenchShell` en
   `WerkplekClient` als `gevraagdeTab` aan `NodeAnnotatiePaneel`. De voorbeeldscène in `lib/rondleidingDemo.ts` is een
   v2-weergave met letterlijke wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de

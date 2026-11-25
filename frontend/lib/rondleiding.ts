@@ -14,6 +14,11 @@ export const RONDLEIDING_VERSIE = 4;
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
 export type Fase = "orientatie" | "opdracht" | "beoordelen" | "samenhang" | "afronding";
 
+/** De naam van een fase, klein boven de titel van de bubbel ("Beoordelen · 7 van 12"), zoals de soort boven een paneel. */
+export const FASE_LABEL: Record<Fase, string> = {
+  orientatie: "Oriëntatie", opdracht: "Opdracht", beoordelen: "Beoordelen", samenhang: "Samenhang", afronding: "Afronding",
+};
+
 /** De tab van het annotatiepaneel die een stap toont. Gelijk aan `PaneelTab` in `NodeAnnotatiePaneel`; hier herhaald
  *  zodat deze module zonder component te importeren blijft. */
 export type PaneelTabStap = "tekst" | "diagram" | "graaf";
@@ -26,8 +31,6 @@ export interface Stap {
   ankerSmal?: string;
   titel: string;
   tekst: string;
-  /** Waaróm dit onderdeel er is. Zonder deze regel leert een rondleiding alleen waar dingen staan. */
-  waarom?: string;
   fase: Fase;
   /** Moet het annotatie-artefact openstaan voordat deze stap iets kan aanwijzen? */
   artefactOpen?: boolean;
@@ -41,17 +44,15 @@ export interface Stap {
 }
 
 // Alleen annoteren (versie 4, 25 nov 2026): werkgebieden, begrippen en afleidingsregels krijgen later een eigen deel.
-// Per stap hoogstens twee zinnen en een waarom: wat het is en waarom het ertoe doet, geen uitleg per knop.
+// To the point (besluit gebruiker 25 nov 2026): per stap hoogstens twee korte zinnen, wat je ziet of doet. Geen
+// motivatie en geen uitleg per knop.
 export const STAPPEN: Stap[] = [
   {
     id: "lex",
     anker: "header",
     fase: "orientatie",
     titel: "Dit is Lex",
-    tekst:
-      "Lex helpt je bij wetsanalyse: hij haalt bepalingen uit de kennisgraaf, citeert letterlijk en stelt " +
-      "JAS-markeringen voor.",
-    waarom: "Lex is een hulpmiddel, geen vervanger. Wat hij voorstelt, beoordeel jij.",
+    tekst: "Lex haalt bepalingen uit de kennisgraaf, citeert letterlijk en stelt JAS-markeringen voor. Jij beoordeelt ze.",
   },
   {
     id: "gesprek",
@@ -59,30 +60,21 @@ export const STAPPEN: Stap[] = [
     ankerSmal: "sidebar-mobiel",
     fase: "orientatie",
     titel: "Gesprek en zijbalk",
-    tekst:
-      "Je werkt in het gesprek: vragen en opdrachten typ je in hetzelfde venster. In de zijbalk staan je " +
-      "gesprekken en onder Annotaties alle geannoteerde bepalingen, met wat nog te beoordelen is bovenaan.",
-    waarom: "Een annotatie is gedeeld werk en blijft bestaan als je het gesprek verwijdert.",
+    tekst: "Vragen en opdrachten typ je in het gesprek. Je annotaties vind je in de zijbalk onder Annotaties.",
   },
   {
     id: "vraag",
     anker: "invoer",
     fase: "opdracht",
     titel: "Vraag om een annotatie",
-    tekst:
-      "Typ bijvoorbeeld “Annoteer artikel 9 lid 1 van de Invorderingswet 1990”. Noem je een artikel met leden, " +
-      "dan laat Lex je eerst kiezen welke; een gewone vraag krijgt een antwoord met bronnen.",
-    waarom: "Je zoekt zelf geen wet op: Lex vindt de bepaling, dus je kunt geen verkeerd artikelnummer overtypen.",
+    tekst: "Typ bijvoorbeeld “Annoteer artikel 9 lid 1 van de Invorderingswet 1990”; bij leden kies je eerst welk. Een gewone vraag met bronnen kan ook.",
   },
   {
     id: "denkproces",
     anker: "denkproces",
     fase: "opdracht",
     titel: "Lex werkt",
-    tekst:
-      "Onder Denkproces volg je de stappen: de bron ophalen, de taalanalyse, de detectie, de keuze van het model " +
-      "en de review van twijfelgevallen.",
-    waarom: "De beurt draait op de server. Herladen of even weggaan kost je niets.",
+    tekst: "Onder Denkproces volg je wat Lex doet. De beurt loopt door als je herlaadt of weggaat.",
   },
   {
     id: "artefact-openen",
@@ -90,10 +82,7 @@ export const STAPPEN: Stap[] = [
     interactie: "openen",
     fase: "beoordelen",
     titel: "De annotatie openen",
-    tekst:
-      "De uitkomst is een annotatie om te beoordelen. Klik de kaart aan; op een breed scherm komt ze naast het " +
-      "gesprek te staan.",
-    waarom: "Zo kun je doorvragen terwijl je leest.",
+    tekst: "Klik de kaart aan om de annotatie te openen.",
   },
   {
     id: "wettekst",
@@ -101,10 +90,7 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "beoordelen",
     titel: "Wettekst en markeringen",
-    tekst:
-      "Dit is de letterlijke tekst uit de kennisgraaf, met elke markering in de kleur van haar JAS-klasse. " +
-      "Kies een markering en je ziet waar ze staat.",
-    waarom: "Elke markering wijst een stuk van deze tekst aan, dus alles is na te gaan tot artikel en lid.",
+    tekst: "De letterlijke wettekst, met elke markering in de kleur van haar JAS-klasse.",
   },
   {
     id: "beoordelen",
@@ -112,10 +98,7 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "beoordelen",
     titel: "Beoordelen",
-    tekst:
-      "Hier staan de voorstellen van Lex als kaarten, in de volgorde van de JAS-tabel. Begin bij Keuze voor jou: " +
-      "daar twijfelde Lex en besliste de review niet.",
-    waarom: "Een kaart zonder badge is een gewoon voorstel; aandacht gaat eerst naar waar jouw oordeel nodig is.",
+    tekst: "De voorstellen van Lex staan als kaarten in de volgorde van de JAS-tabel. Begin bij Keuze voor jou: daar twijfelde Lex.",
   },
   {
     id: "beslissen",
@@ -127,10 +110,7 @@ export const STAPPEN: Stap[] = [
     interactie: "akkoord",
     fase: "beoordelen",
     titel: "Jij beslist",
-    tekst:
-      "Probeer het: klik de kaart aan en lees onder Waarom? hoe Lex tot het voorstel kwam. Geef akkoord met het " +
-      "vinkje, kies via de klassebadge een andere klasse, of verwerp het voorstel met ×.",
-    waarom: "Elke beslissing komt in het auditspoor; een verworpen voorstel blijft zichtbaar, met jouw reden.",
+    tekst: "Klik de kaart aan en lees onder Waarom? hoe Lex tot het voorstel kwam. Geef akkoord met het vinkje, kies via de klassebadge een andere klasse of verwerp het met ×.",
   },
   {
     id: "zelf-markeren",
@@ -138,8 +118,7 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "beoordelen",
     titel: "Zelf markeren",
-    tekst: "Miste Lex iets? Selecteer zelf tekst en kies een klasse.",
-    waarom: "Wat jij vastlegt blijft staan: een volgende ronde van Lex laat het met rust.",
+    tekst: "Miste Lex iets? Selecteer de tekst en kies een klasse.",
   },
   {
     id: "diagram",
@@ -148,11 +127,7 @@ export const STAPPEN: Stap[] = [
     tab: "diagram",
     fase: "samenhang",
     titel: "Diagram",
-    tekst:
-      "Het diagram zet de markeringen rond de rechtsbetrekking bij elkaar, met hun relaties: wie de rechthebbende " +
-      "en de plichthebbende is, het voorwerp en de tijd (deelactiviteit 2c).",
-    waarom:
-      "Bekijk dit vóór je afrondt: Afronden vraagt eerst de samenhang, en na het afronden leg je geen relatie meer.",
+    tekst: "De markeringen rond de rechtsbetrekking, met hun relaties. Bekijk dit vóór je afrondt: daarna leg je geen relaties meer.",
   },
   {
     id: "graaf",
@@ -161,10 +136,7 @@ export const STAPPEN: Stap[] = [
     tab: "graaf",
     fase: "samenhang",
     titel: "Graaf",
-    tekst:
-      "De graaf toont de bepaling in de kennisgraaf: het artikel eromheen, de verwijzingen ernaar en de " +
-      "markeringen. Zoek een knoop en de graaf wijst hem aan.",
-    waarom: "Zo zie je wat er nog meer met deze bepaling samenhangt voordat je de annotatie vastzet.",
+    tekst: "De bepaling in de kennisgraaf, met het artikel eromheen en de verwijzingen ernaar. Zoek een knoop en de graaf wijst hem aan.",
   },
   {
     id: "afronden",
@@ -172,10 +144,7 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "afronding",
     titel: "Afronden en exporteren",
-    tekst:
-      "Afronden zet de annotatie vast; heropenen kan altijd. In het menu ⋯ exporteer je haar als PDF, CSV, JSON " +
-      "of RDF, ook halverwege.",
-    waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
+    tekst: "Afronden zet de annotatie vast; heropenen kan altijd. Exporteren doe je via het menu ⋯.",
   },
 ];
 
