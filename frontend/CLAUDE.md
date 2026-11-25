@@ -653,6 +653,12 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
   aan te zetten is), `/context` (de contextweergave naast het gesprek, zie hieronder) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
   (sessie contextbeheer, 12 nov 2026), dus samenvatten levert bijna geen tokens op.
+- **Plugincommando's** (`PLUGIN_COMMANDOS`, uit `lib/plugins.ts`, de spiegel van `bronmodel/plugins.py`): een plugin naast
+  de wetsanalyse met tekst erachter, nu `/contenttoets <tekst>` (plan `docs/architectuur/plan-contenttoets.md`). Enter op de
+  regel vult het commando aan; met tekst erachter is het menu dicht en gaat de hele tekst als gewone vraag naar Lex, die het
+  commando zonder model herkent (graph-qa `agent/contenttoets.py`). Geen actie of doel op de beurt. Het rapport is het blok
+  `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). Browserregressie:
+  `scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
 - **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
   actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf
   C1 toetst een drift-test dat elke actie van een commando een ingang van een onderdeel is.

@@ -230,6 +230,11 @@ de centrale agent), het profiel `.claude/lex-agents/contenttoets.md`, de route (
 `contenttoets`, alleen acceptatie, met een guard in `poort.yml`). Na de merge vraagt de vlag een `azure-infra` deploy op
 acceptatie.
 
+**C3 staat er** (26 nov 2026): `/contenttoets` in het menu van de werkplek (een plugincommando, `lib/plugins.ts` en
+`PLUGIN_COMMANDOS` in `lib/commandos.ts`). Enter vult aan; met tekst erachter gaat de hele tekst als vraag naar Lex. Het
+rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie
+`frontend/scripts/test-contenttoets.mjs`.
+
 C0 staat los. C1 en C4 kunnen naast elkaar. C2 en C3 hebben C1 nodig. Bij UI-werk komen eerst screenshots.
 
 **Fase 2: het zijpaneel**
