@@ -1,0 +1,20 @@
+bepalingen: 1873 geraakt: 15
+   9 klassen Afleid/Rechts/Rechts→Rechts/Rechts; bewijs DATE_ASSIGNMENT
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die ')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'vervalt de termijn dus op 15 april')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'vervalt de termijn op 26 april')
+   8 bewijs TEMPORAL_KERNEL; besluit ACCEPTED:Tijdsaanduiding→
+        ('BWBR0004770BWBR0004770/HoofdstukII/Artikel9/Lid5', 'een maand')
+        ('BWBR0004770BWBR0004770/HoofdstukII/Artikel9/Lid6', 'een maand')
+        ('BWBR0004770BWBR0004770/HoofdstukII/Artikel9/Lid7', 'een maand')
+   7 bewijs IN_VOORBEELD,VOORBEELD_GEEN_NORM; status UNHANDLED→REJECTED; besluit →REJECTED:
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'dan wel')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'valt op')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'vervalt op')
+   3 klassen Rechts/Rechts/Variab→Rechts/Rechts/Tijdsa; bewijs PRIORITY_APPLIED,TEMPORAL_VALUE
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'de dagtekening')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'de dagtekening')
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'de dagtekening')
+   2 klassen Rechts/Variab→Rechts/Tijdsa; bewijs PRIORITY_APPLIED,TEMPORAL_VALUE
+        ('0024096BWBR0024096/Circulaire.divisie9/Circulaire.divisie9.5', 'de dagtekening')
+        ('BWBR0002320BWBR0002320/HoofdstukI/Artikel5b/Lid7', 'het tijdstip')

@@ -553,7 +553,12 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
   rechtsgevolg) en de skill (voorbeelden E01) een Rechtsfeit, geen Rechtsbetrekking; de dagtekening is in 9.5 als
   Variabele gecorrigeerd en in IW 9 lid 1 als Tijdsaanduiding goedgekeurd, wat H2:107 niet toelaat; en "het jaartal",
   "een schrikkeljaar" en "hetzelfde nummer" zijn afgewezen vóór de regel in de skill, die ze juist als kenmerk noemt.
-  Open: de reviewerzin (in geen run een twijfelgeval). Meting: `metingen/keten-rekenvoorbeelden-vervolg-2026-11-25/`.
+  Gemeten (`metingen/keten-rekenvoorbeelden-vervolg-2026-11-25/`): zonder model raakt het 15 van 1873 nodes in vier
+  regelingen, alle op de bedoelde punten, en verdwijnt er geen kandidaat. Met het model (twee runs, identiek) gaat 9.5 van
+  44–46 naar 39 voorstellen, in een voorbeeldzin van 20–22 naar 16, afgewezen-aandeel van 59–61% naar 54%; de 17
+  geaccordeerde staan er alle, één met de klasse van H2:107 in plaats van die van de jurist. IW 9 lid 1 ongewijzigd.
+  Open: de reviewerzin (in geen run een twijfelgeval), en of de hoofdzin van een ALS→DAN-regel een eigen Rechtsbetrekking
+  of Rechtsfeit mag dragen (punt 3: het model maakte er een Rechtsfeit van).
 
 **M3 · De termijn als tijdsaanduiding die een parameter verbijzondert** (bijgesteld 24 nov 2026; de eerdere vorm,
 een markering Parameter naast de Tijdsaanduiding, vervalt)
