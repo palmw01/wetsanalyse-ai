@@ -323,6 +323,9 @@ def smalle_voorbeelden(regel: dict) -> list[dict]:
 _SOORTNAAM = {"ja_nee": "ja/nee-waarde", "datum": "datum", "bedrag": "bedrag", "aantal": "aantal",
               "opsomming": "keuze uit een lijst"}
 _JA_NEE = {"ja", "nee", "waar", "onwaar", "true", "false"}
+#: Een invoer die ontbreekt, past in elk bereik: een voorbeeldreeks toetst er met opzet mee of de regels compleet zijn
+#: (M01 h.3 stap 4a; plan lessen Termijnen §10, B3).
+_ONBEKEND = {"onbekend", "leeg", "n.v.t.", "nvt", "niet van toepassing", "-"}
 _DATUM = re.compile(r"^(?:(\d{1,2})-(\d{1,2})-(\d{4})|(\d{4})-(\d{1,2})-(\d{1,2}))$")
 _GETAL = re.compile(r"^-?\d{1,3}(?:\.\d{3})*(?:,(\d+))?$|^-?\d+(?:[,.](\d+))?$")
 
@@ -332,7 +335,7 @@ def past_in(waarde: str, wb: dict) -> bool | None:
     duur, tekst, een waarde met een toelichting erachter). De api rekent niet: hij toetst alleen de vorm."""
     w = re.sub(r"^\s*(?:€|eur(?:o)?)\s*", "", (waarde or "").strip(), flags=re.I).strip()
     soort = wb.get("soort")
-    if not w or soort in ("duur", "tekst"):
+    if not w or soort in ("duur", "tekst") or w.casefold() in _ONBEKEND:
         return None
     if soort == "ja_nee":
         return w.casefold() in _JA_NEE

@@ -44,6 +44,10 @@ def test_een_klassekeuze_is_een_jas_klasse_met_een_reden():
     ("3,5", {"soort": "aantal"}, False),
     ("April", {"soort": "opsomming", "waarden": ["april", "mei"]}, True),
     ("6 weken", {"soort": "duur"}, None),
+    # Een ontbrekende invoer hoort in een voorbeeldreeks (B3): geen signaal, bij welk bereik ook.
+    ("onbekend", {"soort": "datum"}, None),
+    ("Leeg", {"soort": "bedrag", "decimalen": 0}, None),
+    ("n.v.t.", {"soort": "opsomming", "waarden": ["april"]}, None),
 ])
 def test_past_een_waarde_in_het_bereik(waarde, bereik, past):
     assert past_in(waarde, bereik) is past
