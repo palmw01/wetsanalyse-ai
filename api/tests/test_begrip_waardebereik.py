@@ -54,7 +54,8 @@ async def test_de_klasse_komt_uit_de_passages_en_de_keuze_wint(client):
     wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
     b = await _begrip(client, wg, "dagtekening", ids["var"])
     assert b["klasse"] == {"klasse": "Variabele en variabelewaarde", "afgeleid": "Variabele en variabelewaarde",
-                           "uit_passages": {"Variabele en variabelewaarde": 1}, "gekozen": "", "reden": ""}
+                           "uit_passages": {"Variabele en variabelewaarde": 1}, "subtype": "", "gekozen": "",
+                           "reden": ""}
     url = f"/v1/werkgebieden/{wg['id']}/begrippen/{b['id']}"
     r = await client.patch(url, json={"verwachte_revisie": b["revisie"], "inhoud": {
         "klasse_keuze": {"klasse": "Parameter en parameterwaarde", "reden": "De waarde verandert per tijdvak."},

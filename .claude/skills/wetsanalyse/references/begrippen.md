@@ -84,7 +84,13 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 - Zo kort als kan. Schrijf eerst volledig op wat het begrip moet uitdrukken, en kort dan in.
 - Dezelfde opbouw voor gelijksoortige begrippen: één basisterm, aangevuld met wat het onderscheidt.
 - Een afleiding krijgt een eigen begrip, met een werkwoord vooraan ("bepalen …").
-- Zo min mogelijk afkortingen.
+- Zo min mogelijk afkortingen. Staat er toch een in de naam, schrijf haar dan voluit in de omschrijving.
+- Nooit een lidwoord of voorzetsel vooraan: in een regel staat het lidwoord al in het taalpatroon (M02 §3.5.2a).
+- Kleine letters, tenzij de spelling een hoofdletter vraagt (een eigennaam, een wet).
+- Het enkelvoud, ook als de wet het meervoud gebruikt; alleen als het meervoud iets anders betekent of de term alleen
+  in het meervoud bestaat, houd je dat.
+- Geen Romeins cijfer: het lijkt op letters. En vermijd "voor": het kan "vóór" en "ten behoeve van" betekenen.
+- Gebruik in een naam begrippen die er al zijn, zodat een wijziging vanzelf doorwerkt.
 
 **De omschrijving**
 
@@ -94,6 +100,7 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 - Gebruik de naam van het begrip niet in zijn eigen omschrijving. Gebruik wel begrippen die al zijn vastgelegd: dan
   werkt een wijziging daarvan vanzelf door.
 - Geen berekening of redenering in de omschrijving. Die hoort bij de afleidingsregel.
+- Geen punt aan het eind: anders staat er een punt midden in de zin als de omschrijving de naam vervangt.
 - Geen parameterwaarde in de omschrijving van een parameter ("zes weken", "€ 49"). De waarde is een eigen begrip in
   haar tijdvak, gerelateerd aan de parameter: wijzigt de wetgever de waarde, dan blijft de parameter hetzelfde
   (M01 h.6; M04 H2 *Parameter*).
@@ -103,8 +110,11 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 - Schrijf de omschrijving uit alle passages met deze term in het werkgebied, niet uit de eerste. Anders is het begrip
   te smal voor een passage die erbij hoort, en volgt er later een opvolger.
 
-Twee van deze regels toetst Lex in code (een kringdefinitie, een rekenregel in de definitie); de andere zijn
-aandachtspunten voor wie het begrip beoordeelt.
+Een deel van deze regels toetst Lex in code: een kringdefinitie en een rekenregel in de definitie, en als aandachtspunt
+op de kaart een lidwoord of voorzetsel vooraan, een hoofdletter vooraan, een Romeins cijfer, een ontkenning of "voor" in
+de naam, en een punt aan het eind van de definitie (`api/app/begrip_store.py`, `naamregels`). Op de kaart staan ook twee
+controles van activiteit 4 (M02 §3.6.1): een begrip zonder voorbeeld, en een variabele zonder de relatie "is kenmerk
+van". Elk aandachtspunt is een signaal, geen weigering. De andere regels zijn voor wie het begrip beoordeelt.
 
 ## Wat de praktijk aan een begrip toevoegt
 

@@ -33,6 +33,10 @@ describe("klasse", () => {
       gekozen: "Parameter en parameterwaarde", reden: "r" }))
       .toEqual({ klasse: "Parameter en parameterwaarde", herkomst: "gekozen; de passages zeggen Variabele en variabelewaarde" });
     expect(klasseZin(undefined)).toEqual({ klasse: "", herkomst: "" });
+    // B6: het subtype uit de passages staat erbij.
+    expect(klasseZin({ klasse: "Tijdsaanduiding", afgeleid: "Tijdsaanduiding", uit_passages: { Tijdsaanduiding: 1 },
+      subtype: "verbijzondert parameter", gekozen: "", reden: "" }))
+      .toEqual({ klasse: "Tijdsaanduiding (verbijzondert parameter)", herkomst: "uit 1 passage" });
   });
 });
 
