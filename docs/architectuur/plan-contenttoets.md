@@ -218,6 +218,11 @@ Het rapport en de beoordelingen staan op het bericht in het gesprek. Er komt gee
 centrale agent hem niet ziet tot C4. De gouden set is `evals/` met zelfgemaakte teksten; de betalingsregeling is het
 voorbeeld in de skill en de eerste casus voor de meting in C5.
 
+**C1 staat er** (25 nov 2026): het blok `contenttoets` in `bronmodel/antwoord.py` (met de oordelen en criteria in
+`bronmodel/contenttoets.py`), het sjabloon `antwoord_contenttoets` (`tools/graph-qa/agent/sjablonen/contenttoets.py`; de
+content staat in de trace als `contenttoets_content`, gezet door de route van C2), de spiegel `frontend/lib/contenttoets.ts`
+met de drift-test, en het blok in het gesprek (`ContenttoetsBlok`). Nog geen route, profiel of commando.
+
 C0 staat los. C1 en C4 kunnen naast elkaar. C2 en C3 hebben C1 nodig. Bij UI-werk komen eerst screenshots.
 
 **Fase 2: het zijpaneel**

@@ -137,6 +137,111 @@ def test_venster_voor_het_anker():
     assert venster_start(b, b.anker - timedelta(days=5)) == b.anker
 
 
+def _utc(*args) -> datetime:
+    return datetime(*args, tzinfo=timezone.utc)
+
+
+def test_venster_blijft_op_maandag_middernacht_over_de_zomertijd():
+    """Eind maart gaat de klok vooruit: de reset blijft maandag 00:00 in Nederland, dus een uur eerder in UTC."""
+    from app.verbruik import venster_einde, venster_start
+
+    # Maandag 23 maart 2026 00:00 CET = zondag 22 maart 23:00 UTC; zomertijd op zondag 29 maart.
+    b = _beleid(anker=_utc(2026, 3, 22, 23, 0))
+    maandag_30_maart = _utc(2026, 3, 29, 22, 0)  # 00:00 CEST
+    assert venster_einde(b, _utc(2026, 3, 25, 12, 0)) == maandag_30_maart
+    # Zondagavond 23:30 zomertijd hoort nog bij de oude week, maandag 00:00 begint de nieuwe.
+    assert venster_start(b, _utc(2026, 3, 29, 21, 30)) == b.anker
+    assert venster_start(b, maandag_30_maart) == maandag_30_maart
+    assert venster_einde(b, maandag_30_maart) == _utc(2026, 4, 5, 22, 0)
+
+
+def test_venster_blijft_op_maandag_middernacht_over_de_wintertijd():
+    """Eind oktober gaat de klok terug: in UTC zou "maandag 00:00" daarna "maandag 01:00" worden."""
+    from app.verbruik import venster_einde, venster_start
+
+    # Maandag 19 oktober 2026 00:00 CEST = zondag 18 oktober 22:00 UTC; wintertijd op zondag 25 oktober.
+    b = _beleid(anker=_utc(2026, 10, 18, 22, 0))
+    maandag_26_oktober = _utc(2026, 10, 25, 23, 0)  # 00:00 CET
+    assert venster_einde(b, _utc(2026, 10, 21, 9, 0)) == maandag_26_oktober
+    # Zondag 23:30 wintertijd is 22:30 UTC: met een vast UTC-ritme zat dit al in de nieuwe week.
+    assert venster_start(b, _utc(2026, 10, 25, 22, 30)) == b.anker
+    assert venster_start(b, maandag_26_oktober) == maandag_26_oktober
+
+
+def test_venster_blijft_maanden_later_op_maandag_middernacht():
+    from zoneinfo import ZoneInfo
+
+    from app.verbruik import venster_einde, venster_start
+
+    nl = ZoneInfo("Europe/Amsterdam")
+    b = _beleid(anker=_utc(2026, 11, 22, 23, 0))  # maandag 23 november 2026 00:00
+    for nu in (_utc(2027, 4, 1, 10, 0), _utc(2027, 7, 15, 3, 0), _utc(2027, 11, 3, 23, 30)):
+        for grens in (venster_start(b, nu), venster_einde(b, nu)):
+            lokaal = grens.astimezone(nl)
+            assert (lokaal.weekday(), lokaal.hour, lokaal.minute) == (0, 0, 0), lokaal
+        assert venster_start(b, nu) <= nu < venster_einde(b, nu)
+
+
+def _maand_beleid(anker, maanden=1):
+    from app.verbruik_contracts import BudgetBeleid
+
+    return BudgetBeleid(periode_dagen=30, periode_maanden=maanden, anker=anker)
+
+
+def test_per_maand_op_de_eerste_om_middernacht():
+    """Een maand is geen vast aantal dagen: het venster volgt de kalender, ook over de zomertijd heen."""
+    from app.verbruik import venster_einde, venster_start
+
+    b = _maand_beleid(_utc(2026, 1, 31, 23, 0))  # 1 februari 2026 00:00 CET
+    # Februari heeft 28 dagen: de reset is 1 maart, niet 3 maart.
+    assert venster_einde(b, _utc(2026, 2, 15, 12, 0)) == _utc(2026, 2, 28, 23, 0)
+    # 1 april valt in de zomertijd: 00:00 CEST is 22:00 UTC.
+    assert venster_start(b, _utc(2026, 4, 10, 12, 0)) == _utc(2026, 3, 31, 22, 0)
+    assert venster_start(b, _utc(2026, 3, 31, 21, 59)) == _utc(2026, 2, 28, 23, 0)
+    # 1 november weer in de wintertijd.
+    assert venster_einde(b, _utc(2026, 10, 20, 12, 0)) == _utc(2026, 10, 31, 23, 0)
+    # Over de jaargrens.
+    assert venster_start(b, _utc(2027, 1, 5, 12, 0)) == _utc(2026, 12, 31, 23, 0)
+
+
+def test_per_maand_op_de_31e_valt_terug_op_de_laatste_dag():
+    from app.verbruik import venster_einde, venster_start
+
+    b = _maand_beleid(_utc(2026, 1, 30, 23, 0))  # 31 januari 2026 00:00
+    assert venster_einde(b, _utc(2026, 2, 10, 12, 0)) == _utc(2026, 2, 27, 23, 0)  # 28 februari
+    assert venster_einde(b, _utc(2026, 3, 10, 12, 0)) == _utc(2026, 3, 30, 22, 0)  # 31 maart, zomertijd
+    assert venster_start(b, _utc(2026, 4, 10, 12, 0)) == _utc(2026, 3, 30, 22, 0)
+    assert venster_einde(b, _utc(2026, 4, 10, 12, 0)) == _utc(2026, 4, 29, 22, 0)  # 30 april
+
+
+def test_per_kwartaal():
+    from app.verbruik import venster_einde
+
+    b = _maand_beleid(_utc(2025, 12, 31, 23, 0), maanden=3)  # 1 januari 2026
+    assert venster_einde(b, _utc(2026, 2, 1, 0, 0)) == _utc(2026, 3, 31, 22, 0)  # 1 april 00:00 CEST
+
+
+def test_het_standaardanker_is_het_begin_van_de_werkweek():
+    from app.verbruik import begin_periode
+
+    # Woensdag 25 november 2026 21:28 → maandag 23 november 00:00.
+    assert begin_periode(7, _utc(2026, 11, 25, 20, 28)) == _utc(2026, 11, 22, 23, 0)
+    # Op maandag zelf: vandaag.
+    assert begin_periode(7, _utc(2026, 11, 23, 8, 0)) == _utc(2026, 11, 22, 23, 0)
+    # Zondagavond laat in de zomer: nog de week die op maandag begon.
+    assert begin_periode(7, _utc(2026, 7, 12, 21, 30)) == _utc(2026, 7, 5, 22, 0)
+    assert begin_periode(1, _utc(2026, 11, 25, 20, 28)) == _utc(2026, 11, 24, 23, 0)
+
+
+def test_een_anker_zonder_tijdzone_is_nederlandse_tijd():
+    from app.verbruik import lokaal_anker
+
+    assert lokaal_anker(datetime(2026, 11, 23, 0, 0)) == _utc(2026, 11, 22, 23, 0)
+    assert lokaal_anker(datetime(2026, 7, 6, 0, 0)) == _utc(2026, 7, 5, 22, 0)
+    # Met een tijdzone blijft het hetzelfde moment.
+    assert lokaal_anker(_utc(2026, 11, 22, 23, 0)) == _utc(2026, 11, 22, 23, 0)
+
+
 # --- boeken en optellen ---------------------------------------------------------
 
 async def test_stand_telt_alle_vier_de_soorten(client):
@@ -324,7 +429,7 @@ async def test_een_limiet_per_gebruiker_bestaat_niet_meer(client):
     assert "eigen_budget" not in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()[0]
     # De enige routes met een budget erin zijn die van het beleid en de rollen.
     paden = {pad for pad in app.openapi()["paths"] if "budget" in pad}
-    assert paden == {"/v1/admin/budget", "/v1/admin/budget/rollen/{rol}"}
+    assert paden == {"/v1/admin/budget", "/v1/admin/budget/proef", "/v1/admin/budget/rollen/{rol}"}
 
 
 async def test_reconcile_haalt_de_oude_kolommen_weg(client):
@@ -349,7 +454,11 @@ async def test_reconcile_haalt_de_oude_kolommen_weg(client):
 async def test_beleid_lezen_en_wijzigen(client):
     r = await client.get("/v1/admin/budget", headers=_ADMIN)
     assert r.status_code == 200 and r.json()["periode_dagen"] == 7
-    assert r.json()["reset_op"]
+    assert r.json()["reset_op"] and r.json()["periode_maanden"] == 0
+    # Een vers beleid loopt per week vanaf maandag 00:00 Nederlandse tijd.
+    from zoneinfo import ZoneInfo
+    anker = datetime.fromisoformat(r.json()["anker"]).astimezone(ZoneInfo("Europe/Amsterdam"))
+    assert (anker.weekday(), anker.hour, anker.minute) == (0, 0, 0)
     assert "tokens" not in r.json()
 
     r = await client.put(
@@ -357,6 +466,74 @@ async def test_beleid_lezen_en_wijzigen(client):
     )
     assert r.status_code == 200 and r.json()["periode_dagen"] == 30
     assert r.json()["updated_by"] == "gebruiker-a"
+
+
+async def test_beleid_op_weekdag_en_tijd(client):
+    """De UI stuurt "maandag 00:00" als wandkloktijd; de api bewaart het moment en rekent de vensters lokaal."""
+    r = await client.put(
+        "/v1/admin/budget", json={"periode_dagen": 7, "actief": True, "anker": "2026-11-23T00:00:00"},
+        headers=_BEHEERDER,
+    )
+    assert r.status_code == 200
+    b = r.json()
+    assert datetime.fromisoformat(b["anker"]) == _utc(2026, 11, 22, 23, 0)
+    assert b["tijdzone"] == "Europe/Amsterdam"
+    from zoneinfo import ZoneInfo
+    for veld in ("venster_start", "reset_op"):
+        lokaal = datetime.fromisoformat(b[veld]).astimezone(ZoneInfo("Europe/Amsterdam"))
+        assert (lokaal.weekday(), lokaal.hour, lokaal.minute) == (0, 0, 0)
+
+
+async def test_beleid_per_maand(client):
+    r = await client.put(
+        "/v1/admin/budget",
+        json={"periode_dagen": 30, "periode_maanden": 1, "actief": True, "anker": "2026-11-01T00:00:00"},
+        headers=_BEHEERDER,
+    )
+    assert r.status_code == 200
+    b = r.json()
+    assert b["periode_maanden"] == 1
+    from zoneinfo import ZoneInfo
+    for veld in ("venster_start", "reset_op"):
+        lokaal = datetime.fromisoformat(b[veld]).astimezone(ZoneInfo("Europe/Amsterdam"))
+        assert (lokaal.day, lokaal.hour, lokaal.minute) == (1, 0, 0)
+    regel = (await _audit())[-1]
+    assert regel["details"]["nieuw"]["periode_maanden"] == 1
+    # Terug naar weken: 0 maanden.
+    r = await client.put("/v1/admin/budget", json={"periode_dagen": 7, "actief": True}, headers=_BEHEERDER)
+    assert r.json()["periode_maanden"] == 0
+    assert (await client.put("/v1/admin/budget", json={"periode_dagen": 7, "periode_maanden": 13, "actief": True},
+                             headers=_BEHEERDER)).status_code == 422
+
+
+async def test_proef_noemt_wie_in_het_nieuwe_venster_boven_budget_zit(client):
+    """Een anker verder terug haalt verbruik terug dat het oude venster al had verrekend."""
+    from sqlalchemy import insert
+
+    from app import db, verbruik
+    from app.user import _utcnow
+
+    await verbruik.zet_beleid(periode_dagen=7, actief=True, anker=_utcnow())
+    async with db.get_engine().begin() as conn:
+        await conn.execute(insert(db.token_verbruik).values(
+            userid="gebruiker-b", bron="agent", model="", invoer=1200, uitvoer=0,
+            cache_lees=0, cache_schrijf=0, tijdstip=_utcnow() - timedelta(days=2),
+        ))
+    voor = (await client.get("/v1/admin/budget", headers=_ADMIN)).json()
+    audit_voor = await _audit()
+
+    terug = (_utcnow() - timedelta(days=3)).replace(tzinfo=None).isoformat()
+    r = await client.post("/v1/admin/budget/proef", json={"periode_dagen": 7, "actief": True, "anker": terug},
+                          headers=_ADMIN)
+    assert r.status_code == 200
+    assert r.json()["boven_budget"] == ["gebruiker-b"]
+    # Een proef slaat niets op.
+    assert (await client.get("/v1/admin/budget", headers=_ADMIN)).json()["anker"] == voor["anker"]
+    assert await _audit() == audit_voor
+
+    # Het huidige anker: dat verbruik viel er al buiten.
+    r = await client.post("/v1/admin/budget/proef", json={"periode_dagen": 7, "actief": True}, headers=_ADMIN)
+    assert r.json()["boven_budget"] == []
 
 
 async def test_beleid_weigert_onzin(client):
@@ -390,7 +567,7 @@ async def test_wijzigingen_staan_in_de_audit(client):
     ]
     assert regels[0]["details"] == {"oud": 1000, "nieuw": 300}
     assert regels[1]["details"] == {"oud": 300, "nieuw": 400}
-    assert regels[2]["details"]["oud"] == {"periode_dagen": 7, "actief": True}
+    assert regels[2]["details"]["oud"] == {"periode_dagen": 7, "periode_maanden": 0, "actief": True}
     assert regels[2]["details"]["nieuw"]["periode_dagen"] == 14
 
 

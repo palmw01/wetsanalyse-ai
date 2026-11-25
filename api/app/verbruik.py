@@ -31,9 +31,12 @@ variant later een rekenregel is en geen migratie.
 
 from __future__ import annotations
 
+import calendar
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -68,6 +71,7 @@ def _row_to_beleid(row) -> BudgetBeleid:
     m = dict(row)
     return BudgetBeleid(
         periode_dagen=m["periode_dagen"],
+        periode_maanden=m.get("periode_maanden") or 0,
         anker=db.aware(m["anker"]),
         actief=m["actief"],
         updated_by=m["updated_by"],
@@ -92,9 +96,10 @@ async def ensure_seeded(settings: Settings | None = None) -> None:
             await conn.execute(insert(db.budget_beleid).values(
                 id=_BELEID_ID,
                 periode_dagen=s.token_budget_dagen,
-                # Het anker is het moment van seeden. Vanaf hier telt elk venster; dat maakt de eerste
-                # resetdatum meteen noembaar zonder dat iemand iets hoeft in te stellen.
-                anker=now,
+                # Het begin van de lopende werkweek (maandag 00:00), of bij een andere periode van vandaag.
+                # Vanaf hier telt elk venster, en het verbruik van deze week telt mee; een anker in de
+                # toekomst zou tot dat moment niets laten meetellen.
+                anker=begin_periode(s.token_budget_dagen, now),
                 actief=True,
                 updated_by="seed",
                 updated=now,
@@ -117,7 +122,8 @@ async def get_beleid() -> BudgetBeleid:
 
 
 async def zet_beleid(
-    *, periode_dagen: int, actief: bool, anker: datetime | None = None, actor: str = "",
+    *, periode_dagen: int, actief: bool, anker: datetime | None = None, periode_maanden: int = 0,
+    actor: str = "",
 ) -> BudgetBeleid:
     """Werk het beleid bij. `anker` weglaten laat het staan – dat is bijna altijd wat je wilt.
 
@@ -126,18 +132,23 @@ async def zet_beleid(
     """
     if periode_dagen < 1:
         raise ValueError("De resetperiode is minimaal één dag.")
+    if not 0 <= periode_maanden <= 12:
+        raise ValueError("Een periode in maanden is hoogstens twaalf maanden.")
+    if anker is not None:
+        anker = lokaal_anker(anker)
     now = _utcnow()
-    waarden = {"periode_dagen": periode_dagen, "actief": actief, "updated_by": actor, "updated": now}
+    waarden = {"periode_dagen": periode_dagen, "periode_maanden": periode_maanden, "actief": actief,
+               "updated_by": actor, "updated": now}
     if anker is not None:
         waarden["anker"] = anker
     async with db.get_engine().begin() as conn:
         oud = (await conn.execute(
-            select(db.budget_beleid.c.periode_dagen, db.budget_beleid.c.actief)
+            select(db.budget_beleid.c.periode_dagen, db.budget_beleid.c.periode_maanden, db.budget_beleid.c.actief)
             .where(db.budget_beleid.c.id == _BELEID_ID)
         )).mappings().first()
         await _audit(
             conn, ACTIE_BELEID, door=actor, oud=dict(oud) if oud is not None else None,
-            nieuw={"periode_dagen": periode_dagen, "actief": actief,
+            nieuw={"periode_dagen": periode_dagen, "periode_maanden": periode_maanden, "actief": actief,
                    "anker": anker.isoformat() if anker is not None else None},
         )
         res = await conn.execute(
@@ -187,24 +198,94 @@ async def zet_rolbudget(rol: str, tokens: int, *, actor: str) -> RolBudget:
 
 # --- het venster ---------------------------------------------------------------
 
+@lru_cache(maxsize=8)
+def _zone(naam: str) -> ZoneInfo:
+    return ZoneInfo(naam)
+
+
+def tijdzone() -> ZoneInfo:
+    """De tijdzone waarin de vensters lopen (`WETSANALYSE_TOKEN_BUDGET_TIJDZONE`)."""
+    return _zone(get_settings().token_budget_tijdzone)
+
+
+def lokaal_anker(moment: datetime) -> datetime:
+    """Een anker zonder tijdzone is wandkloktijd in de budgettijdzone ("maandag 00:00"); met een tijdzone
+    blijft het hetzelfde moment. Altijd terug in UTC, zoals de kolom het opslaat."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=tijdzone())
+    return moment.astimezone(timezone.utc)
+
+
+def begin_periode(periode_dagen: int, nu: datetime) -> datetime:
+    """Het begin van de lopende periode als standaardanker: maandag 00:00 bij een week, anders vandaag 00:00."""
+    lokaal = nu.astimezone(tijdzone()).replace(tzinfo=None)
+    dag = lokaal.replace(hour=0, minute=0, second=0, microsecond=0)
+    if periode_dagen == 7:
+        dag -= timedelta(days=dag.weekday())
+    return lokaal_anker(dag)
+
+
+def _plus_maanden(moment: datetime, maanden: int) -> datetime:
+    """Zoveel kalendermaanden later, op dezelfde dag; bestaat die dag niet (31 februari), dan de laatste."""
+    index = moment.year * 12 + moment.month - 1 + maanden
+    jaar, maand = divmod(index, 12)
+    dag = min(moment.day, calendar.monthrange(jaar, maand + 1)[1])
+    return moment.replace(year=jaar, month=maand + 1, day=dag)
+
+
+def _grens(beleid: BudgetBeleid, n: int) -> datetime:
+    """Het begin van venster n: het anker plus n periodes in **kalenderdagen of -maanden** in de budgettijdzone.
+
+    Niet `anker + n × timedelta` in UTC: dan wordt "maandag 00:00" na de overgang naar wintertijd
+    "maandag 01:00", en een maand heeft geen vast aantal dagen. Hier blijft de wandkloktijd van het anker
+    staan en rekent de tijdzone de offset.
+    """
+    zone = tijdzone()
+    lokaal = beleid.anker.astimezone(zone).replace(tzinfo=None)
+    if beleid.periode_maanden > 0:
+        wand = _plus_maanden(lokaal, n * beleid.periode_maanden)
+    else:
+        wand = lokaal + timedelta(days=n * max(1, beleid.periode_dagen))
+    return wand.replace(tzinfo=zone).astimezone(timezone.utc)
+
+
+def _venster_index(beleid: BudgetBeleid, nu: datetime) -> int:
+    """Het nummer van het venster waarin `nu` valt; -1 vóór het anker."""
+    if nu < beleid.anker:
+        return -1
+    zone = tijdzone()
+    a, b = beleid.anker.astimezone(zone), nu.astimezone(zone)
+    if beleid.periode_maanden > 0:
+        n = ((b.year - a.year) * 12 + b.month - a.month) // beleid.periode_maanden
+    else:
+        verstreken = b.replace(tzinfo=None) - a.replace(tzinfo=None)
+        n = int(verstreken // timedelta(days=max(1, beleid.periode_dagen)))
+    n = max(0, n)
+    # De schatting op wandkloktijd kan rond een overgang of een maandeinde één venster misgrijpen; de grenzen
+    # beslissen.
+    while n > 0 and _grens(beleid, n) > nu:
+        n -= 1
+    while _grens(beleid, n + 1) <= nu:
+        n += 1
+    return n
+
+
 def venster_start(beleid: BudgetBeleid, nu: datetime | None = None) -> datetime:
-    """Begin van het venster waarin `nu` valt: anker + n × periode.
+    """Begin van het venster waarin `nu` valt: anker + n × periode, in de budgettijdzone.
 
     Vóór het anker (kan bij een handmatig verschoven anker) is het venster het anker zelf – dan telt
     er nog niets mee en staat de teller op nul.
     """
     nu = nu or _utcnow()
-    periode = timedelta(days=max(1, beleid.periode_dagen))
-    verstreken = nu - beleid.anker
-    if verstreken.total_seconds() < 0:
-        return beleid.anker
-    n = int(verstreken // periode)
-    return beleid.anker + n * periode
+    n = _venster_index(beleid, nu)
+    return beleid.anker if n < 0 else _grens(beleid, n)
 
 
 def venster_einde(beleid: BudgetBeleid, nu: datetime | None = None) -> datetime:
     """Wanneer de teller weer op nul staat – de resetdatum die de gebruiker te zien krijgt."""
-    return venster_start(beleid, nu) + timedelta(days=max(1, beleid.periode_dagen))
+    nu = nu or _utcnow()
+    n = _venster_index(beleid, nu)
+    return _grens(beleid, max(0, n) + 1)
 
 
 # --- boeken --------------------------------------------------------------------
@@ -350,14 +431,16 @@ async def reset_verbruik(userid: str, *, door: str) -> Verbruiksstand:
     return await stand(userid)
 
 
-async def standen() -> list[Verbruiksstand]:
+async def standen(beleid: BudgetBeleid | None = None, nu: datetime | None = None) -> list[Verbruiksstand]:
     """De stand van alle gebruikers, de zwaarste verbruiker eerst.
 
     Vaste queries in plaats van `stand()` per gebruiker: dat houdt het beheerscherm ook bij een
-    groeiende groep snel.
+    groeiende groep snel. Met een ander `beleid` is het een proef: hoe zou iedereen staan als dat
+    beleid nu gold (`proef_beleid`)?
     """
-    beleid = await get_beleid()
-    vanaf = venster_start(beleid)
+    beleid = beleid or await get_beleid()
+    nu = nu or _utcnow()
+    vanaf = venster_start(beleid, nu)
     k = db.token_verbruik.c
     a = db.budget_audit.c
     som = func.sum(k.invoer + k.uitvoer + k.cache_lees + k.cache_schrijf)
@@ -393,6 +476,23 @@ async def standen() -> list[Verbruiksstand]:
         gereset_op, gereset_door = laatste_reset.get(userid, (None, ""))
         uit.append(_maak_stand(
             userid, verbruik.get(userid, 0), per_rol.get(rol, get_settings().token_budget), rol, beleid,
-            gereset_op=db.aware(gereset_op), gereset_door=gereset_door,
+            gereset_op=db.aware(gereset_op), gereset_door=gereset_door, nu=nu,
         ))
     return sorted(uit, key=lambda s: (-s.gebruikt, s.userid))
+
+
+async def proef_beleid(
+    *, periode_dagen: int, actief: bool, anker: datetime | None = None, periode_maanden: int = 0,
+    nu: datetime | None = None,
+) -> tuple[BudgetBeleid, list[Verbruiksstand]]:
+    """Het beleid zoals het na opslaan zou zijn, met ieders stand in het venster dat dan loopt.
+
+    Wijzigt niets. Het bewerkscherm toont ermee wie door een ander anker boven zijn budget komt: een
+    anker in het verleden haalt verbruik terug dat in het oude venster al was verrekend.
+    """
+    huidig = await get_beleid()
+    beleid = huidig.model_copy(update={
+        "periode_dagen": max(1, periode_dagen), "periode_maanden": max(0, periode_maanden), "actief": actief,
+        "anker": lokaal_anker(anker) if anker is not None else huidig.anker,
+    })
+    return beleid, await standen(beleid, nu)
