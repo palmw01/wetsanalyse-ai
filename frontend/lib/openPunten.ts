@@ -17,7 +17,13 @@ export interface Lezing { label: string; omschrijving: string; grondslag: Gronds
 export interface TeToetsen { bronsoort: Bronsoort; omschrijving: string; getoetst: boolean; uitkomst: string }
 export interface Keuze {
   gekozen: string; motivering: string; methode: Methode | null; door: string; op: string | null; uitkomst?: Uitkomst;
+  /** Bij een gesignaleerd punt: aan wie (B9). */
+  geadresseerde?: Geadresseerde;
 }
+
+/** Aan wie een gesignaleerd punt gaat (B9): de beleidsverantwoordelijken of de wetgever. */
+export type Geadresseerde = "beleid" | "wetgever";
+export const GEADRESSEERDE_LABEL: Record<Geadresseerde, string> = { beleid: "het beleid", wetgever: "de wetgever" };
 
 export interface OpenPunt {
   id: string;
@@ -80,12 +86,21 @@ export function ordenPunten(punten: OpenPunt[]): OpenPunt[] {
   return [...punten].sort((a, b) => rang(a) - rang(b));
 }
 
-export interface BesluitInvoer { gekozen: string; motivering: string; methode: Methode | null; uitkomst?: Uitkomst | null }
+export interface BesluitInvoer {
+  gekozen: string; motivering: string; methode: Methode | null; uitkomst?: Uitkomst | null; geadresseerde?: Geadresseerde | "";
+}
 
 /** Kan dit besluit weg? Met lezingen: een gekozen lezing; zonder: een motivering (hoe het verder gaat). Een
  *  interpretatiekeuze vraagt ook de methode en een motivering (ADR-018 §6: de keuze en waarom). */
 export function besluitFout(p: Pick<OpenPunt, "soort" | "inhoud">, b: BesluitInvoer): string | null {
   const lezingen = p.inhoud.lezingen.map((l) => l.label);
+  // B9: een interpretatiekeuze die je signaleert, is een keuze én een signaal aan het beleid of de wetgever.
+  if (b.uitkomst === "gesignaleerd" && p.soort === "interpretatiekeuze") {
+    if (!b.geadresseerde) return "Zeg aan wie je de keuze signaleert.";
+    if (lezingen.length && !lezingen.includes(b.gekozen)) return "Kies een lezing.";
+    if (!b.motivering.trim()) return "Zeg wat je signaleert.";
+    return b.methode ? null : "Kies de methode van de interpretatie.";
+  }
   // Bij ontbrekend beleid zegt het besluit of het beleid er is (api: `uitkomst`); "het ontbreekt" is geen keuze.
   if (b.uitkomst === "gesignaleerd") return b.motivering.trim() ? null : "Zeg welk beleid ontbreekt.";
   if (p.soort === "ontbrekend_uitvoeringsbeleid" && !b.uitkomst && !(lezingen.length && b.gekozen)) {
@@ -101,8 +116,12 @@ export function besluitFout(p: Pick<OpenPunt, "soort" | "inhoud">, b: BesluitInv
 export function keuzeZin(p: Pick<OpenPunt, "keuze" | "inhoud">): string {
   const k = p.keuze;
   if (!k) return "";
-  if (k.uitkomst === "gesignaleerd") return ["Het beleid ontbreekt", k.motivering.trim()].filter(Boolean).join(": ");
   const lezing = k.gekozen ? `Lezing ${k.gekozen}${k.methode ? ` (${METHODE_LABEL[k.methode].toLowerCase()})` : ""}` : "";
+  if (k.uitkomst === "gesignaleerd" && (k.gekozen || k.geadresseerde === "wetgever")) {
+    const aan = `gesignaleerd aan ${GEADRESSEERDE_LABEL[k.geadresseerde ?? "beleid"]}`;
+    return [[lezing, k.motivering.trim()].filter(Boolean).join(": "), aan].filter(Boolean).join(" · ");
+  }
+  if (k.uitkomst === "gesignaleerd") return ["Het beleid ontbreekt", k.motivering.trim()].filter(Boolean).join(": ");
   return [lezing, k.motivering.trim()].filter(Boolean).join(": ");
 }
 

@@ -391,7 +391,11 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
                 uit.append(f"Keuze {p['gekozen']} is genomen voor geval {geval} ({p['vraag'].rstrip('.?')}), maar de "
                            f"markeringen van die lezing dragen geval {geval} niet: toets of de keuze in het geval is "
                            "verwerkt.")
-    gesignaleerd = sum(p["status"] == "gesignaleerd" for p in open_punten or [])
+    gesignaleerd = sum(p["status"] == "gesignaleerd" and p.get("soort") != "interpretatiekeuze" for p in open_punten or [])
+    voorgelegd = sum(p["status"] == "gesignaleerd" and p.get("soort") == "interpretatiekeuze" for p in open_punten or [])
+    if voorgelegd:
+        uit.append(_meervoud(voorgelegd, "1 interpretatiekeuze is gesignaleerd aan het beleid of de wetgever.",
+                             "{n} interpretatiekeuzes zijn gesignaleerd aan het beleid of de wetgever."))
     if gesignaleerd:
         uit.append(_meervoud(gesignaleerd, "1 punt van ontbrekend uitvoeringsbeleid is gesignaleerd: het beleid "
                              "ontbreekt.", "{n} punten van ontbrekend uitvoeringsbeleid zijn gesignaleerd: het beleid "

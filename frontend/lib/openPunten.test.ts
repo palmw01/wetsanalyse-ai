@@ -96,3 +96,23 @@ describe("na de e2e-run van Termijnen (20 nov 2026)", () => {
       .toEqual([{ soort: "regel", id: "r1", geval: "" }]);
   });
 });
+
+describe("een interpretatiekeuze signaleren (B9)", () => {
+  const p = punt({ id: "i", soort: "interpretatiekeuze", status: "open" },
+    { lezingen: [{ label: "A", omschrijving: "a", grondslag: [] }, { label: "B", omschrijving: "b", grondslag: [] }] });
+  it("vraagt aan wie, een lezing, wat je signaleert en de methode", () => {
+    const b = { gekozen: "", motivering: "", methode: null, uitkomst: "gesignaleerd" as const };
+    expect(besluitFout(p, b)).toBe("Zeg aan wie je de keuze signaleert.");
+    expect(besluitFout(p, { ...b, geadresseerde: "wetgever" })).toBe("Kies een lezing.");
+    expect(besluitFout(p, { ...b, geadresseerde: "wetgever", gekozen: "B" })).toBe("Zeg wat je signaleert.");
+    expect(besluitFout(p, { ...b, geadresseerde: "wetgever", gekozen: "B", motivering: "Twee termen, één betekenis." }))
+      .toBe("Kies de methode van de interpretatie.");
+    expect(besluitFout(p, { ...b, geadresseerde: "wetgever", gekozen: "B", motivering: "x", methode: "systematisch" })).toBeNull();
+  });
+  it("de zin noemt de keuze en aan wie", () => {
+    const g = punt({ id: "g", soort: "interpretatiekeuze", status: "gesignaleerd",
+      keuze: { gekozen: "B", motivering: "Synoniemen", methode: "systematisch", door: "j", op: null, uitkomst: "gesignaleerd",
+        geadresseerde: "wetgever" } }, { lezingen: [] });
+    expect(keuzeZin(g)).toBe("Lezing B (systematisch): Synoniemen · gesignaleerd aan de wetgever");
+  });
+});

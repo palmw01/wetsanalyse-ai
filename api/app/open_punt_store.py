@@ -277,17 +277,32 @@ async def besluit(werkgebied_id: str, punt_id: str, b: Besluit, actor: str) -> d
                                  "open-punt-heropend" if heropenen else "open-punt-besloten", detail) as (row, stand):
             lezingen = {x["label"] for x in row.inhoud.get("lezingen") or []}
             beleid = row.inhoud["soort"] == Soort.ontbrekend_uitvoeringsbeleid.value
+            interpretatie = row.inhoud["soort"] == Soort.interpretatiekeuze.value
             if heropenen:
                 if not row.keuze:
                     raise HTTPException(422, {"fout": "leeg_besluit", "melding": "Dit punt staat al open. Kies een "
                                               "lezing, of leg in de motivering vast hoe het verder gaat."})
                 stand["keuze"] = None
             else:
-                if uitkomst == "gesignaleerd":
+                if uitkomst == "gesignaleerd" and interpretatie:
+                    # B9: de keuze is gemaakt en gaat naar het beleid of de wetgever.
+                    if not b.geadresseerde:
+                        raise HTTPException(422, {"fout": "geadresseerde", "melding": "Zeg aan wie je de keuze "
+                                                  "signaleert: het beleid of de wetgever."})
+                    if lezingen and gekozen not in lezingen:
+                        raise HTTPException(422, {"fout": "lezing_onbekend", "lezingen": sorted(lezingen),
+                                                  "melding": "Kies een van de lezingen: " + ", ".join(sorted(lezingen))
+                                                             + "."})
+                    if not motivering:
+                        raise HTTPException(422, {"fout": "motivering", "melding": "Zeg wat je signaleert."})
+                elif uitkomst == "gesignaleerd":
                     # Het beleid ontbreekt: geen keuze tussen lezingen, wel vastleggen wat er ontbreekt.
                     if not beleid:
                         raise HTTPException(422, {"fout": "uitkomst", "melding": "Alleen ontbrekend uitvoeringsbeleid "
-                                                  "wordt gesignaleerd; bij dit punt kies je."})
+                                                  "en een interpretatiekeuze worden gesignaleerd; bij dit punt kies je."})
+                    if b.geadresseerde == "wetgever":
+                        raise HTTPException(422, {"fout": "geadresseerde", "melding": "Ontbrekend uitvoeringsbeleid "
+                                                  "gaat naar het beleid."})
                     if gekozen:
                         raise HTTPException(422, {"fout": "uitkomst", "melding": "Een gesignaleerd punt kiest geen "
                                                   "lezing: het beleid ontbreekt."})
@@ -308,7 +323,9 @@ async def besluit(werkgebied_id: str, punt_id: str, b: Besluit, actor: str) -> d
                                                   "(gekozen) of ontbreekt (gesignaleerd)."})
                 stand["keuze"] = {"gekozen": gekozen, "motivering": motivering,
                                   "methode": b.methode.value if b.methode else "", "door": actor,
-                                  "op": db.utcnow().isoformat(), "uitkomst": uitkomst or "gekozen"}
+                                  "op": db.utcnow().isoformat(), "uitkomst": uitkomst or "gekozen",
+                                  **({"geadresseerde": b.geadresseerde or "beleid"} if uitkomst == "gesignaleerd"
+                                     else {})}
     return await haal(werkgebied_id, punt_id)
 
 

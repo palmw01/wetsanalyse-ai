@@ -43,13 +43,15 @@ class Status(str, Enum):
     open = "open"                  # nog geen keuze
     gekozen = "gekozen"            # de jurist koos een lezing (of: legde vast hoe het verder gaat)
     getoetst = "getoetst"          # gekozen, en alles wat getoetst moest worden is getoetst
-    # Alleen bij ontbrekend uitvoeringsbeleid: de jurist stelde vast dat het beleid ontbreekt, en het punt gaat naar de
+    # Bij ontbrekend uitvoeringsbeleid: de jurist stelde vast dat het beleid ontbreekt, en het punt gaat naar de
     # beleidsverantwoordelijken (M01 stap 5). Dat is geen keuze, dus ook niet *gekozen* (e2e-run 20 nov 2026, B5).
+    # Bij een interpretatiekeuze: de keuze is gemaakt en gaat naar het beleid of de wetgever, zodat die haar vastlegt
+    # of de wet aanpast (M02 §3.5.2a en §3.7; plan lessen Termijnen §10, B9).
     gesignaleerd = "gesignaleerd"
 
 
 class Uitkomst(str, Enum):
-    """Wat het besluit is. `gesignaleerd` kan alleen bij ontbrekend uitvoeringsbeleid."""
+    """Wat het besluit is. `gesignaleerd` kan bij ontbrekend uitvoeringsbeleid en bij een interpretatiekeuze (B9)."""
     gekozen = "gekozen"
     gesignaleerd = "gesignaleerd"
 
@@ -175,6 +177,9 @@ class Besluit(Revisie):
     motivering: str = Field(default="", max_length=4000)
     methode: Methode | None = None
     uitkomst: Uitkomst | None = None
+    #: Aan wie een gesignaleerd punt gaat (B9): de beleidsverantwoordelijken of de wetgever. Bij ontbrekend
+    #: uitvoeringsbeleid is dat het beleid; bij een gesignaleerde interpretatiekeuze is het verplicht.
+    geadresseerde: Literal["", "beleid", "wetgever"] = ""
 
 
 class Omhangen(Revisie):

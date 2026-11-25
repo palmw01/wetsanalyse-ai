@@ -17,7 +17,7 @@ import { aantal } from "@/lib/aantal";
 import {
   BRONSOORT_LABEL, METHODE_LABEL, OPEN_PUNT_STATUS_LABEL, SOORT_KEUZES, aanhaking, besluitFout, blokkeert, keuzeZin,
   nieuwePuntInhoud, nieuwFout, ordenPunten, soortLabel,
-  type BesluitInvoer, type Grondslag, type Methode, type OpenPunt, type OpenPuntNieuw,
+  type BesluitInvoer, type Geadresseerde, type Grondslag, type Methode, type OpenPunt, type OpenPuntNieuw,
 } from "@/lib/openPunten";
 import { gevalLabels, type Regel } from "@/lib/regels";
 import { isRevisieConflict } from "@/lib/werkgebied";
@@ -309,7 +309,10 @@ function PuntInhoud({ punt: p, werkgebiedId, alleenLezen, onGewijzigd }: {
 function Besluit({ punt: p, werkgebiedId, onGewijzigd }: { punt: OpenPunt; werkgebiedId: string; onGewijzigd: () => void }) {
   const [b, setB] = useState<BesluitInvoer>({ gekozen: "", motivering: "", methode: null, uitkomst: null });
   const beleid = p.soort === "ontbrekend_uitvoeringsbeleid";
-  const signaleren = b.uitkomst === "gesignaleerd";
+  const interpretatie = p.soort === "interpretatiekeuze";
+  // Bij ontbrekend beleid is signaleren "het beleid ontbreekt": geen lezing. Een interpretatiekeuze kies je ook als je
+  // haar signaleert (B9).
+  const signaleren = b.uitkomst === "gesignaleerd" && !interpretatie;
   const [fout, setFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
   const probleem = besluitFout(p, b);
@@ -355,6 +358,18 @@ function Besluit({ punt: p, werkgebiedId, onGewijzigd }: { punt: OpenPunt; werkg
             </label>
           ))}
         </div>
+      )}
+      {interpretatie && (
+        <Select aria-label="Signaleren" value={b.uitkomst === "gesignaleerd" ? b.geadresseerde ?? "" : "niet"} className="w-full sm:w-auto"
+          onChange={(e) => {
+            const v = e.target.value;
+            zet(v === "niet" ? { ...b, uitkomst: null, geadresseerde: "" }
+              : { ...b, uitkomst: "gesignaleerd", geadresseerde: v as Geadresseerde | "" });
+          }}>
+          <option value="niet">Niet signaleren</option>
+          <option value="beleid">Signaleren aan het beleid (vastleggen in een beleidsregel)</option>
+          <option value="wetgever">Signaleren aan de wetgever (de wet aanpassen)</option>
+        </Select>
       )}
       <Select aria-label="Methode van de interpretatie" value={b.methode ?? ""} className="w-full sm:w-auto"
         onChange={(e) => zet({ ...b, methode: (e.target.value || null) as Methode | null })}>
