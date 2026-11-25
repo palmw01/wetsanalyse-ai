@@ -1291,6 +1291,11 @@
           "default": "",
           "title": "Toelichting",
           "type": "string"
+        },
+        "geadresseerde": {
+          "default": "",
+          "title": "Geadresseerde",
+          "type": "string"
         }
       },
       "required": [

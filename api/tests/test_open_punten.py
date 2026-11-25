@@ -129,11 +129,38 @@ async def test_de_vorm_uit_de_skill_wordt_getoetst(client):
     r = await client.post(_url(wg, p["id"], "besluit"), json={
         "verwachte_revisie": p["revisie"], "uitkomst": "gekozen", "motivering": "LI 9.5 regelt het."})
     assert r.status_code == 200 and r.json()["status"] == "gekozen"
-    # Gesignaleerd hoort alleen bij ontbrekend beleid.
+    # Ontbrekend beleid gaat naar het beleid, niet naar de wetgever (B9).
+    r = await client.post(_url(wg, p["id"], "besluit"), json={
+        "verwachte_revisie": r.json()["revisie"], "uitkomst": "gesignaleerd", "motivering": "x", "geadresseerde": "wetgever"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geadresseerde"
+    # Een interpretatiekeuze signaleer je aan iemand (B9); een onderzoekspunt signaleer je niet.
     k = (await client.post(_url(wg), json={"inhoud": _keuze(aan)})).json()
     r = await client.post(_url(wg, k["id"], "besluit"), json={"verwachte_revisie": 1, "uitkomst": "gesignaleerd",
                                                               "motivering": "x"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geadresseerde"
+    o = (await client.post(_url(wg), json={"inhoud": {"soort": "onderzoekspunt", "vraag": "Wat zegt de MvT?",
+                                                      "hangt_aan": aan}})).json()
+    r = await client.post(_url(wg, o["id"], "besluit"), json={"verwachte_revisie": 1, "uitkomst": "gesignaleerd",
+                                                              "motivering": "x"})
     assert r.status_code == 422 and r.json()["detail"]["fout"] == "uitkomst"
+
+
+async def test_een_interpretatiekeuze_gaat_naar_de_wetgever(client):
+    """B9 (plan lessen Termijnen §10; M02 §3.5.2a): de keuze is gemaakt, en gaat naar het beleid of de wetgever."""
+    wg, ids = await _opzet(client)
+    aan = [{"soort": "markering", "id": ids["ar"]}]
+    k = (await client.post(_url(wg), json={"inhoud": _keuze(aan)})).json()
+    r = await client.post(_url(wg, k["id"], "besluit"), json={
+        "verwachte_revisie": 1, "uitkomst": "gesignaleerd", "geadresseerde": "wetgever", "gekozen": "C", "motivering": "x"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "lezing_onbekend"
+    r = await client.post(_url(wg, k["id"], "besluit"), json={
+        "verwachte_revisie": 1, "uitkomst": "gesignaleerd", "geadresseerde": "wetgever", "gekozen": "B",
+        "methode": "systematisch", "motivering": "Twee termen voor één betekenis: harmoniseren."})
+    assert r.status_code == 200, r.text
+    x = r.json()
+    assert x["status"] == "gesignaleerd"
+    assert {f: x["keuze"][f] for f in ("gekozen", "uitkomst", "geadresseerde")} == {
+        "gekozen": "B", "uitkomst": "gesignaleerd", "geadresseerde": "wetgever"}
 
 
 async def test_een_keuze_vervalt_als_haar_lezing_verdwijnt(client):
