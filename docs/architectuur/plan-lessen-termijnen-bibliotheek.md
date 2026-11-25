@@ -828,7 +828,8 @@ meting)
 
 1. B1, B3 en B5, in één bundel: kleine correcties in de skill en het model, zonder gedragsverandering. **Gebouwd** (PR
    #1861, branch `claude/bundel-methodebronnen-1`); B5 na het besluit van de eigenaar.
-2. B2, B4 en B6, in één bundel met signalen. Eerst de toets uit B2 (slotpunt, NL-SBB).
+2. B2, B4 en B6, in één bundel met signalen. **Gebouwd** (PR #1864). Nagegaan voor B2: NL-SBB schrijft geen slotpunt
+   voor, en de begrippenketen haalt hem bij een brondefinitie al weg; geen botsing.
 3. B7, met B1, als de skill toch wordt gewijzigd.
 4. B8 en B9: besloten (§10.2a), elk een eigen PR.
 5. M1, als lichte meting; R5 en V9 blijven op HOLD.
