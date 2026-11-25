@@ -1,8 +1,8 @@
 # Plan: lessen uit de begrippen- en afleidingsregelbibliotheek van Termijnen
 
 24 nov 2026. Status: **concept**; de eigenaar heeft de acht vragen beantwoord (§7). Analyse en voorstel. De methode-skill is aangevuld buiten de
-methodemarkers (§5a); wat het gedrag van Lex raakt, staat als voorstel in §5b. Daarvan is M2 (V8) gebouwd en zonder model
-gemeten (24 nov 2026).
+methodemarkers (§5a); wat het gedrag van Lex raakt, staat als voorstel in §5b. Daarvan is M2 (V8) gebouwd (#1856) en gemeten,
+zonder model (24 nov 2026) en met het model (25 nov 2026).
 
 Dit plan legt gevalideerd praktijkwerk naast de methode en naast Lex. Het vult
 [`plan-lessen-e2e-termijnen.md`](plan-lessen-e2e-termijnen.md) aan: dat plan trok lessen uit wat een agentteam mét Lex
@@ -397,7 +397,12 @@ de methodemarkers is in deze PR doorgevoerd, zie §5a; wat een meting vraagt, st
   het voorbeeld als parameter, dus die laat de keten staan.
 - **Gebouwd** (PR "Annotatieketen: een rekenvoorbeeld is geen norm maar wel bron", branch
   `claude/keten-rekenvoorbeelden-c83ceb`): `tools/graph-qa/agent/jas_pipeline/voorbeeld.py`, de reviewerzin, tests.
-  Gemeten zonder model: `metingen/keten-rekenvoorbeelden-2026-11-24/`. Met het model en blind: nog niet (zie daar).
+  Gemeten zonder model: `metingen/keten-rekenvoorbeelden-2026-11-24/`. Gemerged als #1856 (`a74c0041`).
+- **Gemeten met het model** (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`; één run, de keten zonder
+  schrijfpad, het model van acceptatie): in 9.5 van 67 naar 46 voorstellen, waarvan 22 in een voorbeeldzin (was 42); de 22
+  die wegvallen had de jurist alle afgewezen; alle 17 geaccordeerde of gecorrigeerde staan er nog; het aandeel afgewezen
+  van 75% naar hoogstens 61%. IW 9 lid 1: geen voorbeeld, geen kenmerk, de 6 geaccordeerde blijven. 30.359 tokens. Blind:
+  niet mogelijk (zie de meting).
 
 ### Prioriteit 3: voorstel bij R5 en verder (staat op HOLD)
 
@@ -514,8 +519,13 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
   op IW 9 lid 1 en 5 en Leidraad 9.1 verandert niets. De kandidaat-dekking op variabele en parameter tegen de referentie
   is vóór en na gelijk. Op de hele graaf (228 bepalingen met een datum of bedrag) herkent de stap alleen de vier zinnen
   van 9.5, na twee aanscherpingen op deze set.
-- Open: de meting met het model (na de uitrol, zonder de geaccordeerde laag van Termijnen te overschrijven), en een
-  blinde bepaling met rekenvoorbeelden: de graaf heeft buiten Leidraad 9.5 geen enkele.
+- Gemeten met het model (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`, één run zonder schrijfpad):
+  in 9.5 46 voorstellen (was 67), 22 in een voorbeeldzin (was 42), 12 data afgewezen met `VOORBEELD_WAARDE`, 28
+  kandidaten met het kenmerk; de 22 die wegvallen had de jurist alle afgewezen, de 17 geaccordeerde of gecorrigeerde staan
+  er alle nog. Op IW 9 lid 1 doet de stap niets.
+- Open: een blinde bepaling met rekenvoorbeelden (de graaf heeft buiten Leidraad 9.5 geen enkele); de reviewerzin, want
+  in deze run kwam geen twijfelgeval bij de reviewer; en meer runs, als de vraag is of de 5 operatoren die het model nu
+  afwees structureel wegvallen.
 - De kennis hoort in de detector en zijn tests, niet in de prompt (ADR-001). De promptwijziging is één zin.
 - Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
   aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
