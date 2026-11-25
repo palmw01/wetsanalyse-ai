@@ -14,11 +14,12 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field
 
+from .contenttoets import OORDEEL_LABEL, Oordeel, criterium_tekst, telling_tekst as _toets_telling
 from .definities import geldt_voor
 
 VERSIE = 1
 
-Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport", "regels"]
+Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport", "regels", "contenttoets"]
 
 
 class Vindplaats(BaseModel):
@@ -349,6 +350,96 @@ class Stukken(BaseModel):
     telling: Telling | None = None
 
 
+class ToetsBron(BaseModel):
+    """Een letterlijke passage uit de bron bij een bevinding van de contenttoets: de code nam de tekst uit de rijen die de
+    graaf in deze beurt teruggaf, het model wees alleen de bepaling en de eerste en laatste woorden aan."""
+
+    tekst: str
+    vindplaats: Vindplaats
+
+
+class Toetsbevinding(BaseModel):
+    """Eén bewering uit de getoetste content met het oordeel van Lex (`bronmodel.contenttoets`).
+
+    `citaat` staat letterlijk in de content; `begin` en `eind` zijn de plek in de content in Unicode-codepoints, uit de
+    code (het zijpaneel markeert er de tekst mee). Het oordeel, de toelichting, de twijfel en het voorstel zijn van Lex."""
+
+    nr: int
+    citaat: str
+    begin: int
+    eind: int
+    oordeel: Oordeel
+    #: J1–J7 of V1–V3 (`bronmodel.contenttoets.CRITERIA`); leeg bij een juiste bewering zonder bijzonderheid.
+    criterium: str = ""
+    bronnen: list[ToetsBron] = []
+    toelichting: str = ""
+    twijfel: str = ""
+    #: Een betere zin, of bij "niet in de bron" een vraag aan de redacteur. Een voorstel, nooit een besluit.
+    voorstel: str = ""
+
+
+class ToetsOntbreekt(BaseModel):
+    """Wat de bron wezenlijk zegt en de content nergens noemt."""
+
+    tekst: str
+    bronnen: list[ToetsBron] = []
+
+
+class Contenttoets(BaseModel):
+    """Het toetsrapport van de contenttoets (plan contenttoets, C1): de content met per toetsbare bewering een oordeel en
+    de letterlijke bron. Twee lagen: `voor_redacteur` in gewone taal, en per bevinding de juridische kern. De content
+    staat er één keer in; de bevindingen wijzen ernaar met hun plek."""
+
+    soort: Literal["contenttoets"] = "contenttoets"
+    door: Literal["lex"] = "lex"
+    content: str
+    #: Vandaag, of de publicatiedatum die de gebruiker meegaf (ISO).
+    peildatum: str = ""
+    #: De regelingen waartegen getoetst is, uit de vindplaatsen van de bronnen (code).
+    getoetst_tegen: list[str] = []
+    voor_redacteur: list[str] = []
+    bevindingen: list[Toetsbevinding]
+    ontbreekt: list[ToetsOntbreekt] = []
+    niet_getoetst: list[str] = []
+
+
+def toets_aantallen(b: Contenttoets) -> dict[str, int]:
+    uit: dict[str, int] = {}
+    for x in b.bevindingen:
+        uit[x.oordeel] = uit.get(x.oordeel, 0) + 1
+    return uit
+
+
+def toets_telling(b: Contenttoets) -> str:
+    return _toets_telling(toets_aantallen(b), len(b.ontbreekt))
+
+
+def _toets_bron_tekst(bron: ToetsBron) -> str:
+    return f'> "{bron.tekst}"\n\n{_vindplaats_regel(bron.vindplaats)}'
+
+
+def _toets_tekst(b: Contenttoets) -> str:
+    """Het rapport als lijsten, nooit als tabel: het moet heel blijven als de redacteur het kopieert. Het voorstel staat
+    niet tussen aanhalingstekens: het is tekst van Lex, geen citaat."""
+    kop = "Getoetst tegen " + (", ".join(b.getoetst_tegen) if b.getoetst_tegen else "de wet- en regelgeving in de graaf")
+    delen = [kop + (f", geldend op {b.peildatum}" if b.peildatum else "") + ". " + toets_telling(b)]
+    if b.voor_redacteur:
+        delen.append("**Voor de redacteur**\n\n" + "\n".join(f"- {r}" for r in b.voor_redacteur))
+    for x in b.bevindingen:
+        regels = [f"**[{x.nr}] {OORDEEL_LABEL[x.oordeel]}**" + (f" · {criterium_tekst(x.criterium)}" if x.criterium else ""),
+                  f'De tekst: "{x.citaat}"']
+        regels += [f"De bron:\n\n{_toets_bron_tekst(br)}" for br in x.bronnen]
+        regels += [f"{k}: {v}" for k, v in (("Toelichting", x.toelichting), ("Twijfel of aanname", x.twijfel),
+                                             ("Voorstel", x.voorstel)) if v]
+        delen.append("\n\n".join(regels))
+    if b.ontbreekt:
+        delen.append("**Ontbreekt**\n\n" + "\n\n".join(
+            "\n\n".join([f"- {o.tekst}", *(_toets_bron_tekst(br) for br in o.bronnen)]) for o in b.ontbreekt))
+    if b.niet_getoetst:
+        delen.append("**Niet getoetst**\n\n" + "\n".join(f"- {n}" for n in b.niet_getoetst))
+    return "\n\n".join(delen)
+
+
 class Leemte(BaseModel):
     """Wat het hoofddeel van een sjabloon niet kon vinden: gezegd, niet opgevuld. Altijd "in de graaf",
     nooit "bestaat niet"."""
@@ -360,7 +451,7 @@ class Leemte(BaseModel):
 
 Blok = Annotated[
     Definities | Begrippen | Regels | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern
-    | Stukken | Leemte,
+    | Stukken | Contenttoets | Leemte,
     Field(discriminator="soort"),
 ]
 
@@ -475,13 +566,16 @@ def _blok_tekst(b: BaseModel) -> str:
         voet = " ".join(v for v in (b.zoekvraag, aantal) if v)
         lijst = "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
         return f"{telling_tekst(b.telling)}\n\n{lijst}" if b.telling else lijst
+    if isinstance(b, Contenttoets):
+        return _toets_tekst(b)
     if isinstance(b, Leemte):
         return b.tekst
     return ""
 
 
 KOPPEN = {"definities": "Wettelijke definitie", "begrippen": "Vastgelegd begrip", "wettekst": "Wettekst", "citaten": "Onderbouwing",
-          "verwijzingen": "Verwijzingen", "annotaties": "Markeringen", "twijfel": "Twijfel en aannames"}
+          "verwijzingen": "Verwijzingen", "annotaties": "Markeringen", "twijfel": "Twijfel en aannames",
+          "contenttoets": "Contenttoets"}
 
 
 def gezamenlijk_tekst(reeks: list[str]) -> str:
