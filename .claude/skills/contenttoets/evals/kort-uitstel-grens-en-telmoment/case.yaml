@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: kort-uitstel-grens-en-telmoment
+expected_outcome: |
+  Een toetsrapport dat de grens van € 25.000 als mogelijk onjuist aanwijst (de bron zegt minder dan € 20.000), de
+  vier maanden na het verzoek als mogelijk onjuist op het telmoment (de bron: na de laatste vervaldag van de oudste
+  aanslag), en "dan krijgt u" als sterker dan de bron (kan worden getroffen). De zin over het dwangbevel is juist. Dat
+  eerder uitstel wegens betalingsproblemen kort uitstel uitsluit, staat als onvolledig of ontbreekt. Elk oordeel heeft
+  een letterlijk citaat met vindplaats.
