@@ -529,6 +529,29 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
 - De kennis hoort in de detector en zijn tests, niet in de prompt (ADR-001). De promptwijziging is één zin.
 - Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
   aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
+- **Vervolg** (25 nov 2026, besluit eigenaar "plan en bouw"). De voorstellen die na de meting met het model overbleven,
+  naast de bronnen gelegd: H2-JAS, het boek (M01), de handleiding (M02), de leidraad (M03), de skill en de bibliotheek
+  (M15). Die bronnen bespreken geen rekenvoorbeeld in een bron; de regel daarover rust op M15 en is een projectkeuze.
+  Vier punten in de keten en één in de skill, alle buiten de methodemarkers:
+  1. *Hetzelfde tijdstip, dezelfde klasse.* De kale "de dagtekening" werd Variabele, "de dagtekening van het
+     aanslagbiljet" Tijdsaanduiding. H2:107 kiest bij samenloop de tijdsaanduiding, en het boek één begrip voor elke
+     formulering met dezelfde betekenis (M01 h.3 stap 3). De functiedetector geeft een tijdstip zonder van-bepaling
+     hetzelfde bewijs als het in de tekst al met van-bepaling staat; een losse "de datum" niet.
+  2. *De duur binnen een herhaling.* "een maand" in "een maand later" kreeg een eigen markering; de skill zegt dat de
+     duur binnen een termijn er geen krijgt (markeren-fragmentgrenzen, uit het boek en H2:107). De regel
+     `jas.tijd.herhaling` maakt de duur nu de kern, zoals `jas.tijd.duur` bij "na …".
+  3. *Geen afleidingsregel op alleen het gevolg.* Met een voorwaarde ervoor is de ALS→DAN-zin de regel, met de clause
+     als optie; "een afleidingsregel markeer je met werkwoord en voorwaarden" (markeren-fragmentgrenzen). De clause is
+     geen tweede kandidaat-Afleidingsregel meer.
+  4. *De operator in een rekenvoorbeeld vervalt*, zoals de normklassen: hij verbindt daar de waarden van het voorbeeld,
+     geen kenmerken van een regel (`voorbeeld.py` versie 2). Wat het model ervan afwees, verschilde per run.
+  5. *De herkomst in de skill.* P23 in `references/bronnen.md` zegt nu dat de rekenvoorbeeldregel alleen op M15 rust.
+
+  Drie punten zijn van de jurist, niet van de code: de hele zin van IW 9 lid 1 is volgens H2-JAS (tijdsverloop met
+  rechtsgevolg) en de skill (voorbeelden E01) een Rechtsfeit, geen Rechtsbetrekking; de dagtekening is in 9.5 als
+  Variabele gecorrigeerd en in IW 9 lid 1 als Tijdsaanduiding goedgekeurd, wat H2:107 niet toelaat; en "het jaartal",
+  "een schrikkeljaar" en "hetzelfde nummer" zijn afgewezen vóór de regel in de skill, die ze juist als kenmerk noemt.
+  Open: de reviewerzin (in geen run een twijfelgeval). Meting: `metingen/keten-rekenvoorbeelden-vervolg-2026-11-25/`.
 
 **M3 · De termijn als tijdsaanduiding die een parameter verbijzondert** (bijgesteld 24 nov 2026; de eerdere vorm,
 een markering Parameter naast de Tijdsaanduiding, vervalt)

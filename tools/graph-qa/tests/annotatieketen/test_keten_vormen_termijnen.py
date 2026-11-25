@@ -166,6 +166,16 @@ def test_een_tijdstip_als_waarde_zonder_nevenschikking(parser):
     assert spans and all(s == "de dagtekening van het aanslagbiljet" for s in spans)
 
 
+def test_hetzelfde_tijdstip_zonder_van_bepaling_is_ook_een_waarde(parser):
+    """Na 'de dagtekening van een aanslagbiljet' is 'de dagtekening' dezelfde formulering met dezelfde betekenis: één
+    begrip en één klasse, tijd vóór variabele (H2:107). Leidraad 9.5, meting keten-rekenvoorbeelden-model 25 nov 2026."""
+    tekst = ("Als de dagtekening van een aanslagbiljet valt op 31 oktober, vervalt de termijn op 30 november. "
+             "Als de dagtekening 28 februari is, vervalt de termijn op 31 maart.")
+    ks = _met(FunctieDetector(), tekst, parser, "TEMPORAL_VALUE")
+    assert [k.span.tekst for k in ks] == ["de dagtekening van een aanslagbiljet", "de dagtekening"]
+    assert all(set(k.possible_classes) == {"Variabele en variabelewaarde", "Tijdsaanduiding"} for k in ks)
+
+
 @pytest.mark.parametrize("tekst", ["Hij betaalt binnen veertien dagen.",
                                    "De datum wordt later bepaald.",
                                    "De data van de aanslagen worden bewaard."])

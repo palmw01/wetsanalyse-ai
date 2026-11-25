@@ -113,3 +113,15 @@ def test_grens_begint_na_de_vaste_uitdrukking(parser, tekst):
 def test_aantalsgrens_valt_buiten_de_naamwoordgroep(parser, tekst, zaak, getal):
     groepen = [n.span.tekst for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser)]
     assert zaak in groepen and not [g for g in groepen if getal in g and zaak in g]
+
+
+def test_de_duur_in_een_herhaling_is_de_kern_ervan():
+    """'een maand' in 'een maand later' is de kern van dezelfde tijdsfunctie, zoals 'zes weken' in 'zes weken na …': de
+    fusie registreert hem zo, en `ontdubbel_tijd` laat dan alleen de herhaling staan (skill, markeren-fragmentgrenzen:
+    de duur binnen een termijn; Leidraad 9.5, meting keten-rekenvoorbeelden-model 25 nov 2026)."""
+    from agent.jas_pipeline.fusie import fuseer
+    tekst = "Dan vervalt de termijn een maand later."
+    per = {k.span.tekst: k for k in fuseer(detecteer_alles(BronTekst.van_tekst("test", tekst))).kandidaten}
+    assert {o.soort: o.span.tekst for o in per["een maand later"].span_options} == {"kern": "een maand"}
+    kern = per["een maand"]
+    assert any(e.code == "TEMPORAL_KERNEL" and per["een maand later"].id in e.detail for e in kern.evidence)

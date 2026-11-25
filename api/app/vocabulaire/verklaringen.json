@@ -342,7 +342,7 @@
     },
     "VOORBEELD_GEEN_NORM": {
       "naam": "Een voorbeeld stelt geen norm",
-      "uitleg": "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."
+      "uitleg": "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin, en de operator ook: die verbindt daar de waarden van het voorbeeld, geen kenmerken van een regel."
     },
     "VOORBEELD_WAARDE": {
       "naam": "Waarde in een rekenvoorbeeld",
@@ -1076,5 +1076,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "417e41805acc"
+  "vocabulaire_versie": "9bd932b52c2e"
 }

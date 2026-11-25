@@ -608,7 +608,9 @@ class GevolgDetector:
     #    24 nov 2026, meting keten-termijnpatroon-na)
     # 8: weer zonder koppelwerkwoord: de variabele is het kenmerk ('invorderbaar'; bron H2-JAS en het boek, besluit
     #    eigenaar 24 nov 2026). Met 'is' wees het model hem 3 van 3 keer af (meting keten-termijnpatroon-koppelwerkwoord)
-    versie = "8"
+    # 9: met een voorwaarde ervoor is de clause geen kandidaat-Afleidingsregel meer, alleen een optie van de ALS→DAN-zin
+    #    (meting keten-rekenvoorbeelden-model 25 nov 2026)
+    versie = "9"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -648,21 +650,28 @@ class GevolgDetector:
             # leidt een datum af uit bestaande gegevens (H2:71): Afleidingsregel als hypothese, het model kiest.
             moment = code == self.CODES[0] and next(
                 ((ms, me) for ms, me in momenten if span[0] <= ms < span[1]), None)
-            if moment:
-                klassen = [*klassen, AR]
-                bewijs.append(Evidence(detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
-                                       detail=bron.tekst[moment[0]:moment[1]]))
-            kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
             # Staat er een voorwaarde vóór het gevolg in hetzelfde segment ('Indien …, vervalt …', 'Is …, dan vervalt
-            # …'), dan is de hele ALS→DAN-zin de regel: een eigen kandidaat op het segment, de clause als optie.
+            # …'), dan is de hele ALS→DAN-zin de regel: een eigen kandidaat op het segment, met de clause als optie. De
+            # clause zelf is dan geen tweede Afleidingsregel: die markeer je met werkwoord en voorwaarden (skill,
+            # markeren-fragmentgrenzen). Ze blijft een kandidaat voor de rechtsbetrekking of het rechtsfeit (een
+            # bevoegdheid die door tijdsverloop vervalt). Eerst stond ze er ook als Afleidingsregel, en de jurist wees
+            # haar af (Leidraad 9.5, meting keten-rekenvoorbeelden-model 25 nov 2026).
             segspan = _trim(bron.tekst, *seg) if seg else None
             if moment and segspan and span[0] > segspan[0] and _voorwaarde_voor(a, p.kop, segspan):
                 if segspan not in gezien:
                     gezien.add(segspan)
                     kandidaten.append(_kandidaat(bron, [(segspan, "segment"), (span, "clause")], [AR, BETR], [Evidence(
                         detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
-                        detail=json.dumps({"predicaat": vorm, "voorwaarde": True}, ensure_ascii=False,
+                        detail=json.dumps({"predicaat": vorm, "voorwaarde": True,
+                                           "moment": bron.tekst[moment[0]:moment[1]]}, ensure_ascii=False,
                                           sort_keys=True))]))
+                kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
+                continue
+            if moment:
+                klassen = [*klassen, AR]
+                bewijs.append(Evidence(detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
+                                       detail=bron.tekst[moment[0]:moment[1]]))
+            kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         kandidaten += self._toestand_met_moment(bron, a, momenten, gezien)
         return resultaat(self, bron, kandidaten)
 

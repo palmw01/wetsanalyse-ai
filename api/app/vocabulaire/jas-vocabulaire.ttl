@@ -337,7 +337,7 @@
     jas:codeWaarde "THING_NP" .
 
 <urn:jas-ns:code:VOORBEELD_GEEN_NORM> a jas:Detectiecode ;
-    skos:definition "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."@nl ;
+    skos:definition "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin, en de operator ook: die verbindt daar de waarden van het voorbeeld, geen kenmerken van een regel."@nl ;
     skos:prefLabel "Een voorbeeld stelt geen norm"@nl ;
     jas:codeWaarde "VOORBEELD_GEEN_NORM" .
 
@@ -551,7 +551,7 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Relatieve of herhaalde termijn"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_RECURRENCE> ;
-    jas:regelVersie 2 ;
+    jas:regelVersie 3 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.maandnaam> a jas:Detectorregel ;
@@ -1592,5 +1592,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "417e41805acc" .
+    jas:vocabulaireVersie "9bd932b52c2e" .
 
