@@ -49,6 +49,14 @@ class NieuweBetekenis(Reden):
     # Alleen bij een generiek begrip: het werkgebied waar de nieuwe betekenis ontstaat. Zijn passages gaan mee naar de
     # opvolger, want een begrip rust altijd op een annotatie; elk ander werkgebied neemt de opvolger zelf over (ADR-006).
     werkgebied_id: str = Field(default="", max_length=64)
+    # B8: per wanneer de nieuwe betekenis geldt (JJJJ-MM-DD). Het oude begrip geldt dan tot en met de dag ervoor.
+    geldig_vanaf: str = ""
+
+    @field_validator("geldig_vanaf")
+    @classmethod
+    def _geldig(cls, v: str) -> str:
+        from .begrip_contracts import datum_of_leeg
+        return datum_of_leeg(v)
 
 
 class CombinerenGeneriek(Reden):

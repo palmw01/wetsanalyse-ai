@@ -7,6 +7,8 @@ lezen weg (`extra="ignore"`).
 """
 from __future__ import annotations
 
+import re
+from datetime import date
 from enum import Enum
 from typing import Literal
 
@@ -104,6 +106,23 @@ class KlasseKeuze(BaseModel):
         return v.strip()
 
 
+_DATUM = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def datum_of_leeg(v: str | None) -> str:
+    """Een datum als JJJJ-MM-DD, of leeg (B8)."""
+    v = (v or "").strip()
+    if not v:
+        return ""
+    try:
+        if not _DATUM.match(v):
+            raise ValueError
+        date.fromisoformat(v)
+    except ValueError:
+        raise ValueError("een datum als JJJJ-MM-DD") from None
+    return v
+
+
 class BegripInhoud(BaseModel):
     """Alles optioneel behalve de naam: een begrip groeit. De accorderingspoort vraagt de rest."""
 
@@ -129,6 +148,22 @@ class BegripInhoud(BaseModel):
     waardebereik: Waardebereik | None = None
     klasse_keuze: KlasseKeuze | None = None
     eigenaar: str = Field(default="", max_length=200)        # wie het begrip beheert (een organisatieonderdeel)
+    # B8 (plan lessen Termijnen §10; M01 h.3 stap 3a, M02 §3.5.2a; besluit eigenaar 25 nov 2026): de juridische
+    # geldigheid, als JJJJ-MM-DD. Niet de datum van registratie: per wanneer geldt deze betekenis. Optioneel; een
+    # opvolger zet ze bij een nieuwe betekenis (`begrip_relatie_store.nieuwe_betekenis`).
+    geldig_vanaf: str = ""
+    geldig_tot: str = ""
+
+    @field_validator("geldig_vanaf", "geldig_tot")
+    @classmethod
+    def _datum(cls, v: str) -> str:
+        return datum_of_leeg(v)
+
+    @model_validator(mode="after")
+    def _volgorde(self):
+        if self.geldig_vanaf and self.geldig_tot and self.geldig_tot < self.geldig_vanaf:
+            raise ValueError("geldig tot ligt vóór geldig vanaf")
+        return self
 
     @field_validator("naam")
     @classmethod

@@ -10,7 +10,7 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { LeegWaarde } from "@/components/ui/Leeg";
 import { Regel, Regels } from "@/components/ui/Lijst";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
-import { klasseZin, regels, waardebereikUit, waardebereikZin, WAARDE_SOORT_LABEL } from "@/lib/begrippen";
+import { geldigheidZin, klasseZin, regels, waardebereikUit, waardebereikZin, WAARDE_SOORT_LABEL } from "@/lib/begrippen";
 import { JAS_KLASSEN } from "@/lib/jas";
 import type { BegripStand } from "@/lib/useBegrip";
 import { WAARDE_SOORTEN, type Begrip, type BegripInhoud } from "@/lib/types";
@@ -26,13 +26,14 @@ export function KenmerkenBlok({ stand, begrip, weergave, bewerkbaar, onOnbewaard
   const w = i.waardebereik ?? null;
   const begin = {
     klasse: i.klasse_keuze?.klasse ?? "", reden: i.klasse_keuze?.reden ?? "", eigenaar: i.eigenaar ?? "",
+    geldig_vanaf: i.geldig_vanaf ?? "", geldig_tot: i.geldig_tot ?? "",
     soort: w?.soort ?? "", eenheid: w?.eenheid ?? "", decimalen: w?.decimalen != null ? String(w.decimalen) : "",
     minimum: w?.minimum ?? "", maximum: w?.maximum ?? "", waarden: regels(w?.waarden ?? []), toelichting: w?.toelichting ?? "",
   };
   const b = useBewerken({
     begin, onOnbewaard,
     opslaan: (c) => stand.muteer((r) => stand.api.wijzig(r, {
-      ...i, eigenaar: c.eigenaar.trim(), waardebereik: waardebereikUit(c),
+      ...i, eigenaar: c.eigenaar.trim(), waardebereik: waardebereikUit(c), geldig_vanaf: c.geldig_vanaf, geldig_tot: c.geldig_tot,
       klasse_keuze: c.klasse ? { klasse: c.klasse, reden: c.reden.trim() } : null,
     } as BegripInhoud), { gelukt: "Opgeslagen." }),
   });
@@ -41,6 +42,8 @@ export function KenmerkenBlok({ stand, begrip, weergave, bewerkbaar, onOnbewaard
   const k = klasseZin(begrip.klasse);
   const zonderReden = !!c.klasse && c.klasse !== begrip.klasse?.afgeleid && !c.reden.trim();
   const zonderWaarden = c.soort === "opsomming" && !c.waarden.trim();
+  const omgekeerd = !!c.geldig_vanaf && !!c.geldig_tot && c.geldig_tot < c.geldig_vanaf;
+  const geldig = geldigheidZin(i);
 
   return (
     <BegripBlok weergave={weergave} titel="Kenmerken" data-blok="kenmerken"
@@ -85,11 +88,18 @@ export function KenmerkenBlok({ stand, begrip, weergave, bewerkbaar, onOnbewaard
               <Input value={c.toelichting} onChange={(e) => zet({ toelichting: e.target.value })} maxLength={1000} />
             </Field>
           )}
+          <Field label="Geldig vanaf" hint="per wanneer deze betekenis geldt; leeg als dat niet vastligt">
+            <Input type="date" value={c.geldig_vanaf} onChange={(e) => zet({ geldig_vanaf: e.target.value })} />
+          </Field>
+          <Field label="Geldig tot en met" hint="leeg zolang er geen einddatum is">
+            <Input type="date" value={c.geldig_tot} onChange={(e) => zet({ geldig_tot: e.target.value })} />
+          </Field>
           <Field label="Eigenaar" hint="wie het begrip beheert">
             <Input value={c.eigenaar} onChange={(e) => zet({ eigenaar: e.target.value })} maxLength={200} />
           </Field>
           <BewerkVoet onAnnuleer={b.annuleer} onOpslaan={() => void b.slaOp()} bezig={b.bezig}
-            gewijzigd={b.gewijzigd && !zonderReden && !zonderWaarden} fout={b.fout} />
+            gewijzigd={b.gewijzigd && !zonderReden && !zonderWaarden && !omgekeerd}
+            fout={b.fout ?? (omgekeerd ? "Geldig tot ligt vóór geldig vanaf." : undefined)} />
         </div>
       ) : (
         <Regels data-begrip-kenmerken>
@@ -101,6 +111,7 @@ export function KenmerkenBlok({ stand, begrip, weergave, bewerkbaar, onOnbewaard
           <Regel naam="Waarde">
             {w ? waardebereikZin(w) : <LeegWaarde>Nog geen waardebereik.</LeegWaarde>}
           </Regel>
+          {geldig && <Regel naam="Geldig">{geldig}</Regel>}
           {i.eigenaar && <Regel naam="Eigenaar">{i.eigenaar}</Regel>}
         </Regels>
       )}
