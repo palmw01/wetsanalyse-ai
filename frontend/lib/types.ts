@@ -1095,6 +1095,8 @@ export interface BegripKlasse {
   klasse: string;
   afgeleid: string;
   uit_passages: Record<string, number>;
+  /** De verdieping van de klasse uit de dragende passages, zoals de soort rechtsbetrekking (B6); leeg als er geen is. */
+  subtype?: string;
   gekozen: string;
   reden: string;
 }
