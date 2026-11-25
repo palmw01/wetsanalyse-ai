@@ -25,6 +25,7 @@ from bronmodel.antwoord import Antwoord, Leemte
 from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
 from .begrip import SCHEMA as _BEGRIP, vooraf as _vooraf_begrip, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
+from .contenttoets import SCHEMA as _CONTENTTOETS, vul as _vul_contenttoets
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
 from .regels import SCHEMA as _REGELS, vul as _vul_regels
@@ -51,6 +52,8 @@ SJABLONEN: dict[str, Sjabloon] = {
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
     _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
     _REGELS["name"]: Sjabloon(_REGELS, _vul_regels),
+    # Het toetsrapport van de contenttoets (plan contenttoets, C1): alleen het profiel `contenttoets` noemt het.
+    _CONTENTTOETS["name"]: Sjabloon(_CONTENTTOETS, _vul_contenttoets),
     # De uitgang van een subagent (ADR-016 §A4): geen profiel noemt hem, de agentvorm `Subagent` geeft hem.
     _RAPPORT["name"]: Sjabloon(_RAPPORT, _vul_rapport),
     _extern.SCHEMA["name"]: Sjabloon(_extern.SCHEMA, _extern.vul),

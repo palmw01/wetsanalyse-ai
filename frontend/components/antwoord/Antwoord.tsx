@@ -11,6 +11,7 @@ import { NOG_NIET_IN_WERKING, TEKSTSTAND_LABEL, WETTEKST_LIVE, tekstBijMeldingen
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
+import { ContenttoetsBlok } from "./ContenttoetsBlok";
 import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { gezamenlijkTekst, groepeerWettekst, tellingTekst, type Antwoord as AntwoordData, type AntwoordBlok, type AntwoordDefinitie, type BlokSoort } from "@/lib/antwoord";
@@ -270,6 +271,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
       <p className="text-xs text-muted">Gevonden, niet gelezen: de lijst zegt niets over wat er in de stukken staat.</p>
     </Sectie>
   ),
+  contenttoets: ({ blok }) => <ContenttoetsBlok blok={blok} />,
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,
 };
 

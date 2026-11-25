@@ -2,6 +2,8 @@
 // blokken zijn een gesloten lijst, en `antwoord.test.ts` leest die bron. Klopt één blok niet of kent de
 // werkplek het niet, dan geen sjabloon: `tekst` op het bericht is altijd het hele antwoord.
 
+import { isContenttoets, type ContenttoetsBlok } from "./contenttoets";
+
 export interface AntwoordVindplaats { iri: string; label: string; jci: string; regeling: string }
 
 /** Een wettelijke definitie (`bronmodel.antwoord.Definitie`). `bereik` is de geldingsformule zelf ("Deze wet");
@@ -46,6 +48,7 @@ export type AntwoordBlok =
       zoekvraag?: string; totaal?: number | null;
       /** Bij een telvraag: het aantal dat de bron zelf telt, met de verdeling die de bron geeft (`Telling` in bronmodel). */
       telling?: Telling | null }
+  | ContenttoetsBlok
   | { soort: "leemte"; door: "bron"; tekst: string }
 
 /** Het antwoord op een telvraag, uit de bron: `dekking` "ten minste" bij een bron die een ondergrens geeft (LiDO). */
@@ -81,7 +84,7 @@ export type BlokSoort = AntwoordBlok["soort"];
 
 export interface Antwoord { sjabloon: string; versie: number; blokken: AntwoordBlok[]; doelen: AntwoordVindplaats[] }
 
-export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "regels", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "stukken", "leemte"];
+export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "regels", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "stukken", "contenttoets", "leemte"];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -107,6 +110,7 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "stukken": return typeof b.kop === "string" &&
       lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.label === "string") &&
       (b.telling == null || (isObject(b.telling) && typeof b.telling.aantal === "number"));
+    case "contenttoets": return isContenttoets(b);
   }
 }
 
