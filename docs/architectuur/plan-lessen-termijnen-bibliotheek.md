@@ -756,6 +756,10 @@ geen meting)
     zegt waarom. M03 maakt dat onderscheid zelf: zo'n stelling toetst de naam en de definitie, en de voorbeeldreeks
     toetst de regel.
 - Stelt de begrippen-agent de voorbeelden voor, dan valt de toelichting onder de meting van M1.
+- **Eerst een besluit van de eigenaar.** Spoor I1 (#753, 27 okt 2026) heeft de toelichting bij een voorbeeld bewust
+  geschrapt, om het model gelijk te trekken met NL-SBB. Het waarom staat sindsdien in de motivatie van het voorstel van
+  Lex, en niet bij het voorbeeld zelf. Dit punt draait dat terug, zoals V2 dat met P15 deed. Zonder besluit blijft
+  alleen de alinea in de skill.
 
 **B6 · De subklasse op het begrip** (api `klasse_van`, kaart; S; geen meting)
 - Probleem: volgens M01 stap 3a en M02 §3.5.2a horen bij de eigenschappen van een begrip de klasse en haar verdieping,
@@ -785,6 +789,8 @@ meting)
 - Voorstel: optionele velden `geldig_vanaf` en `geldig_tot` op het begrip. De opvolger stelt de ingangsdatum voor uit
   de versie van de dragende passage, en het oude begrip krijgt de dag ervoor als einddatum. De velden gaan buiten de
   kern van NL-SBB mee, net als het waardebereik (ADR-003).
+- Ook hier heeft spoor I1 (#753) een veld `geldigheid` geschrapt, samen met de JAS-duiding en de eigenschappen. V2 haalde
+  de klasse terug; dit punt zou de geldigheid terughalen.
 - Vraag aan de eigenaar: een eigen veld, of afleiden uit de versies van de bronnen waarop het begrip rust? Het tweede
   is minder werk voor de analist, maar mist een wijziging die uit jurisprudentie komt.
 
@@ -810,10 +816,12 @@ meting)
 
 ### 10.4 Volgorde
 
-1. B1, B3 en B5, in één bundel. Het zijn kleine correcties in de skill en het model, zonder gedragsverandering.
+1. B1 en B3, in één bundel: kleine correcties in de skill en het model, zonder gedragsverandering. **Gebouwd** (PR
+   "Methodebronnen B1 en B3", branch `claude/bundel-methodebronnen-1`). B5 wacht op het besluit van de eigenaar (zie
+   daar).
 2. B2, B4 en B6, in één bundel met signalen. Eerst de toets uit B2 (slotpunt, NL-SBB).
 3. B7, met B1, als de skill toch wordt gewijzigd.
-4. B8 en B9, na het besluit van de eigenaar.
+4. B5, B8 en B9, na het besluit van de eigenaar.
 
 B2 en B6 raken `api/app/begrip_store.py`, en B3 raakt `api/app/regel_store.py`. Er werkt één schrijver tegelijk aan
 een bestand.
