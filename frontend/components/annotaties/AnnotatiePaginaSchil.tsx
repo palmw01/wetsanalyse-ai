@@ -37,7 +37,7 @@ export function AnnotatiePaginaSchil({ titel, werkplekHref, actie, onFout, child
           onDrawerSluit={() => setDrawerOpen(false)}
         />
 
-        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col bg-paper">
+        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col bg-paper outline-none">
           <MobieleTopbar titel={titel} onOpenSidebar={() => setDrawerOpen(true)} />
           {/* Zelfde afweging als de kop van het artefact hieronder: wrappen in plaats van de titel
               laten wegdrukken door een knop die niet mag krimpen. */}
