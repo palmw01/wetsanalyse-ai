@@ -4,6 +4,7 @@ import {
   ankerVoorDatum,
   ankerVoorWeekdag,
   bovenBudgetMelding,
+  metOffset,
   budgetHerkomst,
   dagenTotReset,
   resetdatum,
@@ -152,41 +153,55 @@ describe("het resetmoment kiezen", () => {
   it("kiest de vorige maandag 00:00, niet de volgende", () => {
     // Woensdag 25 november 2026, 21:28 Nederlandse tijd.
     const nu = new Date("2026-11-25T20:28:00Z");
-    expect(ankerVoorWeekdag(0, "00:00", NL, nu)).toBe("2026-11-23T00:00:00");
-    expect(ankerVoorWeekdag(3, "09:00", NL, nu)).toBe("2026-11-19T09:00:00"); // donderdag
+    expect(ankerVoorWeekdag(0, "00:00", NL, nu)).toBe("2026-11-23T00:00:00+01:00");
+    expect(ankerVoorWeekdag(3, "09:00", NL, nu)).toBe("2026-11-19T09:00:00+01:00"); // donderdag
   });
 
   it("neemt vandaag als het moment vandaag al geweest is, anders een week eerder", () => {
     const maandagOchtend = new Date("2026-11-23T08:00:00Z"); // 09:00 in Nederland
-    expect(ankerVoorWeekdag(0, "00:00", NL, maandagOchtend)).toBe("2026-11-23T00:00:00");
-    expect(ankerVoorWeekdag(0, "12:00", NL, maandagOchtend)).toBe("2026-11-16T12:00:00");
+    expect(ankerVoorWeekdag(0, "00:00", NL, maandagOchtend)).toBe("2026-11-23T00:00:00+01:00");
+    expect(ankerVoorWeekdag(0, "12:00", NL, maandagOchtend)).toBe("2026-11-16T12:00:00+01:00");
   });
 
   it("rekent over een maandgrens en in de zomertijd", () => {
-    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-04-01T10:00:00Z"))).toBe("2026-03-30T00:00:00");
+    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-04-01T10:00:00Z"))).toBe("2026-03-30T00:00:00+02:00");
     // Zondagavond 23:30 zomertijd is in UTC al 21:30: nog steeds dezelfde week.
-    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-10-25T22:30:00Z"))).toBe("2026-10-19T00:00:00");
+    expect(ankerVoorWeekdag(0, "00:00", NL, new Date("2026-10-25T22:30:00Z"))).toBe("2026-10-19T00:00:00+02:00");
+  });
+
+  it("een anker gaat met de offset van dat moment mee, zodat elke api hetzelfde leest", () => {
+    // De regressie: zonder offset las een oudere api "maandag 00:00" als UTC, en dat is 01:00 in Nederland.
+    expect(metOffset("2026-11-23T00:00:00", NL)).toBe("2026-11-23T00:00:00+01:00");
+    expect(new Date(metOffset("2026-11-23T00:00:00", NL)).toISOString()).toBe("2026-11-22T23:00:00.000Z");
+    expect(metOffset("2026-07-06T00:00:00", NL)).toBe("2026-07-06T00:00:00+02:00");
+    // De dagen van de overgang: vóór en na het verzetten van de klok.
+    expect(metOffset("2026-03-29T01:00:00", NL)).toBe("2026-03-29T01:00:00+01:00");
+    expect(metOffset("2026-03-29T04:00:00", NL)).toBe("2026-03-29T04:00:00+02:00");
+    expect(metOffset("2026-10-25T00:00:00", NL)).toBe("2026-10-25T00:00:00+02:00");
+    expect(metOffset("2026-10-25T12:00:00", NL)).toBe("2026-10-25T12:00:00+01:00");
+    expect(metOffset("2026-11-23T00:00:00", "UTC")).toBe("2026-11-23T00:00:00+00:00");
+    expect(metOffset("2026-11-23T00:00:00", "America/New_York")).toBe("2026-11-23T00:00:00-05:00");
   });
 
   it("een datum en tijd gaan als wandkloktijd mee", () => {
-    expect(ankerVoorDatum("2026-12-01", "09:30")).toBe("2026-12-01T09:30:00");
+    expect(ankerVoorDatum("2026-12-01", "09:30", NL)).toBe("2026-12-01T09:30:00+01:00");
   });
 
   it("per dag: vandaag als het moment al geweest is, anders gisteren", () => {
     const nu = new Date("2026-11-25T20:28:00Z"); // 21:28
-    expect(ankerVoorDag("00:00", NL, nu)).toBe("2026-11-25T00:00:00");
-    expect(ankerVoorDag("22:00", NL, nu)).toBe("2026-11-24T22:00:00");
+    expect(ankerVoorDag("00:00", NL, nu)).toBe("2026-11-25T00:00:00+01:00");
+    expect(ankerVoorDag("22:00", NL, nu)).toBe("2026-11-24T22:00:00+01:00");
     // Kort na middernacht Nederlandse tijd is het in UTC nog de vorige dag.
-    expect(ankerVoorDag("00:00", NL, new Date("2026-11-30T23:30:00Z"))).toBe("2026-12-01T00:00:00");
+    expect(ankerVoorDag("00:00", NL, new Date("2026-11-30T23:30:00Z"))).toBe("2026-12-01T00:00:00+01:00");
   });
 
   it("per maand: deze maand als de dag al geweest is, anders de vorige", () => {
     const nu = new Date("2026-11-25T20:28:00Z");
-    expect(ankerVoorMaanddag(1, "00:00", NL, nu)).toBe("2026-11-01T00:00:00");
-    expect(ankerVoorMaanddag(25, "22:00", NL, nu)).toBe("2026-10-25T22:00:00");
-    expect(ankerVoorMaanddag(28, "00:00", NL, nu)).toBe("2026-10-28T00:00:00");
+    expect(ankerVoorMaanddag(1, "00:00", NL, nu)).toBe("2026-11-01T00:00:00+01:00");
+    expect(ankerVoorMaanddag(25, "22:00", NL, nu)).toBe("2026-10-25T22:00:00+01:00");
+    expect(ankerVoorMaanddag(28, "00:00", NL, nu)).toBe("2026-10-28T00:00:00+01:00");
     // Over de jaargrens.
-    expect(ankerVoorMaanddag(15, "00:00", NL, new Date("2027-01-03T10:00:00Z"))).toBe("2026-12-15T00:00:00");
+    expect(ankerVoorMaanddag(15, "00:00", NL, new Date("2027-01-03T10:00:00Z"))).toBe("2026-12-15T00:00:00+01:00");
   });
 
   it("de periode is een begrijpelijke keuze", () => {

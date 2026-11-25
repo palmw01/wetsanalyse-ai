@@ -87,14 +87,46 @@ function plusDagen(datum: string, dagen: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Hoeveel minuten `tijdzone` op dit moment voor UTC loopt (+60 in de winter in Nederland, +120 in de zomer). */
+function offsetMinuten(ms: number, tijdzone: string): number {
+  const delen = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: tijdzone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date(ms)).map((p) => [p.type, Number(p.value)]),
+  );
+  const wand = Date.UTC(delen.year, delen.month - 1, delen.day, delen.hour, delen.minute, delen.second);
+  return Math.round((wand - Math.floor(ms / 1000) * 1000) / 60_000);
+}
+
+/** Wandkloktijd ("2026-11-23T00:00:00") met de offset die `tijdzone` op dat moment heeft: "2026-11-23T00:00:00+01:00".
+ *
+ *  Het anker gaat altijd mét offset naar de api. Een tijd zonder tijdzone leest de api wel als wandkloktijd, maar een
+ *  oudere api las hem als UTC: zo werd "maandag 00:00" op acceptatie "maandag 01:00", toen de werkplek eerder uitgerold
+ *  was dan de api. Met een offset betekent het anker in elke versie hetzelfde moment.
+ */
+export function metOffset(wand: string, tijdzone: string): string {
+  const [datum, tijd] = wand.split("T");
+  const [j, m, d] = datum.split("-").map(Number);
+  const [u, mi, se = 0] = tijd.split(":").map(Number);
+  const gok = Date.UTC(j, m - 1, d, u, mi, se);
+  // De offset hangt af van het moment zelf (zomer- of wintertijd); twee keer kijken vangt de dag van de overgang.
+  let off = offsetMinuten(gok, tijdzone);
+  const tweede = offsetMinuten(gok - off * 60_000, tijdzone);
+  if (tweede !== off) off = tweede;
+  const teken = off < 0 ? "-" : "+";
+  const twee = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  return `${datum}T${tijd.length === 5 ? `${tijd}:00` : tijd}${teken}${twee(Math.abs(off) / 60)}:${twee(Math.abs(off) % 60)}`;
+}
+
 // De ankers hieronder zijn allemaal de VORIGE keer dat het gekozen moment er was, en nooit de volgende: een anker in
-// de toekomst laat tot dat moment niets meetellen (`venster_start` in de api). Het resultaat is wandkloktijd zonder
-// tijdzone ("2026-11-23T00:00:00"); de api leest dat in de tijdzone van het beleid, dus zomertijd speelt hier niet.
+// de toekomst laat tot dat moment niets meetellen (`venster_start` in de api). Het resultaat is wandkloktijd met de
+// offset van de tijdzone op dat moment ("2026-11-23T00:00:00+01:00", in de zomer +02:00).
 
 /** Het anker voor "elke dag om `tijd`". */
 export function ankerVoorDag(tijd: string, tijdzone: string, nu: Date = new Date()): string {
   const hier = wandklok(nu, tijdzone);
-  return `${hier.tijd < tijd ? plusDagen(hier.datum, -1) : hier.datum}T${tijd}:00`;
+  return metOffset(`${hier.tijd < tijd ? plusDagen(hier.datum, -1) : hier.datum}T${tijd}:00`, tijdzone);
 }
 
 /** Het anker voor "elke `weekdag` om `tijd`". */
@@ -102,7 +134,7 @@ export function ankerVoorWeekdag(weekdag: number, tijd: string, tijdzone: string
   const hier = wandklok(nu, tijdzone);
   let terug = (hier.weekdag - weekdag + 7) % 7;
   if (terug === 0 && hier.tijd < tijd) terug = 7;
-  return `${plusDagen(hier.datum, -terug)}T${tijd}:00`;
+  return metOffset(`${plusDagen(hier.datum, -terug)}T${tijd}:00`, tijdzone);
 }
 
 /** Het anker voor "elke maand op de `dag`e om `tijd`". Het scherm biedt 1–28 aan, zodat elke maand die dag heeft. */
@@ -114,12 +146,12 @@ export function ankerVoorMaanddag(dag: number, tijd: string, tijdzone: string, n
     if (maand === 0) { maand = 12; jaar -= 1; }
   }
   const twee = (n: number) => String(n).padStart(2, "0");
-  return `${jaar}-${twee(maand)}-${twee(dag)}T${tijd}:00`;
+  return metOffset(`${jaar}-${twee(maand)}-${twee(dag)}T${tijd}:00`, tijdzone);
 }
 
-/** Het anker voor een gekozen datum en tijd, als wandkloktijd zonder tijdzone. */
-export function ankerVoorDatum(datum: string, tijd: string): string {
-  return `${datum}T${tijd}:00`;
+/** Het anker voor een gekozen datum en tijd. */
+export function ankerVoorDatum(datum: string, tijd: string, tijdzone: string): string {
+  return metOffset(`${datum}T${tijd}:00`, tijdzone);
 }
 
 /** "Eén gebruiker zit" / "3 gebruikers zitten" in het nieuwe venster boven zijn budget. */
