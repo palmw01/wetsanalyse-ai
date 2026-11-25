@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: toeslagschuld-bedrag-en-looptijd
+expected_outcome: |
+  Een toetsrapport dat € 25 per maand als mogelijk onjuist aanwijst (de bron: € 20 per maand per terugvordering) en
+  36 maanden als mogelijk onjuist (de bron: binnen 24 maandelijkse termijnen). De grens van € 480 en het samenvoegen van
+  regelingen op verzoek zijn juist. Dat de regeling wordt beëindigd als de aflossing niet wordt nagekomen, staat als
+  onvolledig of ontbreekt.

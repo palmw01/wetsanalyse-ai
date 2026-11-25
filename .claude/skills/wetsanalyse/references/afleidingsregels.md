@@ -139,6 +139,11 @@ Interpretaties die nog niet in uitvoeringsbeleid staan, signaleer je (M01 stap 5
 bedrag, een vervaldag die op een dag valt die in de volgende maand niet bestaat, of het tijdvak waarin een drempel
 geldt. Kies niet stil.
 
+Ook een interpretatiekeuze kun je signaleren. Je kiest dan een lezing, zodat de analyse verder kan, en zegt aan wie de
+keuze gaat. Het **beleid** legt haar vast in een beleidsregel. De **wetgever** past de wet aan, bijvoorbeeld als twee
+termen hetzelfde betekenen of één term twee dingen (M02 §3.5.2a en §3.7). Ontbrekend uitvoeringsbeleid gaat altijd naar
+het beleid.
+
 ## Wat een regel mist
 
 Toets elke regel op deze gaten, zonder het accorderen ervan af te laten hangen (een gat is een signaal). De codes staan

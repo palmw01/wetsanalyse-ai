@@ -429,7 +429,7 @@ export function WorkbenchShell({
 
       {/* Rechterkolom: mobiele topbar + chatvenster. `tabIndex={-1}` zodat de skip-link de focus
           hier echt neer kan zetten – zonder dat springt alleen de scrollpositie. */}
-      <div id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col">
+      <div id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
         <MobieleTopbar
           titel={actieveTitel}
           onOpenSidebar={() => setDrawerOpen(true)}

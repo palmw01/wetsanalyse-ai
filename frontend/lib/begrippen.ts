@@ -232,6 +232,15 @@ export function klasseZin(k: BegripKlasse | undefined): { klasse: string; herkom
   return { klasse: k.subtype ? `${k.klasse} (${k.subtype})` : k.klasse, herkomst: n ? `uit ${aantal(n, "passage", "passages")}` : "" };
 }
 
+/** De geldigheid van een begrip in één zin (B8), met de datum zoals de werkplek hem schrijft; leeg zonder datum. */
+export function geldigheidZin(i: { geldig_vanaf?: string; geldig_tot?: string }): string {
+  const d = (x: string) => x.split("-").reverse().join("-");
+  const van = i.geldig_vanaf ? d(i.geldig_vanaf) : "", tot = i.geldig_tot ? d(i.geldig_tot) : "";
+  if (van && tot) return `van ${van} tot en met ${tot}`;
+  if (van) return `vanaf ${van}`;
+  return tot ? `tot en met ${tot}` : "";
+}
+
 /** Het waardebereik uit de velden van het formulier; zonder soort geen waardebereik. Een opsomming leest één waarde
  *  per regel. */
 export function waardebereikUit(v: { soort: string; eenheid: string; decimalen: string; minimum: string; maximum: string;

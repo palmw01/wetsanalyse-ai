@@ -1074,6 +1074,9 @@ export interface BegripInhoud {
   waardebereik?: Waardebereik | null;
   klasse_keuze?: { klasse: string; reden: string } | null;
   eigenaar?: string;
+  /** B8: per wanneer deze betekenis geldt, en tot en met wanneer (JJJJ-MM-DD); leeg als het niet vastligt. */
+  geldig_vanaf?: string;
+  geldig_tot?: string;
 }
 
 /** De soorten waarde, gelijk aan `WaardeSoort` in `api/app/begrip_contracts.py`. */
