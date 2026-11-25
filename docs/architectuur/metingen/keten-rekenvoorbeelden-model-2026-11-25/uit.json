@@ -1,0 +1,679 @@
+[
+ {
+  "bepaling": "Leidraad 9.5",
+  "iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+  "voorbeeldzinnen": 4,
+  "voorstellen": 46,
+  "in_voorbeeld": 22,
+  "per_klasse": {
+   "Variabele en variabelewaarde": 18,
+   "Rechtsobject": 3,
+   "Operator": 6,
+   "Tijdsaanduiding": 15,
+   "Afleidingsregel": 2,
+   "Voorwaarde": 2
+  },
+  "per_klasse_in_voorbeeld": {
+   "Tijdsaanduiding": 6,
+   "Rechtsobject": 1,
+   "Variabele en variabelewaarde": 13,
+   "Operator": 2
+  },
+  "kenmerken": {
+   "VOORBEELD_GEEN_NORM": 11,
+   "IN_VOORBEELD": 28,
+   "VOORBEELD_WAARDE": 12
+  },
+  "voorbeeldmeting": {
+   "versie": "1",
+   "aantal": 4,
+   "afgewezen": 22
+  },
+  "relaties": 6,
+  "acc_geaccordeerd": {
+   "aantal": 17,
+   "nog_voorgesteld": 17,
+   "zelfde_klasse": 16,
+   "weg": []
+  },
+  "acc_afgewezen": {
+   "nog_voorgesteld": 28,
+   "niet_meer_voorgesteld": 22
+  },
+  "modelaanroepen": [
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 8.3,
+    "input_tokens": 1681,
+    "output_tokens": 83,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 8.4,
+    "input_tokens": 1611,
+    "output_tokens": 83,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 10.4,
+    "input_tokens": 1846,
+    "output_tokens": 319,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 10.6,
+    "input_tokens": 1541,
+    "output_tokens": 81,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 8.2,
+    "input_tokens": 1623,
+    "output_tokens": 84,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 8.3,
+    "input_tokens": 1717,
+    "output_tokens": 84,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 9.0,
+    "input_tokens": 1581,
+    "output_tokens": 112,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 10.4,
+    "input_tokens": 1838,
+    "output_tokens": 149,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 7.7,
+    "input_tokens": 1456,
+    "output_tokens": 84,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 10.7,
+    "input_tokens": 1523,
+    "output_tokens": 106,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 15.2,
+    "input_tokens": 2702,
+    "output_tokens": 671,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   }
+  ],
+  "tokens": {
+   "input_tokens": 19119,
+   "output_tokens": 1856,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0
+  },
+  "tokens_totaal": 20975,
+  "seconden": 40.9,
+  "voorstellen_lijst": [
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 4,
+    "eind": 23,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Rechtsobject",
+    "tekst": "een aanslag",
+    "start": 28,
+    "eind": 39,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "is gesteld op",
+    "start": 40,
+    "eind": 53,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "één maand",
+    "start": 54,
+    "eind": 63,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "of",
+    "start": 64,
+    "eind": 66,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "is gesteld op",
+    "start": 67,
+    "eind": 80,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "start": 81,
+    "eind": 90,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dagtekening van een aanslagbiljet",
+    "start": 117,
+    "eind": 153,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Rechtsobject",
+    "tekst": "een aanslagbiljet",
+    "start": 136,
+    "eind": 153,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 174,
+    "eind": 193,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "één maand",
+    "start": 198,
+    "eind": 207,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 234,
+    "eind": 253,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "start": 258,
+    "eind": 267,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "start": 296,
+    "eind": 310,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 339,
+    "eind": 358,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "start": 363,
+    "eind": 372,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 388,
+    "eind": 407,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "start": 412,
+    "eind": 421,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "tenzij",
+    "start": 435,
+    "eind": 441,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "het jaartal",
+    "start": 442,
+    "eind": 453,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een schrikkeljaar",
+    "start": 471,
+    "eind": 488,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "start": 507,
+    "eind": 517,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "dan wel",
+    "start": 538,
+    "eind": 545,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Afleidingsregel",
+    "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening.",
+    "start": 556,
+    "eind": 801,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Voorwaarde",
+    "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand",
+    "start": 556,
+    "eind": 659,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "start": 560,
+    "eind": 596,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "start": 579,
+    "eind": 596,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "valt op een andere dag dan",
+    "start": 597,
+    "eind": 623,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de laatste dag van de kalendermaand",
+    "start": 624,
+    "eind": 659,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de kalendermaand",
+    "start": 643,
+    "eind": 659,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Afleidingsregel",
+    "tekst": "vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening",
+    "start": 661,
+    "eind": 800,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "start": 669,
+    "eind": 679,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand later",
+    "start": 680,
+    "eind": 695,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "start": 680,
+    "eind": 689,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "een betalingstermijn",
+    "start": 701,
+    "eind": 721,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "een maand",
+    "start": 726,
+    "eind": 735,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dag die hetzelfde nummer heeft als dat van de dagtekening",
+    "start": 740,
+    "eind": 800,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Voorwaarde",
+    "tekst": "die hetzelfde nummer heeft als dat van de dagtekening",
+    "start": 747,
+    "eind": 800,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "hetzelfde nummer",
+    "start": 751,
+    "eind": 767,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "start": 786,
+    "eind": 800,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "start": 806,
+    "eind": 820,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "start": 855,
+    "eind": 865,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de betalingstermijn",
+    "start": 886,
+    "eind": 905,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken",
+    "start": 906,
+    "eind": 915,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de dagtekening",
+    "start": 922,
+    "eind": 936,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "de termijn",
+    "start": 955,
+    "eind": 965,
+    "in_voorbeeld": true,
+    "aandacht": ""
+   }
+  ]
+ },
+ {
+  "bepaling": "IW 9 lid 1",
+  "iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+  "voorbeeldzinnen": 0,
+  "voorstellen": 7,
+  "in_voorbeeld": 0,
+  "per_klasse": {
+   "Rechtsfeit": 1,
+   "Rechtsobject": 2,
+   "Variabele en variabelewaarde": 1,
+   "Tijdsaanduiding": 2,
+   "Operator": 1
+  },
+  "per_klasse_in_voorbeeld": {},
+  "kenmerken": {},
+  "voorbeeldmeting": null,
+  "relaties": 1,
+  "acc_geaccordeerd": {
+   "aantal": 6,
+   "nog_voorgesteld": 6,
+   "zelfde_klasse": 5,
+   "weg": []
+  },
+  "acc_afgewezen": {},
+  "modelaanroepen": [
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 1.9,
+    "input_tokens": 1171,
+    "output_tokens": 81,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 2.4,
+    "input_tokens": 1286,
+    "output_tokens": 81,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 7.5,
+    "input_tokens": 1178,
+    "output_tokens": 79,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 10.0,
+    "input_tokens": 1253,
+    "output_tokens": 84,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 7.9,
+    "input_tokens": 1199,
+    "output_tokens": 112,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 9.6,
+    "input_tokens": 1409,
+    "output_tokens": 106,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   },
+   {
+    "tool": "classificeer",
+    "stop": "tool_use",
+    "seconden": 9.7,
+    "input_tokens": 1258,
+    "output_tokens": 87,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+   }
+  ],
+  "tokens": {
+   "input_tokens": 8754,
+   "output_tokens": 630,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0
+  },
+  "tokens_totaal": 9384,
+  "seconden": 17.3,
+  "voorstellen_lijst": [
+   {
+    "klasse": "Rechtsfeit",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "start": 0,
+    "eind": 87,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Rechtsobject",
+    "tekst": "Een belastingaanslag",
+    "start": 0,
+    "eind": 20,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Variabele en variabelewaarde",
+    "tekst": "invorderbaar",
+    "start": 24,
+    "eind": 36,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+    "start": 37,
+    "eind": 86,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Operator",
+    "tekst": "na",
+    "start": 47,
+    "eind": 49,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Tijdsaanduiding",
+    "tekst": "de dagtekening van het aanslagbiljet",
+    "start": 50,
+    "eind": 86,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   },
+   {
+    "klasse": "Rechtsobject",
+    "tekst": "het aanslagbiljet",
+    "start": 69,
+    "eind": 86,
+    "in_voorbeeld": false,
+    "aandacht": ""
+   }
+  ]
+ }
+]
