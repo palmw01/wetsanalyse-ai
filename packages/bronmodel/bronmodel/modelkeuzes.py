@@ -72,6 +72,8 @@ KEUZES: tuple[Modelkeuze, ...] = (
     _agent("begrippen_lezen", "Begrippen lezen", "Beantwoordt vragen over de vastgelegde begrippen; wijzigt niets."),
     _agent("regels_lezen", "Afleidingsregels lezen",
            "Beantwoordt vragen over de vastgelegde afleidingsregels; wijzigt niets."),
+    _agent("contenttoets", "Contenttoets",
+           "Toetst content, zoals een webtekst, op juistheid en volledigheid tegen de wet- en regelgeving."),
     _agent("retrieval", "Bepaling ophalen", "Zoekt met tools de bepaling op die geannoteerd wordt.", _OPHALEN),
     _stap("subagent", "Subagents",
           "Een subagent van de centrale agent, als zijn agentprofiel geen eigen keuze heeft."),

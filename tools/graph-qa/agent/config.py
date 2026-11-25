@@ -147,6 +147,9 @@ class Settings(BaseModel):
     # Proefvlag (ADR-011): de keten stelt relaties tussen haar voorstellen voor, deterministisch en zonder model
     # (`jas_pipeline/relaties.py`). Standaard uit; uit = de uitkomst van de keten is bitgelijk aan zonder deze code.
     relatie_voorstellen: bool = False
+    # Proefvlag (plan contenttoets, C2): de route `/contenttoets` met het profiel `contenttoets`. Standaard uit, alleen
+    # acceptatie tot de meting (C5); uit zegt Lex het in een vaste zin, zonder model.
+    contenttoets: bool = False
 
     # Geheugen (LangGraph-checkpointer). Voorrang: `checkpoint_db_url` (Postgres, gedeeld → horizontaal
     # veilig) → anders `checkpoint_db_path` (durable AsyncSqliteSaver, per-instance) → anders in-memory.
@@ -232,6 +235,7 @@ class Settings(BaseModel):
             "classifier_spankeuze": e.get("CLASSIFIER_SPANKEUZE"),
             "broncontext": e.get("BRONCONTEXT"),
             "relatie_voorstellen": e.get("RELATIE_VOORSTELLEN"),
+            "contenttoets": e.get("CONTENTTOETS"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
             "prompt_cache_ttl": e.get("PROMPT_CACHE_TTL"),

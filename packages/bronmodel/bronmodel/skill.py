@@ -55,7 +55,10 @@ BASIS = "wetsanalyse"
 #: bewaakt door `tests/test_methoderollen.py`); een skill kan er geen maken (ADR-014 §5). Geen annotatierollen: de
 #: annotatieketen (ADR-001) gebruikt geen generatieve prompts met methodetekst. `agent` is de generieke rol van de
 #: centrale agent (ADR-016 §A2). Eén lijst voor de generator van het methodepakket en voor de werkplaats in de api.
-ROLLEN = frozenset({"retrieval", "duiding", "algemeen", "deelvragen", "agent"})
+ROLLEN = frozenset({"retrieval", "duiding", "algemeen", "deelvragen", "agent", "contenttoets"})
+#: Rollen van een andere methode dan de basis: de rol en de skill die haar vult. De basis geeft zo'n rol geen secties;
+#: alleen die skill doet dat (plan contenttoets, C2: "een andere methode krijgt eigen rollen en profielen").
+EIGEN_ROLLEN: dict[str, str] = {"contenttoets": "contenttoets"}
 #: De rollen die secties van meer dan één methode mogen dragen: alleen de centrale agent. Elke andere rol krijgt
 #: secties van één methode, zodat een tweede skill zich niet aan een rol van wetsanalyse hangt (plan methodes scheiden,
 #: S3). Een andere methode krijgt eigen rollen en profielen.
@@ -246,8 +249,9 @@ def _secties(naam: str, mapping: dict[str, Any], bestanden: Mapping[str, str]) -
 
 def _rollen(mapping: dict[str, Any], secties: Collection[str], rollen: Collection[str], basis: bool) -> list[Bevinding]:
     uit = []
-    if basis and set(mapping["rollen"]) != set(rollen):
-        uit.append(Bevinding("rol", f"de basis-skill vult precies de rollen {sorted(rollen)}", ROLBESTAND))
+    if basis and set(mapping["rollen"]) != set(rollen) - set(EIGEN_ROLLEN):
+        uit.append(Bevinding("rol", f"de basis-skill vult precies de rollen {sorted(set(rollen) - set(EIGEN_ROLLEN))}",
+                             ROLBESTAND))
     # Een skill zonder rollen mag: dan staat hij in het pakket en de catalogus, maar verandert hij geen prompt. Zo komt
     # een nieuwe methode binnen zonder het gedrag van Lex te raken; de koppeling aan een rol volgt na een meting.
     if not basis and not set(mapping["rollen"]) <= set(rollen):

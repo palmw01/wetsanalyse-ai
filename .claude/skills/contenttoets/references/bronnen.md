@@ -1,41 +1,11 @@
-# Bronnen
+# Bronnen en herleidbaarheid — contenttoets 0.1
 
-## Waartegen je toetst
+De contenttoets is eigen werk van het project. Er is geen externe methode waar hij op rust; de ID's hieronder zijn
+**projectbesluiten**, geen citaten. Waartegen de toets een tekst legt (de wet- en regelgeving in de graaf), staat in
+[bronkeuze](bronkeuze.md).
 
-Nu: **de tekst van de wet- en regelgeving in de kennisgraaf**, zoals de BWB hem levert. Dat zijn wetten, algemene
-maatregelen van bestuur, ministeriële regelingen en beleidsregels, zoals de Invorderingswet 1990, de Uitvoeringsregeling
-Invorderingswet 1990 en de Leidraad Invordering 2008. Daarnaast de bronnen die in het gesprek aanstaan, zoals
-kennisgroepstandpunten.
-
-Later: **RegelSpraak**. Zodra regels als RegelSpraak beschikbaar zijn, wordt die de basis van de toets: een bewering kan
-dan exact worden vergeleken met de geformaliseerde regel. Tot dan is de toets een lezing van de tekst.
-
-## Welke bron een bewering kan dragen
-
-Een publiekstekst over de uitvoering volgt meestal het beleid, niet alleen de wet. Zoek daarom op twee niveaus:
-
-1. **De grondslag** in de wet: wie mag wat (bijvoorbeeld art. 25, eerste lid, Invorderingswet 1990: de ontvanger kan
-   uitstel van betaling verlenen).
-2. **De uitwerking** in de beleidsregel: de termijnen, bedragen en voorwaarden (bijvoorbeeld art. 25.3a en 25.5 van de
-   Leidraad Invordering 2008).
-
-Een bedrag of termijn in een webtekst komt bijna altijd uit de uitwerking. Een bewering over een bevoegdheid of een
-recht toets je ook aan de grondslag (J4).
-
-## Hoe je zoekt
-
-- Begin bij de regeling die de tekst noemt of die het onderwerp draagt. Lees de inhoudsopgave van het hoofdstuk: de
-  koppen wijzen vaak direct de bepaling aan (*Kort uitstel particulieren*, *Duur betalingsregeling particulieren*).
-- Lees de bepaling zelf en de bepalingen eromheen. Een uitzondering staat vaak in een ander onderdeel of een volgend lid.
-- Volg een verwijzing als de bepaling naar een ander artikel verwijst ("als bedoeld in artikel 25.5.1").
-- Let op de toestand: de bepaling moet gelden op de peildatum.
-
-## Wat *niet in de bron* betekent
-
-Lex vond geen bepaling die de bewering draagt of tegenspreekt, in wat het kan lezen. Dat kan betekenen:
-
-- de bewering komt uit een werkinstructie, een formulier of de uitvoeringspraktijk, die niet in de graaf staan;
-- de bewering gaat over iets wat in een andere regeling staat die niet is gevonden;
-- de bewering is onjuist, maar er is geen bepaling die het verschil laat zien.
-
-Zeg wat er gezocht is en wat de waarschijnlijke herkomst is, als aanname. Maak er nooit *mogelijk onjuist* van.
+| ID | Bron en specifieke vindplaats | Waarvoor gebruikt / beperking |
+|---|---|---|
+| CT01 | Plan contenttoets, `docs/architectuur/plan-contenttoets.md`, met de besluiten van de gebruiker van 25 nov 2026 | Twee lagen, een voorstel per bevinding, de peildatum, de bronnen, alleen in het gesprek. |
+| CT02 | Mockup en voorbeeld: de webtekst over de betalingsregeling, getoetst tegen de Leidraad Invordering 2008 (25 nov 2026) | De criteria J1–J7 en V1–V3 zijn uit dit voorbeeld afgeleid en gelden als eerste versie; de meting (C5) stelt ze bij. |
+| CT03 | De brongetrouwheidsregel van het project (`CLAUDE.md`): alleen letterlijk opgehaalde tekst, herleidbaar naar artikel en lid | Een oordeel over juistheid rust op een letterlijk citaat; zonder citaat geen *mogelijk onjuist*. |

@@ -332,6 +332,7 @@ async def answer_stream(
         "specialist": profiel if opdracht_dict else "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "regels_lezen": False,
+        "contenttoets": False,
         "werkgebied_id": werkgebied_id or "",
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
         "bronnen": beurtbronnen,

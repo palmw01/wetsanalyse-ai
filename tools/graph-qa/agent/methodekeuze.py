@@ -32,6 +32,9 @@ TREFWOORDEN: dict[str, tuple[str, tuple[str, ...]]] = {
         r"\bscenario'?s? met (een |de )?aktes?\b",
         r"\b(als|in|met) (een |de |juridische )?aktes?\b",
     )),
+    # De contenttoets heeft een eigen rol (plan contenttoets, C2), dus deze regel slaat hem over; de rij staat er omdat
+    # elke methode hier een rij heeft.
+    "contenttoets": ("de contenttoets", (r"\bcontenttoets\b",)),
 }
 
 # Een werkwoord dat om werk vraagt. Zelfstandige naamwoorden ("een analyse", "de annotatie") tellen niet: die staan ook
