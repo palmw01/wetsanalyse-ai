@@ -190,10 +190,15 @@ class GesprekkenWissen(BaseModel):
     ids: list[str] = Field(default_factory=list, max_length=2000)
 
 
+#: De grens van `SubagentOpdracht.doel`, ook in het strict schema van de tool `subagent`. Een route in code die een opdracht
+#: uit de vraag van de gebruiker maakt, toetst eerst of die erin past (`nodes/subagent_route.py`).
+MAX_DOEL = 2000
+
+
 class SubagentOpdracht(BaseModel):
     """De opdracht van de centrale agent aan een subagent (ADR-016 §A3): vaste velden, zodat een vage opdracht geen dubbel
     werk geeft. Dezelfde velden zijn het strict schema van de tool `subagent` (`agent/subagent.py`)."""
-    doel: str = Field(min_length=1, max_length=2000)
+    doel: str = Field(min_length=1, max_length=MAX_DOEL)
     onderwerp: str = Field(default="", max_length=1000)
     oplevering: str = Field(default="", max_length=1000)
     bronnen: str = Field(default="", max_length=1000)

@@ -33,7 +33,7 @@ from bronmodel.connectors import herkende
 from .. import subagent as sub
 from ..agents.uitvoering import draai
 from ..agentvorm import CENTRAAL
-from ..models import SubagentOpdracht
+from ..models import MAX_DOEL, SubagentOpdracht
 from ..narratie import _stap
 from ..state import State
 from .context import Bouw
@@ -81,9 +81,18 @@ Regelingen = Callable[[str], list[tuple[str, str]]]
 Plan = list[tuple[str, SubagentOpdracht]]
 
 
+def _past(doel: str) -> bool:
+    """Past deze tekst als `doel` in een opdracht?"""
+    return len(doel) <= MAX_DOEL
+
+
+def _doel_deel(vraag: str, wat: str) -> str:
+    return f"Jouw deel van deze vraag: alleen {wat}. De vraag van de gebruiker: {vraag}"
+
+
 def _deel(vraag: str, wat: str, anderen: list[str], *, oplevering: str, bronnen: str = "") -> SubagentOpdracht:
     return SubagentOpdracht(
-        doel=f"Jouw deel van deze vraag: alleen {wat}. De vraag van de gebruiker: {vraag}",
+        doel=_doel_deel(vraag, wat),
         onderwerp=wat, oplevering=oplevering, bronnen=bronnen,
         buiten=("Dit doen andere subagents: " + ", ".join(anderen) + ".") if anderen else "")
 
@@ -100,6 +109,8 @@ def profiel_voor(vraag: str, aan: list[str]) -> str:
 
 def _per_bron(vraag: str, aan: list[str], bronstand: dict[str, Any]) -> Plan:
     label = {n: (bronstand.get(n) or {}).get("label") or n for n in aan}
+    if not all(_past(_doel_deel(vraag, f"de bron {label[n]}")) for n in aan):
+        return []
     return [(PROFIEL_VAN.get(n, PROFIEL), _deel(vraag, f"de bron {label[n]}", [label[m] for m in aan if m != n], bronnen=label[n],
                             oplevering="Per gelezen stuk (met zijn id) de kern, met de passages die haar dragen."))
             for n in aan]
@@ -107,6 +118,8 @@ def _per_bron(vraag: str, aan: list[str], bronstand: dict[str, Any]) -> Plan:
 
 def _per_regeling(vraag: str, genoemd: list[tuple[str, str]]) -> Plan:
     titels = [t for _, t in genoemd]
+    if not all(_past(_doel_deel(vraag, f"de {t}")) for t in titels):
+        return []
     return [(DUIDING, _deel(vraag, f"de {t}", [f"de {x}" for x in titels if x != t],
                             oplevering=f"De bepalingen van de {t} die de vraag dragen, elk gelezen, met hun kern en een "
                                        "letterlijke passage."))
@@ -117,6 +130,11 @@ def plan(vraag: str, bronstand: dict[str, Any] | None, regelingen: Regelingen | 
     """De subagents die deze opdracht vraagt, of leeg als de centrale agent haar zelf beantwoordt."""
     vraag = " ".join((vraag or "").split())
     if not vraag or _ANNOTEER.search(vraag):
+        return []
+    # Een opdracht draagt de vraag letterlijk; past ze er niet in (een lange tekst om te beoordelen), dan beantwoordt de
+    # centrale agent haar zelf. Een vraag van elke lengte komt zo door de ingang (25 nov 2026: een tekst van 2.300 tekens
+    # liep vast op de validatie van `doel`).
+    if not _past(vraag):
         return []
     from ..binnen_scope import genoemde_regelingen
 
@@ -189,7 +207,8 @@ def als_state(p: Plan) -> list[dict[str, Any]]:
 def subagent_route_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     vraag = " ".join((state.get("question") or "").split())
-    if b.kinderen is None or not state.get("gesprek_id") or not getattr(b.settings, "legt_zelf_vast", False):
+    if b.kinderen is None or not state.get("gesprek_id") or not getattr(b.settings, "legt_zelf_vast", False) \
+            or not (state.get("subagent_plan") or _past(vraag)):
         # De ingang zei al dat een subagent het werk doet: zeg dan ook dat het niet zo liep.
         _stap(writer, "Lex", "kan hier geen subagent starten en beantwoordt de vraag zelf", route=CENTRAAL)
         return {"specialist": CENTRAAL, "subagent_plan": []}
