@@ -1053,6 +1053,8 @@ export type BegripStatus = "concept" | "geaccordeerd" | "vervangen";
 export interface Voorbeeld {
   tekst: string;
   oordeel: VoorbeeldOordeel;
+  /** Waarom de stelling wel of niet waar is (B5, plan lessen Termijnen §10). */
+  toelichting?: string;
 }
 
 /** Het begrip volgens NL-SBB (spoor I1): term, definitie, uitleg, toelichting (`context`) en voorbeelden. */

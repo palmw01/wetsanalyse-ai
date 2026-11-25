@@ -62,7 +62,7 @@ export function begripAlsMarkdown(b: Pick<Begrip, "inhoud">): string {
     i.alternatieve_termen.length ? `Ook: ${i.alternatieve_termen.join(", ")}\n` : "",
     i.definitie ? `**Definitie**\n\n${i.definitie}${aard ? `\n\n_${aard}_` : ""}\n` : "",
     blok("Uitleg", i.uitleg), blok("Toelichting", i.context),
-    i.voorbeelden.length ? `**Voorbeelden**\n\n${i.voorbeelden.map((v) => `- ${v.tekst} (${OORDEEL_LABEL[v.oordeel]})`).join("\n")}\n` : "",
+    i.voorbeelden.length ? `**Voorbeelden**\n\n${i.voorbeelden.map((v) => `- ${v.tekst} (${OORDEEL_LABEL[v.oordeel]})${v.toelichting ? ` – ${v.toelichting}` : ""}`).join("\n")}\n` : "",
   ).replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }
 

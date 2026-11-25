@@ -674,11 +674,8 @@ VERVALLEN = ("jas_klasse", "jas_subtype", "begripstype", "geldigheid", "eigensch
 
 
 def slank(inhoud: dict) -> dict:
-    """De inhoud zonder de velden die vervielen, en voorbeelden zonder toelichting."""
-    uit = {k: v for k, v in (inhoud or {}).items() if k not in VERVALLEN}
-    if "voorbeelden" in uit:
-        uit["voorbeelden"] = [{k: v for k, v in x.items() if k != "toelichting"} for x in uit["voorbeelden"] or []]
-    return uit
+    """De inhoud zonder de velden die vervielen. De toelichting bij een voorbeeld is terug (B5, 25 nov 2026)."""
+    return {k: v for k, v in (inhoud or {}).items() if k not in VERVALLEN}
 
 
 MIN_WOORDEN_LETTERLIJK = 6

@@ -336,6 +336,7 @@ class Wettekst(_Deel):
 class Voorbeeld(_Deel):
     oordeel: str
     tekst: str
+    toelichting: str = ""
 
 
 class Fragment(_Deel):
@@ -1126,7 +1127,8 @@ def _begrip(b: Begrip) -> list[Regel]:
     uit += [("Heading4", "Uitleg"), *(alinea(b.uitleg) or [("Meta", _LEEG)])]
     uit += [("Heading4", "Toelichting"), *(alinea(b.toelichting) or [("Meta", _LEEG)])]
     uit.append(("Heading4", "Voorbeelden"))
-    uit += [("BodyText", f"{_OORDEEL.get(v.oordeel, v.oordeel).capitalize()}: {v.tekst}") for v in b.voorbeelden] or [("Meta", _LEEG)]
+    uit += [("BodyText", f"{_OORDEEL.get(v.oordeel, v.oordeel).capitalize()}: {v.tekst}"
+                         + (f" – {v.toelichting}" if v.toelichting else "")) for v in b.voorbeelden] or [("Meta", _LEEG)]
 
     uit.append(("Heading4", "Waarop de definitie rust"))
     if b.fragmenten:

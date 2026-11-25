@@ -428,7 +428,8 @@ async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
     b = r.json()
     for weg in ("jas_klasse", "begripstype", "onderbouwing", "open_vragen", "eigenschappen", "geldigheid"):
         assert weg not in b["inhoud"]
-    assert b["inhoud"]["voorbeelden"] == [{"tekst": "a", "oordeel": "wel"}]
+    # De toelichting bij een voorbeeld is terug (B5, besluit 25 nov 2026).
+    assert b["inhoud"]["voorbeelden"] == [{"tekst": "a", "oordeel": "wel", "toelichting": "t"}]
     # Een eigen definitie is geformuleerd, wat de client ook meestuurt.
     assert (b["inhoud"]["definitie_herkomst"], b["inhoud"]["definitie_door"]) == ("geformuleerd", "analist")
     # Zonder definitie geen herkomst. Een wijziging noemt wat verandert: de definitie leeg maken is `definitie: ""`.

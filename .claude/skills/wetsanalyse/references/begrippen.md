@@ -162,3 +162,8 @@ Zo'n zin laat meteen zien met welke andere begrippen het begrip samenhangt (hier
 belastingaanslag). Neem er een grensgeval bij: een geval waarover je kunt twisten of het onder het begrip valt. Valt het
 erbuiten terwijl de omschrijving het toelaat, dan is de omschrijving niet scherp genoeg; pas haar aan en toets
 opnieuw. Een verzonnen naam en een verzonnen bedrag zijn herkenbaar als voorbeeld; het is nooit bronbewijs.
+
+Een voorbeeld bij een begrip is een **stelling**: ze is waar of niet waar, en dat is haar oordeel. Neem met opzet ook
+stellingen op die niet waar zijn. De toelichting zegt in één zin waarom: welk kenmerk van de definitie het geval
+binnen of buiten het begrip zet (M02 §3.5.5b; M03 hoofdactiviteit 3a). Zo'n stelling toetst de naam en de definitie;
+de voorbeeldtabel bij een regel toetst de regel (M03 hoofdactiviteit 4b).

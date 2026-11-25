@@ -37,7 +37,8 @@ export function volledigeInhoud(inhoud: Partial<BegripInhoud>): BegripInhoud {
     if (k in inhoud) uit[k] = (inhoud as Record<string, unknown>)[k];
   }
   const i = uit as unknown as BegripInhoud;
-  return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel })) };
+  return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel,
+    ...(v.toelichting ? { toelichting: v.toelichting } : {}) })) };
 }
 
 export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
