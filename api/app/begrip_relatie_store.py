@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from datetime import date, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import insert, select, update
@@ -319,6 +320,19 @@ async def _opvolging(conn, werkgebied_id: str | None, oud, nieuw_id: str, reden:
         beoordeling="akkoord", door=actor, op=db.utcnow()))
 
 
+def _geldigheid(oud_inhoud: dict, vanaf: str) -> tuple[dict, dict]:
+    """B8: de inhoud van het oude begrip en die van de opvolger bij een nieuwe betekenis per `vanaf`. Het oude begrip
+    geldt tot en met de dag ervoor; de opvolger vanaf die dag, zonder einddatum. Zonder `vanaf` verandert er niets."""
+    if not vanaf:
+        return dict(oud_inhoud), {k: v for k, v in oud_inhoud.items() if k != "geldig_tot"}
+    begin = oud_inhoud.get("geldig_vanaf") or ""
+    if begin and vanaf <= begin:
+        raise HTTPException(422, {"fout": "geldig_vanaf", "melding": f"De nieuwe betekenis moet ingaan na {begin}, "
+                                  "de dag waarop het oude begrip ging gelden."})
+    tot = (date.fromisoformat(vanaf) - timedelta(days=1)).isoformat()
+    return {**oud_inhoud, "geldig_tot": tot}, {**oud_inhoud, "geldig_vanaf": vanaf, "geldig_tot": ""}
+
+
 async def nieuwe_betekenis_generiek(begrip_id: str, nb: NieuweBetekenis, actor: str) -> dict:
     """Een generiek begrip krijgt een nieuwe betekenis in één werkgebied dat het gebruikt (`nb.werkgebied_id`): de
     opvolger krijgt de passages van dat werkgebied (opnieuw ter beoordeling) en dat werkgebied gaat erop over. Elk
@@ -334,7 +348,8 @@ async def nieuwe_betekenis_generiek(begrip_id: str, nb: NieuweBetekenis, actor: 
         async with begrip_store._gewijzigd_in(conn, None, begrip_id, nb.verwachte_revisie, actor, "begrip-vervangen",
                                               {"reden": nb.reden}) as (_, oud, stand_):
             stand_["status"] = "vervangen"
-        nieuw_id = await begrip_store.maak_generiek_in(conn, dict(oud.inhoud), nb.werkgebied_id, actor)
+            stand_["inhoud"], opvolger = _geldigheid(oud.inhoud, nb.geldig_vanaf)
+        nieuw_id = await begrip_store.maak_generiek_in(conn, opvolger, nb.werkgebied_id, actor)
         await _opvolging(conn, None, oud, nieuw_id, nb.reden, "nieuwe_betekenis", actor)
         gekopieerd = await _neem_opvolger_over_in(conn, nb.werkgebied_id, begrip_id, nieuw_id, actor)
         if not gekopieerd:
@@ -404,8 +419,9 @@ async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBeteken
         async with begrip_store._gewijzigd_in(conn, werkgebied_id, begrip_id, nb.verwachte_revisie, actor,
                                               "begrip-vervangen", detail) as (_, oud, stand_):
             stand_["status"] = "vervangen"
+            stand_["inhoud"], opvolger = _geldigheid(oud.inhoud, nb.geldig_vanaf)
         # Pas nu is het oude begrip vervangen en zijn de primaire duidingen vrij.
-        nieuw_id = await begrip_store.maak_in(conn, werkgebied_id, {**oud.inhoud, "definitie_door": oud.inhoud.get(
+        nieuw_id = await begrip_store.maak_in(conn, werkgebied_id, {**opvolger, "definitie_door": oud.inhoud.get(
             "definitie_door", "")}, {}, "duiding", actor)
         gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, nieuw_id, actor)
         await begrip_store.toets_passage(conn, nieuw_id)

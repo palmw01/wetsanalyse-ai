@@ -2,7 +2,7 @@
 // Termijnen-bibliotheek, V2–V4).
 import { describe, expect, it } from "vitest";
 
-import { klasseZin, waardebereikUit, waardebereikZin } from "./begrippen";
+import { geldigheidZin, klasseZin, waardebereikUit, waardebereikZin } from "./begrippen";
 import { voorbeeldTabel, type Regel } from "./regels";
 
 const leeg = { soort: "", eenheid: "", decimalen: "", minimum: "", maximum: "", waarden: "", toelichting: "" };
@@ -60,5 +60,14 @@ describe("voorbeeldtabel", () => {
 
   it("is er niet zonder waarden per begrip", () => {
     expect(voorbeeldTabel(regel, [{ ...regel.inhoud.voorbeelden[0], waarden: [] }])).toBeNull();
+  });
+});
+
+describe("geldigheid", () => {
+  it("zegt per wanneer een betekenis geldt (B8)", () => {
+    expect(geldigheidZin({ geldig_vanaf: "2027-01-01", geldig_tot: "2027-12-31" })).toBe("van 01-01-2027 tot en met 31-12-2027");
+    expect(geldigheidZin({ geldig_vanaf: "2027-01-01" })).toBe("vanaf 01-01-2027");
+    expect(geldigheidZin({ geldig_tot: "2026-12-31" })).toBe("tot en met 31-12-2026");
+    expect(geldigheidZin({})).toBe("");
   });
 });

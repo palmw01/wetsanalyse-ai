@@ -1716,7 +1716,7 @@ export async function verwijderRelatie(id: string, relatieId: string): Promise<R
 }
 
 /** Het begrip krijgt een opvolger met inhoud en passages; het zelf wordt vervangen. Geeft de opvolger. */
-export async function geefNieuweBetekenis(id: string, begripId: string, body: { verwachte_revisie: number; reden: string }): Promise<Begrip> {
+export async function geefNieuweBetekenis(id: string, begripId: string, body: { verwachte_revisie: number; reden: string; geldig_vanaf?: string }): Promise<Begrip> {
   return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
 }
 
@@ -1813,7 +1813,7 @@ export async function haalGeneriekConformiteit(): Promise<Conformiteit | null> {
 
 /** Een nieuwe betekenis van een generiek begrip ontstaat in een werkgebied dat het gebruikt (`werkgebied_id`): daar komen
  *  de passages van de opvolger vandaan, want een begrip rust altijd op een annotatie (api 422 `werkgebied_nodig`). */
-export async function geefGeneriekNieuweBetekenis(begripId: string, body: { verwachte_revisie: number; reden: string; werkgebied_id: string }): Promise<Begrip> {
+export async function geefGeneriekNieuweBetekenis(begripId: string, body: { verwachte_revisie: number; reden: string; werkgebied_id: string; geldig_vanaf?: string }): Promise<Begrip> {
   return json<Begrip>(await fetch(generiek(begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
 }
 
