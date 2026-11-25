@@ -790,6 +790,9 @@ budget_beleid = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("periode_dagen", Integer, nullable=False, default=7),
+    # Groter dan 0: het venster duurt zoveel kalendermaanden en `periode_dagen` telt niet. Een maand is geen
+    # vast aantal dagen, dus "elke 1e om 00:00" kan niet als `periode_dagen`.
+    Column("periode_maanden", Integer, nullable=False, default=0, server_default="0"),
     # Vast startmoment. Alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk en de
     # resetdatum is vooraf te noemen. Verschuif dit niet zonder reden: het verspringt ieders venster.
     Column("anker", _DT, nullable=False),

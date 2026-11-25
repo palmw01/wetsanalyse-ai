@@ -38,8 +38,35 @@ export function resetdatum(iso: string, tijdzone?: string): string {
 /** De weekdagen in de volgorde van de api (`datetime.weekday()`: 0 = maandag). */
 export const WEEKDAGEN = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"] as const;
 
-/** Wat de wandklok in `tijdzone` aanwijst op dit moment: datum, weekdag (0 = maandag) en "HH:MM". */
-export function wandklok(iso: string | Date, tijdzone: string): { datum: string; weekdag: number; tijd: string } {
+/** Hoe vaak het budget weer vol is. `dagen` is een ander aantal dagen dat via de api is gezet: het scherm laat het
+ *  staan, maar biedt het niet als nieuwe keuze aan. */
+export type PeriodeSoort = "dag" | "week" | "maand" | "dagen";
+
+/** Het deel van het beleid dat de periode bepaalt. */
+export interface Periode {
+  periode_dagen: number;
+  periode_maanden?: number;
+}
+
+export function periodeSoort(p: Periode): PeriodeSoort {
+  if ((p.periode_maanden ?? 0) > 0) return "maand";
+  if (p.periode_dagen === 1) return "dag";
+  if (p.periode_dagen === 7) return "week";
+  return "dagen";
+}
+
+/** "Per week", "Per maand", "Per 3 maanden", "Per 30 dagen". */
+export function periodeLabel(p: Periode): string {
+  const maanden = p.periode_maanden ?? 0;
+  if (maanden > 1) return `Per ${maanden} maanden`;
+  if (maanden === 1) return "Per maand";
+  if (p.periode_dagen === 1) return "Per dag";
+  if (p.periode_dagen === 7) return "Per week";
+  return `Per ${p.periode_dagen} dagen`;
+}
+
+/** Wat de wandklok in `tijdzone` aanwijst op dit moment: datum, dag van de maand, weekdag (0 = maandag) en "HH:MM". */
+export function wandklok(iso: string | Date, tijdzone: string): { datum: string; dag: number; weekdag: number; tijd: string } {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   const delen = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {
@@ -50,35 +77,49 @@ export function wandklok(iso: string | Date, tijdzone: string): { datum: string;
   const datum = `${delen.year}-${delen.month}-${delen.day}`;
   // De weekdag volgt uit de kalenderdatum zelf, niet uit de tijdzone van de machine.
   const weekdag = (new Date(`${datum}T00:00:00Z`).getUTCDay() + 6) % 7;
-  return { datum, weekdag, tijd: `${delen.hour}:${delen.minute}` };
+  return { datum, dag: Number(delen.day), weekdag, tijd: `${delen.hour}:${delen.minute}` };
 }
 
-/** Het anker voor "elke `weekdag` om `tijd`": de laatste keer dat dat moment al geweest is.
- *
- *  Bewust de VORIGE en niet de volgende: een anker in de toekomst laat tot dat moment niets meetellen
- *  (`venster_start` in de api). Het resultaat is wandkloktijd zonder tijdzone ("2026-11-23T00:00:00");
- *  de api leest dat in de tijdzone van het beleid, zodat zomertijd hier geen rol speelt.
- */
+/** Een kalenderdatum ("2026-11-25") plus of min een aantal dagen, zonder tijdzone. */
+function plusDagen(datum: string, dagen: number): string {
+  const d = new Date(`${datum}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dagen);
+  return d.toISOString().slice(0, 10);
+}
+
+// De ankers hieronder zijn allemaal de VORIGE keer dat het gekozen moment er was, en nooit de volgende: een anker in
+// de toekomst laat tot dat moment niets meetellen (`venster_start` in de api). Het resultaat is wandkloktijd zonder
+// tijdzone ("2026-11-23T00:00:00"); de api leest dat in de tijdzone van het beleid, dus zomertijd speelt hier niet.
+
+/** Het anker voor "elke dag om `tijd`". */
+export function ankerVoorDag(tijd: string, tijdzone: string, nu: Date = new Date()): string {
+  const hier = wandklok(nu, tijdzone);
+  return `${hier.tijd < tijd ? plusDagen(hier.datum, -1) : hier.datum}T${tijd}:00`;
+}
+
+/** Het anker voor "elke `weekdag` om `tijd`". */
 export function ankerVoorWeekdag(weekdag: number, tijd: string, tijdzone: string, nu: Date = new Date()): string {
   const hier = wandklok(nu, tijdzone);
   let terug = (hier.weekdag - weekdag + 7) % 7;
   if (terug === 0 && hier.tijd < tijd) terug = 7;
-  const dag = new Date(`${hier.datum}T00:00:00Z`);
-  dag.setUTCDate(dag.getUTCDate() - terug);
-  return `${dag.toISOString().slice(0, 10)}T${tijd}:00`;
+  return `${plusDagen(hier.datum, -terug)}T${tijd}:00`;
+}
+
+/** Het anker voor "elke maand op de `dag`e om `tijd`". Het scherm biedt 1–28 aan, zodat elke maand die dag heeft. */
+export function ankerVoorMaanddag(dag: number, tijd: string, tijdzone: string, nu: Date = new Date()): string {
+  const hier = wandklok(nu, tijdzone);
+  let [jaar, maand] = hier.datum.split("-").map(Number);
+  if (hier.dag < dag || (hier.dag === dag && hier.tijd < tijd)) {
+    maand -= 1;
+    if (maand === 0) { maand = 12; jaar -= 1; }
+  }
+  const twee = (n: number) => String(n).padStart(2, "0");
+  return `${jaar}-${twee(maand)}-${twee(dag)}T${tijd}:00`;
 }
 
 /** Het anker voor een gekozen datum en tijd, als wandkloktijd zonder tijdzone. */
 export function ankerVoorDatum(datum: string, tijd: string): string {
   return `${datum}T${tijd}:00`;
-}
-
-/** "elke maandag om 00:00" / "elke dag om 09:00"; leeg bij een andere periode, want die valt niet op een vaste dag. */
-export function resetRitme(periodeDagen: number, anker: string, tijdzone: string): string {
-  const { weekdag, tijd } = wandklok(anker, tijdzone);
-  if (periodeDagen === 7) return `elke ${WEEKDAGEN[weekdag]} om ${tijd}`;
-  if (periodeDagen === 1) return `elke dag om ${tijd}`;
-  return "";
 }
 
 /** "Eén gebruiker zit" / "3 gebruikers zitten" in het nieuwe venster boven zijn budget. */

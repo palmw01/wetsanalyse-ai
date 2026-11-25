@@ -20,7 +20,7 @@ POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvra
 POST   /v1/admin/registraties/goedkeuren       – meerdere tegelijk goedkeuren
 DELETE /v1/admin/registraties/{id}             – ruim een goedgekeurde aanvraag op uit het archief
 GET    /v1/admin/budget                   – het tokenbudget-beleid
-PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode, aan/uit)
+PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode in dagen of maanden, anker, aan/uit)
 PUT    /v1/admin/budget/rollen/{rol}      – het tokenbudget van een rol zetten
 POST   /v1/admin/budget/proef             – wat een beleid zou doen (venster, wie boven budget), zonder op te slaan
 GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
@@ -461,6 +461,8 @@ class RolBudgetOut(BaseModel):
 
 class BudgetOut(BaseModel):
     periode_dagen: int
+    # Groter dan 0: vensters van zoveel kalendermaanden; `periode_dagen` telt dan niet.
+    periode_maanden: int = 0
     anker: str
     actief: bool
     updated_by: str = ""
@@ -475,6 +477,8 @@ class BudgetOut(BaseModel):
 
 class BudgetIn(BaseModel):
     periode_dagen: int = Field(ge=1, le=365)
+    # Per maand ("elke 1e om 00:00"): kalendermaanden in plaats van dagen. 0 = in dagen.
+    periode_maanden: int = Field(default=0, ge=0, le=12)
     actief: bool = True
     # Alleen meesturen om de vensters te herankeren; weglaten laat het anker staan. Zonder tijdzone
     # ("2026-11-23T00:00:00") is het wandkloktijd in de budgettijdzone.
@@ -505,7 +509,7 @@ def _rol_to_out(r) -> RolBudgetOut:
 
 async def _budget_to_out(b) -> BudgetOut:
     return BudgetOut(
-        periode_dagen=b.periode_dagen, anker=b.anker.isoformat(),
+        periode_dagen=b.periode_dagen, periode_maanden=b.periode_maanden, anker=b.anker.isoformat(),
         actief=b.actief, updated_by=b.updated_by, updated=b.updated.isoformat(),
         venster_start=verbruik_svc.venster_start(b).isoformat(),
         reset_op=verbruik_svc.venster_einde(b).isoformat(),
@@ -523,14 +527,16 @@ async def lees_budget():
 async def zet_budget(body: BudgetIn, door: str = Depends(beheerder_met_2fa)):
     try:
         beleid = await verbruik_svc.zet_beleid(
-            periode_dagen=body.periode_dagen, actief=body.actief, anker=body.anker, actor=door,
+            periode_dagen=body.periode_dagen, periode_maanden=body.periode_maanden, actief=body.actief,
+            anker=body.anker, actor=door,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     logger.info(
         "budgetbeleid gewijzigd",
         extra={"categorie": "security", "actie": "budget_gewijzigd",
-               "periode_dagen": body.periode_dagen, "actief": body.actief, "door": door},
+               "periode_dagen": body.periode_dagen, "periode_maanden": body.periode_maanden,
+               "actief": body.actief, "door": door},
     )
     return await _budget_to_out(beleid)
 
@@ -542,7 +548,8 @@ async def proef_budget(body: BudgetIn):
     Leest alleen, dus het admin-token volstaat (net als `GET /verbruik`, dat dezelfde standen toont).
     """
     beleid, standen = await verbruik_svc.proef_beleid(
-        periode_dagen=body.periode_dagen, actief=body.actief, anker=body.anker,
+        periode_dagen=body.periode_dagen, periode_maanden=body.periode_maanden, actief=body.actief,
+        anker=body.anker,
     )
     return BudgetProefOut(
         anker=beleid.anker.isoformat(),

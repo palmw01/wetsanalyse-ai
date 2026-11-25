@@ -9,16 +9,40 @@ import { FormRij } from "@/components/ui/SettingRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getBudgetBeleid, isApiError, proefBudgetBeleid, zetBudgetBeleid, zetRolBudget, type BudgetBeleidIn } from "@/lib/api";
 import {
-  ankerVoorDatum, ankerVoorWeekdag, bovenBudgetMelding, resetdatum, resetRitme, rolLabel, tokens, wandklok, WEEKDAGEN,
+  ankerVoorDag, ankerVoorDatum, ankerVoorMaanddag, ankerVoorWeekdag, bovenBudgetMelding, periodeLabel, periodeSoort,
+  resetdatum, rolLabel, tokens, wandklok, WEEKDAGEN, type PeriodeSoort,
 } from "@/lib/tokenbudget";
 import type { BudgetBeleid, BudgetProef } from "@/lib/types";
 
-/** Waar de keuze van het resetmoment op begint. Een geseed beleid heeft het moment van de eerste start als
- *  anker, en dat koos niemand: dan stellen we het begin van de werkweek voor. */
-function beginKeuze(b: BudgetBeleid) {
-  if (b.updated_by === "seed") return { weekdag: 0, tijd: "00:00", datum: wandklok(new Date(), b.tijdzone).datum };
-  return wandklok(b.anker, b.tijdzone);
+/** De keuze in het bewerkscherm: hoe vaak, en op welk moment. */
+interface Keuze {
+  soort: PeriodeSoort;
+  weekdag: number;
+  dag: number;
+  tijd: string;
+  datum: string;
+  dagen: string;
 }
+
+/** De keuze zoals het beleid nu staat. Een geseed beleid koos niemand: dan stellen we het begin van de werkweek voor. */
+function huidigeKeuze(b: BudgetBeleid): Keuze {
+  if (b.updated_by === "seed") return standaardKeuze("week", b);
+  const w = wandklok(b.anker, b.tijdzone);
+  return { soort: periodeSoort(b), weekdag: w.weekdag, dag: Math.min(w.dag, 28), tijd: w.tijd, datum: w.datum,
+    dagen: String(b.periode_dagen) };
+}
+
+/** Wat een nieuw gekozen periode voorstelt: per week maandag 00:00, per maand de 1e om 00:00, per dag 00:00. */
+function standaardKeuze(soort: PeriodeSoort, b: BudgetBeleid): Keuze {
+  return { soort, weekdag: 0, dag: 1, tijd: "00:00", datum: wandklok(new Date(), b.tijdzone).datum,
+    dagen: String(b.periode_dagen) };
+}
+
+const SOORTEN: { soort: PeriodeSoort; label: string }[] = [
+  { soort: "dag", label: "Per dag" },
+  { soort: "week", label: "Per week" },
+  { soort: "maand", label: "Per maand" },
+];
 
 /** Het tokenbudget: hoeveel per rol, en wanneer het weer vol is.
  *
@@ -28,10 +52,7 @@ function beginKeuze(b: BudgetBeleid) {
 export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) {
   const [beleid, setBeleid] = useState<BudgetBeleid | null>(null);
   const [perRol, setPerRol] = useState<Record<string, string>>({});
-  const [dagen, setDagen] = useState("");
-  const [weekdag, setWeekdag] = useState(0);
-  const [tijd, setTijd] = useState("00:00");
-  const [datum, setDatum] = useState("");
+  const [keuze, setKeuze] = useState<Keuze | null>(null);
   const [actief, setActief] = useState(true);
   const [proef, setProef] = useState<BudgetProef | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -42,12 +63,8 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
   const neemOver = useCallback((b: BudgetBeleid) => {
     setBeleid(b);
     setPerRol(Object.fromEntries(b.rollen.map((r) => [r.rol, String(r.tokens)])));
-    setDagen(String(b.periode_dagen));
     setActief(b.actief);
-    const keuze = beginKeuze(b);
-    setWeekdag(keuze.weekdag);
-    setTijd(keuze.tijd);
-    setDatum(keuze.datum);
+    setKeuze(huidigeKeuze(b));
   }, []);
 
   const laad = useCallback(async () => {
@@ -65,22 +82,47 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
     laad();
   }, [laad]);
 
-  const periode = Math.max(1, Number(dagen) || 1);
-  const perWeek = periode === 7;
+  const zet = (deel: Partial<Keuze>) => setKeuze((oud) => (oud ? { ...oud, ...deel } : oud));
 
-  /** Wat er naar de api gaat. Het anker alleen als de keuze afwijkt van wat er staat: een ander anker
-   *  verplaatst ieders venster, en dat hoort geen bijvangst te zijn van een nieuw rolbudget. */
+  /** Een andere periode kiezen: terug naar de huidige brengt de huidige waarden terug, een nieuwe begint op zijn
+   *  standaard. */
+  function kiesSoort(soort: PeriodeSoort) {
+    if (!beleid) return;
+    const huidig = huidigeKeuze(beleid);
+    setKeuze(soort === huidig.soort ? huidig : standaardKeuze(soort, beleid));
+  }
+
+  /** Wat er naar de api gaat. Het anker alleen als het moment afwijkt van wat er staat: een ander anker verplaatst
+   *  ieders venster, en dat hoort geen bijvangst te zijn van een nieuw rolbudget. */
   const verzoek = useCallback((): BudgetBeleidIn | null => {
-    if (!beleid || !tijd) return null;
-    const huidig = wandklok(beleid.anker, beleid.tijdzone);
-    const basis = { periode_dagen: periode, actief };
-    if (perWeek) {
-      if (weekdag === huidig.weekdag && tijd === huidig.tijd) return basis;
-      return { ...basis, anker: ankerVoorWeekdag(weekdag, tijd, beleid.tijdzone) };
+    if (!beleid || !keuze || !keuze.tijd) return null;
+    const { soort, weekdag, dag, tijd, datum } = keuze;
+    const tz = beleid.tijdzone;
+    const nu = wandklok(beleid.anker, tz);
+    const zelfdePeriode = soort === periodeSoort(beleid) && beleid.updated_by !== "seed";
+    switch (soort) {
+      case "dag": {
+        const basis = { periode_dagen: 1, periode_maanden: 0, actief };
+        return zelfdePeriode && tijd === nu.tijd ? basis : { ...basis, anker: ankerVoorDag(tijd, tz) };
+      }
+      case "week": {
+        const basis = { periode_dagen: 7, periode_maanden: 0, actief };
+        return zelfdePeriode && weekdag === nu.weekdag && tijd === nu.tijd
+          ? basis : { ...basis, anker: ankerVoorWeekdag(weekdag, tijd, tz) };
+      }
+      case "maand": {
+        // `periode_dagen` telt niet bij een periode in maanden; 30 is wat een oudere lezer ervan zou verwachten.
+        const basis = { periode_dagen: 30, periode_maanden: 1, actief };
+        return zelfdePeriode && dag === nu.dag && tijd === nu.tijd
+          ? basis : { ...basis, anker: ankerVoorMaanddag(dag, tijd, tz) };
+      }
+      default: {
+        const basis = { periode_dagen: Math.max(1, Number(keuze.dagen) || 1), periode_maanden: 0, actief };
+        if (!datum || (datum === nu.datum && tijd === nu.tijd)) return basis;
+        return { ...basis, anker: ankerVoorDatum(datum, tijd) };
+      }
     }
-    if (!datum || (datum === huidig.datum && tijd === huidig.tijd)) return basis;
-    return { ...basis, anker: ankerVoorDatum(datum, tijd) };
-  }, [beleid, periode, perWeek, actief, weekdag, tijd, datum]);
+  }, [beleid, keuze, actief]);
 
   // Laat zien wat de keuze doet voordat hij wordt opgeslagen: het venster, en wie daarin boven zijn budget komt.
   useEffect(() => {
@@ -121,7 +163,6 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
   }
 
   if (beleid && !bewerken) {
-    const ritme = resetRitme(beleid.periode_dagen, beleid.anker, beleid.tijdzone);
     return (
       <Card className="mb-4 p-3" data-budget-beleid>
         <div className="flex items-start justify-between gap-3">
@@ -129,7 +170,7 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
             <h4 className="font-display text-sm font-semibold text-ink">Tokenbudget</h4>
             <p className="mt-0.5 text-sm text-muted">
               {beleid.actief
-                ? `Per ${beleid.periode_dagen === 1 ? "dag" : `${beleid.periode_dagen} dagen`}, per rol${ritme ? `, ${ritme}` : ""}. Reset op ${resetdatum(beleid.reset_op, beleid.tijdzone)}.`
+                ? `${periodeLabel(beleid)}, reset op ${resetdatum(beleid.reset_op, beleid.tijdzone)}.`
                 : "De begrenzing staat uit; verbruik wordt wel gemeten."}
             </p>
             <ul className="mt-1 text-sm text-ink">
@@ -166,26 +207,44 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
                   onChange={(e) => setPerRol((oud) => ({ ...oud, [r.rol]: e.target.value }))} />
               </Field>
             ))}
-            <Field label="Reset na (dagen)">
-              <Input type="number" min={1} max={365} required value={dagen} onChange={(e) => setDagen(e.target.value)} />
-            </Field>
           </FormRij>
-          <FormRij>
-            {perWeek ? (
-              <Field label="Reset op">
-                <Select value={weekdag} onChange={(e) => setWeekdag(Number(e.target.value))}>
-                  {WEEKDAGEN.map((d, i) => <option key={d} value={i}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
+          {keuze && (
+            <FormRij>
+              <Field label="Periode">
+                <Select value={keuze.soort} onChange={(e) => kiesSoort(e.target.value as PeriodeSoort)}>
+                  {SOORTEN.map((o) => <option key={o.soort} value={o.soort}>{o.label}</option>)}
+                  {periodeSoort(beleid) === "dagen" && <option value="dagen">{periodeLabel(beleid)}</option>}
                 </Select>
               </Field>
-            ) : (
-              <Field label="Eerste reset op" hint="vandaag of eerder">
-                <Input type="date" required max={vandaag} value={datum} onChange={(e) => setDatum(e.target.value)} />
+              {keuze.soort === "week" && (
+                <Field label="Reset op">
+                  <Select value={keuze.weekdag} onChange={(e) => zet({ weekdag: Number(e.target.value) })}>
+                    {WEEKDAGEN.map((d, i) => <option key={d} value={i}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
+                  </Select>
+                </Field>
+              )}
+              {keuze.soort === "maand" && (
+                <Field label="Reset op dag" hint="1–28: elke maand heeft die dag">
+                  <Select value={keuze.dag} onChange={(e) => zet({ dag: Number(e.target.value) })}>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{`${d}e van de maand`}</option>)}
+                  </Select>
+                </Field>
+              )}
+              {keuze.soort === "dagen" && (
+                <>
+                  <Field label="Om de (dagen)">
+                    <Input type="number" min={1} max={365} required value={keuze.dagen} onChange={(e) => zet({ dagen: e.target.value })} />
+                  </Field>
+                  <Field label="Eerste reset op" hint="vandaag of eerder">
+                    <Input type="date" required max={vandaag} value={keuze.datum} onChange={(e) => zet({ datum: e.target.value })} />
+                  </Field>
+                </>
+              )}
+              <Field label="Om" hint="Nederlandse tijd">
+                <Input type="time" required step={60} value={keuze.tijd} onChange={(e) => zet({ tijd: e.target.value })} />
               </Field>
-            )}
-            <Field label="Om" hint="Nederlandse tijd">
-              <Input type="time" required step={60} value={tijd} onChange={(e) => setTijd(e.target.value)} />
-            </Field>
-          </FormRij>
+            </FormRij>
+          )}
           {proef && (
             <p className="text-sm text-muted" data-budget-proef>
               Het venster loopt dan van {resetdatum(proef.venster_start, beleid.tijdzone)} tot{" "}

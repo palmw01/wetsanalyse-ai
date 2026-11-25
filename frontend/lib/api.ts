@@ -435,6 +435,8 @@ export async function getBudgetBeleid(): Promise<BudgetBeleid> {
 /** `anker` weglaten laat het staan; zonder tijdzone ("2026-11-23T00:00:00") is het wandkloktijd van het beleid. */
 export interface BudgetBeleidIn {
   periode_dagen: number;
+  /** Groter dan 0: per zoveel kalendermaanden. */
+  periode_maanden?: number;
   actief: boolean;
   anker?: string;
 }

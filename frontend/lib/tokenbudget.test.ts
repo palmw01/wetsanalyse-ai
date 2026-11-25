@@ -8,7 +8,10 @@ import {
   dagenTotReset,
   resetdatum,
   resetRegel,
-  resetRitme,
+  ankerVoorDag,
+  ankerVoorMaanddag,
+  periodeLabel,
+  periodeSoort,
   rolLabel,
   tokens,
   tokensKort,
@@ -141,9 +144,9 @@ describe("het resetmoment kiezen", () => {
 
   it("leest de wandklok in de tijdzone van het beleid, niet in die van de machine", () => {
     // Zondag 22 november 23:00 UTC is maandag 23 november 00:00 in Nederland.
-    expect(wandklok("2026-11-22T23:00:00Z", NL)).toEqual({ datum: "2026-11-23", weekdag: 0, tijd: "00:00" });
-    expect(wandklok("2026-07-05T22:00:00Z", NL)).toEqual({ datum: "2026-07-06", weekdag: 0, tijd: "00:00" });
-    expect(wandklok("2026-11-25T20:28:00Z", NL)).toEqual({ datum: "2026-11-25", weekdag: 2, tijd: "21:28" });
+    expect(wandklok("2026-11-22T23:00:00Z", NL)).toEqual({ datum: "2026-11-23", dag: 23, weekdag: 0, tijd: "00:00" });
+    expect(wandklok("2026-07-05T22:00:00Z", NL)).toEqual({ datum: "2026-07-06", dag: 6, weekdag: 0, tijd: "00:00" });
+    expect(wandklok("2026-11-25T20:28:00Z", NL)).toEqual({ datum: "2026-11-25", dag: 25, weekdag: 2, tijd: "21:28" });
   });
 
   it("kiest de vorige maandag 00:00, niet de volgende", () => {
@@ -169,10 +172,31 @@ describe("het resetmoment kiezen", () => {
     expect(ankerVoorDatum("2026-12-01", "09:30")).toBe("2026-12-01T09:30:00");
   });
 
-  it("noemt het ritme alleen bij een week of een dag", () => {
-    expect(resetRitme(7, "2026-11-22T23:00:00Z", NL)).toBe("elke maandag om 00:00");
-    expect(resetRitme(1, "2026-11-25T08:00:00Z", NL)).toBe("elke dag om 09:00");
-    expect(resetRitme(30, "2026-11-22T23:00:00Z", NL)).toBe("");
+  it("per dag: vandaag als het moment al geweest is, anders gisteren", () => {
+    const nu = new Date("2026-11-25T20:28:00Z"); // 21:28
+    expect(ankerVoorDag("00:00", NL, nu)).toBe("2026-11-25T00:00:00");
+    expect(ankerVoorDag("22:00", NL, nu)).toBe("2026-11-24T22:00:00");
+    // Kort na middernacht Nederlandse tijd is het in UTC nog de vorige dag.
+    expect(ankerVoorDag("00:00", NL, new Date("2026-11-30T23:30:00Z"))).toBe("2026-12-01T00:00:00");
+  });
+
+  it("per maand: deze maand als de dag al geweest is, anders de vorige", () => {
+    const nu = new Date("2026-11-25T20:28:00Z");
+    expect(ankerVoorMaanddag(1, "00:00", NL, nu)).toBe("2026-11-01T00:00:00");
+    expect(ankerVoorMaanddag(25, "22:00", NL, nu)).toBe("2026-10-25T22:00:00");
+    expect(ankerVoorMaanddag(28, "00:00", NL, nu)).toBe("2026-10-28T00:00:00");
+    // Over de jaargrens.
+    expect(ankerVoorMaanddag(15, "00:00", NL, new Date("2027-01-03T10:00:00Z"))).toBe("2026-12-15T00:00:00");
+  });
+
+  it("de periode is een begrijpelijke keuze", () => {
+    expect([1, 7, 30].map((d) => periodeSoort({ periode_dagen: d }))).toEqual(["dag", "week", "dagen"]);
+    expect(periodeSoort({ periode_dagen: 30, periode_maanden: 1 })).toBe("maand");
+    expect(periodeLabel({ periode_dagen: 7 })).toBe("Per week");
+    expect(periodeLabel({ periode_dagen: 1 })).toBe("Per dag");
+    expect(periodeLabel({ periode_dagen: 30, periode_maanden: 1 })).toBe("Per maand");
+    expect(periodeLabel({ periode_dagen: 30, periode_maanden: 3 })).toBe("Per 3 maanden");
+    expect(periodeLabel({ periode_dagen: 30 })).toBe("Per 30 dagen");
   });
 
   it("de resetdatum staat in de tijdzone van het beleid", () => {

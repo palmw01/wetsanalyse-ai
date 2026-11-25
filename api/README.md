@@ -162,7 +162,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/admin/registraties/{id}/afwijzen` | Aanvraag verwijderen; de reden gaat naar het security-log |
 | `POST` | `/v1/admin/registraties/goedkeuren` | Meerdere tegelijk goedkeuren (best-effort) |
 | `DELETE` | `/v1/admin/registraties/{id}` | Goedgekeurde aanvraag uit het archief halen |
-| `GET` `PUT` | `/v1/admin/budget` | Tokenbudget-beleid (resetperiode, anker, aan/uit); `GET` toont ook het budget per rol, het huidige venster en de tijdzone. Een `anker` zonder tijdzone is wandkloktijd in die tijdzone. `PUT` vraagt `X-User-Id` van een beheerder met 2FA |
+| `GET` `PUT` | `/v1/admin/budget` | Tokenbudget-beleid (resetperiode in dagen of kalendermaanden, anker, aan/uit); `GET` toont ook het budget per rol, het huidige venster en de tijdzone. Een `anker` zonder tijdzone is wandkloktijd in die tijdzone. `PUT` vraagt `X-User-Id` van een beheerder met 2FA |
 | `POST` | `/v1/admin/budget/proef` | Wat een beleid zou doen zonder het op te slaan: het venster en wie daarin al boven zijn budget zit |
 | `PUT` | `/v1/admin/budget/rollen/{rol}` | Tokenbudget van een rol; vraagt `X-User-Id` van een beheerder met 2FA |
 | `GET` | `/v1/admin/verbruik` | Stand per gebruiker, zwaarste verbruiker eerst |

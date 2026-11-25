@@ -116,6 +116,8 @@ export interface ConnectorAuditRegel {
 
 export interface BudgetBeleid {
   periode_dagen: number;
+  /** Groter dan 0: vensters van zoveel kalendermaanden; `periode_dagen` telt dan niet. */
+  periode_maanden: number;
   anker: string;
   actief: boolean;
   updated_by: string;
