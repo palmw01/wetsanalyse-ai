@@ -11,7 +11,7 @@
 // een misvormd event slaat over, het breekt de reeks niet af.
 
 import { aantal } from "./aantal";
-import { bepalingLabel } from "./bepalingLabel";
+import { bepalingLabel, stapLabel } from "./bepalingLabel";
 import { parseHergebruik, parseUitkomst } from "./agentEvents";
 import { denkBij } from "./denkproces";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
@@ -51,8 +51,9 @@ const EIND_STATUS: Record<string, OnderdeelStatus> = {
   klaar: "klaar", hergebruik: "hergebruik", fout: "fout", gestopt: "gestopt",
 };
 
-function nieuwOnderdeel(bron_iri: string, label: string): ReeksOnderdeel {
-  return { bron_iri, label: bepalingLabel(bron_iri, label) || bron_iri, status: "wacht", voorstellen: 0, denk: "" };
+/** Onder een bepaling (de reeks uit de keuzekaart) alleen de stap ("Lid 2", "1e streepje"); anders de hele plek. */
+function nieuwOnderdeel(bron_iri: string, label: string, onderBepaling = false): ReeksOnderdeel {
+  return { bron_iri, label: (onderBepaling ? stapLabel(bron_iri, label) : bepalingLabel(bron_iri, label)) || bron_iri, status: "wacht", voorstellen: 0, denk: "" };
 }
 
 function werkBij(reeks: Reeks, iri: string, f: (o: ReeksOnderdeel) => ReeksOnderdeel): Reeks {
@@ -72,7 +73,7 @@ export function verwerkReeksEvent(reeks: Reeks | null, ev: Ruw): Reeks | null {
       ouder: { bron_iri: str(ouder.bron_iri), label: str(ouder.label) },
       onderdelen: onderdelen
         .filter((o): o is Ruw => !!o && typeof o === "object" && typeof (o as Ruw).bron_iri === "string")
-        .map((o) => nieuwOnderdeel(str(o.bron_iri), str(o.label))),
+        .map((o) => nieuwOnderdeel(str(o.bron_iri), str(o.label), str(ouder.bron_iri).startsWith("urn:bwb:"))),
       afgerond: false,
     };
   }
@@ -210,7 +211,7 @@ export function doelenVanKandidaten(kandidaten: AgentKandidaat[]): AgentDoelInvo
 
 /** De leesbare opdracht in de thread voor een keuze van meerdere onderdelen. */
 export function reeksPrompt(ouder: string, kandidaten: AgentKandidaat[]): string {
-  const namen = kandidaten.map((k) => k.label || (k.lid ? `lid ${k.lid}` : k.artikel));
+  const namen = kandidaten.map((k) => stapLabel(k.bron_iri ?? "", k.label ?? "") || (k.lid ? `lid ${k.lid}` : k.artikel));
   const opsomming = namen.length > 1 ? `${namen.slice(0, -1).join(", ")} en ${namen[namen.length - 1]}` : namen[0] ?? "";
   return `Annoteer ${ouder ? `${ouder}: ` : ""}${opsomming}`;
 }

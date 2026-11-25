@@ -13,7 +13,7 @@ export type { KnoopSoort, RelatieGroep, SamenhangKnoop, SamenhangRelatie } from 
 
 /** Een knoop zoals het model hem draagt: de data van de api plus de naam waaronder hij in beeld komt. */
 export interface KnoopData extends SamenhangKnoop {
-  /** De volledige naam (inspector, zoeken, tooltip): "Artikel 9 · lid 2", "Hoofdstuk II". */
+  /** De volledige naam (inspector, zoeken, tooltip): "Artikel 9, lid 2", "Hoofdstuk II". */
   naam: string;
   /** Het label op de kaart: bij een lid binnen zijn artikel volstaat "Lid 2". */
   kort: string;
