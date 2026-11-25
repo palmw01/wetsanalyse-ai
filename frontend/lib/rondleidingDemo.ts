@@ -4,26 +4,34 @@
 // Vier regels waar deze module zich aan houdt:
 //
 //  1. **De wettekst is echt.** `DEMO_LEDEN` is de letterlijke tekst van artikel 9, lid 1 van de
-//     Invorderingswet 1990, overgenomen uit de officiële XML bij
-//     `repository.officiele-overheidspublicaties.nl/bwb/BWBR0004770/`. In een platform dat om
-//     brongetrouwheid draait is een verzonnen wettekst een grotere fout dan een lelijke rondleiding.
-//     De markeringen zijn die van de echte annotatie van dat lid op acceptatie (export 19 okt 2026),
-//     met één bewuste afwijking: de Rechtsfeit-kaart staat op *Keuze voor jou*, zodat de stap over de
-//     badges iets aan te wijzen heeft.
+//     Invorderingswet 1990, en de graaf draagt de letterlijke tekst van de andere leden van artikel 9, allebei uit de
+//     kennisgraaf van acceptatie (die de officiële XML bij `repository.officiele-overheidspublicaties.nl` inleest).
+//     In een platform dat om brongetrouwheid draait is een verzonnen wettekst een grotere fout dan een lelijke rondleiding.
+//     De markeringen, relaties en impliciete partijen zijn die van de annotatie van dat lid op acceptatie (25 nov 2026),
+//     zonder wat de jurist daar verwierp. Twee bewuste afwijkingen: de zes voorstellen van Lex staan nog open (de
+//     rondleiding gaat over beoordelen), en de Rechtsbetrekking staat op *Keuze voor jou*, met Rechtsfeit als
+//     alternatief, zodat de stap over de badges iets aan te wijzen heeft. Wat de jurist er zelf bij markeerde (de
+//     Afleidingsregel, "zes weken" en "invorderbaar") is al beoordeeld, met de relaties en partijen die hij legde.
 //  2. **De ankers worden gerekend, niet geteld.** Elk anker komt uit `segmentAnker` over de tekst van
 //     zijn eigen lid, in codepoints, net als bij de api. Met de hand ingetypte offsets zouden bij de
 //     eerste komma verschuiven en de markeringen laten zweven.
 //  3. **Het is de weergave van echt werk.** De demo levert een v2-weergave (`NodeWeergave`) en een
-//     opslag (`NodeOpslag`) voor `NodeAnnotatiePaneel` – hetzelfde paneel als een echte annotatie.
-//     Eerst had de demo een eigen documentvorm in een paneel dat verder niemand meer gebruikte; de
-//     rondleiding liet zo een werkplek zien die er niet meer was.
-//  4. **Niets hiervan raakt de api.** De opslag leeft in het geheugen van één scène; zijn handelingen
-//     krijgen dezelfde lichamen als de api, maar er gaat geen verzoek de deur uit.
+//     opslag (`NodeOpslag`) voor `NodeAnnotatiePaneel` – hetzelfde paneel als een echte annotatie, met dezelfde tabs
+//     Tekst, Graaf en Diagram. Het diagram komt uit `rondleidingDemo.diagram.json` (de plaatsing die de api op
+//     acceptatie rekende); de graaf is een vaste uitsnede rond artikel 9 (`rondleidingDemo.graaf.json`: de structuur en
+//     de verwijzingen) met de markeringen en relaties uit de weergave van nu, zodat hij een beslissing volgt.
+//  4. **Niets hiervan raakt de api.** De opslag en de graafbron (`GraafDataBron`) leven in het geheugen van één scène;
+//     de handelingen krijgen dezelfde lichamen als de api, maar er gaat geen verzoek de deur uit.
 
 import {
-  segmentAnker, type NodeAnker, type NodeDoel, type NodeElement, type NodeOpslag, type NodeSegment,
-  type NodeWeergave,
+  segmentAnker, type NodeAnker, type NodeDoel, type NodeEindpunt, type NodeElement, type NodeImpliciet, type NodeOpslag,
+  type NodeRelatie, type NodeSegment, type NodeWeergave,
 } from "./annotatieNode";
+import type { DiagramData, DiagramSet, Geplaatst } from "./diagram2c";
+import type { GraafDataBron } from "./graaf/databron";
+import type { Samenhang, SamenhangKnoop, SamenhangRelatie } from "./samenhang";
+import diagramBestand from "./rondleidingDemo.diagram.json";
+import graafBestand from "./rondleidingDemo.graaf.json";
 import type { ThreadItem } from "./threadItem";
 import type { Aandacht, AgentRun, Beslissing, BeslissingType, ElementTrace, GesprekSamenvatting } from "./types";
 
@@ -71,82 +79,150 @@ const DEMO_RUN: AgentRun = {
   tijd: "2026-01-01T09:00:00Z",
 };
 
-/** Eén voorgenomen markering. `voorkomen` telt vanaf 1 binnen het lid en kiest wélke treffer het is.
+/** Eén markering van de voorbeeldannotatie. `voorkomen` telt vanaf 1 binnen het lid en kiest wélke treffer het is.
  *
- *  De aandacht volgt de keten van nu: geen badge is een gewoon voorstel, geel ("Keuze voor jou") is
- *  twijfel die de reviewer niet besliste, groen ("Bevestigd door review") een twijfelgeval dat hij
- *  wél besliste. Rood zet de keten niet, dus de demo ook niet. Het spoor (`door`, `spoor`) gebruikt
- *  de codes uit `tools/graph-qa/agent/jas_pipeline/verklaringen.yaml`, zodat *Waarom?* er net zo
- *  uitziet als bij echt werk. */
+ *  Een voorstel van Lex (`door` gezet) staat open; de aandacht volgt de keten van nu: geen badge is een gewoon voorstel,
+ *  geel ("Keuze voor jou") is twijfel die de reviewer niet besliste. Rood zet de keten niet, dus de demo ook niet. Het
+ *  spoor gebruikt de codes uit `tools/graph-qa/agent/jas_pipeline/verklaringen.yaml`, zodat *Waarom?* er net zo uitziet
+ *  als bij echt werk. Zonder `door` is het een markering van de jurist zelf: beoordeeld, zonder spoor van de keten. */
 interface DemoSpec {
+  /** Het id van het element op acceptatie; de demo zet er `demo-` voor. */
+  acc: string;
   fragment: string;
   voorkomen?: number;
   klasse: string;
+  jas_subtype?: string;
   lid: string;
   aandacht: Aandacht | null;
   toelichting: string;
-  /** Wie besliste: een vaste regel, het model, of niemand (`terugval`: de jurist kiest). */
-  door: "regel" | "model" | "terugval";
+  /** Wie besliste: een vaste regel of het model. Leeg: de jurist markeerde dit zelf. */
+  door?: "regel" | "model";
   /** Het bewijs van de detectoren: [detector, code]. */
-  bewijs: [string, string][];
+  bewijs?: [string, string][];
   alternatieven?: { klasse: string; motivatie: string }[];
   review_uitleg?: string;
   twijfel?: string;
   resolutie?: string;
-  /** Een kortere grens die de keten ook overwoog, als tekst binnen het fragment ("Andere grens"). */
-  grens?: string;
 }
 
-// De vier elementen van de annotatie op acceptatie, met hun toelichting, bewijs en alternatieven.
+// De markeringen van de annotatie op acceptatie, in de volgorde van de tekst: eerst de zes voorstellen van Lex, dan de
+// drie van de jurist. De toelichtingen zijn die van de keten; de bewijscodes die van haar spoor.
 const DEMO_SPECS: DemoSpec[] = [
   {
+    acc: "473c19a14797",
     fragment: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
-    klasse: "Rechtsfeit", lid: "1", aandacht: "geel", door: "model",
+    klasse: "Rechtsbetrekking", lid: "1", aandacht: "geel", door: "model",
     bewijs: [["norm", "NORMATIVE_PREDICATE"], ["norm", "LEGAL_EFFECT_PREDICATE"]],
     toelichting:
-      "Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de juridische " +
-      "toestand teweegbrengt. Hier: het verstrijken van zes weken maakt de aanslag invorderbaar.",
+      "Een rechtsbetrekking is een relatie tussen twee rechtssubjecten waarbij het ene subject een recht heeft en het " +
+      "andere een daarmee corresponderende plicht. Hier: de ontvanger mag de belastingaanslag invorderen bij de " +
+      "belastingschuldige – Normatief gezegde (“invorderbaar”).",
     alternatieven: [{
-      klasse: "Rechtsbetrekking",
-      motivatie: "aangedragen door Normatief gezegde (“invorderbaar”); Rechtsgevolg in de norm (“invorderbaar”)",
+      klasse: "Rechtsfeit",
+      motivatie: "aangedragen door Rechtsgevolg in de norm (“invorderbaar”) – het verstrijken van de termijn als rechtsfeit",
     }],
     review_uitleg:
-      "Je kunt de zin lezen als het tijdsverloop dat de aanslag invorderbaar maakt (Rechtsfeit) of als de " +
-      "norm zelf (Rechtsbetrekking). Beide lezingen zijn verdedigbaar; de keuze is aan jou.",
+      "Je kunt de zin lezen als de bevoegdheid van de ontvanger om de aanslag in te vorderen (Rechtsbetrekking) of als " +
+      "het tijdsverloop dat de aanslag invorderbaar maakt (Rechtsfeit). Beide lezingen zijn verdedigbaar; de keuze is aan jou.",
     twijfel: "DETECTOR_CONFLICT", resolutie: "R-CONFLICT-HUMAN",
   },
   {
-    fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
+    acc: "223ac94d9c58", fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
     bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “Een belastingaanslag”.",
+    toelichting:
+      "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “Een belastingaanslag” – " +
+      "Document of rechtshandeling als ding (“belastingaanslag”).",
     alternatieven: [{
       klasse: "Variabele en variabelewaarde",
       motivatie: "aangedragen door Document of rechtshandeling als ding (“belastingaanslag”) – bedrag of toeslag als voorwerp",
     }],
   },
   {
-    fragment: "zes weken na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "1",
-    aandacht: null, door: "model", grens: "zes weken",
-    bewijs: [["tijd", "TEMPORAL_DURATION"], ["naamwoordgroep", "ACTION_NP"], ["nominalisatie", "NOMINALIZED_ACTION"],
-             ["specificiteit", "PRIORITY_APPLIED"]],
+    acc: "055a7e165515", fragment: "zes weken na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding",
+    jas_subtype: "verbijzondert parameter", lid: "1", aandacht: null, door: "model",
+    bewijs: [["tijd", "TEMPORAL_DURATION"], ["nominalisatie", "NOMINALIZED_ACTION"]],
     toelichting:
-      "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Hier: “zes weken na de dagtekening " +
-      "van het aanslagbiljet” – Termijn (“zes weken”).",
-    alternatieven: [
-      { klasse: "Rechtsobject", motivatie: "aangedragen door Handeling als naamwoord (“dagtekening”)" },
-      { klasse: "Rechtsfeit",
-        motivatie: "aangedragen door Handeling als zelfstandig naamwoord (“dagtekening”) – tijdsverloop of een startgebeurtenis in een termijn" },
-    ],
+      "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Hier: “zes weken na de dagtekening van het " +
+      "aanslagbiljet” – Termijn (“zes weken”).",
+    alternatieven: [{
+      klasse: "Rechtsfeit",
+      motivatie: "aangedragen door Handeling als zelfstandig naamwoord (“dagtekening”) – tijdsverloop of een startgebeurtenis in een termijn",
+    }],
   },
   {
-    fragment: "het aanslagbiljet", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
+    acc: "a362df5f5bef", fragment: "na", klasse: "Operator", lid: "1", aandacht: null, door: "model",
+    bewijs: [["operator", "DURATION_OFFSET"]],
+    toelichting:
+      "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een " +
+      "samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. " +
+      "Hier: “na” – Duur vanaf een moment (“na”).",
+  },
+  {
+    acc: "d46ea984bf1d", fragment: "de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding",
+    jas_subtype: "verbijzondert variabele", lid: "1", aandacht: null, door: "model",
+    bewijs: [["tijd", "TEMPORAL_VALUE"]],
+    toelichting:
+      "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Hier: “de dagtekening van het " +
+      "aanslagbiljet” – Tijdstip als waarde.",
+  },
+  {
+    acc: "1c3866246a40", fragment: "het aanslagbiljet", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
     bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “het aanslagbiljet”.",
+    toelichting:
+      "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “het aanslagbiljet” – " +
+      "Document of rechtshandeling als ding (“aanslagbiljet”).",
     alternatieven: [{
       klasse: "Variabele en variabelewaarde",
       motivatie: "aangedragen door Document of rechtshandeling als ding (“aanslagbiljet”) – bedrag of toeslag als voorwerp",
     }],
   },
+  {
+    acc: "8263fa226caa491988a08721285d4106", fragment: "invorderbaar zes weken na de dagtekening van het aanslagbiljet",
+    klasse: "Afleidingsregel", lid: "1", aandacht: null,
+    toelichting:
+      "Leidt af wanneer een belastingaanslag invorderbaar is: zes weken (parameter) na de dagtekening van het " +
+      "aanslagbiljet (tijdsaanduiding).",
+  },
+  {
+    acc: "379bc7e16ded465b895586eedddb2e3f", fragment: "zes weken", klasse: "Tijdsaanduiding",
+    jas_subtype: "verbijzondert parameter", lid: "1", aandacht: null,
+    toelichting: "Een termijn (tijdvak) die voor iedere aanslag zonder termijnen gelijk is: een tijdsaanduiding die een parameter verbijzondert.",
+  },
+  {
+    acc: "5bdea17d31534e0994a895a1376b2f49", fragment: "invorderbaar", klasse: "Variabele en variabelewaarde",
+    jas_subtype: "variabele", lid: "1", aandacht: null,
+    toelichting: "Of een belastingaanslag invorderbaar is: de uitvoer van de afleidingsregel, met een waarde per aanslag (ja of nee op een datum).",
+  },
+];
+
+/** Het id van een element, partij of relatie in de demo: het id van acceptatie met `demo-` ervoor. */
+export const demoId = (acc: string) => `demo-${acc}`;
+
+/** De twee partijen die de tekst niet noemt, zoals de jurist ze op acceptatie vastlegde (ADR-011). */
+const DEMO_IMPLICIET: Omit<NodeImpliciet, "laag_id">[] = [
+  {
+    id: demoId("I45f83f76a2ea4913"), klasse: "Rechtssubject", label: "de belastingschuldige", herkomst: "mens",
+    vindplaats: "Invorderingswet 1990, art. 2 lid 1 onderdeel k",
+    toelichting: "Lid 1 noemt niet tegen wie wordt ingevorderd: degene te wiens naam de belastingaanslag is gesteld (art. 2 lid 1 onderdeel k), de plichthebbende van deze rechtsbetrekking.",
+  },
+  {
+    id: demoId("Ibdcdf4fb8ac14c7d"), klasse: "Rechtssubject", label: "de ontvanger", herkomst: "mens",
+    vindplaats: "Invorderingswet 1990, art. 2 lid 1 onderdeel i",
+    toelichting: "Lid 1 noemt niet wie invordert. Invorderbaar betekent dat de ontvanger de aanslag mag invorderen: de rechthebbende van deze rechtsbetrekking.",
+  },
+];
+
+/** De relaties van de annotatie op acceptatie, zonder de verworpen: [id, type, leesvorm, van, naar, volgorde, herkomst]. */
+const DEMO_RELATIES: [string, string, string, string, string, number | null, "mens" | "agent"][] = [
+  ["R229274641127d160", "rechthebbende", "is rechthebbende van", "Ibdcdf4fb8ac14c7d", "473c19a14797", null, "mens"],
+  ["Rd052f8bcab4452c5", "plichthebbende", "is plichthebbende van", "I45f83f76a2ea4913", "473c19a14797", null, "mens"],
+  ["Rc7b1492915b923d0", "voorwerp", "heeft als voorwerp", "473c19a14797", "223ac94d9c58", null, "mens"],
+  ["R63f1304f3b4238f9", "tijd", "heeft als tijdsaanduiding", "473c19a14797", "055a7e165515", null, "agent"],
+  ["R815ac01935b74cef", "invoer", "is invoer van", "d46ea984bf1d", "8263fa226caa491988a08721285d4106", 1, "mens"],
+  ["R389f61c92831a82c", "invoer", "is invoer van", "379bc7e16ded465b895586eedddb2e3f", "8263fa226caa491988a08721285d4106", 2, "mens"],
+  ["Rf05b7f561d2b5f6f", "operator_in", "is operator in", "a362df5f5bef", "8263fa226caa491988a08721285d4106", null, "mens"],
+  ["Rad2633e896a8ac99", "uitvoer", "levert op", "8263fa226caa491988a08721285d4106", "5bdea17d31534e0994a895a1376b2f49", null, "mens"],
+  ["R59d127e85b1ae045", "kenmerk", "is kenmerk van", "5bdea17d31534e0994a895a1376b2f49", "223ac94d9c58", null, "mens"],
 ];
 
 /** De twaalf detectiedimensies van de keten (`jas_pipeline/dekking.py`). */
@@ -177,26 +253,16 @@ function laagId(lid: string): string {
   return `demo-laag-${lid}`;
 }
 
-/** Het herkomstspoor van een demo-element, in de vorm van de keten. Posities in codepoints binnen
- *  het lid, net als de ankers. */
-function spoorVan(spec: DemoSpec, segment: NodeSegment, start: number): ElementTrace {
-  const cp = (utf16: number) => Array.from(segment.tekst.slice(0, utf16)).length;
-  const grens = spec.grens && start >= 0 ? segment.tekst.indexOf(spec.grens, start) : -1;
-  const kandidaat = {
-    label: spec.fragment,
-    mogelijke_klassen: [spec.klasse, ...(spec.alternatieven ?? []).map((a) => a.klasse)],
-    bewijs: spec.bewijs.map(([detector, code]) => ({ detector, code })),
-    ...(grens >= 0 && start >= 0 ? {
-      span: { bron_iri: segment.bron_iri },
-      spanopties: [
-        { soort: "volledig", start: cp(start), eind: cp(start + spec.fragment.length) },
-        { soort: "kern", start: cp(grens), eind: cp(grens + spec.grens!.length) },
-      ],
-    } : {}),
-  };
+/** Het herkomstspoor van een voorstel van Lex, in de vorm van de keten. */
+function spoorVan(spec: DemoSpec): ElementTrace | undefined {
+  if (!spec.door) return undefined;
   return {
     pijplijn: "hybrid_v1",
-    kandidaat,
+    kandidaat: {
+      label: spec.fragment,
+      mogelijke_klassen: [spec.klasse, ...(spec.alternatieven ?? []).map((a) => a.klasse)],
+      bewijs: (spec.bewijs ?? []).map(([detector, code]) => ({ detector, code })),
+    },
     beslissing: { status: "voorgesteld", klasse: spec.klasse, door: spec.door },
     ...(spec.twijfel ? { twijfel: [{
       reden: spec.twijfel, huidig: spec.klasse, alternatieven: (spec.alternatieven ?? []).map((a) => a.klasse),
@@ -205,27 +271,29 @@ function spoorVan(spec: DemoSpec, segment: NodeSegment, start: number): ElementT
   };
 }
 
-function elementVan(spec: DemoSpec, index: number, segment: NodeSegment): NodeElement {
+function elementVan(spec: DemoSpec, segment: NodeSegment): NodeElement {
   const start = positieVan(segment.tekst, spec.fragment, spec.voorkomen ?? 1);
   // Een fragment dat niet in de tekst staat, hoort ook in de demo niet stilzwijgend te verdwijnen:
   // zonder anker toont de reviewlijst hem als zwevende markering, precies zoals bij echt werk.
   const ankers: NodeAnker[] = start === -1 ? [] : [segmentAnker(segment, start, start + spec.fragment.length)];
+  const vanLex = Boolean(spec.door);
   return {
-    id: `demo-el-${index + 1}`,
+    id: demoId(spec.acc),
     eigenaar_iri: segment.bron_iri,
     laag_id: laagId(spec.lid),
     klasse: spec.klasse,
+    ...(spec.jas_subtype ? { jas_subtype: spec.jas_subtype } : {}),
     tekst: spec.fragment,
     toelichting: spec.toelichting,
     ankers,
-    lifecycle: "voorgesteld",
-    herkomst: "agent",
+    lifecycle: vanLex ? "voorgesteld" : "human_approved",
+    herkomst: vanLex ? "agent" : "mens",
     alternatieven: spec.alternatieven ?? [],
     aandacht: spec.aandacht,
     review_uitleg: spec.review_uitleg,
-    trace: spoorVan(spec, segment, start),
-    beslissingen: [],
-    geproduceerd_door: DEMO_RUN,
+    trace: spoorVan(spec),
+    beslissingen: vanLex ? [] : [{ type: "markering", actor: "voorbeeld", tijd: DEMO_RUN.tijd, comment: "", wijziging: { klasse: spec.klasse } }],
+    geproduceerd_door: vanLex ? DEMO_RUN : null,
   };
 }
 
@@ -239,19 +307,170 @@ function demoDekking(segmenten: NodeSegment[]) {
   return { voltooid: true, structureel };
 }
 
+/** De relaties en partijen met hun eindpunten zoals de weergave ze beschrijft (`beschrijf` in de api). */
+function demoRelaties(elementen: NodeElement[], impliciet: NodeImpliciet[]): NodeRelatie[] {
+  const eind = (acc: string): NodeEindpunt => {
+    const id = demoId(acc);
+    const el = elementen.find((e) => e.id === id);
+    if (el) return { soort: "element", id, bestaat: true, klasse: el.klasse, tekst: el.tekst, laag_id: el.laag_id, actueel: true };
+    const p = impliciet.find((x) => x.id === id);
+    return { soort: "impliciet", id, bestaat: Boolean(p), klasse: p?.klasse, tekst: p?.label, laag_id: p?.laag_id, actueel: true };
+  };
+  return DEMO_RELATIES.map(([id, type, leesvorm, van, naar, volgorde, herkomst]) => ({
+    // Wat de jurist legde is vastgesteld; wat Lex voorstelde staat open, net als zijn markeringen.
+    id: demoId(id), type, leesvorm, volgorde, lifecycle: herkomst === "mens" ? "human_approved" : "voorgesteld", herkomst, laag_id: laagId("1"),
+    veranderd: false, van: eind(van), naar: eind(naar),
+  }));
+}
+
 /** De weergave van de voorbeeldannotatie, vers opgebouwd. Elke start krijgt een schone lei. */
 export function maakDemoWeergave(): NodeWeergave {
   const segmenten = demoSegmenten();
   const segmentVan = (lid: string) => segmenten.find((s) => s.nummer === lid)!;
+  const elementen = DEMO_SPECS.map((spec) => elementVan(spec, segmentVan(spec.lid)));
+  const impliciet = DEMO_IMPLICIET.map((p) => ({ ...p, laag_id: laagId("1") }));
   return {
     schema_versie: 2,
     doel: { ...DEMO_DOEL },
     snapshot_id: SNAPSHOT,
     segmenten,
     lagen: DEMO_LEDEN.map(({ lid }) => ({ id: laagId(lid), bron_iri: lidIri(lid), revisie: 1, status: "in_review" })),
-    elementen: DEMO_SPECS.map((spec, i) => elementVan(spec, i, segmentVan(spec.lid))),
+    elementen,
     verwijzingen: [],
     dekking: demoDekking(segmenten),
+    relaties: demoRelaties(elementen, impliciet),
+    impliciet,
+  };
+}
+
+// --- het diagram en de graaf (in het geheugen, in de vorm van de api) ----------------------
+
+interface DiagramBestand {
+  diagrammen: (Omit<DiagramData, "plaatsing"> & {
+    plaatsing: { breedte: number; hoogte: number; knopen: (Omit<Geplaatst, "knoop"> & { id: string })[] };
+  })[];
+}
+
+/** De diagrammen van de bepaling zoals de api ze op acceptatie plaatste, met de stand van de weergave van nu: een
+ *  beslissing kleurt de knoop mee, net als bij echt werk. Opnieuw plaatsen rekent de api; dat doet de demo niet. */
+export function demoDiagrammen(view: NodeWeergave): DiagramSet {
+  const bestand = diagramBestand as unknown as DiagramBestand;
+  const lifecycleVan = (k: { id: string; soort: string; lifecycle: string }) =>
+    k.soort === "element" ? view.elementen.find((e) => e.id === k.id)?.lifecycle ?? k.lifecycle : k.lifecycle;
+  return {
+    bron_iri: view.doel.bron_iri,
+    diagrammen: bestand.diagrammen.map((d) => {
+      const knopen = d.diagram.knopen.map((k) => {
+        const knoop = { ...k, id: demoId(k.id) };
+        return { ...knoop, lifecycle: lifecycleVan(knoop) };
+      });
+      const knoopVan = (id: string) => knopen.find((k) => k.id === demoId(id))!;
+      return {
+        diagram: {
+          ...d.diagram, centraal: demoId(d.diagram.centraal), knopen,
+          lijnen: d.diagram.lijnen.map((l) => {
+            const r = view.relaties?.find((x) => x.van.id === demoId(l.van) && x.naar.id === demoId(l.naar) && x.type === l.code);
+            return { ...l, van: demoId(l.van), naar: demoId(l.naar), lifecycle: r?.lifecycle ?? l.lifecycle };
+          }),
+        },
+        plaatsing: { ...d.plaatsing, knopen: d.plaatsing.knopen.map(({ id, ...g }) => ({ ...g, knoop: knoopVan(id) })) },
+        lijnen: d.lijnen.map((l) => ({ ...l, relatie_id: demoId(l.relatie_id), van: demoId(l.van), naar: demoId(l.naar),
+          lifecycle: view.relaties?.find((r) => r.id === demoId(l.relatie_id))?.lifecycle ?? l.lifecycle })),
+        ontbreekt_rollen: d.ontbreekt_rollen,
+      };
+    }),
+  };
+}
+
+/** Waar de uitsnede stopt: wat de graaf daarbuiten vraagt, zegt dat in gewone woorden. */
+const BUITEN_UITSNEDE = "In het voorbeeld staat alleen artikel 9 van de Invorderingswet 1990 in de graaf.";
+
+/** De samenhang van artikel 9 zoals de api hem levert: de vaste uitsnede (structuur en verwijzingen) met de markeringen,
+ *  klassen, partijen en relaties uit de weergave van nu. */
+export function demoSamenhang(view: NodeWeergave): Samenhang {
+  const vast = graafBestand as unknown as { knopen: SamenhangKnoop[]; relaties: SamenhangRelatie[] };
+  const leeg = { tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: BWB_ID, artikel: "", lid: "", rand: false };
+  // Het label reist mee tot in de graaf: ook daar mag niemand het voorbeeld voor echt werk aanzien.
+  const structuur = vast.knopen.map((k) => (k.soort === "regeling" ? { ...k, label: `${DEMO_LABEL} · ${k.label}` } : k));
+  const elementen = view.elementen.filter((e) => !e.verouderd);
+  const markeringen: SamenhangKnoop[] = elementen.map((e) => ({
+    ...leeg, id: `element:${e.id}`, soort: "markering", label: e.tekst, tekst: e.tekst, klasse: e.klasse,
+    lifecycle: e.lifecycle, element_id: e.id, artikel: "9", lid: "1", herkomst: e.herkomst, aandacht: e.aandacht ?? "",
+    subtype: e.jas_subtype ?? "", beslist_door: e.trace?.beslissing?.door ?? "",
+  }));
+  const klassen: SamenhangKnoop[] = [...new Set(elementen.map((e) => e.klasse))].map((k) => ({
+    ...leeg, bwb_id: "", id: `klasse:${k}`, soort: "klasse", label: k, klasse: k,
+  }));
+  const partijen: SamenhangKnoop[] = (view.impliciet ?? []).map((p) => ({
+    ...leeg, bwb_id: "", id: `impliciet:${p.id}`, soort: "impliciet", label: p.label, klasse: p.klasse,
+  }));
+  const eindVan = (e: NodeEindpunt) => `${e.soort === "impliciet" ? "impliciet" : "element"}:${e.id}`;
+  const relatie = (bron: string, doel: string, soort: SamenhangRelatie["soort"], groep: SamenhangRelatie["groep"], anker = "") =>
+    ({ bron, doel, soort, groep, anker_tekst: anker });
+  return {
+    schema_versie: 1, doel: { ...view.doel }, snapshot_id: view.snapshot_id, artikel_iri: ARTIKEL_IRI,
+    knopen: [...structuur, ...markeringen, ...klassen, ...partijen],
+    relaties: [
+      ...vast.relaties,
+      ...elementen.flatMap((e) => [
+        relatie(`element:${e.id}`, e.eigenaar_iri, "markeert", "annotaties"),
+        relatie(`element:${e.id}`, `klasse:${e.klasse}`, "heeft_klasse", "annotaties"),
+      ]),
+      ...(view.relaties ?? []).filter((r) => r.lifecycle !== "rejected")
+        .map((r) => ({ ...relatie(eindVan(r.van), eindVan(r.naar), "jas_relatie", "relaties", r.leesvorm),
+          type: r.type, leesvorm: r.leesvorm, lifecycle: r.lifecycle, veranderd: r.veranderd, volgorde: r.volgorde ?? null })),
+    ],
+    verwijzingen_beschikbaar: true, afgekapt: false,
+  };
+}
+
+/** De tekst van een bepaling uit de uitsnede, voor de inspector: lid 1 uit de weergave (met de markeringen), een ander
+ *  lid of onderdeel met zijn letterlijke tekst, het artikel met zijn leden. */
+function demoBepaling(view: NodeWeergave, iri: string): NodeWeergave {
+  if (view.segmenten.some((s) => s.bron_iri === iri)) return view;
+  const vast = graafBestand as unknown as { knopen: SamenhangKnoop[]; relaties: SamenhangRelatie[] };
+  const kinderen = (id: string) => vast.relaties.filter((r) => r.soort === "bevat" && r.bron === id).map((r) => r.doel);
+  const iris = vast.knopen.some((k) => k.id === iri && k.tekst) ? [iri] : kinderen(iri);
+  const segmenten: NodeSegment[] = iris.flatMap((id, i) => {
+    if (id === lidIri("1")) return view.segmenten;
+    const k = vast.knopen.find((x) => x.id === id && x.tekst && !x.rand);
+    return k ? [{ bron_iri: k.id, type: k.soort === "onderdeel" ? "Onderdeel" : "Lid", nummer: k.lid, label: k.label,
+      tekst: k.tekst, bron_hash: `demo-${k.id}`, volgorde: i + 1 }] : [];
+  });
+  if (!segmenten.length) throw new Error(BUITEN_UITSNEDE);
+  return { ...view, doel: { ...view.doel, bron_iri: iri }, segmenten,
+    elementen: view.elementen.filter((e) => segmenten.some((s) => s.bron_iri === e.eigenaar_iri)) };
+}
+
+/** De graafbron van de demo: alles uit de weergave van nu en de vaste uitsnede, niets van de api. */
+export function demoGraafBron(huidig: () => NodeWeergave): GraafDataBron {
+  const binnen = (doel: { bron_iri: string }) => doel.bron_iri.startsWith(ARTIKEL_IRI);
+  const samenhang = async (doel: { bron_iri: string }) => {
+    if (!binnen(doel)) throw new Error(BUITEN_UITSNEDE);
+    return demoSamenhang(huidig());
+  };
+  return {
+    samenhang,
+    async samenhangen(doelen) {
+      return {
+        resultaten: doelen.some(binnen) ? [demoSamenhang(huidig())] : [],
+        fouten: doelen.filter((d) => !binnen(d)).map((d) => ({ bron_iri: d.bron_iri, reden: BUITEN_UITSNEDE })),
+      };
+    },
+    keten: async (doelen) => samenhang(doelen[0] ?? { bron_iri: "" }),
+    async kennisgraaf() {
+      const s = demoSamenhang(huidig());
+      return { schema_versie: 1, versie: "demo-rondleiding", knopen: s.knopen, relaties: s.relaties,
+        regelingen: [{ bwb_id: BWB_ID, citeertitel: `${DEMO_LABEL} · Invorderingswet 1990`, toestand: "2026-10-01" }] };
+    },
+    // Wat de BWB-graaf verder over een knoop weet (geldigheid, herkomst, triples) zit niet in de uitsnede.
+    knoopInfo: async (iri) => ({ schema_versie: 1, bron_iri: iri, beschikbaar: false, groepen: [], ruw: [], verwijzingen: [] }),
+    bepaling: async (iri) => demoBepaling(huidig(), iri),
+    async element(id) {
+      const el = huidig().elementen.find((e) => e.id === id);
+      if (!el) throw new Error(BUITEN_UITSNEDE);
+      return el;
+    },
   };
 }
 
@@ -378,11 +597,14 @@ export function maakDemoOpslag(): NodeOpslag {
       return {};
     },
     async verwijder() {
-      view = { ...view, elementen: [], lagen: [], verwijderd: { op: new Date().toISOString() } };
+      view = { ...view, elementen: [], lagen: [], relaties: [], impliciet: [], verwijderd: { op: new Date().toISOString() } };
       return {};
     },
     // Een voorbeeld levert geen bestand: het keuzepaneel sluit, zoals bij elke export.
     async exporteer() {},
+    // Het diagram en de graaf komen uit hetzelfde geheugen, met de stand van nu.
+    diagrammen: async () => demoDiagrammen(view),
+    graaf: demoGraafBron(() => view),
   };
 }
 
@@ -390,8 +612,8 @@ export function maakDemoOpslag(): NodeOpslag {
 
 /** Wat Lex onder de annotatie zegt. Elke zin volgt uit `DEMO_SPECS`, zoals bij graph-qa. */
 export const DEMO_SAMENVATTING =
-  "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en vier JAS-elementen gevonden. " +
-  "De markeringen zijn vooral Rechtsobject. " +
+  "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en zes JAS-elementen gevonden. " +
+  "De markeringen zijn vooral Rechtsobject en Tijdsaanduiding. " +
   "Eén voorstel heeft een plausibel alternatief en verdient daarom extra aandacht. " +
   "Alle voorstellen koos het model.";
 
@@ -402,33 +624,22 @@ function maakDemoItems(): ThreadItem[] {
     {
       id: "demo-2",
       type: "antwoord",
-      // Let op de spelling: "te wiens **name**". De wet zegt "te wiens naam" (artikel 2, eerste lid,
-      // onderdeel k). Dat is geen typfout maar de misser die het blok hieronder aanwijst – herstel
-      // je hem, dan meldt de rondleiding een citaatfout die er niet meer is, en faalt er niets dat
-      // je erop wijst.
+      // Het citaat is letterlijk artikel 2, eerste lid, onderdeel k (de kennisgraaf van acceptatie, 25 nov 2026), dus de
+      // toets slaagt en het blok Brongetrouwheid zwijgt, zoals bij elk goed antwoord.
       tekst:
-        "De Invorderingswet 1990 verstaat onder **belastingschuldige** degene te wiens name de " +
+        "De Invorderingswet 1990 verstaat onder **belastingschuldige** degene te wiens naam de " +
         "belastingaanslag is gesteld (artikel 2, eerste lid, onderdeel k). Het begrip bepaalt wie de " +
         "ontvanger kan aanspreken voor de betaling.\n\n" +
         `_(${DEMO_LABEL}: dit antwoord hoort bij de rondleiding.)_`,
       denk: [
         "· Lex · zoekt de definitie op (0,6 s)",
         "· Graaf · begripsbepaling opgehaald uit artikel 2 van de Invorderingswet 1990 (0,4 s)",
-        "· Controle · 1 citaat niet letterlijk in de opgehaalde tekst (0,1 s)",
+        "· Controle · 1 citaat letterlijk in de opgehaalde tekst (0,1 s)",
       ].join("\n"),
       bronnen: [
         { label: "Invorderingswet 1990, artikel 2", uri: "jci1.3:c:BWBR0004770&artikel=2" },
-        { label: "Invorderingswet 1990, artikel 9", uri: "jci1.3:c:BWBR0004770&artikel=9" },
       ],
-      // Bewust `ongegrond`: het blok zwijgt bij een geslaagde toets, en dan valt er in de rondleiding
-      // niets aan te wijzen. Zo ziet de gebruiker meteen wát het blok doet als er iets aan de hand is.
-      grounding: {
-        niveau: "ongegrond",
-        grounded: false,
-        cited: 2,
-        unsupported: [],
-        niet_letterlijk: ["degene te wiens name de belastingaanslag is gesteld"],
-      },
+      grounding: { niveau: "gegrond", grounded: true, cited: 1, unsupported: [], niet_letterlijk: [] },
     },
     { id: "demo-3", type: "user", tekst: "Annoteer artikel 9 lid 1 van de Invorderingswet 1990" },
     {
@@ -444,12 +655,13 @@ function maakDemoItems(): ThreadItem[] {
       denk: [
         `· Bron · artikel 9 lid 1 van de Invorderingswet 1990 (${DEMO_LEDEN.reduce((n, l) => n + l.tekst.length, 0)} tekens)`,
         "· Taalanalyse · nl_core_news_md, 1 zin(nen) (0,4 s)",
-        "· Detectie · 5 kandidaten uit 6 detectoren (0,1 s)",
-        "· Besluit · 0 op vaste regels, 5 naar het model (0,0 s)",
-        "· Classificatie · 5 kandidaten in 1 modelaanroep(en) (3,2 s)",
+        "· Detectie · 6 kandidaten uit 18 detectoren (0,1 s)",
+        "· Besluit · 0 op vaste regels, 6 naar het model (0,0 s)",
+        "· Classificatie · 6 kandidaten in 4 modelaanroep(en) (3,2 s)",
         "· Review · 1 twijfelgeval(len), 1 naar de reviewer (2,9 s)",
-        "· Resultaat · 4 voorgesteld, 1 ter keuze aan de jurist (0,1 s)",
-        "· Klaar · 4 elementen ter beoordeling",
+        "· Resultaat · 6 voorgesteld, 1 ter keuze aan de jurist (0,1 s)",
+        "· Relaties · 1 relatie(s) voorgesteld (0,0 s)",
+        "· Klaar · 6 elementen ter beoordeling",
       ].join("\n"),
     },
   ];

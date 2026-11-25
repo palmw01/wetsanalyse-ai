@@ -10,6 +10,7 @@ import { TabRij, type TabRijItem } from "@/components/ui/Tabs";
 import { usePaneel } from "@/components/ui/Paneel";
 import { isVergroot } from "@/lib/paneelBediening";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
+import type { GraafDataBron } from "@/lib/graaf/databron";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Onderwerp } from "@/lib/vraagLex";
 
@@ -34,7 +35,7 @@ export interface Samenhang {
  *    is. Op een pagina is hij altijd groot.
  *  - Op de graaf claimt het venster Escape bij het zijpaneel (`claim`), zodat de volgorde lagen → selectie → verkleinen →
  *    verbergen blijft. */
-export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: {
+export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false, bron }: {
   doel: NodeDoel;
   samenhang?: Samenhang;
   /** De api kent de samenhang (`samenhangBeschikbaar`), en er valt iets te tekenen. */
@@ -42,11 +43,13 @@ export function useBronGraaf({ doel, samenhang, aan, weergave, claim = false }: 
   weergave: Weergave;
   /** Het venster staat in het zijpaneel met een sluitknop: dan pelt het zelf Escape af. */
   claim?: boolean;
+  /** Waar de graaf zijn gegevens haalt; standaard de api (`GraafDataBron`). */
+  bron?: GraafDataBron;
 }) {
   const paneel = usePaneel();
   const [geopend, setGeopend] = useState(weergave === "graaf");
   if (weergave === "graaf" && !geopend) setGeopend(true);
-  const stand = useGraafStand(doel, geopend && aan, weergave === "graaf", samenhang?.extra, samenhang?.graaf);
+  const stand = useGraafStand(doel, geopend && aan, weergave === "graaf", samenhang?.extra, samenhang?.graaf, undefined, bron);
   // Groot is de stand van het paneel (*Vergroten* in de kop), niet van de graaf: er is één weg naar groot.
   const groot = isVergroot(paneel.plek);
   const zetVergroot = paneel.zetVergroot;
@@ -104,7 +107,7 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   // *Groot bekijken* (`TekeningVenster`): de graaf in een venster boven de pagina; zolang dat open is, staat hij niet
   // ook nog in het paneel (één tekening, één stand). Op een pagina is hij al groot: geen knop.
   return (
-    <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf>
+    <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf data-tour="graaf">
       {venster
         ? <TekeningVenster titel={onderwerp} onSluit={() => setVenster(false)} exporteer={{ formaten: ["png"], onDownload: async () => {
             const bediening = (graaf.stand as GraafStand).bediening.current;

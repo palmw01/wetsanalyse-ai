@@ -15,6 +15,7 @@ import { ChatKop } from "@/components/werkplek/ChatKop";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten, RONDLEIDING_VERSIE, START_PARAMETER, startUitUrl } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
+import type { PaneelTab } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { MobieleTopbar, TOPBAR_KNOP } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import { foutTekst, getAccount, getVerbruik, verwijderGesprek, wijzigGesprek, zetRondleiding } from "@/lib/api";
@@ -101,6 +102,8 @@ export function WorkbenchShell({
   const [achtergrondSlot, setAchtergrondSlot] = useState(false);
   const [demoOpenSignaal, setDemoOpenSignaal] = useState(0);
   const [demoSluitSignaal, setDemoSluitSignaal] = useState(0);
+  // De tab van het voorbeeldpaneel die de stap aanwijst (Tekst, Diagram, Graaf).
+  const [demoTab, setDemoTab] = useState<PaneelTab | undefined>(undefined);
   const { data: session } = useSession();
   const isBeheerder = session?.user?.role === "beheerder";
   // De verbruiksstand: voedt de meterregel in de sidebar, de waarschuwingsstrook en de blokkade van
@@ -153,6 +156,7 @@ export function WorkbenchShell({
     setDemoBeslissingen(0);
     setLaatsteBeslissing(null);
     setDemoOpenSignaal(0);
+    setDemoTab(undefined);
     setDemo(maakDemoScene());
   }
 
@@ -464,6 +468,7 @@ export function WorkbenchShell({
             onGewijzigd={() => {}}
             demoOpenSignaal={demoOpenSignaal}
             demoSluitSignaal={demoSluitSignaal}
+            demoTab={demoTab}
             onDemoArtefact={setDemoArtefact}
             onDemoBeslissing={(type) => {
               setDemoBeslissingen((n) => n + 1);
@@ -505,6 +510,7 @@ export function WorkbenchShell({
           laatsteBeslissing={laatsteBeslissing}
           onOpenArtefact={() => setDemoOpenSignaal((n) => n + 1)}
           onSluitArtefact={() => setDemoSluitSignaal((n) => n + 1)}
+          onTab={setDemoTab}
           onKlaar={() => setDemo(null)}
           onAfgehandeld={rondleidingAfgehandeld}
           knopZichtbaar={rondleidingKnop !== false}

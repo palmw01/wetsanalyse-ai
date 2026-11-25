@@ -1,0 +1,1162 @@
+{
+  "bron": "GET /v1/annotatie/samenhang?bron_iri=demo:BWBR0004770:artikel:9:lid:1 op acceptatie, 25 nov 2026, zonder de markeringen: die komen uit de demo-weergave",
+  "knopen": [
+    {
+      "id": "demo:BWBR0004770",
+      "soort": "regeling",
+      "label": "Invorderingswet 1990",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "",
+      "lid": "",
+      "rand": false,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:hoofdstuk:II",
+      "soort": "deel",
+      "label": "Hoofdstuk II",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "",
+      "lid": "",
+      "rand": false,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9",
+      "soort": "artikel",
+      "label": "Artikel 9",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "",
+      "rand": false,
+      "vindplaats": "Artikel 9"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "1",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 1"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "2",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 2"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:3",
+      "soort": "lid",
+      "label": "Lid 3",
+      "tekst": "Een ingevolge artikel 2, tweede lid, onderdeel c, met een belastingaanslag gelijkgestelde beschikking inzake een bestuurlijke boete die gelijktijdig en in verband met de vaststelling van een belastingaanslag als bedoeld in artikel 2, eerste lid, onderdeel m, is opgelegd, is invorderbaar overeenkomstig de bepalingen die gelden voor die belastingaanslag. Een ingevolge artikel 2, tweede lid, onderdeel c, met een belastingaanslag gelijkgestelde beschikking inzake belasting- of revisierente is invorderbaar overeenkomstig de bepalingen die gelden voor de belastingaanslag, bedoeld in artikel 2, eerste lid, onderdeel m, waarop de belasting- of revisierente betrekking heeft.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "3",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 3"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:4",
+      "soort": "lid",
+      "label": "Lid 4",
+      "tekst": "Een uitnodiging tot betaling, alsmede een ingevolge artikel 2, tweede lid, onderdeel c, met een belastingaanslag gelijkgestelde beschikking inzake rente op achterstallen, inzake kosten van ambtelijke werkzaamheden of inzake een bestuurlijke boete als bedoeld in hoofdstuk 9 van de Algemene douanewet, is invorderbaar tien dagen na de dagtekening van het aanslagbiljet.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "4",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 4"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "lid",
+      "label": "Lid 5",
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "5",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 5"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "lid",
+      "label": "Lid 6",
+      "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag als bedoeld in het vijfde lid, die een uit te betalen bedrag behelst, invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt aan het eind van de maand van de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "6",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 6"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "lid",
+      "label": "Lid 7",
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn. De eerste termijn vervalt aan het eind van de eerste maand van het jaar waarover de voorlopige aanslag is vastgesteld en elk van de volgende termijnen telkens een maand later.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "7",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 7"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:8",
+      "soort": "lid",
+      "label": "Lid 8",
+      "tekst": "In afwijking van het tweede lid is terstond invorderbaar een naheffingsaanslag ter zake van de belasting van personenauto’s en motorrijwielen, die is opgelegd aan een ander dan een vergunninghouder als bedoeld in artikel 8 van de Wet op de belasting van personenauto’s en motorrijwielen 1992.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "8",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 8"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:9",
+      "soort": "lid",
+      "label": "Lid 9",
+      "tekst": "In afwijking van het vierde lid is een uitnodiging tot betaling die is vastgesteld overeenkomstig een op een kalendermaand betrekking hebbende, aanvullende aangifte als bedoeld in artikel 167, eerste lid, van het Douanewetboek van de Unie invorderbaar vijftien dagen na de maand waarover de aangifte is gedaan. In afwijking in zoverre van de eerste volzin is de uitnodiging tot betaling ter zake van de aangifte over de maand februari invorderbaar na zestien maart.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "9",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 9"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:10",
+      "soort": "lid",
+      "label": "Lid 10",
+      "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "10",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 10"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:11",
+      "soort": "lid",
+      "label": "Lid 11",
+      "tekst": "In afwijking van het eerste lid is een belastingaanslag die een uit te betalen bedrag behelst niet invorderbaar:",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "11",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 11"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:11:o:a",
+      "soort": "onderdeel",
+      "label": "Onderdeel a.",
+      "tekst": "zolang over de juistheid van het adresgegeven van de belastingschuldige gerede twijfel bestaat of zolang dit gegeven ontbreekt;",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "11",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 11, onderdeel a"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:11:o:b",
+      "soort": "onderdeel",
+      "label": "Onderdeel b.",
+      "tekst": "indien er op het moment dat er na het tijdstip waarop de belastingschuld is ontstaan vijf jaren zijn verstreken:",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "11",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 11, onderdeel b"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:11:o:b:o:1",
+      "soort": "onderdeel",
+      "label": "Onderdeel 1°.",
+      "tekst": "gerede twijfel bestaat over de juistheid van het adresgegeven van de belastingschuldige; of",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "11",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 11, onderdeel b, 1°"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:11:o:b:o:2",
+      "soort": "onderdeel",
+      "label": "Onderdeel 2°.",
+      "tekst": "het adresgegeven van de belastingschuldige ontbreekt.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "11",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 11, onderdeel b, 2°"
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:9:lid:12",
+      "soort": "lid",
+      "label": "Lid 12",
+      "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "9",
+      "lid": "12",
+      "rand": false,
+      "vindplaats": "Artikel 9, lid 12"
+    },
+    {
+      "id": "demo:BWBR0005806:artikel:8",
+      "soort": "extern",
+      "label": "artikel 8 van de Wet op de belasting van personenauto’s en motorrijwielen 1992",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0005806",
+      "artikel": "8",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30g:lid:2:o:b",
+      "soort": "lid",
+      "label": "Onderdeel b.",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30g",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30fc:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30fc",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30f:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30f",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30fb:lid:4",
+      "soort": "lid",
+      "label": "Lid 4",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30fb",
+      "lid": "4",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30g:lid:2:o:a",
+      "soort": "lid",
+      "label": "Onderdeel a.",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30g",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30fb:lid:5",
+      "soort": "lid",
+      "label": "Lid 5",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30fb",
+      "lid": "5",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30h:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30h",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30fb:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30fb",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002320:artikel:30g:lid:2:o:c",
+      "soort": "lid",
+      "label": "Onderdeel c.",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002320",
+      "artikel": "30g",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0023746:hoofdstuk:9",
+      "soort": "extern",
+      "label": "hoofdstuk 9 van de Algemene douanewet",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0023746",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:10:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "10",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:28b:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "28b",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:3a:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "3a",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:24:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "24",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:28:lid:2",
+      "soort": "lid",
+      "label": "Lid 2",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "28",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:artikel:9",
+      "soort": "artikel",
+      "label": "Betalingstermijnen",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "9",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.6",
+      "soort": "artikel",
+      "label": "Verzuim ontvanger bij uitbetaling",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:52:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "52",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:28a:lid:4",
+      "soort": "lid",
+      "label": "Lid 4",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "28a",
+      "lid": "4",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "soort": "artikel",
+      "label": "Kort uitstel particulieren",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "soort": "artikel",
+      "label": "Kort uitstel van betaling voor ondernemers",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+      "soort": "artikel",
+      "label": "Afwijking van de betalingstermijnen in geval van voorlopige aanslagen",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:16",
+      "soort": "artikel",
+      "label": "Artikel 16",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "16",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:24:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "24",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "soort": "artikel",
+      "label": "Uitbetaling voorlopige teruggave in één termijn",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie16%2FCirculaire.divisie16.1",
+      "soort": "artikel",
+      "label": "Voor 1 januari 2011 gelegde derdenbeslagen",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "soort": "artikel",
+      "label": "Afwijking van de betalingstermijnen in geval van voorlopige teruggaven",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:15:lid:1",
+      "soort": "lid",
+      "label": "Lid 1",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "15",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.8",
+      "soort": "artikel",
+      "label": "Voor de invordering minder geschikte dagen",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14%2FCirculaire.divisie14.2%2FCirculaire.divisie14.2.10",
+      "soort": "artikel",
+      "label": "Belasting van personenauto’s en motorrijwielen en belasting zware motorrijtuigen en beslag roerende zaken",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0024096",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0002448",
+      "soort": "extern",
+      "label": "Algemene termijnenwet",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0002448",
+      "artikel": "",
+      "lid": "",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:2:lid:1:o:m",
+      "soort": "lid",
+      "label": "Onderdeel m.",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "2",
+      "lid": "1",
+      "rand": true,
+      "vindplaats": ""
+    },
+    {
+      "id": "demo:BWBR0004770:artikel:2:lid:2:o:c",
+      "soort": "lid",
+      "label": "Onderdeel c.",
+      "tekst": "",
+      "klasse": "",
+      "lifecycle": "",
+      "element_id": "",
+      "bwb_id": "BWBR0004770",
+      "artikel": "2",
+      "lid": "2",
+      "rand": true,
+      "vindplaats": ""
+    }
+  ],
+  "relaties": [
+    {
+      "bron": "demo:BWBR0004770",
+      "doel": "demo:BWBR0004770:hoofdstuk:II",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:hoofdstuk:II",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:1",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:2",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:3",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:4",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:8",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:9",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:10",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:11",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:11",
+      "doel": "demo:BWBR0004770:artikel:9:lid:11:o:a",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:11",
+      "doel": "demo:BWBR0004770:artikel:9:lid:11:o:b",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:11:o:b",
+      "doel": "demo:BWBR0004770:artikel:9:lid:11:o:b:o:1",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:11:o:b",
+      "doel": "demo:BWBR0004770:artikel:9:lid:11:o:b:o:2",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9:lid:12",
+      "soort": "bevat",
+      "groep": "structuur",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:8",
+      "doel": "demo:BWBR0005806:artikel:8",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 8 van de Wet op de belasting van personenauto’s en motorrijwielen 1992"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30g:lid:2:o:b",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30fc:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30f:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30fb:lid:4",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30g:lid:2:o:a",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30fb:lid:5",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30h:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30fb:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0002320:artikel:30g:lid:2:o:c",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 9 van de Invorderingswet 1990"
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:4",
+      "doel": "demo:BWBR0023746:hoofdstuk:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "hoofdstuk 9 van de Algemene douanewet"
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:10:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:28b:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:3a:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:24:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:28:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:artikel:9",
+      "doel": "demo:BWBR0004770:artikel:9",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:3a:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9:lid:1",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.6",
+      "doel": "demo:BWBR0004770:artikel:9:lid:1",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:52:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:10",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:28a:lid:4",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:24:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:5",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:16",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:24:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie16%2FCirculaire.divisie16.1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "doel": "demo:BWBR0004770:artikel:9:lid:6",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:24:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:24:lid:2",
+      "doel": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "doel": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "doel": "demo:BWBR0004770:artikel:9:lid:7",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:15:lid:1",
+      "doel": "demo:BWBR0004770:artikel:9:lid:8",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.8",
+      "doel": "demo:BWBR0004770:artikel:9:lid:8",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14%2FCirculaire.divisie14.2%2FCirculaire.divisie14.2.10",
+      "doel": "demo:BWBR0004770:artikel:9:lid:8",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": ""
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:10",
+      "doel": "demo:BWBR0002448",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "Algemene termijnenwet"
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:3",
+      "doel": "demo:BWBR0004770:artikel:2:lid:1:o:m",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 2, eerste lid, onderdeel m"
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:3",
+      "doel": "demo:BWBR0004770:artikel:2:lid:2:o:c",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 2, tweede lid, onderdeel c"
+    },
+    {
+      "bron": "demo:BWBR0004770:artikel:9:lid:4",
+      "doel": "demo:BWBR0004770:artikel:2:lid:2:o:c",
+      "soort": "verwijst_naar",
+      "groep": "verwijzingen",
+      "anker_tekst": "artikel 2, tweede lid, onderdeel c"
+    }
+  ]
+}

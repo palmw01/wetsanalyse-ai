@@ -267,15 +267,19 @@ export interface NodeOpslag {
   maakImpliciet?(body: { doel: { bron_iri: string }; snapshot_id: string; label: string; toelichting: string;
     vindplaats?: string; zelfde_als?: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
   wisImpliciet?(implicietId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
-  /** De 2c-diagrammen van een bepaling (de tab *Diagram*). Weglaten (de rondleiding, een oude versie): geen tab. */
+  /** De 2c-diagrammen van een bepaling (de tab *Diagram*). Weglaten (een oude versie): geen tab. De rondleiding levert
+   *  ze uit het geheugen. */
   diagrammen?(bronIri: string): Promise<DiagramSet>;
+  /** Waar de graaf van de bepaling zijn gegevens haalt, als dat niet de api is (de rondleiding: een uitsnede in het
+   *  geheugen). Een opslag die niet `levend` is en geen graaf meegeeft, heeft geen tab Graaf. */
+  graaf?: import("./graaf/databron").GraafDataBron;
   /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
-   *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
+   *  paneel geen Historie, en een Graaf-tab alleen met een eigen `graaf`. */
   levend: boolean;
 }
 
 /** Een oude versie van een annotatie (de versiekiezer): de weergave uit de opname, en elke wijziging geweigerd. Zoals de
- *  opslag van de rondleiding `levend: false`: er hoort geen kennisgraaf en geen historie bij. */
+ *  opslag van de rondleiding `levend: false`, en zonder eigen graafbron: er hoort geen kennisgraaf en geen historie bij. */
 export function momentopnameOpslag(weergave: NodeWeergave): NodeOpslag {
   const weiger = async (): Promise<never> => { throw new Error("Een oude versie is alleen te lezen."); };
   return { weergave: async () => weergave, beslis: weiger, beslisLaag: weiger, markeer: weiger, wis: weiger, status: weiger, verwijder: weiger,

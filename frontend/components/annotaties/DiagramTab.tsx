@@ -129,7 +129,7 @@ function DiagramKaart({ data, view, keuze, onKies, bediening }: {
 
   return (
     <Sectie niveau={3} titel={<>Rond {d.klasse.toLowerCase()} <span className="font-normal text-muted">“{tekst}”</span></>}
-      className="rounded-kaart border border-line bg-surface/40 p-3" data-diagram-kaart={d.centraal}>
+      className="rounded-kaart border border-line bg-surface/40 p-3" data-diagram-kaart={d.centraal} data-tour="diagram">
       <div className="rounded-knop border border-line bg-paper p-2">
         <Diagram2c data={data} label={`Diagram rond de ${d.klasse.toLowerCase()} “${tekst}”. Kies een knoop of een relatie om haar te bewerken.`}
           gekozenKnoop={keuze ? knoopSleutel(keuze.knoop) : undefined} gekozenLijn={keuze?.lijn}

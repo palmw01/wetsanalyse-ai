@@ -2383,13 +2383,23 @@ leest als "hij laadt", niet als "log eerst in".
   een handeling vraagt (`interactie`) laat het aangewezen element bedienen en wacht erop – geen timer
   die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
   Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`
-  loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` is een v2-weergave met letterlijke
-  wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
-  Invorderingswet 1990 met de vier markeringen van de echte annotatie op acceptatie (Rechtsfeit over de
-  hele zin, dus overlappend zoals bij echt werk), en één bewuste afwijking: Rechtsfeit staat op *Keuze voor
-  jou*, zodat de badge-stap iets aanwijst. Werkgebieden en begrippen hebben (nog) geen eigen stap; de stap *Je werk terugvinden* en het slot noemen de zijbalk in de volgorde Werkgebieden, Annotaties, Begrippen (de volgorde van de navigatie, besluit gebruiker 21 okt 2026). Hij staat in **hetzelfde
+  loopt hem door (alle twaalf stappen op 1440, 768 en 390 px; `RONDLEIDING_SCREENSHOT=<map>` legt ze vast). **Versie 4
+  (25 nov 2026) gaat alleen over annoteren**, in twaalf stappen: oriëntatie (Lex, gesprek en zijbalk met alleen
+  *Annotaties*), opdracht (vragen om een annotatie, Lex werkt), beoordelen (openen, wettekst, beoordelen, jij beslist,
+  zelf markeren), samenhang (*Diagram* en *Graaf*, vóór het afronden) en afronden. Werkgebieden, begrippen en
+  afleidingsregels krijgen later een eigen deel; per stap hoogstens twee zinnen en een *waarom* (`rondleiding.test.ts`).
+  Een stap kiest de tab van het paneel (`Stap.tab`, `paneelTab`): de motor geeft hem via `WorkbenchShell` en
+  `WerkplekClient` als `gevraagdeTab` aan `NodeAnnotatiePaneel`. De voorbeeldscène in `lib/rondleidingDemo.ts` is een
+  v2-weergave met letterlijke wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
+  Invorderingswet 1990 met de markeringen, relaties en impliciete partijen van de annotatie op acceptatie (25 nov 2026,
+  zonder wat daar verworpen is). Twee bewuste afwijkingen: de zes voorstellen van Lex staan open, en de Rechtsbetrekking
+  staat op *Keuze voor jou* met Rechtsfeit als alternatief. Het diagram komt uit `rondleidingDemo.diagram.json` (de
+  plaatsing van de api, met de stand van de weergave van nu), de graaf uit een vaste uitsnede rond artikel 9
+  (`rondleidingDemo.graaf.json`: structuur en verwijzingen, iri's onder `demo:`) plus de markeringen en relaties van de
+  weergave. Hij staat in **hetzelfde
   `NodeAnnotatiePaneel` als echt werk**, via de prop `opslag` (`NodeOpslag` in `lib/annotatieNode.ts`;
-  standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt en niets
+  standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt, `diagrammen` levert en een eigen
+  graafbron (`NodeOpslag.graaf`, een `GraafDataBron` uit `lib/graaf/databron.ts`; standaard `apiGraafBron`) en niets
   verstuurt. Zo kan de rondleiding niet meer achterlopen op het paneel; een eigen documentvorm in een
   eigen paneel deed dat wel. Het type
   `ThreadItem` staat daarom in `lib/threadItem.ts`, zodat `lib/` geen component hoeft te importeren.

@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
+  maskRechthoeken, moetStarten, paneelTab, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
-  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
-  pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
+  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, demoDiagrammen, demoSamenhang, maakDemoOpslag, maakDemoScene,
+  maakDemoWeergave, pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
 } from "./rondleidingDemo";
 import { vindPositie } from "./selectie";
 import { BESLIST_LIFECYCLES } from "./annotatie";
@@ -24,7 +24,7 @@ describe("de stappenlijst", () => {
   });
 
   it("loopt van oriëntatie naar afronding zonder terug te springen", () => {
-    const orde = ["orientatie", "opdracht", "beoordelen", "afronding"];
+    const orde = ["orientatie", "opdracht", "beoordelen", "samenhang", "afronding"];
     const posities = STAPPEN.map((s) => orde.indexOf(s.fase));
     expect(posities).toEqual([...posities].sort((a, b) => a - b));
   });
@@ -35,6 +35,39 @@ describe("de stappenlijst", () => {
     // nodig – anders wijst de rondleiding naar een paneel dat nog dicht is.
     expect(STAPPEN[eersteMetArtefact - 1].anker).toBe("chip");
     expect(STAPPEN[eersteMetArtefact - 1].artefactOpen).toBeUndefined();
+  });
+
+  it("heeft de twaalf stappen van versie 4, in de volgorde van het werk", () => {
+    expect(RONDLEIDING_VERSIE).toBe(4);
+    expect(STAPPEN.map((s) => s.titel)).toEqual([
+      "Dit is Lex", "Gesprek en zijbalk", "Vraag om een annotatie", "Lex werkt", "De annotatie openen",
+      "Wettekst en markeringen", "Beoordelen", "Jij beslist", "Zelf markeren", "Diagram", "Graaf", "Afronden en exporteren",
+    ]);
+    // De stappen over het antwoord met bronnen en over brongetrouwheid vervielen bewust.
+    expect(STAPPEN.some((s) => ["bronnen", "grounding"].includes(s.anker))).toBe(false);
+  });
+
+  it("gaat alleen over annoteren: geen werkgebieden, begrippen of afleidingsregels", () => {
+    for (const s of STAPPEN) {
+      expect(`${s.tekst} ${s.waarom ?? ""}`, s.id).not.toMatch(/werkgebied|begrip|afleidingsregel/i);
+    }
+  });
+
+  it("houdt elke stap kort: hoogstens twee zinnen, en altijd een waarom", () => {
+    // "Waarom?" is de naam van de uitklap op de kaart, geen zin.
+    const zinnen = (t: string) => (t.replaceAll("Waarom?", "Waarom").match(/[.?!][”"]?(\s|$)/g) ?? []).length;
+    for (const s of STAPPEN) {
+      expect(zinnen(s.tekst), `${s.id}: ${s.tekst}`).toBeLessThanOrEqual(2);
+      expect(s.waarom, s.id).toBeTruthy();
+    }
+  });
+
+  it("toont de samenhang vóór het afronden, op de tabs Diagram en Graaf", () => {
+    const i = (id: string) => STAPPEN.findIndex((s) => s.id === id);
+    expect(i("diagram")).toBeLessThan(i("afronden"));
+    expect(STAPPEN[i("diagram")].tab).toBe("diagram");
+    expect(STAPPEN[i("graaf")].tab).toBe("graaf");
+    expect(STAPPEN[i("diagram")].waarom).toMatch(/afrond/i);
   });
 
   it("laat elke stap iets aanwijzen", () => {
@@ -129,25 +162,48 @@ describe("de voorbeeldscène", () => {
   });
 
   it("is de annotatie van artikel 9 lid 1 op acceptatie, met één gele kaart", () => {
-    // Alleen lid 1: een beurt annoteert één lid. De markeringen overlappen zoals bij echt werk – het
-    // Rechtsfeit is de hele zin, de andere drie liggen erbinnen.
+    // Alleen lid 1: een beurt annoteert één lid. De markeringen overlappen zoals bij echt werk: de Rechtsbetrekking is
+    // de hele zin, de andere liggen erbinnen.
     const view = maakDemoWeergave();
     expect(view.segmenten.map((s) => s.nummer)).toEqual(["1"]);
     expect(view.elementen.map((e) => [e.klasse, e.tekst])).toEqual([
-      ["Rechtsfeit", DEMO_LEDEN[0].tekst],
+      ["Rechtsbetrekking", DEMO_LEDEN[0].tekst],
       ["Rechtsobject", "Een belastingaanslag"],
       ["Tijdsaanduiding", "zes weken na de dagtekening van het aanslagbiljet"],
+      ["Operator", "na"],
+      ["Tijdsaanduiding", "de dagtekening van het aanslagbiljet"],
       ["Rechtsobject", "het aanslagbiljet"],
+      ["Afleidingsregel", "invorderbaar zes weken na de dagtekening van het aanslagbiljet"],
+      ["Tijdsaanduiding", "zes weken"],
+      ["Variabele en variabelewaarde", "invorderbaar"],
     ]);
-    expect(view.elementen.filter((e) => e.aandacht === "geel").map((e) => e.klasse)).toEqual(["Rechtsfeit"]);
-    expect(view.elementen.every((e) => (e.alternatieven ?? []).length > 0)).toBe(true);
+    // Dezelfde plekken als de ankers op acceptatie (codepoints): gerekend, en toch gelijk.
+    expect(view.elementen.map((e) => [e.ankers[0].start, e.ankers[0].eind])).toEqual([
+      [0, 87], [0, 20], [37, 86], [47, 49], [50, 86], [69, 86], [24, 86], [37, 46], [24, 36],
+    ]);
+    const geel = view.elementen.filter((e) => e.aandacht === "geel");
+    expect(geel.map((e) => e.klasse)).toEqual(["Rechtsbetrekking"]);
+    expect(geel[0].alternatieven?.map((a) => a.klasse)).toEqual(["Rechtsfeit"]);
   });
 
-  it("begint met alles nog te beoordelen", () => {
-    const { doc } = alsPaneel();
-    expect(doc.elementen.length).toBe(4);
-    expect(doc.elementen.every((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle))).toBe(true);
+  it("laat de voorstellen van Lex openstaan en wat de jurist zelf markeerde beoordeeld", () => {
+    const { doc, view } = alsPaneel();
+    const vanLex = view.elementen.filter((e) => e.herkomst === "agent");
+    expect(vanLex).toHaveLength(6);
+    expect(vanLex.every((e) => e.lifecycle === "voorgesteld" && e.geproduceerd_door)).toBe(true);
+    expect(view.elementen.filter((e) => e.herkomst === "mens").every((e) => e.lifecycle === "human_approved")).toBe(true);
+    expect(doc.elementen.filter((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle))).toHaveLength(6);
     expect(doc.status).toBe("in_review");
+  });
+
+  it("draagt de relaties en partijen van acceptatie, met beide eindpunten in de weergave", () => {
+    const view = maakDemoWeergave();
+    expect(view.relaties?.map((r) => r.type).sort()).toEqual(
+      ["invoer", "invoer", "kenmerk", "operator_in", "plichthebbende", "rechthebbende", "tijd", "uitvoer", "voorwerp"].sort());
+    for (const r of view.relaties ?? []) {
+      expect(r.van.bestaat && r.naar.bestaat, r.id).toBe(true);
+    }
+    expect(view.impliciet?.map((p) => p.label)).toEqual(["de belastingschuldige", "de ontvanger"]);
   });
 
   it("toont de aandacht zoals de keten haar zet: geen badge en geel, nooit rood", () => {
@@ -156,8 +212,8 @@ describe("de voorbeeldscène", () => {
   });
 
   it("vat de voorstellen samen zoals graph-qa dat doet", () => {
-    // Dezelfde tellingen als `agent/nodes/annotatie_samenvatting.py`, uit de demo zelf.
-    const els = maakDemoWeergave().elementen;
+    // Dezelfde tellingen als `agent/nodes/annotatie_samenvatting.py`, over wat Lex voorstelde.
+    const els = maakDemoWeergave().elementen.filter((e) => e.herkomst === "agent");
     const door = (e: (typeof els)[number]) => e.trace?.beslissing?.door;
     const keuze = els.filter((e) => e.aandacht === "geel" || door(e) === "terugval").length;
     const vast = els.filter((e) => door(e) === "regel").length;
@@ -180,18 +236,12 @@ describe("de voorbeeldscène", () => {
     expect(nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron)).toEqual([]);
   });
 
-  it("biedt bij een termijn een andere grens aan", () => {
-    const { doc } = alsPaneel();
-    const termijn = doc.elementen.find((e) => e.tekst.startsWith("zes weken"))!;
-    expect(termijn.grensopties?.map((o) => o.tekst)).toEqual(["zes weken"]);
-  });
-
   it("draagt in elk spoor alleen codes die de keten kent", () => {
     const yaml = readFileSync(
       new URL("../../tools/graph-qa/agent/jas_pipeline/verklaringen.yaml", import.meta.url).pathname,
       "utf-8",
     );
-    for (const el of maakDemoWeergave().elementen) {
+    for (const el of maakDemoWeergave().elementen.filter((e) => e.trace)) {
       const t = el.trace!;
       const codes = [
         ...(t.kandidaat?.bewijs ?? []).map((b) => b.code),
@@ -245,6 +295,56 @@ describe("de voorbeeldscène", () => {
     // Het origineel blijft ongemoeid, en een volgende start begint weer bij nul.
     expect(eerste.elementen[0].lifecycle).toBe("voorgesteld");
     expect(maakDemoWeergave().elementen[0].lifecycle).toBe("voorgesteld");
+  });
+});
+
+describe("het diagram en de graaf van het voorbeeld", () => {
+  it("tekent het diagram rond de rechtsbetrekking, met alleen knopen en lijnen uit de weergave", () => {
+    const view = maakDemoWeergave();
+    const [d] = demoDiagrammen(view).diagrammen;
+    const centraal = view.elementen.find((e) => e.id === d.diagram.centraal)!;
+    expect(centraal.klasse).toBe("Rechtsbetrekking");
+    const ids = new Set([...view.elementen.map((e) => e.id), ...(view.impliciet ?? []).map((p) => p.id)]);
+    for (const g of d.plaatsing.knopen) expect(ids.has(g.knoop.id), g.knoop.id).toBe(true);
+    const relaties = new Set((view.relaties ?? []).map((r) => r.id));
+    for (const l of d.lijnen) expect(relaties.has(l.relatie_id), l.relatie_id).toBe(true);
+    expect(d.lijnen).toHaveLength(view.relaties!.length);
+  });
+
+  it("kleurt een beslissing mee in het diagram", () => {
+    const view = maakDemoWeergave();
+    const id = view.elementen[0].id;
+    const na = pasDemoBeslissingToe(view, id, { type: "approve" });
+    const knoop = (v: typeof view) => demoDiagrammen(v).diagrammen[0].diagram.knopen.find((k) => k.id === id)!;
+    expect(knoop(view).lifecycle).toBe("voorgesteld");
+    expect(knoop(na).lifecycle).toBe("human_approved");
+  });
+
+  it("is een vaste uitsnede rond artikel 9 met de markeringen en relaties van nu", () => {
+    const view = maakDemoWeergave();
+    const s = demoSamenhang(view);
+    const ids = new Set(s.knopen.map((k) => k.id));
+    expect(ids.has(view.doel.bron_iri)).toBe(true);
+    for (const e of view.elementen) expect(ids.has(`element:${e.id}`), e.tekst).toBe(true);
+    expect(s.relaties.filter((r) => r.soort === "jas_relatie")).toHaveLength(view.relaties!.length);
+    // Elke relatie wijst naar een knoop die er is: anders valt ze in `bouwModel` stil weg.
+    for (const r of s.relaties) expect(ids.has(r.bron) && ids.has(r.doel), `${r.bron} → ${r.doel}`).toBe(true);
+    expect(s.relaties.some((r) => r.soort === "verwijst_naar")).toBe(true);
+    // De andere leden dragen hun letterlijke tekst, het voorbeeld-label staat op de regeling, en niets wijst de graaf aan.
+    expect(s.knopen.filter((k) => k.soort === "lid" && !k.rand && k.tekst).length).toBeGreaterThan(5);
+    expect(s.knopen.find((k) => k.soort === "regeling")!.label).toContain("VOORBEELD");
+    expect(JSON.stringify(s)).not.toContain("urn:");
+  });
+
+  it("volgt een verworpen relatie niet in de graaf, en zegt het als iets buiten de uitsnede valt", async () => {
+    const opslag = maakDemoOpslag();
+    const bron = opslag.graaf!;
+    await expect(bron.samenhang({ bron_iri: "demo:BWBR0004770:artikel:10" })).rejects.toThrow(/alleen artikel 9/);
+    const { resultaten, fouten } = await bron.samenhangen([DEMO_DOEL, { bron_iri: "demo:BWBR0002320" }]);
+    expect(resultaten).toHaveLength(1);
+    expect(fouten.map((f) => f.bron_iri)).toEqual(["demo:BWBR0002320"]);
+    const lid2 = await bron.bepaling("demo:BWBR0004770:artikel:9:lid:2");
+    expect(lid2.segmenten[0].tekst).toMatch(/^In afwijking van het eerste lid/);
   });
 });
 
@@ -431,6 +531,17 @@ describe("waar de bubbel komt te staan", () => {
     expect(binnenBeeld(p, BUBBEL, TELEFOON)).toBe(true);
   });
 
+  it("zet de bubbel op een smal scherm onderaan bij een element dat het scherm vult", () => {
+    // De graaf op een telefoon: in het midden dekte de bubbel juist de kaart af.
+    const graaf: Vak = { top: 200, left: 0, breedte: 390, hoogte: 640 };
+    const p = plaatsBubbel(graaf, BUBBEL, TELEFOON);
+    expect(p.modus).toBe("onder");
+    expect(binnenBeeld(p, BUBBEL, TELEFOON)).toBe(true);
+    expect(p.modus !== "midden" && p.top + BUBBEL.hoogte).toBe(TELEFOON.hoogte - BUBBEL_MARGE);
+    // Op een breed scherm blijft het midden: daar staat het gesprek of de zijbalk ernaast.
+    expect(plaatsBubbel({ top: 0, left: 0, breedte: 1440, hoogte: 900 }, BUBBEL, SCHERM).modus).toBe("midden");
+  });
+
   it("herkent een element dat het scherm domineert", () => {
     // Op de hoogte alleen (een smalle kolom over de volle hoogte, zoals de sidebar) …
     expect(domineert({ top: 0, left: 0, breedte: 200, hoogte: 700 }, SCHERM)).toBe(true);
@@ -572,6 +683,14 @@ describe("het artefactpaneel volgt de stap", () => {
     expect(artefactActie(false, undefined)).toBeNull();
   });
 
+  it("zet de tab van het paneel bij de stap, ook bij teruglopen", () => {
+    expect(paneelTab(STAPPEN.find((s) => s.id === "diagram"))).toBe("diagram");
+    expect(paneelTab(STAPPEN.find((s) => s.id === "graaf"))).toBe("graaf");
+    expect(paneelTab(STAPPEN.find((s) => s.id === "zelf-markeren"))).toBe("tekst");
+    expect(paneelTab(STAPPEN.find((s) => s.id === "afronden"))).toBe("tekst");
+    expect(paneelTab(zonderPaneel)).toBeUndefined();
+  });
+
   it("regelt de overgang rond de openen-stap in beide richtingen", () => {
     // Stap 7 gaat over het openen zelf en heeft het paneel dus nog niet nodig; de stap erna wel.
     const i = STAPPEN.findIndex((s) => s.id === "artefact-openen");
@@ -604,9 +723,9 @@ describe("het gat in de dimlaag", () => {
     // null zodra de bubbel gecentreerd staat. Dan verdween het gat terwijl het element er gewoon
     // was, en kon je de knop niet meer indrukken.
     const bubbelStaatGecentreerd = plaatsBubbel(
-      { top: 0, left: 0, breedte: 1000, hoogte: 700 },
+      { top: 0, left: 0, breedte: 1280, hoogte: 700 },
       { breedte: 340, hoogte: 220 },
-      { breedte: 1000, hoogte: 800 },
+      { breedte: 1280, hoogte: 800 },
     );
     expect(bubbelStaatGecentreerd.modus).toBe("midden");
     // En tóch is de knop bereikbaar:

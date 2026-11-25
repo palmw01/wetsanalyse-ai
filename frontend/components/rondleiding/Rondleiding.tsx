@@ -7,8 +7,8 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { BeslissingType } from "@/lib/types";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  artefactActie, domineert, heeftOmvang, hervatIndex, indexVan, leesStand, RONDLEIDING_VERSIE,
-  schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type Stap,
+  artefactActie, domineert, paneelTab, heeftOmvang, hervatIndex, indexVan, leesStand, RONDLEIDING_VERSIE,
+  schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type PaneelTabStap, type Stap,
 } from "@/lib/rondleiding";
 import { BREED } from "@/lib/useBreedScherm";
 import { knopKlasse } from "@/components/ui/Button";
@@ -48,6 +48,8 @@ interface Props {
   /** Het voorbeeldartefact sluiten. Nodig bij teruglopen: de stappen vóór de review wijzen naar de
    *  thread, en met het paneel ervoor is daar niets van te zien. */
   onSluitArtefact: () => void;
+  /** De tab die het voorbeeldpaneel bij deze stap toont (Tekst, Diagram of Graaf); `undefined` zonder paneel. */
+  onTab?: (tab: PaneelTabStap | undefined) => void;
   /** De rondleiding is voorbij: demo opruimen en de gewone werkplek terugzetten. */
   onKlaar: () => void;
   /** De gebruiker heeft hem afgehandeld, door afronden of wegklikken: hij biedt zich niet meer vanzelf aan. */
@@ -67,7 +69,7 @@ interface Props {
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
 export function Rondleiding({
-  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, onAfgehandeld, knopZichtbaar, onKnop,
+  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onTab, onKlaar, onAfgehandeld, knopZichtbaar, onKnop,
   beslissingen, laatsteBeslissing, onAchtergrondSlot,
 }: Props) {
   const stappen = zichtbareStappen(isBeheerder);
@@ -248,10 +250,11 @@ export function Rondleiding({
       const actie = artefactActie(artefactOpen, doelStap);
       if (actie === "openen") onOpenArtefact();
       else if (actie === "sluiten") onSluitArtefact();
+      onTab?.(paneelTab(doelStap));
       setIndex(Math.max(0, nieuw));
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: doelStap?.id });
     },
-    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact, sluit],
+    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact, onTab, sluit],
   );
 
   // De stap "De annotatie openen" vraagt de gebruiker de kaart zelf aan te klikken. Gaat het paneel
@@ -353,14 +356,12 @@ export function Rondleiding({
         <div className="p-6">
           <p className="font-display text-lg font-semibold text-lint">Dat is de werkstroom</p>
           <p className="mt-3 text-sm leading-6 text-ink">
-            Vraag of opdracht typen → Lex haalt de bepaling op en stelt markeringen voor → jij
-            beoordeelt → afronden en exporteren.
+            Opdracht typen → Lex haalt de bepaling op en stelt markeringen voor → jij beoordeelt → de
+            samenhang bekijken → afronden en exporteren.
           </p>
           <p className="mt-3 text-meta leading-5 text-muted">
-            Je werk vind je terug in de zijbalk: <span className="font-medium text-ink">Werkgebieden</span>,{" "}
-            <span className="font-medium text-ink">Annotaties</span> en{" "}
-            <span className="font-medium text-ink">Begrippen</span>. Deze rondleiding start je opnieuw via je
-            naam linksonder.
+            Je annotaties vind je terug in de zijbalk onder <span className="font-medium text-ink">Annotaties</span>.
+            Deze rondleiding start je opnieuw via je naam linksonder.
             {isBeheerder && (
               <> Daar vind je als beheerder ook <span className="font-medium text-ink">Beheer</span>,
               voor de modellen en de gebruikers.</>

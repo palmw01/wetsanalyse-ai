@@ -47,8 +47,8 @@ import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
-/** Tekst | Graaf | Diagram: de graaf alleen met een kennisgraaf, het diagram (deelactiviteit 2c) alleen met een opslag
- *  die het kent (niet in de rondleiding of bij een oude versie). */
+/** Tekst | Graaf | Diagram: de graaf alleen met een kennisgraaf (of de eigen graafbron van een opslag, zoals in de
+ *  rondleiding), het diagram (deelactiviteit 2c) alleen met een opslag die het kent (niet bij een oude versie). */
 export type PaneelTab = Weergave | "diagram";
 
 /** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
@@ -60,7 +60,7 @@ export type PaneelTab = Weergave | "diagram";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist, gevraagdeTab }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** De laatste laag van Escape: het paneel verbergen zonder de tab te sluiten (het bronvenster, PR 3b). */
   onVerberg?: () => void;
@@ -82,29 +82,43 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   opslag?: NodeOpslag;
   /** Na elke geslaagde beslissing op een kaart, met het soort beslissing. */
   onBeslist?: (type: BeslissingInvoer["type"]) => void;
+  /** De tab die van buiten gevraagd wordt (de rondleiding wijst per stap Tekst, Diagram of Graaf aan). Een nieuwe waarde
+   *  kiest die tab; daarna kiest de gebruiker weer zelf. */
+  gevraagdeTab?: PaneelTab;
 }) {
   // De versiekiezer: `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die het paneel alleen-lezend
   // toont. De opname komt binnen via dezelfde opslag-haak als de rondleiding (`momentopnameOpslag`).
   const [opname, setOpname] = useState<ArtefactVersie | null | undefined>(doel.versie ? undefined : null);
   const opslag = useMemo(() => (opname ? momentopnameOpslag(opname.inhoud.weergave as NodeWeergave) : basisOpslag),
     [opname, basisOpslag]);
-  const [samenhang, setSamenhang] = useState(false);
-  const [tab, setTab] = useState<PaneelTab>(beginTab);
+  const [apiSamenhang, setApiSamenhang] = useState(false);
+  const [tab, setTab] = useState<PaneelTab>(gevraagdeTab ?? beginTab);
   useEffect(() => {
-    if (basisOpslag.levend) void samenhangBeschikbaar().then(setSamenhang);
+    if (basisOpslag.levend && !basisOpslag.graaf) void samenhangBeschikbaar().then(setApiSamenhang);
   }, [basisOpslag]);
+  // Een eigen graafbron (de rondleiding) is er altijd; de api zegt zelf of ze de samenhang kent.
+  const samenhang = !!basisOpslag.graaf || apiSamenhang;
   const [view, setView] = useState<NodeWeergave>();
   // De graaf van het venster (`useBronGraaf`): één *Vergroten*, en Escape laag voor laag.
   const bronGraaf = useBronGraaf({ doel, samenhang: { extra: extraDoelen ?? [], graaf: graaf ?? {} },
-    aan: samenhang && !!view, weergave: tab === "graaf" ? "graaf" : "tekst", claim: !!onSluit });
+    aan: samenhang && !!view, weergave: tab === "graaf" ? "graaf" : "tekst", claim: !!onSluit, bron: basisOpslag.graaf });
   // Afronden vraagt eerst de samenhang (deelactiviteit 2c), één keer per paneel: wie de tab *Diagram* al bekeek, rondt
   // meteen af.
-  const [diagramGezien, setDiagramGezien] = useState(beginTab === "diagram");
+  const [diagramGezien, setDiagramGezien] = useState((gevraagdeTab ?? beginTab) === "diagram");
   const [afrondVraag, setAfrondVraag] = useState(false);
   const kiesTab = useCallback((t: PaneelTab) => {
     setTab(t);
     if (t === "diagram") setDiagramGezien(true);
   }, []);
+  // Een gevraagde tab volgt de vraag, tijdens het renderen (geen effect): zo staat de tab er meteen bij de stap.
+  const [vorigeVraag, setVorigeVraag] = useState(gevraagdeTab);
+  if (gevraagdeTab !== vorigeVraag) {
+    setVorigeVraag(gevraagdeTab);
+    if (gevraagdeTab) {
+      setTab(gevraagdeTab);
+      if (gevraagdeTab === "diagram") setDiagramGezien(true);
+    }
+  }
   const diagramMogelijk = !!view && !opname && !!opslag.diagrammen;
   const graafStand = bronGraaf.stand;
   const [laadFout, setLaadFout] = useState("");
