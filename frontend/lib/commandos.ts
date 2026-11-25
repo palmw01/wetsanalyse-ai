@@ -1,4 +1,5 @@
 import { actieveConnectors, schakelbaar, type ConnectorStand } from "./connectorsMenu";
+import { PLUGINS } from "./plugins";
 import type { Suggestie } from "./vraagLex";
 
 /** `/commando's` in het invoerveld van de werkplek.
@@ -10,6 +11,9 @@ import type { Suggestie } from "./vraagLex";
  *    (de suggesties die de werkplek nu toont).
  *  - **client**: een handeling in de werkplek zelf, zonder beurt en dus zonder tokens: een nieuw gesprek, een bron aan of
  *    uit, de lijst met commando's.
+ *  - **plugin**: een plugin naast de wetsanalyse (`lib/plugins.ts`), met tekst erachter: `/contenttoets <tekst>`. Enter op de
+ *    regel vult het commando aan; daarna sluit het menu en gaat de hele tekst als vraag naar Lex, die het commando zonder
+ *    model herkent (graph-qa `agent/contenttoets.py`).
  *
  *  **De catalogus (ADR-014).** Wat Lex kan, staat niet hier: een suggestiecommando wijst naar een `actie` uit graph-qa
  *  (`ACTIE_TAAK` en de andere actielijsten in `agent/models.py`), of naar het annotatiedoel. Dat is een ingang van een
@@ -24,7 +28,12 @@ export type ClientHandeling = "nieuw" | "bron" | "context" | "help";
 
 export type Commando =
   | { soort: "suggestie"; naam: string; hulp: string; suggestie: Suggestie }
-  | { soort: "client"; naam: string; hulp: string; handeling: ClientHandeling; argument?: "connector" };
+  | { soort: "client"; naam: string; hulp: string; handeling: ClientHandeling; argument?: "connector" }
+  | { soort: "plugin"; naam: string; hulp: string; argument: "tekst" };
+
+/** De commando's van de plugins: na die van de context, vóór de clientcommando's. */
+export const PLUGIN_COMMANDOS: Extract<Commando, { soort: "plugin" }>[] =
+  PLUGINS.map((p) => ({ soort: "plugin", naam: p.commando, hulp: p.hulp, argument: "tekst" }));
 
 /** De commando's die geen suggestie zijn. De volgorde is die van het menu, na de commando's van de context. */
 export const CLIENT_COMMANDOS: Extract<Commando, { soort: "client" }>[] = [
@@ -56,6 +65,11 @@ export function beschikbaar(stand: Stand): Commando[] {
     if (!s.commando || gezien.has(s.commando.naam)) continue;
     gezien.add(s.commando.naam);
     uit.push({ soort: "suggestie", naam: s.commando.naam, hulp: s.commando.hulp, suggestie: s });
+  }
+  for (const c of PLUGIN_COMMANDOS) {
+    if (gezien.has(c.naam)) continue;
+    gezien.add(c.naam);
+    uit.push(c);
   }
   for (const c of CLIENT_COMMANDOS) {
     if (gezien.has(c.naam)) continue;
@@ -97,7 +111,7 @@ export type Uitvoer =
 
 /** Waarom een commando nu niet kan, of `undefined`. */
 function uitReden(c: Commando, stand: Stand): string | undefined {
-  if (c.soort === "suggestie" && !c.suggestie.invullen) {
+  if ((c.soort === "suggestie" && !c.suggestie.invullen) || c.soort === "plugin") {
     if (stand.geblokkeerd) return "je tokenbudget is op";
     if (stand.bezig) return "Lex is nog bezig";
   }
@@ -106,7 +120,7 @@ function uitReden(c: Commando, stand: Stand): string | undefined {
 
 function regelVan(c: Commando, stand: Stand): Regel {
   const uit = uitReden(c, stand);
-  const vraagtArgument = c.soort === "client" && !!c.argument;
+  const vraagtArgument = (c.soort === "client" && !!c.argument) || c.soort === "plugin";
   return {
     sleutel: c.naam,
     label: `/${c.naam}`,
@@ -116,7 +130,8 @@ function regelVan(c: Commando, stand: Stand): Regel {
     // Een commando dat een argument vraagt, voert Enter niet zonder uit: dan vult hij aan.
     uitvoer: uit || vraagtArgument ? null
       : c.soort === "suggestie" ? { soort: "suggestie", suggestie: c.suggestie }
-      : { soort: "client", handeling: c.handeling },
+      : c.soort === "client" ? { soort: "client", handeling: c.handeling }
+      : null,
   };
 }
 
