@@ -833,7 +833,8 @@ meting)
 3. B7, met B1, als de skill toch wordt gewijzigd.
 4. B8 en B9: besloten (§10.2a), elk een eigen PR. B8 **gebouwd** (PR #1866): de velden, en de datum bij een nieuwe
    betekenis. Niet gebouwd: de ingangsdatum voorstellen uit de versie van de passage (een passage draagt geen
-   versiedatum), en de geldigheid in de NL-SBB-projectie en het rapport (dat kan samen met het waardebereik).
+   versiedatum), en de geldigheid in de NL-SBB-projectie en het rapport (dat kan samen met het waardebereik). B9 **gebouwd**
+   (PR #1868): *gesignaleerd* bij een interpretatiekeuze, met de geadresseerde (beleid of wetgever).
 5. M1, als lichte meting; R5 en V9 blijven op HOLD.
 
 B2 en B6 raken `api/app/begrip_store.py`, en B3 raakt `api/app/regel_store.py`. Er werkt één schrijver tegelijk aan
