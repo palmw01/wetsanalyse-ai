@@ -520,6 +520,8 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   graafwacht ook `--kennisgroepen` (`kennisgroepenIndex`) en vult de import-job die de deploy start de index van de
   kennisgroepstandpunten (eigen named graph, ongeveer 25 verzoeken bij de Belastingdienst). Daarna staat de connector
   nog uit in het register: zet hem aan in de beheertab. `tests/poort/test_kennisgroepen_uitrol.py` bewaakt die keten.
+- `contenttoets` (`--contenttoets`): de route `/contenttoets` van graph-qa (plan contenttoets, `CONTENTTOETS`, een
+  proefvlag). Op graph-qa en de eval-job; uit zegt Lex in een vaste zin dat de toets hier nog niet aanstaat.
 - `relatieVoorstellen` (`--relatie-voorstellen`): de annotatieketen stelt relaties tussen markeringen voor (ADR-011,
   `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
 - `skillRegels` (`--skill-regels`): de annotatie- en begrippenketen nemen de regels mee die een methode-skill meebrengt

@@ -1,10 +1,12 @@
 ---
 name: contenttoets
 metadata:
-  skill_versie: "0.1"
-  lex_soort: "plugin"
+  methode_versie: "0.1"
+  lex_soort: "methode"
   lex_label: "Contenttoets: content toetsen op juistheid en volledigheid"
-  lex_herkomst: "Eigen werk van het project (plan docs/architectuur/plan-contenttoets.md)"
+  lex_herkomst: "Eigen werk van het project (plan docs/architectuur/plan-contenttoets.md); de bronnen staan in references/bronnen.md"
+  lex_licentie: "eigen tekst in deze repo"
+  lex_letterlijk: "nee"
 description: >-
   Toetst een stuk content, zoals een webtekst, brief of FAQ, op juistheid en volledigheid tegen de bron: de geldende
   wet- en regelgeving en de beleidsregels. Haalt de toetsbare beweringen uit de tekst (bedragen, termijnen, voorwaarden,
@@ -64,7 +66,7 @@ Contenttoets – voortgang
    [beweringen](references/beweringen.md).
 2. **De bron zoeken en lezen.** Zoek per bewering de bepaling die haar draagt en lees de tekst zelf, niet een
    samenvatting. Kijk welke bronnen er zijn: de wet, de uitvoeringsregeling, de beleidsregel (zoals de Leidraad
-   Invordering) en de bronnen die in het gesprek aanstaan. Zie [bronnen](references/bronnen.md).
+   Invordering) en de bronnen die in het gesprek aanstaan. Zie [bronnen](references/bronkeuze.md).
 3. **Oordelen.** Kies één oordeel uit de vaste lijst en noem het criterium. Zie [criteria](references/criteria.md).
 4. **Tweede lezing.** Lees elke *mogelijk onjuist* opnieuw met de tekst rond het citaat. Gaat de bepaling wel over
    dezelfde groep, dezelfde belasting, dezelfde regeling? Bij twijfel wordt het *niet in de bron*, met de twijfel erbij.

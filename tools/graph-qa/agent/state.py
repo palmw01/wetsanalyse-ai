@@ -20,6 +20,8 @@ class State(TypedDict, total=False):
     # De leesroute voor begrippen (fase F4): de supervisor herkende een vraag naar vastgelegde begrippen.
     begrippen_lezen: bool
     regels_lezen: bool
+    # De contenttoets (plan contenttoets, C2): de route zet de content in het bronspoor, het profiel toetst.
+    contenttoets: bool
     # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
     # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
     werkgebied_id: str

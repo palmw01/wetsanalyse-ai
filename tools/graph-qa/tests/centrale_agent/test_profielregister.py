@@ -51,6 +51,8 @@ TAAK = {"rechtspraak_lezen", "wetsgeschiedenis_lezen", "bepalingen_duiden"}
 NIEUW |= TAAK
 #: De leesroute voor afleidingsregels (ADR-010; lichte meting #1792, 20 nov 2026).
 NIEUW |= {"regels_lezen"}
+#: De contenttoets (plan contenttoets, C2): een plugin naast de wetsanalyse, met een eigen methoderol.
+NIEUW |= {"contenttoets"}
 
 
 # --- bitgelijk ---------------------------------------------------------------------------------------------------

@@ -51,21 +51,20 @@ def test_de_skills_in_de_repo_halen_de_validator():
         skill, bevindingen = sk.toets(pad.name, sk.lees_map(pad), rollen=ROLLEN, basis=pad == SKILL)
         assert not bevindingen, [str(b) for b in bevindingen]
         assert skill.naam == pad.name
-    assert {p.name for p in methode_skills()} == (
-        {p.parent.name for p in SKILLS.glob("*/SKILL.md")} - {SKILL.name} - PLUGIN_SKILLS)
+    assert {p.name for p in methode_skills()} == {p.parent.name for p in SKILLS.glob("*/SKILL.md")} - {SKILL.name}
 
 
-#: Skills die geen methode zijn maar een plugin (`lex_soort: "plugin"`). Ze staan nog niet in het bronpakket en de
-#: centrale agent ziet ze niet: dat komt met het pluginregister (plan docs/architectuur/plan-contenttoets.md, C4).
-PLUGIN_SKILLS = {"contenttoets"}
+def test_een_plugin_skill_is_een_methode_met_een_eigen_rol_buiten_de_centrale_agent():
+    """De contenttoets (plan contenttoets, C2): een methode met een eigen rol (`EIGEN_ROLLEN`), die de basis niet vult,
+    en een plugin (`bronmodel.plugins`), dus niet in het skill-overzicht van de centrale agent."""
+    from bronmodel.plugins import SKILLS as PLUGIN_SKILLS
 
+    from agent import skills
 
-def test_een_plugin_skill_is_geen_methode_en_staat_niet_in_het_pakket():
     for naam in PLUGIN_SKILLS:
-        hoofd = (SKILLS / naam / "SKILL.md").read_text(encoding="utf-8")
-        kop, _ = frontmatter(hoofd)
-        assert kop["metadata"]["lex_soort"] == "plugin"
-        assert not sk.is_methode(hoofd)
+        assert sk.is_methode((SKILLS / naam / "SKILL.md").read_text(encoding="utf-8"))
+        assert naam not in skills.namen() and naam not in skills.beschrijvingen()
+    assert set(sk.EIGEN_ROLLEN.values()) <= PLUGIN_SKILLS
 
 
 def test_een_geldige_skill_levert_wat_het_pakket_nodig_heeft():

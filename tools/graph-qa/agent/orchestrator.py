@@ -42,6 +42,7 @@ from .nodes.bron_lezen import bron_lezen_node, route_na_bron_lezen
 from .nodes.bron_lijst import bron_lijst_node, route_na_bron_lijst
 from .nodes.begrippen_lezen import zoek_begrippen_node
 from .nodes.regels_lezen import zoek_regels_node
+from .nodes.contenttoets import bereid_contenttoets_node
 from .nodes.bepaling import bepaling_node, route_na_bepaling
 from .nodes.overzicht import bouw_overzicht_node, route_na_overzicht
 from .nodes.bronselectie import bronselectie_node
@@ -261,6 +262,9 @@ def build_graph(
     g.add_edge("begrippen_zoeken", "agent")
     add("regels_zoeken", functools.partial(zoek_regels_node, b))
     g.add_edge("regels_zoeken", "agent")
+    # De contenttoets (plan contenttoets, C2): de content in het bronspoor, dan toetst het profiel `contenttoets`.
+    add("contenttoets_voorbereiden", functools.partial(bereid_contenttoets_node, b))
+    g.add_edge("contenttoets_voorbereiden", "agent")
     add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
     g.add_conditional_edges("overzicht_bouwen", functools.partial(route_na_overzicht, b),
                             {"verify": "verify", "agent": "agent"})
@@ -279,7 +283,7 @@ def build_graph(
 
     ingangen = {naam: naam for naam in (
         "agent", "annoteer", "annotaties_zoeken", "bron_lezen", "bron_lijst", "begrippen_zoeken", "overzicht_bouwen",
-        "bepaling_lezen", "regels_zoeken",
+        "bepaling_lezen", "regels_zoeken", "contenttoets_voorbereiden",
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
     # De plannen van de centrale agent (ADR-016 §A5): meer subagents, en de regisseur als tool. Eén stap en klaar.
     from .nodes.delegatie_plan import regie_voorstel_node, subagent_plan_node

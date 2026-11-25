@@ -175,10 +175,12 @@ Connector = Literal[CONNECTOR_NAMEN]  # type: ignore[valid-type]
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
-                "bronselectie", "bepaling_toevoegen", "regie_bronnen", "regie_annoteren"]
+                "bronselectie", "bepaling_toevoegen", "regie_bronnen", "regie_annoteren", "contenttoets"]
 # Een regie binnen het werkgebied (ADR-012): de regisseur verdeelt het werk over deelgesprekken. Geen taak van een agent
 # maar een eigen stroom (`agent/regie/regisseur.py`); met `plan_id` start hij het bevestigde plan.
 REGIE_ACTIES = ("regie_bronnen", "regie_annoteren")
+# De actie van een plugin (`bronmodel.plugins`): een eigen route naast de wetsanalyse (plan contenttoets, C2).
+PLUGIN_ACTIES = ("contenttoets",)
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 

@@ -57,3 +57,4 @@
 {"id": "methode-vraag-over-jrm", "vraag": "Wat zegt het JRM over een rechtsfeit?", "verwacht": {"model": true}}
 {"id": "werkgebied-annoteer-deelvraag", "vraag": "Annoteer de bronnen onder deelvraag 3 die nog niet geannoteerd zijn.", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
 {"id": "werkgebied-annoteer-geheel", "vraag": "Annoteer de bronnen van het werkgebied", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "contenttoets-proefvlag-uit", "vraag": "/contenttoets U kunt uw belastingschuld betalen in maximaal 24 maanden, in gelijke termijnen.", "verwacht": {"route": "afwijzen", "model": false}}
