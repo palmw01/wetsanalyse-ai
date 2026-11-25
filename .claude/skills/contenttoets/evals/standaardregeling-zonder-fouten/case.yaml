@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: standaardregeling-zonder-fouten
+expected_outcome: |
+  Een toetsrapport zonder enig oordeel mogelijk onjuist: alle beweringen zijn juist. Hoogstens noemt het rapport als
+  onvolledig of twijfel dat de derde uitzondering (uitstel wegens bezwaar of beroep) ontbreekt, met de afweging of dat
+  materieel is. Het rapport noemt de vereenvoudigde formuleringen niet onvolledig.
