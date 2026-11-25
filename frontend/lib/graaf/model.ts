@@ -6,7 +6,8 @@
  *  (`layout.ts`), het beeld uit de weergavestand (`weergave.ts`). Zo bouwt een wijziging in de
  *  annotaties het model opnieuw op zonder dat de kaart verschuift. */
 import Graph from "graphology";
-import type { SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
+import { bepalingLabel, stapLabel } from "@/lib/bepalingLabel";
+import { vindplaatsLabel, type SamenhangKnoop, type SamenhangRelatie } from "@/lib/samenhang";
 
 export type { KnoopSoort, RelatieGroep, SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
 
@@ -59,8 +60,9 @@ export function namen(k: SamenhangKnoop): Pick<KnoopData, "naam" | "kort"> {
   const isLid = k.soort === "lid" && k.lid && k.artikel;
   const binnen = (k.soort === "lid" || k.soort === "onderdeel") && !k.rand;
   const vindplaats = k.soort === "lid" || k.soort === "onderdeel" ? k.vindplaats : "";
-  const naam = vindplaats || (isLid ? `Artikel ${k.artikel} · lid ${k.lid}` : k.label);
-  const kort = binnen ? (isLid ? `Lid ${k.lid}` : k.label) : naam;
+  // Het label via `bepalingLabel`: een kaal "Onderdeel –" wordt "Artikel 25.3a.1, 1e streepje", binnen het artikel "1e streepje".
+  const naam = vindplaats || (isLid ? vindplaatsLabel([["artikel", k.artikel], ["lid", k.lid]]) : bepalingLabel(k.id, k.label) || k.label);
+  const kort = binnen ? (isLid ? stapLabel(k.id, vindplaatsLabel([["lid", k.lid]])) : stapLabel(k.id, k.label) || k.label) : naam;
   return { naam, kort: inkorten(kort) };
 }
 

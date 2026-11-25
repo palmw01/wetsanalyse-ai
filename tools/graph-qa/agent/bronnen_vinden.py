@@ -36,6 +36,7 @@ from .graph.queries import BEVAT, NS, PREFIXES, STRUCTUUR, _iri_veilig, _lit
 from .bepaling_namen import _benoem, bwb_van as _bwb, rijen as _rijen
 from .deelvraag_zoeken import STANDAARD_PROFIEL, Zoekprofiel, bepaling_opties
 from bronmodel.taal import RANGTELWOORDEN, rangnummers
+from bronmodel.vindplaats import bepaling_label
 
 from .ports import GraphPort
 from .zoektermen import buiten_stammen, zoektermen
@@ -191,6 +192,8 @@ class Verzameling:
         if not queries.is_bron_iri(iri) or in_selectie(iri, self.selectie):
             return False
         bewijs = {"methode": methode, "vanuit": vanuit, "detail": detail or {}}
+        # Een kaal label ("Onderdeel –") wordt de plek; het gaat zo de bronselectie van het werkgebied in.
+        label = bepaling_label(iri, label) or label
         k = self.per_iri.get(iri)
         if k is None:
             self.per_iri[iri] = {"bron_iri": iri, "label": label, "bwb_id": _bwb(iri), "rol": rol, "bewijs": [bewijs]}

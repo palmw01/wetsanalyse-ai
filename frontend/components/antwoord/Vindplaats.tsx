@@ -4,18 +4,18 @@
 import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { AntwoordVindplaats, TekstBij } from "@/lib/antwoord";
 import type { StukPassage } from "@/lib/bronStuk";
-import { vindplaatsTekst } from "@/lib/herkomst";
+import { herkomstVan, vindplaatsTekst } from "@/lib/herkomst";
 import { bronHref } from "@/lib/url";
 
 /** Waar iets staat. In de werkplek opent een klik de bepaling naast het gesprek; daarbuiten, of met Ctrl/⌘/Shift, is het
  *  de gewone link naar de bron. Kan `bronHref` er niets mee, dan is het platte tekst. */
 export function Vindplaats({ vindplaats: v, kort = false }: {
   vindplaats: AntwoordVindplaats;
-  /** Onder een kop die de bepaling al noemt (de leden van één artikel): alleen het eigen label, "lid 2". */
+  /** Onder een kop die de regeling al noemt (de bronnenlijst per regeling): alleen de bepaling, zonder regeling. */
   kort?: boolean;
 }) {
   const opener = useOpenBron();
-  const label = kort ? v.label : vindplaatsTekst(v);
+  const label = kort ? herkomstVan(v).bepaling : vindplaatsTekst(v);
   const href = bronHref(v.jci || v.iri);
   if (!href) return <span>{label}</span>;
   return (

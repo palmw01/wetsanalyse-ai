@@ -1,5 +1,7 @@
 import { isApiError } from "./api";
 import { aantal } from "./aantal";
+import { bepalingLabel } from "./bepalingLabel";
+import { vindplaatsLabel } from "./samenhang";
 import { isKlaarOmAfTeRonden } from "./annotatieOverzicht";
 import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
@@ -71,8 +73,16 @@ export function bronVan(regels: LidRegel[]): string {
 
 /** Mensleesbare aanduiding van een kandidaat-bepaling ("Artikel 36a, lid 1 – Invorderingswet 1990"). */
 export function kandidaatLabel(k: AgentKandidaat): string {
-  const bepaling = `Artikel ${k.artikel}${k.lid ? `, lid ${k.lid}` : ""}`;
+  const bepaling = kandidaatNaam({ ...k, label: "" });
   return k.citeertitel ? `${bepaling} – ${k.citeertitel}` : bepaling;
+}
+
+/** De naam van een kandidaat op een kaart: het label via `bepalingLabel` ("Onderdeel –" wordt "Artikel 25.3a.1,
+ *  1e streepje"), anders de plek uit artikel en lid. */
+export function kandidaatNaam(k: Pick<AgentKandidaat, "artikel" | "lid" | "label" | "bron_iri">): string {
+  const pad: [string, string][] = [...(k.artikel ? [["artikel", k.artikel] as [string, string]] : []),
+    ...(k.lid ? [["lid", k.lid] as [string, string]] : [])];
+  return bepalingLabel(k.bron_iri ?? "", k.label ?? "") || vindplaatsLabel(pad) || k.artikel;
 }
 
 /** De gekozen kandidaat als **doel**: hiermee hoeft de agent niets meer te zoeken.

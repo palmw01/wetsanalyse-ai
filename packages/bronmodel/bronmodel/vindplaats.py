@@ -119,3 +119,110 @@ def vindplaats(ref: str) -> Vindplaats | None:
         return None
     iri = f"urn:bwb:{bwb}" + "".join(f":{k}:{_segment(v)}" for k, v in pad)
     return Vindplaats(iri, bwb, pad, _soort(pad), _label(pad))
+
+
+# ---------------------------------------------------------------------------------------------
+# Het label van een bepaling (één regel voor heel Lex)
+# ---------------------------------------------------------------------------------------------
+#
+# Een onderdeel zonder eigen nummer heet in de graaf "Onderdeel –" (het opsommingsstreepje is zijn `bwb:nummer`), een
+# lettered onderdeel van de Leidraad "Onderdeel c.". Los gezegd zegt dat niets: drie keer "Onderdeel –" onder elkaar, of
+# een letter zonder het artikel eromheen. Zo'n onderdeel heeft een wet-lokale `id:`-IRI, met het knoop-id van
+# wetten.overheid.nl erin ("BWBR0024096/Circulaire.divisie25/…/Circulaire.divisie25.3a.1/Tekst/Onderdeel._1"): daar
+# staat wél waar het staat. `bepaling_label` maakt daarvan "Artikel 25.3a.1, 1e streepje". De spiegel in de werkplek is
+# `frontend/lib/bepalingLabel.ts`; `frontend/lib/bepalingLabel.vectoren.json` toetst beide kanten.
+
+#: De tekens waarmee een ongenummerd onderdeel in de graaf "genummerd" is.
+OPSOMMINGSTEKENS = frozenset("–—-•·●▪")
+
+_KNOOPSTAP = re.compile(
+    r"(Circulaire\.divisie|Divisie|Hoofdstuk|Titeldeel|Afdeling|Paragraaf|Artikel|Lid|Onderdeel|Slottekst|Bijlage)(.*)")
+_STRUCTUURSTAP = {"Divisie": "divisie", "Hoofdstuk": "hoofdstuk", "Titeldeel": "titeldeel", "Afdeling": "afdeling",
+                  "Paragraaf": "paragraaf"}
+# Een kaal label: alleen een soortwoord met een nummer of opsommingsteken ("Onderdeel –", "Onderdeel c.", "Lid 2", "–").
+_KAAL = re.compile(r"^(?:(?:onderdeel|lid|sub|punt|slottekst)\b\.?\s*)?([^\s,]{0,4}?)\.?$", re.I)
+
+
+def _stap(soort: str, waarde: str) -> str:
+    """Eén stap uit een knoop-id in woorden: "lid 2", "onderdeel c", "1e streepje", "slottekst"."""
+    waarde = waarde.strip().lstrip(".")
+    if soort == "Onderdeel":
+        if waarde.startswith("_") and waarde[1:].isdigit():
+            return f"{int(waarde[1:])}e streepje"
+        return f"onderdeel {waarde}" if waarde else "onderdeel"
+    if soort == "Slottekst":
+        return "slottekst"  # het volgnummer is een telling van de importer, geen vindplaats
+    if soort == "Bijlage":
+        return f"bijlage {waarde}" if waarde else "bijlage"
+    woord = "artikel" if soort in ("Artikel", "Circulaire.divisie") else soort.lower()
+    return f"{woord} {waarde}" if waarde else woord
+
+
+def knoop_label(knoop_id: str) -> str:
+    """Waar een node staat, uit zijn knoop-id: "Artikel 25.3a.1, 1e streepje", "Artikel 9, lid 1, onderdeel e, 2,
+    1e streepje", "Bijlage 3, artikel 2, onderdeel d". Leeg als er niets herkenbaars in staat.
+
+    Zelfde vorm als `vindplaats` (`_label`): het structuurpad boven een artikel valt weg, want een artikel is in de
+    wettekst al uniek; in een bijlage blijft het staan, daar niet. Een divisie van een beleidsregel heet "Artikel", zoals
+    de importer haar vindplaats schrijft en de Leidraad naar haar eigen divisies verwijst ("artikel 28.2 van deze
+    leidraad")."""
+    stappen = [(m.group(1), m.group(2)) for deel in (knoop_id or "").split("/")[1:]
+               if (m := _KNOOPSTAP.fullmatch(deel))]
+    if not stappen:
+        return ""
+    in_bijlage = any(s == "Bijlage" for s, _ in stappen)
+    artikel = max((i for i, (s, _) in enumerate(stappen) if s in ("Artikel", "Circulaire.divisie")), default=-1)
+    if artikel >= 0:
+        # Van geneste divisies telt de diepste: haar nummer draagt het hele pad al ("25.3a.1").
+        if stappen[artikel][0] == "Circulaire.divisie":
+            stappen = [st for i, st in enumerate(stappen) if st[0] != "Circulaire.divisie" or i == artikel]
+            artikel = next(i for i, (s, _) in enumerate(stappen) if s == "Circulaire.divisie")
+        boven = stappen[:artikel] if in_bijlage else []
+        stappen = [*boven, *stappen[artikel:]]
+    delen: list[str] = []
+    for soort, waarde in stappen:
+        tekst = _stap(soort, waarde)
+        # Opeenvolgende onderdelen in één aanduiding, zoals `vindplaats`: "onderdeel e, 2".
+        if soort == "Onderdeel" and tekst.startswith("onderdeel ") and delen and delen[-1].startswith("onderdeel "):
+            delen[-1] += ", " + tekst[len("onderdeel "):]
+        else:
+            delen.append(tekst)
+    tekst = ", ".join(delen)
+    return tekst[:1].upper() + tekst[1:]
+
+
+def knoop_id_van(iri: str) -> str:
+    """Het knoop-id in een wet-lokale `id:`-IRI ("urn:bwb:BWBR…:id:BWBR…%2F…"), anders leeg."""
+    vp = vindplaats(iri)
+    if vp is None or vp.soort != "node":
+        return ""
+    return next((v for k, v in vp.pad if k == "id"), "")
+
+
+def plek_label(iri: str) -> str:
+    """Waar een bepaling staat, alleen uit haar IRI of jci: de vindplaats, of bij een `id:`-node zijn knoop-id."""
+    vp = vindplaats(iri)
+    if vp is None:
+        return ""
+    return knoop_label(knoop_id_van(iri)) if vp.soort == "node" else vp.label
+
+
+def kaal_label(label: str) -> bool:
+    """Of een label alleen een soortwoord met een nummer of streepje is ("Onderdeel –", "Onderdeel c.", "Lid 2"): het
+    zegt dan niet waar de bepaling staat."""
+    return bool(_KAAL.match((label or "").strip()))
+
+
+def bepaling_label(iri: str, gegeven: str = "") -> str:
+    """Het label van een bepaling, overal in Lex hetzelfde. Een eigen naam (een divisie van de Leidraad, "Voorwaarden
+    standaardbetalingsregeling") blijft staan; een kaal label of de staart van het pad ("Lid 2", "Onderdeel –",
+    "Onderdeel c.") wordt de plek uit de IRI ("Artikel 9, lid 2", "Artikel 25.3a.1, 1e streepje"). Zonder plek blijft
+    wat er gegeven is; zonder beide leeg, zodat de aanroeper zijn eigen terugval kiest."""
+    g = (gegeven or "").strip()
+    plek = plek_label(iri)
+    if not plek:
+        return g
+    if not g or kaal_label(g):
+        return plek
+    kort, lang = g.lower().rstrip("."), plek.lower()
+    return plek if lang == kort or lang.endswith(f" {kort}") or lang.endswith(f", {kort}") else g

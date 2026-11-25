@@ -19,6 +19,7 @@ from collections import Counter
 from typing import Awaitable, Callable
 
 from bronmodel.antwoord import Vindplaats
+from bronmodel.vindplaats import bepaling_label, kaal_label, knoop_id_van, plek_label
 from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
@@ -117,8 +118,13 @@ def _verwijzing(iri: str, nodes: dict[str, dict]) -> str:
 
 
 def _vindplaats(iri: str, nodes: dict[str, dict]) -> str:
+    """Waar de bepaling staat. Een onderdeel zonder eigen nummer draagt in de graaf de vindplaats van zijn ouder ("Artikel
+    25.3a.1", voor elk streepje dezelfde) en het label "Onderdeel –": dan de plek uit zijn knoop-id (`bepaling_label`)."""
     n = nodes.get(iri) or {}
-    return n.get("vindplaats") or n.get("label") or iri
+    label = n.get("label") or ""
+    if knoop_id_van(iri) and kaal_label(label) and (plek := plek_label(iri)):
+        return plek
+    return n.get("vindplaats") or label or iri
 
 
 def _anker_afwijkingen(e: dict, nodes: dict[str, dict]) -> list[tuple[str, str, str]]:
@@ -209,7 +215,10 @@ def _deelvragen(data: dict, nodes: dict[str, dict]) -> Deelvragen:
 
 def _plek(iri: str, nodes: dict[str, dict], label: str = "") -> Vindplaats:
     """Een vindplaats altijd uit de bronboom; zonder jci blijft de bron-IRI de bronreferentie."""
-    return Vindplaats(iri=iri, label=label or _vindplaats(iri, nodes), jci=(nodes.get(iri) or {}).get("jci") or "")
+    # Een kaal label ("Lid 2", "Onderdeel –") zegt niet waar: dan de boom, en buiten de boom de plek uit de IRI.
+    if not label or kaal_label(label):
+        label = _vindplaats(iri, nodes) if iri in nodes else bepaling_label(iri, label) or label
+    return Vindplaats(iri=iri, label=label or iri, jci=(nodes.get(iri) or {}).get("jci") or "")
 
 
 def _reden_afwijzing(e: dict) -> str:

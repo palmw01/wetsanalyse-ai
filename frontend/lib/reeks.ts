@@ -11,6 +11,7 @@
 // een misvormd event slaat over, het breekt de reeks niet af.
 
 import { aantal } from "./aantal";
+import { bepalingLabel } from "./bepalingLabel";
 import { parseHergebruik, parseUitkomst } from "./agentEvents";
 import { denkBij } from "./denkproces";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
@@ -51,7 +52,7 @@ const EIND_STATUS: Record<string, OnderdeelStatus> = {
 };
 
 function nieuwOnderdeel(bron_iri: string, label: string): ReeksOnderdeel {
-  return { bron_iri, label: label || bron_iri, status: "wacht", voorstellen: 0, denk: "" };
+  return { bron_iri, label: bepalingLabel(bron_iri, label) || bron_iri, status: "wacht", voorstellen: 0, denk: "" };
 }
 
 function werkBij(reeks: Reeks, iri: string, f: (o: ReeksOnderdeel) => ReeksOnderdeel): Reeks {
@@ -172,7 +173,7 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
   for (let i = 0; i < totaal; i++) {
     const b = perIndex.get(i);
     if (!b) {
-      onderdelen.push({ ...nieuwOnderdeel(`onbekend:${i}`, `Onderdeel ${i + 1}`), status: "overgeslagen" });
+      onderdelen.push({ ...nieuwOnderdeel(`onbekend:${i}`, `${i + 1}e uit de reeks`), status: "overgeslagen" });
       continue;
     }
     const art = artefactVanBericht(b);
@@ -181,7 +182,7 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
     const uitkomst = parseUitkomst(b.uitkomst);
     onderdelen.push({
       bron_iri: doel?.bron_iri ?? `onbekend:${i}`,
-      label: doel?.label || art?.titel || b.annotatie_titel || `Onderdeel ${i + 1}`,
+      label: (doel && bepalingLabel(doel.bron_iri, doel.label)) || art?.titel || b.annotatie_titel || `${i + 1}e uit de reeks`,
       status: doel ? (hergebruik?.volledig ? "hergebruik" : "klaar") : uitkomst?.status === "gestopt" ? "gestopt" : "fout",
       voorstellen: 0,
       ...(doel || uitkomst?.status === "gestopt" ? {} : { fout: uitkomst?.melding || b.tekst || "Niet vastgelegd." }),

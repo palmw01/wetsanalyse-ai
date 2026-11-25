@@ -1,6 +1,7 @@
 /** Wat je in de ketting ziet, in woorden: één zin, en daarachter wat er bewust niet staat. Puur, zodat elke
  *  uitkomst getest is: een graaf die niet zegt wat hij toont, is ruis. */
-import type { Samenhang } from "@/lib/samenhang";
+import { bepalingLabel } from "@/lib/bepalingLabel";
+import { vindplaatsLabel, type Samenhang } from "@/lib/samenhang";
 
 import { aantal } from "@/lib/aantal";
 
@@ -8,8 +9,8 @@ function naamVan(k: Samenhang, id: string): string {
   const knoop = k.knopen.find((x) => x.id === id);
   if (knoop?.vindplaats) return knoop.vindplaats;
   // Een oudere import heeft geen vindplaats, en "Lid 2" zegt los niets.
-  if (knoop?.soort === "lid" && knoop.artikel) return `Artikel ${knoop.artikel}, lid ${knoop.lid}`;
-  return knoop?.label || id;
+  if (knoop?.soort === "lid" && knoop.artikel) return vindplaatsLabel([["artikel", knoop.artikel], ["lid", knoop.lid]]);
+  return (knoop && bepalingLabel(id, knoop.label)) || knoop?.label || id;
 }
 
 /** De zin boven de ketting. `eersteBron`: Lex noemde geen bepaling, dit is de eerste bron. */

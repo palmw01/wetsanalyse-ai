@@ -1,0 +1,25 @@
+{
+  "uitleg": "Het label van een bepaling: IRI (of jci) + het label dat een bron gaf → wat Lex toont. Eén set voor twee kanten: packages/bronmodel (`bepaling_label`, getoetst in tools/graph-qa/tests/grounding/test_bepaling_label.py) en frontend/lib/bepalingLabel.ts (`bepalingLabel`, getoetst in frontend/app/bepalingLabel.test.ts). Een kaal label ('Onderdeel –', 'Onderdeel c.', 'Lid 2') wordt de plek uit de IRI; een eigen naam blijft staan.",
+  "vectoren": [
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._1", "gegeven": "Onderdeel –", "label": "Artikel 25.3a.1, 1e streepje"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._3", "gegeven": "Onderdeel –", "label": "Artikel 25.3a.1, 3e streepje"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3%2FTekst%2FOnderdeelc", "gegeven": "Onderdeel c.", "label": "Artikel 25.5.3, onderdeel c"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1", "gegeven": "Voorwaarden standaardbetalingsregeling", "label": "Voorwaarden standaardbetalingsregeling"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1", "gegeven": "", "label": "Artikel 25.3a.1"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._2", "gegeven": "", "label": "Artikel 25.3a.1, 2e streepje"},
+    {"iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._2", "gegeven": "•", "label": "Artikel 25.3a.1, 2e streepje"},
+    {"iri": "urn:bwb:BWBR0014168:id:BWBR0014168%2FHoofdstuk2%2FParagraaf2.1%2FArtikel9%2FLid1%2FOnderdeele%2FOnderdeel2%2FOnderdeel._4", "gegeven": "Onderdeel –", "label": "Artikel 9, lid 1, onderdeel e, 2, 4e streepje"},
+    {"iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie2%2FArtikel4%2FOpsomming_2%2FOnderdeelf", "gegeven": "Onderdeel f.", "label": "Bijlage 2, divisie 2, artikel 4, onderdeel f"},
+    {"iri": "urn:bwb:BWBR0004766:id:BWBR0004766%2FBijlage%2FOpsomming_1%2FOnderdeel._1", "gegeven": "Onderdeel –", "label": "Bijlage, 1e streepje"},
+    {"iri": "urn:bwb:BWBR0014168:id:BWBR0014168%2FHoofdstuk5%2FAfdeling5.1.1%2FParagraaf5.1.1.4%2FArtikel68a%2FLid2%2FSlottekst1", "gegeven": "", "label": "Artikel 68a, lid 2, slottekst"},
+    {"iri": "urn:bwb:BWBR0004770:artikel:9:lid:2", "gegeven": "Lid 2", "label": "Artikel 9, lid 2"},
+    {"iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", "gegeven": "Onderdeel k.", "label": "Artikel 2, lid 1, onderdeel k"},
+    {"iri": "urn:bwb:BWBR0004770:artikel:9:lid:2", "gegeven": "Artikel 9, Lid 2", "label": "Artikel 9, lid 2"},
+    {"iri": "jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01", "gegeven": "", "label": "Artikel 9, lid 2"},
+    {"iri": "urn:bwb:BWBR0004770:artikel:9", "gegeven": "Artikel 9 – Betalingstermijnen", "label": "Artikel 9 – Betalingstermijnen"},
+    {"iri": "urn:bwb:BWBR0004770", "gegeven": "Invorderingswet 1990", "label": "Invorderingswet 1990"},
+    {"iri": "urn:bwb:BWBR0024096:id:onbekend", "gegeven": "Onderdeel –", "label": "Onderdeel –"},
+    {"iri": "ECLI:NL:HR:2020:1", "gegeven": "HR 1 januari 2020", "label": "HR 1 januari 2020"},
+    {"iri": "", "gegeven": "", "label": ""}
+  ]
+}

@@ -25,7 +25,7 @@ from collections.abc import Iterable, Iterator
 
 from bronmodel.connectors import CONNECTORS
 from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vindplaats
-from bronmodel.vindplaats import vindplaats
+from bronmodel.vindplaats import bepaling_label, vindplaats
 
 from .models import Source
 from .resultaat import is_contract, is_fout, is_foutresultaat, voorproef_iris, waarden
@@ -281,7 +281,7 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                 if sleutel in per_node:
                     continue
                 jci = d.get("jci") or None
-                bron = Source(label=d.get("vindplaats") or (vp.label if vp else "") or sleutel, uri=sleutel, jci=jci,
+                bron = Source(label=bepaling_label(sleutel, d.get("vindplaats") or "") or sleutel, uri=sleutel, jci=jci,
                               origin_tool=tool, bron_iri=vp.bron_iri if vp else None, bwb_id=vp.bwb_id if vp else None,
                               soort=vp.soort if vp else None)
                 per_node[sleutel] = bron
@@ -330,10 +330,12 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                 bron = Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool)
             else:
                 # Een regeling heeft geen label in de verwijzing (de naam komt in finalize); een
-                # wet-lokale `id:`-node ook niet: die krijgt het label uit het toolresultaat, en
-                # houdt alleen zonder dat zijn IRI.
+                # wet-lokale `id:`-node ook niet: die krijgt het label uit het toolresultaat, tenzij dat kaal is
+                # ("Onderdeel –", "Onderdeel c."): dan de plek uit zijn knoop-id (`bepaling_label`), en alleen
+                # zonder beide zijn IRI.
                 label = vp.label or (vp.bwb_id if vp.soort == "regeling"
-                                     else labels.get(vp.bron_iri) or labels.get(uri) or vp.bron_iri)
+                                     else bepaling_label(vp.bron_iri, labels.get(vp.bron_iri) or labels.get(uri) or "")
+                                     or vp.bron_iri)
                 label = _met_titel(label, labels.get(vp.bron_iri) or labels.get(uri) or "")
                 bron = Source(label=label, uri=vp.bron_iri, iri=iri, jci=jci,
                               origin_tool=tool, bron_iri=vp.bron_iri, bwb_id=vp.bwb_id, soort=vp.soort,

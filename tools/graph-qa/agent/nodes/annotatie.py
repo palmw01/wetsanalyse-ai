@@ -17,6 +17,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
+from bronmodel.vindplaats import bepaling_label
 
 from ..annotatie import aanduiding_in_woorden
 from ..bron_annotatie import (controleer_hergebruik, doel_event, lees_bron, lokale_elementen, lokale_relaties,
@@ -81,7 +82,7 @@ def _keuzekaart(writer, opties: list[dict], *, bwb_id: str, citeertitel: str, ou
     """
     kandidaten = [{"bwbId": bwb_id, "artikel": o["artikel"], "lid": o["lid"], "citeertitel": citeertitel,
                    "fragment": o["fragment"], "bron_iri": o["bron_iri"], "nummer": o["nummer"],
-                   "soort": o["type"], "label": o["label"], **({"stand": o["stand"]} if "stand" in o else {}),
+                   "soort": o["type"], "label": bepaling_label(o["bron_iri"], o["label"]) or o["label"], **({"stand": o["stand"]} if "stand" in o else {}),
                    **({"gekozen": True} if o.get("gekozen") else {})}
                   for o in opties[:MAX_OPTIES]]
     writer({"type": "kandidaten", "kandidaten": kandidaten,
