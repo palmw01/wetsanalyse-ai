@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { parseAntwoord } from "./antwoord";
-import { CRITERIA, OORDEEL_LABEL, OORDEEL_TELLING, OORDELEN, isContenttoets, tellingTekst } from "./contenttoets";
+import { CRITERIA, OORDEEL_LABEL, OORDEEL_TELLING, OORDELEN, contentDelen, isContenttoets, tellingTekst, toetsSleutel } from "./contenttoets";
 
 // De bron van de spiegel: `bronmodel/contenttoets.py`.
 const bron = readFileSync(new URL("../../packages/bronmodel/bronmodel/contenttoets.py", import.meta.url), "utf8");
@@ -55,5 +55,29 @@ describe("het blok contenttoets", () => {
     expect(met({ begin: 20, eind: 10 })).toBe(false);
     expect(met({ bronnen: [{ tekst: "x" }] })).toBe(false);     // een bron zonder vindplaats
     expect(isContenttoets({ ...blok, content: undefined })).toBe(false);
+  });
+});
+
+describe("de content in het zijpaneel", () => {
+  const b = (content: string, ...m: [number, number, number][]) => ({ content,
+    bevindingen: m.map(([nr, begin, eind]) => ({ nr, begin, eind, oordeel: "juist" as const })) }) as never;
+
+  it("markeert elke bevinding op haar codepoints", () => {
+    expect(contentDelen(b("ab 😀 cd ef", [1, 3, 4], [2, 8, 10]))).toEqual([
+      { tekst: "ab " }, { tekst: "😀", nr: 1, oordeel: "juist" }, { tekst: " cd " }, { tekst: "ef", nr: 2, oordeel: "juist" }]);
+  });
+
+  it("geeft bij overlap de eerste de tekst, en laat een lege bevinding uit de content", () => {
+    expect(contentDelen(b("abcdef", [2, 2, 5], [1, 0, 3], [3, 4, 4])).map((d) => [d.tekst, d.nr])).toEqual([
+      ["abc", 1], ["de", 2], ["f", undefined]]);
+  });
+
+  it("houdt de tekst heel", () => {
+    expect(contentDelen(blok as never).map((d) => d.tekst).join("")).toBe(blok.content);
+  });
+
+  it("geeft dezelfde toets dezelfde sleutel", () => {
+    expect(toetsSleutel(blok)).toBe(toetsSleutel({ ...blok }));
+    expect(toetsSleutel(blok)).not.toBe(toetsSleutel({ ...blok, peildatum: "2026-01-01" }));
   });
 });

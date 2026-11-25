@@ -657,7 +657,10 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   de wetsanalyse met tekst erachter, nu `/contenttoets <tekst>` (plan `docs/architectuur/plan-contenttoets.md`). Enter op de
   regel vult het commando aan; met tekst erachter is het menu dicht en gaat de hele tekst als gewone vraag naar Lex, die het
   commando zonder model herkent (graph-qa `agent/contenttoets.py`). Geen actie of doel op de beurt. Het rapport is het blok
-  `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). Browserregressie:
+  `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). In de werkplek toont het gesprek
+  alleen de korte toelichting met de kaart *Bekijk de contenttoets*; het rapport staat naast het gesprek
+  (`ContenttoetsPaneel`, soort `contenttoets` van `ContextPaneel`), met de content en de markeringen op de ankers. De
+  markering is zelf de knop (`role="button"`): een `<button>` is in Chrome altijd inline-block en breekt de regel. Browserregressie:
   `scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
 - **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
   actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf

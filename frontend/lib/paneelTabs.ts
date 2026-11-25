@@ -14,6 +14,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { artefactKop, type WerkgebiedArtefact } from "@/lib/artefact";
 import { herkomstVan } from "@/lib/herkomst";
+import { isContenttoets, tellingTekst, toetsSleutel } from "@/lib/contenttoets";
 
 export type PaneelInhoud =
   | { soort: "context"; ctx: ContextDoel }
@@ -39,6 +40,7 @@ export function contextSleutelVan(c: ContextDoel): string {
   return c.soort === "bron" ? bepalingSleutel(c.bron_iri)
     : c.soort === "element" ? `element:${c.element_id}`
     : c.soort === "overzicht" ? `overzicht:${c.overzicht.gevraagd}`
+    : c.soort === "contenttoets" ? `contenttoets:${toetsSleutel(c.toets)}`
     : c.soort === "stuk" ? `stuk:${c.id}`
     // De bepalingen van een antwoord: dezelfde lijst is dezelfde tab, dus een tweede klik opent geen tweede.
     : c.soort === "bepalingen" ? `bepalingen:${c.bepalingen.map((v) => v.iri).join("|")}`
@@ -91,6 +93,7 @@ export function tabLabel(t: PaneelTab): { kort: string; vol: string } {
     else if (c.soort === "bibliotheek") { kort = "Bronnen"; vol = "Bronnen van dit werkgebied"; }
     else if (c.soort === "stuk") { kort = c.titel || c.id; vol = c.titel || c.id; }
     else if (c.soort === "contextopbouw") { kort = "Context"; vol = "Context van deze beurt"; }
+    else if (c.soort === "contenttoets") { kort = "Contenttoets"; vol = `Contenttoets: ${tellingTekst(c.toets)}`; }
     else if (c.soort === "bepalingen") { kort = c.titel || "Bepalingen"; vol = `Bepalingen in dit antwoord: ${c.titel}`; }
     else { kort = c.titel || "Overzicht"; vol = `Overzicht: ${c.titel}`; }
   } else if (i.soort === "annotatie") {
@@ -148,6 +151,7 @@ function geldigeInhoud(v: unknown): v is PaneelInhoud {
     if (c.soort === "stuk") return typeof c.brontype === "string" && typeof c.id === "string";
     if (c.soort === "bepalingen") return Array.isArray(c.bepalingen) && c.bepalingen.length > 0
       && c.bepalingen.every((v) => isObject(v) && typeof v.iri === "string" && typeof v.label === "string");
+    if (c.soort === "contenttoets") return isObject(c.toets) && isContenttoets(c.toets);
     return c.soort === "overzicht" && isObject(c.overzicht) && typeof (c.overzicht as Record<string, unknown>).gevraagd === "string";
   }
   if (v.soort === "annotatie") {
