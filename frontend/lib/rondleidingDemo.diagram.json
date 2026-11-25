@@ -1,0 +1,61 @@
+{
+  "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+  "diagrammen": [
+    {
+      "diagram": {
+        "centraal": "473c19a14797", "klasse": "Rechtsbetrekking", "nr": 0,
+        "knopen": [
+          {"id": "473c19a14797", "soort": "element", "nr": 0, "klasse": "Rechtsbetrekking", "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "midden", "diepte": 0},
+          {"id": "055a7e165515", "soort": "element", "nr": 0, "klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "onder", "diepte": 1},
+          {"id": "223ac94d9c58", "soort": "element", "nr": 0, "klasse": "Rechtsobject", "tekst": "Een belastingaanslag", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 1},
+          {"id": "I45f83f76a2ea4913", "soort": "impliciet", "nr": 0, "klasse": "Rechtssubject", "tekst": "de belastingschuldige", "elders": "", "lifecycle": "", "begrip": "", "zone": "links", "diepte": 1},
+          {"id": "Ibdcdf4fb8ac14c7d", "soort": "impliciet", "nr": 0, "klasse": "Rechtssubject", "tekst": "de ontvanger", "elders": "", "lifecycle": "", "begrip": "", "zone": "links", "diepte": 1},
+          {"id": "5bdea17d31534e0994a895a1376b2f49", "soort": "element", "nr": 0, "klasse": "Variabele en variabelewaarde", "tekst": "invorderbaar", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 2},
+          {"id": "8263fa226caa491988a08721285d4106", "soort": "element", "nr": 0, "klasse": "Afleidingsregel", "tekst": "invorderbaar zes weken na de dagtekening van het aanslagbiljet", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 3},
+          {"id": "379bc7e16ded465b895586eedddb2e3f", "soort": "element", "nr": 0, "klasse": "Tijdsaanduiding", "tekst": "zes weken", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 4},
+          {"id": "a362df5f5bef", "soort": "element", "nr": 0, "klasse": "Operator", "tekst": "na", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 4},
+          {"id": "d46ea984bf1d", "soort": "element", "nr": 0, "klasse": "Tijdsaanduiding", "tekst": "de dagtekening van het aanslagbiljet", "elders": "", "lifecycle": "human_approved", "begrip": "", "zone": "rechts", "diepte": 4}
+        ],
+        "lijnen": [
+          {"van": "d46ea984bf1d", "naar": "8263fa226caa491988a08721285d4106", "code": "invoer", "leesvorm": "is invoer van", "volgorde": 1, "lifecycle": "human_approved"},
+          {"van": "379bc7e16ded465b895586eedddb2e3f", "naar": "8263fa226caa491988a08721285d4106", "code": "invoer", "leesvorm": "is invoer van", "volgorde": 2, "lifecycle": "human_approved"},
+          {"van": "5bdea17d31534e0994a895a1376b2f49", "naar": "223ac94d9c58", "code": "kenmerk", "leesvorm": "is kenmerk van", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "a362df5f5bef", "naar": "8263fa226caa491988a08721285d4106", "code": "operator_in", "leesvorm": "is operator in", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "I45f83f76a2ea4913", "naar": "473c19a14797", "code": "plichthebbende", "leesvorm": "is plichthebbende van", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "Ibdcdf4fb8ac14c7d", "naar": "473c19a14797", "code": "rechthebbende", "leesvorm": "is rechthebbende van", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "473c19a14797", "naar": "055a7e165515", "code": "tijd", "leesvorm": "heeft als tijdsaanduiding", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "8263fa226caa491988a08721285d4106", "naar": "5bdea17d31534e0994a895a1376b2f49", "code": "uitvoer", "leesvorm": "levert op", "volgorde": null, "lifecycle": "human_approved"},
+          {"van": "473c19a14797", "naar": "223ac94d9c58", "code": "voorwerp", "leesvorm": "heeft als voorwerp", "volgorde": null, "lifecycle": "human_approved"}
+        ],
+        "ontbreekt": []
+      },
+      "plaatsing": {
+        "breedte": 1020.06, "hoogte": 192,
+        "knopen": [
+          {"id": "I45f83f76a2ea4913", "x": 0, "y": 24.5, "b": 119.96, "h": 30, "kop": "Rechtssubject · niet in de tekst", "regels": ["de belastingschuldige"]},
+          {"id": "Ibdcdf4fb8ac14c7d", "x": 0, "y": 64.5, "b": 119.96, "h": 30, "kop": "Rechtssubject · niet in de tekst", "regels": ["de ontvanger"]},
+          {"id": "473c19a14797", "x": 180.02, "y": 31, "b": 119.96, "h": 57, "kop": "Rechtsbetrekking", "regels": ["Een belastingaanslag is", "invorderbaar zes weken na de", "dagtekening van het", "aanslagbiljet."]},
+          {"id": "223ac94d9c58", "x": 360.04, "y": 44.5, "b": 119.96, "h": 30, "kop": "Rechtsobject", "regels": ["Een belastingaanslag"]},
+          {"id": "5bdea17d31534e0994a895a1376b2f49", "x": 540.06, "y": 44.5, "b": 119.96, "h": 30, "kop": "Variabele en variabelewaarde", "regels": ["invorderbaar"]},
+          {"id": "8263fa226caa491988a08721285d4106", "x": 720.08, "y": 35.5, "b": 119.96, "h": 48, "kop": "Afleidingsregel", "regels": ["invorderbaar zes weken na de", "dagtekening van het", "aanslagbiljet"]},
+          {"id": "379bc7e16ded465b895586eedddb2e3f", "x": 900.1, "y": 0, "b": 119.96, "h": 30, "kop": "Tijdsaanduiding", "regels": ["zes weken"]},
+          {"id": "a362df5f5bef", "x": 900.1, "y": 40, "b": 119.96, "h": 30, "kop": "Operator", "regels": ["na"]},
+          {"id": "d46ea984bf1d", "x": 900.1, "y": 80, "b": 119.96, "h": 39, "kop": "Tijdsaanduiding", "regels": ["de dagtekening van het", "aanslagbiljet"]},
+          {"id": "055a7e165515", "x": 180.02, "y": 153, "b": 119.96, "h": 39, "kop": "Tijdsaanduiding", "regels": ["zes weken na de dagtekening", "van het aanslagbiljet"]}
+        ]
+      },
+      "lijnen": [
+        {"relatie_id": "R815ac01935b74cef", "van": "d46ea984bf1d", "naar": "8263fa226caa491988a08721285d4106", "code": "invoer", "lifecycle": "human_approved", "label": ["is invoer van (1)"], "x1": 900.1, "y1": 86.17, "x2": 840.04, "y2": 72.83, "lx": 870.07, "ly": 79.5, "lb": 46.22, "lh": 9},
+        {"relatie_id": "R389f61c92831a82c", "van": "379bc7e16ded465b895586eedddb2e3f", "naar": "8263fa226caa491988a08721285d4106", "code": "invoer", "lifecycle": "human_approved", "label": ["is invoer van (2)"], "x1": 900.1, "y1": 29.83, "x2": 840.04, "y2": 44.67, "lx": 870.07, "ly": 37.25, "lb": 46.59, "lh": 9},
+        {"relatie_id": "R59d127e85b1ae045", "van": "5bdea17d31534e0994a895a1376b2f49", "naar": "223ac94d9c58", "code": "kenmerk", "lifecycle": "human_approved", "label": ["is kenmerk van"], "x1": 540.06, "y1": 59.5, "x2": 480, "y2": 59.5, "lx": 510.03, "ly": 59.5, "lb": 44.96, "lh": 9},
+        {"relatie_id": "Rf05b7f561d2b5f6f", "van": "a362df5f5bef", "naar": "8263fa226caa491988a08721285d4106", "code": "operator_in", "lifecycle": "human_approved", "label": ["is operator in"], "x1": 900.1, "y1": 56.5, "x2": 840.04, "y2": 58, "lx": 870.07, "ly": 57.25, "lb": 40.33, "lh": 9},
+        {"relatie_id": "Rd052f8bcab4452c5", "van": "I45f83f76a2ea4913", "naar": "473c19a14797", "code": "plichthebbende", "lifecycle": "human_approved", "label": ["is plichthebbende", "van"], "x1": 119.96, "y1": 46.16, "x2": 180.02, "y2": 52.84, "lx": 149.99, "ly": 49.5, "lb": 52.06, "lh": 16.5},
+        {"relatie_id": "R229274641127d160", "van": "Ibdcdf4fb8ac14c7d", "naar": "473c19a14797", "code": "rechthebbende", "lifecycle": "human_approved", "label": ["is rechthebbende", "van"], "x1": 119.96, "y1": 72.84, "x2": 180.02, "y2": 66.16, "lx": 149.99, "ly": 69.5, "lb": 50.57, "lh": 16.5},
+        {"relatie_id": "R63f1304f3b4238f9", "van": "473c19a14797", "naar": "055a7e165515", "code": "tijd", "lifecycle": "human_approved", "label": ["heeft als", "tijdsaanduiding"], "x1": 240, "y1": 88, "x2": 240, "y2": 153, "lx": 240, "ly": 120.5, "lb": 46.88, "lh": 16.5},
+        {"relatie_id": "Rad2633e896a8ac99", "van": "8263fa226caa491988a08721285d4106", "naar": "5bdea17d31534e0994a895a1376b2f49", "code": "uitvoer", "lifecycle": "human_approved", "label": ["levert op"], "x1": 720.08, "y1": 59.5, "x2": 660.02, "y2": 59.5, "lx": 690.05, "ly": 59.5, "lb": 27.76, "lh": 9},
+        {"relatie_id": "Rc7b1492915b923d0", "van": "473c19a14797", "naar": "223ac94d9c58", "code": "voorwerp", "lifecycle": "human_approved", "label": ["heeft als", "voorwerp"], "x1": 299.98, "y1": 59.5, "x2": 360.04, "y2": 59.5, "lx": 330.01, "ly": 59.5, "lb": 29.27, "lh": 16.5}
+      ],
+      "ontbreekt_rollen": []
+    }
+  ]
+}

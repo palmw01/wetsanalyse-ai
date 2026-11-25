@@ -164,16 +164,16 @@ export function Graaf({ stand, zichtbaar, groot, onGroot, kopActie, onOnderwerp,
   // bepalingen: de tekst van een heel hoofdstuk of een regeling past niet in een inspector.
   const tekstBron = !gekozen || !gekozenData ? null : gekozenData.soort === "markering" ? ankerVan(model, gekozen) ?? null
     : ["artikel", "lid", "onderdeel"].includes(gekozenData.soort) ? gekozen : null;
-  const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache, stand.detailVersie);
+  const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache, stand.detailVersie, stand.bron);
   // Wat de kennisgraaf over een bronknoop weet; een markering of klasse staat niet in de BWB-graaf,
   // een niet-geïmporteerde bepaling evenmin.
   const info = useKnoopInfo(gekozen && gekozenData && !["markering", "klasse", "extern", "begrip"].includes(gekozenData.soort) ? gekozen : null,
-    stand.infoCache);
+    stand.infoCache, stand.bron);
   const bekendeElementen = useMemo(() => [...(weergave?.elementen ?? []), ...(detail && typeof detail === "object" ? detail.elementen : [])],
     [weergave, detail]);
   // Zolang de tekst van het anker laadt, wachten: het element zit er meestal in.
   const element = useMarkeringElement(gekozenData?.soort === "markering" ? gekozenData.element_id || undefined : undefined, bekendeElementen,
-    detail === "laden");
+    detail === "laden", stand.bron);
 
   /** Kiezen, of met `null` de keuze opheffen. Via zoeken of de inspector vliegt de camera mee; in de
    *  graaf zelf niet – daar staat de knoop al onder je muis. Een knoop die een laag verbergt, zet die

@@ -67,13 +67,18 @@ const afstand = (a: Punt, b: Punt): number => Math.hypot(a.x - b.x, a.y - b.y);
 /** De bediening van één tekening. `alles` is de hele tekening; verandert die (een nieuwe tekening), dan staat weer alles
  *  in beeld. Geeft het beeld voor de `viewBox`, de handlers voor het element, en `zoom`/`pasIn` voor de knoppen
  *  (`GraafBeeld`). Het element krijgt `touch-none`: de gebaren zijn van de tekening, niet van de pagina. */
-export function useBeeld(tekening: Beeld, element: RefObject<Element | null>) {
+export function useBeeld(tekening: Beeld, element: RefObject<Element | null>,
+  /** Waar het beeld begint en waar *terug* heen gaat, als dat niet de hele tekening is: een tekening die in de ruimte
+   *  onleesbaar klein zou worden, begint op een leesbare schaal (`leesbaarBegin` in `lib/diagram2c.ts`). */
+  start?: Beeld) {
   const sleutel = `${tekening.x}:${tekening.y}:${tekening.b}x${tekening.h}`;
   // Op de maten, niet op het object: een tekening is elke render een nieuw object.
   const alles = useMemo(() => tekening, [sleutel]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [beeld, setBeeld] = useState<Beeld>(alles);
+  const beginSleutel = start ? `${start.x}:${start.y}:${start.b}x${start.h}` : sleutel;
+  const begin = useMemo(() => start ?? alles, [beginSleutel, alles]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [beeld, setBeeld] = useState<Beeld>(begin);
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setBeeld(alles), [alles]);
+  useEffect(() => setBeeld(begin), [begin]);
   const huidig = useRef(beeld);
   useEffect(() => { huidig.current = beeld; }, [beeld]);
   const wijzers = useRef(new Map<number, Punt>());
@@ -84,7 +89,7 @@ export function useBeeld(tekening: Beeld, element: RefObject<Element | null>) {
   const vak = (): Vak => element.current?.getBoundingClientRect() ?? { left: 0, top: 0, width: 1, height: 1 };
   const zoom = useCallback((factor: number, rond?: Punt) => setBeeld((v) => zoomRond(v, factor, alles, rond)),
     [alles]);
-  const pasIn = useCallback(() => setBeeld(alles), [alles]);
+  const pasIn = useCallback(() => setBeeld(begin), [begin]);
 
   // Het muiswiel zoomt rond de cursor. Een eigen luisteraar, niet `onWheel`: React registreert die passief, en dan scrolt
   // de pagina mee.

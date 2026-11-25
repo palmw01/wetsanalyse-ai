@@ -5,11 +5,11 @@ import type { CameraState } from "sigma/types";
 import { foutTekst } from "@/lib/api";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import type { Posities } from "@/lib/graaf/layout";
-import { haalKennisgraaf } from "@/lib/graaf/data";
+import { apiGraafBron, type GraafDataBron } from "@/lib/graaf/databron";
 import { bouwModel, type GraafBron, type GraafModel, type KennisgraafAntwoord } from "@/lib/graaf/model";
 import { layoutVoor } from "@/lib/graaf/rekenaar";
 import { STANDAARD_LAGEN, type Lagen } from "@/lib/graaf/weergave";
-import { haalKeten, haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
+import type { MarkeringFilter, Samenhang } from "@/lib/samenhang";
 import type { GraafBediening } from "./GraafTekenaar";
 import type { DetailCache, InfoCache } from "./useKnoopDetail";
 
@@ -59,7 +59,10 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
   /** Knopen en relaties die niet uit de graaf komen maar erbij horen: de begrippen van een werkgebied
    *  (tab Samenhang, fase F3). Een nieuwe toevoeging bouwt het model opnieuw; de wettekst blijft liggen
    *  en de begrippen worden afgeleid geplaatst, dus er wordt niets gerekend. Stabiel houden (memo). */
-  toevoeging?: GraafBron) {
+  toevoeging?: GraafBron,
+  /** Waar de gegevens vandaan komen; standaard de api. De rondleiding geeft een bron in het geheugen mee. Stabiel
+   *  houden: een nieuwe bron laadt opnieuw. */
+  bron: GraafDataBron = apiGraafBron) {
   // Een nieuwe array met dezelfde doelen mag niet opnieuw laden: vergelijk op de bron-IRI's.
   const extraSleutel = extra.map((d) => d.bron_iri).join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,9 +118,9 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       // per regeling). Een doel dat niet laadt is een melding, geen fout voor het geheel – behalve het
       // doel van het paneel zelf.
       const { resultaten, fouten: nietGelukt } = opties.keten
-        ? { resultaten: [await haalKeten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined)], fouten: [] }
-        : extraDoelen.length ? await haalSamenhangen([doel, ...extraDoelen])
-          : { resultaten: [await haalSamenhang(doel)], fouten: [] };
+        ? { resultaten: [await bron.keten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined)], fouten: [] }
+        : extraDoelen.length ? await bron.samenhangen([doel, ...extraDoelen])
+          : { resultaten: [await bron.samenhang(doel)], fouten: [] };
       const eigen = nietGelukt.find((f) => f.bron_iri === doel.bron_iri);
       if (eigen || !resultaten.length) {
         setFouten((f) => ({ ...f, samenhang: eigen?.reden ?? "De samenhang is niet geladen." }));
@@ -127,7 +130,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setBronnen(resultaten.filter((d, i) => resultaten.findIndex((x) => x.artikel_iri === d.artikel_iri) === i));
       bijTot(ronde);
     } catch (e) { setFouten((f) => ({ ...f, samenhang: foutTekst(e, "De samenhang is niet geladen.") })); }
-  }, [doel, extraDoelen, bijTot, opties.keten, opties.werkgebiedId]);
+  }, [doel, extraDoelen, bijTot, opties.keten, opties.werkgebiedId, bron]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
     if (actief) void laad();
@@ -138,9 +141,9 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
   const laadKennisgraaf = useCallback(async () => {
     setFouten((f) => ({ ...f, kennisgraaf: undefined }));
     setLaadfase({ fase: "ophalen" });
-    try { setKennisgraaf(await haalKennisgraaf()); }
+    try { setKennisgraaf(await bron.kennisgraaf()); }
     catch (e) { setFouten((f) => ({ ...f, kennisgraaf: foutTekst(e, "De kennisgraaf is niet geladen.") })); }
-  }, []);
+  }, [bron]);
   const kennisgraafGevraagd = useRef(!!opties.kennisgraaf);
   useEffect(() => {
     if (!actief || bereik !== "kennisgraaf" || kennisgraafGevraagd.current) return;
@@ -215,9 +218,9 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setDetailVersie((v) => v + 1);
       try {
         const [{ resultaten }, nieuweKetting, kg] = await Promise.all([
-          doelen.length ? haalSamenhangen(doelen) : Promise.resolve({ resultaten: [] as Samenhang[] }),
-          ketting ? haalKeten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined) : Promise.resolve(undefined),
-          metKennisgraaf ? haalKennisgraaf() : Promise.resolve(undefined),
+          doelen.length ? bron.samenhangen(doelen) : Promise.resolve({ resultaten: [] as Samenhang[] }),
+          ketting ? bron.keten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined) : Promise.resolve(undefined),
+          metKennisgraaf ? bron.kennisgraaf() : Promise.resolve(undefined),
         ]);
         if (!levend.current) return;
         setBronnen((oud) => oud?.map((d) => (d.keten ? nieuweKetting ?? d : resultaten.find((n) => n.artikel_iri === d.artikel_iri) ?? d)));
@@ -231,20 +234,20 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
         if (levend.current) bijTot(ronde);
       }
     })();
-  }, [zichtbaar, gevraagd, gedaan, bronnen, kennisgraaf, bijTot, doel, extraDoelen, opties.werkgebiedId]);
+  }, [zichtbaar, gevraagd, gedaan, bronnen, kennisgraaf, bijTot, doel, extraDoelen, opties.werkgebiedId, bron]);
 
   /** Een bepaling buiten wat geladen is erbij laden, als eigen deel. De kaart blijft liggen; alleen
    *  het nieuwe wordt geplaatst. */
   const laadErbij = useCallback(async (id: string) => {
     setLaadtBij(id);
     try {
-      const nieuw = await haalSamenhang({ bron_iri: id });
+      const nieuw = await bron.samenhang({ bron_iri: id });
       // De ketting telt niet als geladen: zij toont het artikel juist niet helemaal.
       setBronnen((oud) => (oud?.some((d) => !d.keten && d.artikel_iri === nieuw.artikel_iri) ? oud : [...(oud ?? []), nieuw]));
       setMelding("");
     } catch (e) { setMelding(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
     finally { setLaadtBij(""); }
-  }, []);
+  }, [bron]);
 
   // De fout die in dit bereik het tekenen tegenhoudt, met de handeling die hem herstelt.
   const herberekenLayout = useCallback(() => setLayoutPoging((n) => n + 1), []);
@@ -264,6 +267,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     selectie, setSelectie,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
     aangeraakt, setAangeraakt, camera, bediening, detailCache, infoCache, detailVersie,
+    /** Dezelfde bron voor de inspector (`useKnoopDetail`). */
+    bron,
   };
 }
 export type GraafStand = ReturnType<typeof useGraafStand>;

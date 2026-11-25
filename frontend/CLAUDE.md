@@ -171,7 +171,9 @@ stand komt uit `lib/herkomst.ts`.
   De bediening is die van de graaf, uit één hook (`lib/useBeeld.ts`, voor elke SVG-tekening die je verschuift): het
   muiswiel zoomt rond de cursor, slepen verschuift, twee vingers knijpen en verschuiven tegelijk (op mobiel), rechtsonder
   `GraafBeeld` (*Alles in beeld*, inzoomen, uitzoomen). Een nieuwe tekening die je kunt verschuiven, gebruikt die hook en
-  geen eigen wijzercode: de graaf (sigma) knijpt, dus een eigen bediening die dat vergeet, verschilt op mobiel; geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Een
+  geen eigen wijzercode: de graaf (sigma) knijpt, dus een eigen bediening die dat vergeet, verschilt op mobiel; geen scrollbalken, het venster heeft de verhouding van de tekening (hoogstens 60vh). Zou de hele tekening in de breedte
+  onleesbaar klein worden, dan begint het beeld op leesbare schaal (`leesbaarBegin`, `LEESBARE_SCHAAL` in `lib/diagram2c.ts`)
+  rond de centrale formulering, en gaat *terug* daarheen; *Groot bekijken* toont alles. Een
   klik zonder slepen kiest nog steeds. Smaller dan 56rem staat de keuze onder het diagram in één doorlopende
   scroll (`TekstEnLijst smal="doorlopend"`), niet in twee vensters van 45/55. Het diagram volgt de weergave: elke nieuwe
   revisie van een laag (besluit, markering, relatie, heropenen) haalt het opnieuw op bij de api.
@@ -2383,13 +2385,26 @@ leest als "hij laadt", niet als "log eerst in".
   een handeling vraagt (`interactie`) laat het aangewezen element bedienen en wacht erop – geen timer
   die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
   Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`
-  loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` is een v2-weergave met letterlijke
-  wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
-  Invorderingswet 1990 met de vier markeringen van de echte annotatie op acceptatie (Rechtsfeit over de
-  hele zin, dus overlappend zoals bij echt werk), en één bewuste afwijking: Rechtsfeit staat op *Keuze voor
-  jou*, zodat de badge-stap iets aanwijst. Werkgebieden en begrippen hebben (nog) geen eigen stap; de stap *Je werk terugvinden* en het slot noemen de zijbalk in de volgorde Werkgebieden, Annotaties, Begrippen (de volgorde van de navigatie, besluit gebruiker 21 okt 2026). Hij staat in **hetzelfde
+  loopt hem door (alle twaalf stappen op 1440, 768 en 390 px; `RONDLEIDING_SCREENSHOT=<map>` legt ze vast). **Versie 4
+  (25 nov 2026) gaat alleen over annoteren**, in twaalf stappen: oriëntatie (Lex, gesprek en zijbalk met alleen
+  *Annotaties*), opdracht (vragen om een annotatie, Lex werkt), beoordelen (openen, wettekst, beoordelen, jij beslist,
+  zelf markeren), samenhang (*Diagram* en *Graaf*, vóór het afronden) en afronden. Werkgebieden, begrippen en
+  afleidingsregels krijgen later een eigen deel. To the point (besluit gebruiker 25 nov 2026): per stap hoogstens twee
+  korte zinnen, geen motivatie (`rondleiding.test.ts`). De bubbel (`TourBubbel`) heeft de vorm van een venster in de app:
+  de fase en de stap klein boven de titel, `SluitKnop`, de tekst, en een voet met `Meter` en knoppen uit `knopKlasse`; het
+  welkomst- en slotvenster gebruiken de kop van `Dialog` en `ButtonRow`.
+  Een stap kiest de tab van het paneel (`Stap.tab`, `paneelTab`): de motor geeft hem via `WorkbenchShell` en
+  `WerkplekClient` als `gevraagdeTab` aan `NodeAnnotatiePaneel`. De voorbeeldscène in `lib/rondleidingDemo.ts` is een
+  v2-weergave met letterlijke wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
+  Invorderingswet 1990 met de markeringen, relaties en impliciete partijen van de annotatie op acceptatie (25 nov 2026,
+  zonder wat daar verworpen is). Twee bewuste afwijkingen: de zes voorstellen van Lex staan open, en de Rechtsbetrekking
+  staat op *Keuze voor jou* met Rechtsfeit als alternatief. Het diagram komt uit `rondleidingDemo.diagram.json` (de
+  plaatsing van de api, met de stand van de weergave van nu), de graaf uit een vaste uitsnede rond artikel 9
+  (`rondleidingDemo.graaf.json`: structuur en verwijzingen, iri's onder `demo:`) plus de markeringen en relaties van de
+  weergave. Hij staat in **hetzelfde
   `NodeAnnotatiePaneel` als echt werk**, via de prop `opslag` (`NodeOpslag` in `lib/annotatieNode.ts`;
-  standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt en niets
+  standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt, `diagrammen` levert en een eigen
+  graafbron (`NodeOpslag.graaf`, een `GraafDataBron` uit `lib/graaf/databron.ts`; standaard `apiGraafBron`) en niets
   verstuurt. Zo kan de rondleiding niet meer achterlopen op het paneel; een eigen documentvorm in een
   eigen paneel deed dat wel. Het type
   `ThreadItem` staat daarom in `lib/threadItem.ts`, zodat `lib/` geen component hoeft te importeren.

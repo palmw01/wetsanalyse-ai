@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import { haalElement, type NodeElement, type NodeSegment, type NodeWeergave } from "@/lib/annotatieNode";
+import type { NodeElement, NodeSegment, NodeWeergave } from "@/lib/annotatieNode";
 import { hoortBijWeergave } from "@/lib/graaf/bediening";
-import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
+import { apiGraafBron, type GraafDataBron } from "@/lib/graaf/databron";
+import type { KnoopInfo } from "@/lib/graaf/knoopinfo";
 import { segmentenVan } from "@/lib/graaf/spans";
-import { haalBepalingWeergave } from "@/lib/useBron";
 
 /** De wettekst van een bronknoop met de markeringen die erop liggen. */
 export interface KnoopDetail { segmenten: NodeSegment[]; elementen: NodeElement[] }
@@ -19,14 +19,15 @@ export type InfoCache = Map<string, Promise<KnoopInfo>>;
 
 /** Wat de kennisgraaf over een knoop weet, voor het blok "Uit de kennisgraaf". `null` = niets te
  *  vragen (geen keuze, of een markering of klasse: die staan niet in de BWB-graaf). */
-export function useKnoopInfo(iri: string | null, cache: RefObject<InfoCache>): KnoopInfo | "laden" | "fout" | null {
+export function useKnoopInfo(iri: string | null, cache: RefObject<InfoCache>,
+  bron: GraafDataBron = apiGraafBron): KnoopInfo | "laden" | "fout" | null {
   const [geladen, setGeladen] = useState<{ iri: string; info: KnoopInfo | "fout" }>();
   useEffect(() => {
     if (!iri) return;
     let weg = false;
     let verzoek = cache.current.get(iri);
     if (!verzoek) {
-      verzoek = haalKnoopInfo(iri);
+      verzoek = bron.knoopInfo(iri);
       cache.current.set(iri, verzoek);
       verzoek.catch(() => cache.current.delete(iri));
     }
@@ -35,7 +36,7 @@ export function useKnoopInfo(iri: string | null, cache: RefObject<InfoCache>): K
       () => { if (!weg) setGeladen({ iri, info: "fout" }); },
     );
     return () => { weg = true; };
-  }, [iri, cache]);
+  }, [iri, cache, bron]);
   if (!iri) return null;
   return geladen?.iri === iri ? geladen.info : "laden";
 }
@@ -45,7 +46,7 @@ export function useKnoopInfo(iri: string | null, cache: RefObject<InfoCache>): K
  *  (`api/app/graaf.py`) – één keer via de weergave van die bepaling. `null` = geen bepaling. */
 export function useKnoopDetail(bron: string | null, eigen: NodeWeergave | undefined, cache: RefObject<DetailCache>,
   /** Verandert na een annotatiewijziging: dan opnieuw ophalen. */
-  versie = 0): DetailStand {
+  versie = 0, gegevens: GraafDataBron = apiGraafBron): DetailStand {
   const uitEigen = useMemo<KnoopDetail | null>(() => {
     // Alleen als de weergave van het paneel deze bron helemaal draagt: bij een lid-paneel is het
     // artikel erboven maar voor een deel in beeld, en dan was "de tekst van artikel 9" alleen lid 2.
@@ -59,7 +60,7 @@ export function useKnoopDetail(bron: string | null, eigen: NodeWeergave | undefi
     let weg = false;
     let verzoek = cache.current.get(bron);
     if (!verzoek) {
-      verzoek = haalBepalingWeergave(bron);
+      verzoek = gegevens.bepaling(bron);
       cache.current.set(bron, verzoek);
       // Een mislukte poging blijft niet hangen: de volgende keuze probeert het opnieuw.
       verzoek.catch(() => cache.current.delete(bron));
@@ -69,7 +70,7 @@ export function useKnoopDetail(bron: string | null, eigen: NodeWeergave | undefi
       () => { if (!weg) setGeladen({ bron, detail: "fout" }); },
     );
     return () => { weg = true; };
-  }, [bron, uitEigen, cache, versie]);
+  }, [bron, uitEigen, cache, versie, gegevens]);
   if (!bron) return null;
   if (uitEigen) return uitEigen;
   return geladen?.bron === bron ? geladen.detail : "laden";
@@ -79,18 +80,18 @@ export function useKnoopDetail(bron: string | null, eigen: NodeWeergave | undefi
  *  opgehaalde tekst), anders meteen ophalen – niet pas als je de Waarom-uitklap opent. */
 export function useMarkeringElement(elementId: string | undefined, bekend: readonly NodeElement[],
   /** De tekst waar het element meestal in zit, laadt nog: nog niet apart ophalen. */
-  wacht = false): NodeElement | "laden" | "fout" | undefined {
+  wacht = false, bron: GraafDataBron = apiGraafBron): NodeElement | "laden" | "fout" | undefined {
   const uitBekend = elementId ? bekend.find((e) => e.id === elementId) : undefined;
   const [geladen, setGeladen] = useState<{ id: string; el: NodeElement | "fout" }>();
   useEffect(() => {
     if (!elementId || uitBekend || wacht) return;
     let weg = false;
-    haalElement(elementId).then(
+    bron.element(elementId).then(
       (el) => { if (!weg) setGeladen({ id: elementId, el }); },
       () => { if (!weg) setGeladen({ id: elementId, el: "fout" }); },
     );
     return () => { weg = true; };
-  }, [elementId, uitBekend, wacht]);
+  }, [elementId, uitBekend, wacht, bron]);
   if (!elementId) return undefined;
   if (uitBekend) return uitBekend;
   return geladen?.id === elementId ? geladen.el : "laden";

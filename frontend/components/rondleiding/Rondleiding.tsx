@@ -7,11 +7,12 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { BeslissingType } from "@/lib/types";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  artefactActie, domineert, heeftOmvang, hervatIndex, indexVan, leesStand, RONDLEIDING_VERSIE,
-  schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type Stap,
+  artefactActie, domineert, paneelTab, heeftOmvang, hervatIndex, indexVan, leesStand, RONDLEIDING_VERSIE,
+  schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type PaneelTabStap, type Stap,
 } from "@/lib/rondleiding";
 import { BREED } from "@/lib/useBreedScherm";
 import { knopKlasse } from "@/components/ui/Button";
+import { ButtonRow } from "@/components/ui/ButtonRow";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
 const THUIS = "/workbench";
@@ -48,6 +49,8 @@ interface Props {
   /** Het voorbeeldartefact sluiten. Nodig bij teruglopen: de stappen vóór de review wijzen naar de
    *  thread, en met het paneel ervoor is daar niets van te zien. */
   onSluitArtefact: () => void;
+  /** De tab die het voorbeeldpaneel bij deze stap toont (Tekst, Diagram of Graaf); `undefined` zonder paneel. */
+  onTab?: (tab: PaneelTabStap | undefined) => void;
   /** De rondleiding is voorbij: demo opruimen en de gewone werkplek terugzetten. */
   onKlaar: () => void;
   /** De gebruiker heeft hem afgehandeld, door afronden of wegklikken: hij biedt zich niet meer vanzelf aan. */
@@ -67,7 +70,7 @@ interface Props {
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
 export function Rondleiding({
-  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, onAfgehandeld, knopZichtbaar, onKnop,
+  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onTab, onKlaar, onAfgehandeld, knopZichtbaar, onKnop,
   beslissingen, laatsteBeslissing, onAchtergrondSlot,
 }: Props) {
   const stappen = zichtbareStappen(isBeheerder);
@@ -248,10 +251,11 @@ export function Rondleiding({
       const actie = artefactActie(artefactOpen, doelStap);
       if (actie === "openen") onOpenArtefact();
       else if (actie === "sluiten") onSluitArtefact();
+      onTab?.(paneelTab(doelStap));
       setIndex(Math.max(0, nieuw));
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: doelStap?.id });
     },
-    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact, sluit],
+    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact, onTab, sluit],
   );
 
   // De stap "De annotatie openen" vraagt de gebruiker de kaart zelf aan te klikken. Gaat het paneel
@@ -301,36 +305,24 @@ export function Rondleiding({
 
   if (fase === "welkom") {
     return (
-      <Dialog label="Welkom in de werkplek" variant="compact" onSluit={() => sluit(false)}>
-        <div className="p-6">
-          <p className="font-display text-lg font-semibold text-lint">Welkom in de werkplek</p>
-          <p className="mt-3 text-sm leading-6 text-ink">
-            Hier laat je wetsartikelen duiden volgens het JAS. Ik loop met je langs de werkstroom, van
-            vraag tot beoordeelde annotatie. Je hoeft niets in te vullen: ik gebruik een voorbeeld.
-            In {stappen.length} stappen, ongeveer drie minuten.
+      <Dialog label="Rondleiding door de werkplek" variant="compact" onSluit={() => sluit(false)}
+        kop={{ soort: "Rondleiding", titel: "Welkom in de werkplek", sluitLabel: "Rondleiding afsluiten" }}>
+        <div className="space-y-3 px-5 py-4 text-sm leading-6 text-ink">
+          <p>
+            In {stappen.length} korte stappen zie je hoe je een bepaling laat annoteren en de voorstellen van Lex
+            beoordeelt. Je werkt met een voorbeeld; er gaat niets naar Lex.
           </p>
           {hervatBij !== null && (
-            <p className="mt-3 text-sm leading-6 text-ink">
-              Je was de vorige keer gebleven bij stap {hervatBij + 1}: {stappen[hervatBij].titel}.
-            </p>
+            <p>Je was gebleven bij stap {hervatBij + 1}: {stappen[hervatBij].titel}.</p>
           )}
-          <p className="mt-3 text-meta leading-5 text-muted">
-            Let op: dit is een testomgeving. Analyses kunnen verloren gaan.
-          </p>
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => sluit(false)}
-              className="focus-ring min-h-[40px] rounded-knop border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
-            >
+        </div>
+        <div className="border-t border-line px-5 py-3">
+          <ButtonRow>
+            <button type="button" onClick={() => sluit(false)} className={knopKlasse("ghost", "md")}>
               Nu even niet
             </button>
             {hervatBij !== null && (
-              <button
-                type="button"
-                onClick={() => begin(0)}
-                className="focus-ring min-h-[40px] rounded-knop border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
-              >
+              <button type="button" onClick={() => begin(0)} className={knopKlasse("secondary", "md")}>
                 Opnieuw beginnen
               </button>
             )}
@@ -341,7 +333,7 @@ export function Rondleiding({
             >
               {hervatBij !== null ? `Verder bij stap ${hervatBij + 1}` : "Start de rondleiding"}
             </button>
-          </div>
+          </ButtonRow>
         </div>
       </Dialog>
     );
@@ -349,25 +341,18 @@ export function Rondleiding({
 
   if (fase === "slot") {
     return (
-      <Dialog label="Rondleiding afgerond" variant="compact" onSluit={onKlaar}>
-        <div className="p-6">
-          <p className="font-display text-lg font-semibold text-lint">Dat is de werkstroom</p>
-          <p className="mt-3 text-sm leading-6 text-ink">
-            Vraag of opdracht typen → Lex haalt de bepaling op en stelt markeringen voor → jij
-            beoordeelt → afronden en exporteren.
+      <Dialog label="Rondleiding afgerond" variant="compact" onSluit={onKlaar}
+        kop={{ soort: "Rondleiding", titel: "Klaar om te beginnen" }}>
+        <div className="space-y-3 px-5 py-4 text-sm leading-6 text-ink">
+          <p>
+            Vraag om een annotatie, beoordeel de voorstellen, bekijk de samenhang en rond af. Je annotaties staan in de
+            zijbalk onder <span className="font-medium">Annotaties</span>.
           </p>
-          <p className="mt-3 text-meta leading-5 text-muted">
-            Je werk vind je terug in de zijbalk: <span className="font-medium text-ink">Werkgebieden</span>,{" "}
-            <span className="font-medium text-ink">Annotaties</span> en{" "}
-            <span className="font-medium text-ink">Begrippen</span>. Deze rondleiding start je opnieuw via je
-            naam linksonder.
-            {isBeheerder && (
-              <> Daar vind je als beheerder ook <span className="font-medium text-ink">Beheer</span>,
-              voor de modellen en de gebruikers.</>
-            )}
+          <p className="text-meta text-muted">
+            De rondleiding start je opnieuw via je naam linksonder, onder Instellingen.
           </p>
           {/* Jouw keuze en niet iets dat vanzelf gebeurt; terugdraaien kan in de instellingen, tab Rondleiding. */}
-          <label className="mt-4 flex items-start gap-2 text-meta leading-5 text-ink">
+          <label className="flex items-start gap-2 text-meta leading-5 text-ink">
             <input
               type="checkbox"
               className="mt-0.5 h-4 w-4 shrink-0 accent-lint"
@@ -376,15 +361,13 @@ export function Rondleiding({
             />
             Toon de knop op het startscherm niet meer
           </label>
-          <div className="mt-5 flex justify-end">
-            <button
-              type="button"
-              onClick={onKlaar}
-              className={knopKlasse("primary", "md")}
-            >
+        </div>
+        <div className="border-t border-line px-5 py-3">
+          <ButtonRow>
+            <button type="button" onClick={onKlaar} className={knopKlasse("primary", "md")}>
               Aan de slag
             </button>
-          </div>
+          </ButtonRow>
         </div>
       </Dialog>
     );

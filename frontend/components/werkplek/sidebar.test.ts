@@ -49,8 +49,8 @@ describe("AppSidebar is op elk scherm bereikbaar", () => {
 
 describe("de navigatie in de zijbalk", () => {
   it("staat in de volgorde waarin je werkt: Werkgebieden, Annotaties, Begrippen, Afleidingsregels", () => {
-    // Besluit gebruiker 21 okt 2026; de rondleiding (`lib/rondleiding.ts`, stap "sidebar") noemt dezelfde volgorde. De
-    // afleidingsregels (activiteit 3b) volgen op de begrippen (verzoek gebruiker 19 nov 2026).
+    // Besluit gebruiker 21 okt 2026. De afleidingsregels (activiteit 3b) volgen op de begrippen (verzoek gebruiker 19 nov
+    // 2026). De rondleiding noemt sinds versie 4 alleen Annotaties (ze gaat over annoteren), dus geen volgorde meer.
     const bron = readFileSync(join(__dirname, "GesprekSidebar.tsx"), "utf8");
     const plek = (href: string) => bron.indexOf(`href: "${href}"`);
     expect(plek("/werkgebieden")).toBeGreaterThan(-1);
@@ -59,8 +59,5 @@ describe("de navigatie in de zijbalk", () => {
     expect(plek("/begrippen")).toBeLessThan(plek("/afleidingsregels"));
     // Eén vorm voor elk item: geen losse link naast de lijst.
     expect(bron).not.toMatch(/href="\/(werkgebieden|annotaties|begrippen|afleidingsregels)"/);
-    const rondleiding = readFileSync(join(__dirname, "..", "..", "lib", "rondleiding.ts"), "utf8");
-    const tekst = (w: string) => rondleiding.indexOf(`${w} (`);
-    expect(tekst("Werkgebieden")).toBeLessThan(tekst("Annotaties"));
   });
 });

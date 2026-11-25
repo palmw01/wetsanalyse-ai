@@ -1,7 +1,7 @@
 "use client";
 
 import { aantal } from "@/lib/aantal";
-import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
+import { NodeAnnotatiePaneel, type PaneelTab } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { bronDoel } from "@/lib/samenhang";
 import { vindplaatsTekst } from "@/lib/herkomst";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
@@ -118,6 +118,8 @@ interface Props {
    *  een stap die het paneel niet nodig heeft: die stappen wijzen naar de thread, en met het paneel
    *  ervoor is daar niets van te zien. */
   demoSluitSignaal?: number;
+  /** De tab die de rondleiding in het voorbeeldpaneel aanwijst (Tekst, Diagram of Graaf). */
+  demoTab?: PaneelTab;
   /** De eigen verbruiksstand: bij een vol budget gaat de invoer dicht. `null` = onbekend, en dan
    *  blijft alles gewoon werken – een meter die niet laadt mag het werk niet stilleggen. */
   verbruik?: Verbruiksstand | null;
@@ -148,7 +150,7 @@ interface Props {
 
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
-  onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
+  onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, demoTab, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied, onGesprekGeladen, bronnenSignaal = 0,
   beginOnderwerp = null,
   beginInvoer = null,
@@ -1027,15 +1029,16 @@ export function WerkplekClient({
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
     // *Open in het paneel* in de graaf: de andere bepaling als eigen tab, op de graaf, met dezelfde samenhang (ontdubbelen
     // PR 3) – niet deze tab overschrijven.
-    onWisselDoel={(nieuw, graaf) => openContext({ soort: "bron", bron_iri: nieuw.bron_iri, titel: vindplaatsTekst({ iri: nieuw.bron_iri, label: "" }),
+    onWisselDoel={demo ? undefined : (nieuw, graaf) => openContext({ soort: "bron", bron_iri: nieuw.bron_iri, titel: vindplaatsTekst({ iri: nieuw.bron_iri, label: "" }),
       weergave: "graaf", samenhang: { extra: [nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri),
         graaf: { ...nodeGraaf, ...graaf }, van: "antwoord" } }, "het paneel")}
     variant={paneelVariant} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
     reeks={nodeReeksNav}
-    // De rondleiding draait op een voorbeeld in het geheugen, met het invoerveld stil: daar is geen
-    // vraag te stellen, en de graaf heeft niets om te tonen.
+    // De rondleiding draait op een voorbeeld in het geheugen (weergave, diagram en een uitsnede van de graaf), met het
+    // invoerveld stil: daar is geen vraag te stellen, en er gaat geen verzoek naar de api.
     opslag={demo?.opslag}
     onBeslist={demo ? onDemoBeslissing : undefined}
+    gevraagdeTab={demo ? demoTab : undefined}
     /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
       key={`${artefactSleutel(wgArtefact)}:${wgLading}`}

@@ -7,12 +7,21 @@
 //
 // De teksten staan hier óók, en dat is opzet. Ze vormen samen één verhaal (van oriëntatie naar een
 // afgeronde annotatie) en dat verhaal lees je alleen als de zinnen bij elkaar staan, niet verspreid
-// over veertien componenten.
+// over een tiental componenten.
 
-export const RONDLEIDING_VERSIE = 3;
+export const RONDLEIDING_VERSIE = 4;
 
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
-export type Fase = "orientatie" | "opdracht" | "beoordelen" | "afronding";
+export type Fase = "orientatie" | "opdracht" | "beoordelen" | "samenhang" | "afronding";
+
+/** De naam van een fase, klein boven de titel van de bubbel ("Beoordelen · 7 van 12"), zoals de soort boven een paneel. */
+export const FASE_LABEL: Record<Fase, string> = {
+  orientatie: "Oriëntatie", opdracht: "Opdracht", beoordelen: "Beoordelen", samenhang: "Samenhang", afronding: "Afronding",
+};
+
+/** De tab van het annotatiepaneel die een stap toont. Gelijk aan `PaneelTab` in `NodeAnnotatiePaneel`; hier herhaald
+ *  zodat deze module zonder component te importeren blijft. */
+export type PaneelTabStap = "tekst" | "diagram" | "graaf";
 
 export interface Stap {
   id: string;
@@ -22,11 +31,11 @@ export interface Stap {
   ankerSmal?: string;
   titel: string;
   tekst: string;
-  /** Waaróm dit onderdeel er is. Zonder deze regel leert een rondleiding alleen waar dingen staan. */
-  waarom?: string;
   fase: Fase;
   /** Moet het annotatie-artefact openstaan voordat deze stap iets kan aanwijzen? */
   artefactOpen?: boolean;
+  /** Welke tab van het paneel de stap toont; zonder: de tekst. Alleen bij `artefactOpen`. */
+  tab?: PaneelTabStap;
   /** Deze stap nodigt uit tot een echte handeling en laat het aangewezen element bedienen.
    *  `openen`: de gebruiker opent het artefact zelf, en daarmee gaat de rondleiding verder.
    *  `akkoord`: de gebruiker beslist over een kaart; de bubbel bevestigt wat hij deed. */
@@ -34,92 +43,38 @@ export interface Stap {
   alleenBeheerder?: boolean;
 }
 
+// Alleen annoteren (versie 4, 25 nov 2026): werkgebieden, begrippen en afleidingsregels krijgen later een eigen deel.
+// To the point (besluit gebruiker 25 nov 2026): per stap hoogstens twee korte zinnen, wat je ziet of doet. Geen
+// motivatie en geen uitleg per knop.
 export const STAPPEN: Stap[] = [
   {
     id: "lex",
     anker: "header",
     fase: "orientatie",
     titel: "Dit is Lex",
-    tekst:
-      "Lex helpt je bij wetsanalyse. Hij zoekt bepalingen op in de kennisgraaf, citeert letterlijk en " +
-      "stelt JAS-markeringen voor. Wat hij voorstelt, beoordeel jij.",
-    waarom:
-      "Lex is een hulpmiddel, geen vervanger. Twijfel maakt hij zichtbaar in plaats van haar weg te " +
-      "poetsen, zodat het oordeel bij jou blijft.",
+    tekst: "Lex haalt bepalingen uit de kennisgraaf, citeert letterlijk en stelt JAS-markeringen voor. Jij beoordeelt ze.",
   },
   {
-    id: "gespreksvenster",
-    anker: "thread",
-    fase: "orientatie",
-    titel: "Het gespreksvenster",
-    tekst:
-      "Hier speelt alles zich af. Je stelt een vraag over wet- en regelgeving, of je vraagt om een " +
-      "annotatie. Allebei typ je in ditzelfde venster.",
-    waarom:
-      "Je zoekt zelf geen wet op. Lex vindt de bepaling in de kennisgraaf, dus je kunt geen " +
-      "verkeerd artikelnummer overtypen.",
-  },
-  {
-    id: "sidebar",
+    id: "gesprek",
     anker: "sidebar",
     ankerSmal: "sidebar-mobiel",
     fase: "orientatie",
-    titel: "Je werk terugvinden",
-    tekst:
-      "Je gesprekken staan hier. Daarboven vind je je werk terug, in de volgorde waarin je werkt: " +
-      "Werkgebieden (de analyses), Annotaties (alle geannoteerde bepalingen, met wat nog te beoordelen " +
-      "is bovenaan) en Begrippen. Onderin staat hoeveel van je tokenbudget je gebruikt, en de bel " +
-      "bovenin meldt wat er nieuw is.",
-    waarom:
-      "Een annotatie is gedeeld werk en blijft bestaan als je het gesprek verwijdert. Opruimen kost je " +
-      "dus geen werk.",
+    titel: "Gesprek en zijbalk",
+    tekst: "Vragen en opdrachten typ je in het gesprek. Je annotaties vind je in de zijbalk onder Annotaties.",
   },
   {
-    id: "invoerveld",
+    id: "vraag",
     anker: "invoer",
     fase: "opdracht",
-    titel: "Het invoerveld",
-    tekst:
-      "Twee soorten opdracht, één veld. Vraag je “Wat betekent 'belastingschuldige'?”, dan krijg je " +
-      "een antwoord met bronnen. Vraag je “Annoteer artikel 9 van de Invorderingswet 1990”, dan " +
-      "krijg je een JAS-annotatie om te beoordelen. Noem je een onderwerp of een artikel met leden, " +
-      "dan legt Lex je eerst voor waaruit je kunt kiezen.",
-    waarom: "Je kiest vooraf niets. Lex leidt uit je zin af wat je bedoelt.",
-  },
-  {
-    id: "bronnen",
-    anker: "bronnen",
-    fase: "opdracht",
-    titel: "Een antwoord met bronnen",
-    tekst:
-      "Onder elk antwoord staan de vindplaatsen waarop het steunt, per regeling. Noemt Lex een " +
-      "artikel in de tekst, dan kun je het vaak aanklikken: je ziet de wettekst en een link naar " +
-      "wetten.overheid.nl.",
-    waarom: "Je moet alles kunnen nazoeken. Daarom noemt Lex altijd waar iets vandaan komt.",
-  },
-  {
-    id: "brongetrouwheid",
-    anker: "grounding",
-    fase: "opdracht",
-    titel: "Brongetrouwheid",
-    tekst:
-      "Dit blok verschijnt alleen als er iets niet klopt: een verwijzing die niet uit de gelezen bronnen komt, " +
-      "of een citaat dat niet letterlijk in de opgehaalde tekst staat. Zo'n citaat kleurt geel in " +
-      "de tekst zelf.",
-    waarom: "Zo valt het op als het één keer misgaat.",
+    titel: "Vraag om een annotatie",
+    tekst: "Typ bijvoorbeeld “Annoteer artikel 9 lid 1 van de Invorderingswet 1990”; bij leden kies je eerst welk. Een gewone vraag met bronnen kan ook.",
   },
   {
     id: "denkproces",
     anker: "denkproces",
     fase: "opdracht",
-    titel: "Een annotatie duurt even",
-    tekst:
-      "Onder “Denkproces” volg je live elke stap: de bron ophalen, de taalanalyse, " +
-      "de detectie, het besluit op vaste regels, de keuze van het model en de review van de " +
-      "twijfelgevallen. Daaronder zegt Lex in een paar zinnen wat hij vond.",
-    waarom:
-      "De beurt draait op de server. Je kunt herladen, van gesprek wisselen of even weglopen zonder " +
-      "iets te verliezen.",
+    titel: "Lex werkt",
+    tekst: "Onder Denkproces volg je wat Lex doet. De beurt loopt door als je herlaadt of weggaat.",
   },
   {
     id: "artefact-openen",
@@ -127,69 +82,35 @@ export const STAPPEN: Stap[] = [
     interactie: "openen",
     fase: "beoordelen",
     titel: "De annotatie openen",
-    tekst:
-      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan om hem te openen. Op " +
-      "een breed scherm komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je " +
-      "leest.",
+    tekst: "Klik de kaart aan om de annotatie te openen.",
   },
   {
     id: "wettekst",
     anker: "wettekst",
     artefactOpen: true,
     fase: "beoordelen",
-    titel: "De wettekst",
-    tekst:
-      "Dit is de letterlijke tekst uit de kennisgraaf. Kies hiernaast een markering en je ziet " +
-      "meteen waar die staat. Bij echt werk staat naast Tekst ook Graaf: de bepaling met haar " +
-      "samenhang in de kennisgraaf.",
-    waarom:
-      "Elke markering wijst een stuk van deze tekst aan. Dat anker blijft kloppen als de wet " +
-      "opnieuw wordt ingelezen.",
+    titel: "Wettekst en markeringen",
+    tekst: "De letterlijke wettekst, met elke markering in de kleur van haar JAS-klasse.",
   },
   {
-    id: "reviewlijst",
+    id: "beoordelen",
     anker: "review-kop",
     artefactOpen: true,
     fase: "beoordelen",
-    titel: "De reviewlijst",
-    tekst:
-      "Hier staan de voorstellen van Lex, in de vaste volgorde van de JAS-tabel. De teller houdt bij " +
-      "hoeveel je al beoordeelde. Met de filters spring je naar wat nog openstaat of wat aandacht " +
-      "vraagt.",
-    waarom: "De volgorde verandert niet terwijl je werkt, dus je raakt je plek nooit kwijt.",
-  },
-  {
-    id: "reviewkaart",
-    anker: "review-kaart",
-    artefactOpen: true,
-    fase: "beoordelen",
-    titel: "Wat een kaart je vertelt",
-    tekst:
-      "Elke kaart is één markering: het letterlijke fragment en de JAS-klasse in zijn eigen kleur. " +
-      "Zonder badge is het een gewoon voorstel. Keuze voor jou betekent twijfel die de review niet " +
-      "kon beslissen; Bevestigd door review is een twijfelgeval dat de review wel besliste.",
-    waarom: "Begin bij Keuze voor jou: daar heeft Lex jouw oordeel echt nodig.",
+    titel: "Beoordelen",
+    tekst: "De voorstellen van Lex staan als kaarten in de volgorde van de JAS-tabel. Begin bij Keuze voor jou: daar twijfelde Lex.",
   },
   {
     id: "beslissen",
-    // Hetzelfde anker als de vorige stap, en dat is geen kopieerfout: die beschrijft de kaart, deze
-    // de handeling. Het gat in de dimlaag hangt aan dit anker (`klikGat`), en het moet de héle kaart
-    // vrijgeven. Wees hier alleen de knoprij aan, dan viel er precies één ding te doen: die rij
-    // stopt de klik (`ReviewQueue`), dus er raakte niets geselecteerd, en zonder selectie doen j, k,
-    // a, x en c niets (`ArtefactInhoud`) en liggen de klassebadge en × buiten het gat. Een stap die
-    // vijf handelingen noemt en er één toelaat, leert de verkeerde les.
+    // Hetzelfde anker als de reviewkaart, en het gat in de dimlaag hangt eraan (`klikGat`): het moet de héle kaart
+    // vrijgeven. Wees hier alleen de knoprij aan, dan viel er precies één ding te doen: die rij stopt de klik
+    // (`ReviewQueue`), dus er raakte niets geselecteerd, en de klassebadge en × lagen buiten het gat.
     anker: "review-kaart",
     artefactOpen: true,
     interactie: "akkoord",
     fase: "beoordelen",
     titel: "Jij beslist",
-    tekst:
-      "Probeer het: klik de kaart aan. Hij klapt open, met onder Waarom? hoe Lex tot het voorstel " +
-      "kwam. Klik dan op het vinkje en nog eens op Akkoord?, kies via de klassebadge een andere klasse, of verwerp het voorstel " +
-      "met × (met reden).",
-    waarom:
-      "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
-      "jouw reden erbij.",
+    tekst: "Klik de kaart aan en lees onder Waarom? hoe Lex tot het voorstel kwam. Geef akkoord met het vinkje, kies via de klassebadge een andere klasse of verwerp het met ×.",
   },
   {
     id: "zelf-markeren",
@@ -197,11 +118,25 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "beoordelen",
     titel: "Zelf markeren",
-    tekst:
-      "Miste Lex iets? Selecteer zelf tekst en kies een klasse. Leverde een stuk tekst geen enkele " +
-      "treffer op, dan staat het gestippeld onderstreept; één klik erop markeert het. Een markering " +
-      "korter of langer maken: klik hem aan en selecteer opnieuw, of kies op de kaart een andere grens.",
-    waarom: "Wat jij vastlegt blijft staan. Een volgende ronde van Lex laat het met rust.",
+    tekst: "Miste Lex iets? Selecteer de tekst en kies een klasse.",
+  },
+  {
+    id: "diagram",
+    anker: "diagram",
+    artefactOpen: true,
+    tab: "diagram",
+    fase: "samenhang",
+    titel: "Diagram",
+    tekst: "De markeringen rond de rechtsbetrekking, met hun relaties. Bekijk dit vóór je afrondt: daarna leg je geen relaties meer.",
+  },
+  {
+    id: "graaf",
+    anker: "graaf",
+    artefactOpen: true,
+    tab: "graaf",
+    fase: "samenhang",
+    titel: "Graaf",
+    tekst: "De bepaling in de kennisgraaf, met het artikel eromheen en de verwijzingen ernaar. Zoek een knoop en de graaf wijst hem aan.",
   },
   {
     id: "afronden",
@@ -209,12 +144,7 @@ export const STAPPEN: Stap[] = [
     artefactOpen: true,
     fase: "afronding",
     titel: "Afronden en exporteren",
-    tekst:
-      "Afronden zet de annotatie vast; heropenen kan daarna nog steeds. In het menu ⋯ staan exporteren en " +
-      "verwijderen. Exporteren kan altijd, ook halverwege: als PDF, CSV, JSON of RDF. Het bestand vermeldt " +
-      "hoeveel er nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
-      "maakte. Verwijderen haalt de annotatie van deze bepaling voor iedereen weg.",
-    waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
+    tekst: "Afronden zet de annotatie vast; heropenen kan altijd. Exporteren doe je via het menu ⋯.",
   },
 ];
 
@@ -285,6 +215,12 @@ export function artefactActie(
   return null;
 }
 
+/** Welke tab het voorbeeldpaneel bij deze stap toont; `undefined` als de stap geen paneel heeft. Bij teruglopen naar een
+ *  stap op de tekst gaat de tab dus ook terug: anders bleef het diagram staan en wees de bubbel naar de wettekst. */
+export function paneelTab(stap: Stap | undefined): PaneelTabStap | undefined {
+  return stap?.artefactOpen ? stap.tab ?? "tekst" : undefined;
+}
+
 // --- waar komt de bubbel te staan ------------------------------------------------------------
 //
 // Hier en niet in het component, om dezelfde reden als de rest van dit bestand: vitest draait
@@ -297,6 +233,8 @@ export const BUBBEL_MARGE = 12;
  *  Gelijk aan Tailwinds `lg`; naast `BREED` uit `useBreedScherm` de tweede grens waarop de
  *  rondleiding zijn doel opnieuw moet kiezen. */
 export const SMAL = "(max-width: 1023px)";
+/** Dezelfde grens in pixels, voor het rekenwerk zonder mediaquery (`plaatsBubbel`). */
+export const SMAL_BREEDTE = 1024;
 
 /** Een gemeten rechthoek in viewport-coördinaten. */
 export interface Vak {
@@ -402,12 +340,18 @@ export function plaatsBubbel(
   const vastgehouden = voorkeur ? kandidaat(voorkeur) : null;
   if (vastgehouden) return vastgehouden;
 
-  if (domineert(vak, viewport)) return { modus: "midden" };
+  // Op een breed scherm in het midden. Op een tablet of telefoon vult zo'n element (de graaf, het diagram) het scherm
+  // juist omdat het de inhoud ís, en dan dekte een gecentreerde bubbel precies het midden af: daar onderaan, over de
+  // rand van het paneel. Hetzelfde als de bubbel er nergens naast past.
+  const terugval: Plaatsing = viewport.breedte >= SMAL_BREEDTE
+    ? { modus: "midden" }
+    : { modus: "onder", ...binnen(viewport.hoogte - bubbel.hoogte - m, (viewport.breedte - bubbel.breedte) / 2) };
+  if (domineert(vak, viewport)) return terugval;
   for (const modus of ["onder", "boven", "rechts", "links"] as const) {
     const plek = kandidaat(modus);
     if (plek) return plek;
   }
-  return { modus: "midden" };
+  return terugval;
 }
 
 /** Waar de dimlaag een gat laat, zodat de gebruiker de aangewezen knop kan indrukken.
@@ -440,6 +384,20 @@ export function uitsnede(vak: Vak, marge: number): Vak {
     breedte: vak.breedte + marge * 2,
     hoogte: vak.hoogte + marge * 2,
   };
+}
+
+/** Het kader om het aangewezen element: het zichtbare deel plus `marge`, geklemd zodat het kader mét zijn rand (`rand`:
+ *  de outline en haar afstand) binnen het venster blijft. Een paneel tegen de schermrand (de graaf, het diagram) gaf
+ *  anders een kader dat aan die kant buiten beeld liep. `null` als er niets te zien is. */
+export function spotKader(vak: Vak | null, viewport: Afmeting, marge: number, rand: number): Vak | null {
+  const zichtbaar = vak ? zichtbaarDeel(vak, viewport) : null;
+  if (!zichtbaar) return null;
+  const top = Math.max(rand, zichtbaar.top - marge);
+  const links = Math.max(rand, zichtbaar.left - marge);
+  const onder = Math.min(viewport.hoogte - rand, zichtbaar.top + zichtbaar.hoogte + marge);
+  const rechts = Math.min(viewport.breedte - rand, zichtbaar.left + zichtbaar.breedte + marge);
+  if (onder <= top || rechts <= links) return null;
+  return { top, left: links, breedte: rechts - links, hoogte: onder - top };
 }
 
 /** Het gemeten vak van een element, in viewport-coördinaten.

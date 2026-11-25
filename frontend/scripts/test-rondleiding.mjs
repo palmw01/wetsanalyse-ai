@@ -1,7 +1,8 @@
 /** Browserregressie voor de rondleiding door de werkplek. Op de echte Next-UI met een gemockte BFF.
  * Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
- * en draai `node scripts/test-rondleiding.mjs`.
+ * en draai `node scripts/test-rondleiding.mjs`. Met `RONDLEIDING_SCREENSHOT=<map>` legt hij elke stap vast op 1440 en
+ * 390 px, en de stappen Diagram en Graaf ook op 768 px (`rondleiding-<breedte>-<nn>-<stap>.png`).
  *
  * Alle andere browserscripts zetten de rondleiding uit; dit script is de enige die hem doorloopt.
  *
@@ -15,7 +16,9 @@
  *  - Escape in het klassepalet sluit alleen het palet;
  *  - herladen halverwege biedt *Verder bij stap n*;
  *  - de voorbeeldannotatie staat in het bronnodepaneel, net als echt werk;
- *  - er gaat niets muterends naar de api;
+ *  - alle twaalf stappen staan in beeld op 1440, 768 en 390 px, en de stappen Diagram en Graaf tonen het diagram en de
+ *    graaf van het voorbeeld;
+ *  - er gaat niets muterends naar de api, en het voorbeeld (tekst, diagram, graaf) vraagt de api niets;
  *  - de knop *Laat me de werkplek zien* staat er voor een nieuwe gebruiker en blijft na wegklikken, halverwege stoppen en
  *    afronden zonder vinkje; met het vinkje aan het eind is hij weg, ook op een andere computer (die biedt de rondleiding
  *    dan ook niet meer aan);
@@ -29,6 +32,9 @@ const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const errors = [];
 const mutaties = [];
+/** Wat het annotatiepaneel bij de api vraagt; in de rondleiding hoort dat leeg te blijven. */
+const annotatieVerzoeken = [];
+const schermMap = process.env.RONDLEIDING_SCREENSHOT;
 
 /** Het account in de api: dat reist mee naar elke computer. */
 const nieuwAccount = () => ({ userid: "wpalm", email: "w@example.test", role: "analist", totp_enabled: false, tfa_nodig: false,
@@ -43,6 +49,9 @@ async function nieuwePagina(viewport, account = nieuwAccount(), patches = []) {
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
     if (p.startsWith("/api/auth/")) return route.continue();
     if (m !== "GET" && (p.startsWith("/api/annotatie") || p.startsWith("/api/gesprekken"))) mutaties.push(`${m} ${p}`);
+    // De catalogus van de bewijscodes (`verklaringen`, de namen onder *Waarom?*) is van de keten, niet van het voorbeeld:
+    // die mag. Al het andere (weergave, samenhang, diagrammen, graaf, knoop) hoort uit het geheugen van de demo te komen.
+    if (p.startsWith("/api/annotatie/v2/") && p !== "/api/annotatie/v2/verklaringen") annotatieVerzoeken.push(`${m} ${p}`);
     if (p === "/api/account/me") return route.fulfill({ json: account });
     if (p === "/api/account/rondleiding") {
       const body = req.postDataJSON();
@@ -61,13 +70,13 @@ async function nieuwePagina(viewport, account = nieuwAccount(), patches = []) {
 }
 
 const bubbel = (page) => page.locator("[data-rondleiding-bubbel]");
-const titel = async (page) => (await bubbel(page).locator("p").first().innerText()).trim();
+const titel = async (page) => (await bubbel(page).locator("[data-rondleiding-titel]").innerText()).trim();
 
 /** Blader met → tot de bubbel deze titel draagt. De focus staat na elke stap op de kop van de bubbel. */
 async function naarStap(page, gezocht) {
   for (let i = 0; i < 20; i++) {
     if ((await titel(page)) === gezocht) return;
-    await bubbel(page).locator("p").first().focus();
+    await bubbel(page).locator("[data-rondleiding-titel]").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(150);
   }
@@ -102,7 +111,7 @@ async function openenWachtOpKlik(page) {
   await page.locator('[data-tour="chip"]').click();
   await page.locator('[data-tour="wettekst"]').waitFor();
   await page.waitForFunction(() =>
-    document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === "De wettekst");
+    document.querySelector("[data-rondleiding-titel]")?.textContent?.trim() === "Wettekst en markeringen");
 }
 
 const knop = (page) => page.getByRole("button", { name: "Laat me de werkplek zien" });
@@ -116,6 +125,53 @@ async function totHetSlot(page) {
     await page.waitForTimeout(200);
   }
   throw new Error("het slot van de rondleiding komt niet in beeld");
+}
+
+/** Alle stappen van begin tot eind, op deze breedte. Elke bubbel staat in beeld; Diagram en Graaf tonen hun tab met
+ *  inhoud. `vast`: de stappen die een schermafbeelding krijgen (alle, of alleen Diagram en Graaf). */
+async function doorloop(page, vast = () => true) {
+  const { width } = page.viewportSize();
+  const vastleggen = async (naam) => {
+    // De indicator van de Next-devserver hoort niet bij de app.
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+    await page.waitForTimeout(500); // een venster schuift in
+    await page.screenshot({ path: `${schermMap}/rondleiding-${width}-${naam}.png` });
+  };
+  await page.goto(`${base}/workbench`);
+  await page.getByRole("button", { name: "Start de rondleiding" }).waitFor();
+  if (schermMap && vast("Welkom")) await vastleggen("00-welkom");
+  await page.getByRole("button", { name: "Start de rondleiding" }).click();
+  await bubbel(page).waitFor();
+  await binnenBeeld(page);
+  const totaal = Number((await bubbel(page).getAttribute("aria-label")).match(/stap 1 van (\d+)/)[1]);
+  assert.equal(totaal, 12, "de rondleiding heeft twaalf stappen");
+  for (let n = 1; n <= totaal; n++) {
+    await page.waitForFunction((nr) => document.querySelector("[data-rondleiding-bubbel]")?.getAttribute("aria-label")?.includes(`stap ${nr} van`), n);
+    const stap = await titel(page);
+    if (stap === "Diagram") {
+      await page.locator('[data-tour="diagram"] svg').first().waitFor();
+      assert.ok(await page.locator('[data-paneel-balk][data-weergave="diagram"]').count(), "de stap Diagram toont de tab Diagram");
+    }
+    if (stap === "Graaf") {
+      await page.locator('[data-tour="graaf"]:visible canvas').first().waitFor({ timeout: 15000 });
+      assert.ok(await page.locator('[data-paneel-balk][data-weergave="graaf"]').count(), "de stap Graaf toont de tab Graaf");
+      await page.waitForTimeout(1500); // de layout van de graaf
+    }
+    if (stap === "Wettekst en markeringen" || stap === "Zelf markeren" || stap === "Afronden en exporteren") {
+      assert.ok(await page.locator('[data-paneel-balk][data-weergave="tekst"]').count(), `${stap} toont de tekst`);
+    }
+    await binnenBeeld(page);
+    if (schermMap && vast(stap)) {
+      const naam = stap.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      await vastleggen(`${String(n).padStart(2, "0")}-${naam}`);
+    }
+    if (n === totaal) break;
+    if (stap === "De annotatie openen") await page.locator('[data-tour="chip"]').click();
+    else await bubbel(page).getByRole("button", { name: "Volgende" }).click();
+  }
+  await bubbel(page).getByRole("button", { name: /Klaar|Afronden|Volgende/ }).click();
+  await page.getByRole("button", { name: "Aan de slag" }).waitFor();
+  if (schermMap && vast("Slot")) await vastleggen("13-slot");
 }
 
 /** De levensloop van de knop, over twee computers. */
@@ -211,11 +267,11 @@ try {
   // --- Breed scherm ---
   const page = await nieuwePagina({ width: 1440, height: 1000 });
   await start(page);
-  assert.match(await bubbel(page).innerText(), /Stap 1 van \d+/);
+  assert.match(await bubbel(page).getAttribute("aria-label"), /stap 1 van \d+/);
 
   // Enter op de kop gaat verder; Enter op *Vorige* gaat terug.
   const eerste = await titel(page);
-  await bubbel(page).locator("p").first().focus();
+  await bubbel(page).locator("[data-rondleiding-titel]").focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(150);
   assert.notEqual(await titel(page), eerste, "Enter op de kop hoort een stap verder te gaan");
@@ -266,7 +322,7 @@ try {
   await verder.waitFor();
   await verder.click();
   await page.waitForFunction((t) =>
-    document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === t, waar);
+    document.querySelector("[data-rondleiding-titel]")?.textContent?.trim() === t, waar);
   await page.locator('[data-tour="wettekst"]').waitFor();
   await page.close();
 
@@ -275,6 +331,18 @@ try {
   await start(mobiel);
   await openenWachtOpKlik(mobiel);
   await mobiel.close();
+
+  // --- Alle stappen op desktop, tablet en telefoon ---
+  for (const [viewport, vast] of [
+    [{ width: 1440, height: 900 }, () => true],
+    [{ width: 768, height: 1024 }, (stap) => stap === "Diagram" || stap === "Graaf"],
+    [{ width: 390, height: 844 }, () => true],
+  ]) {
+    const p = await nieuwePagina(viewport);
+    await doorloop(p, vast);
+    await p.close();
+  }
+  assert.deepEqual(annotatieVerzoeken, [], "het voorbeeld hoort niets bij de api op te halen");
 
   assert.deepEqual(mutaties, [], "de rondleiding hoort niets naar de api te sturen");
   assert.deepEqual(errors, []);

@@ -82,6 +82,23 @@ export function inhoudKader(data: Pick<DiagramData, "plaatsing" | "lijnen">, ran
   return { x, y, b: Math.max(...xe) + rand - x, h: Math.max(...ye) + rand - y };
 }
 
+/** Onder deze schaal (pixels per eenheid) is de tekst van een knoop niet meer te lezen: de tekst is 7,5 eenheden, dus
+ *  bij 1,5 ruim 11 px. */
+export const LEESBARE_SCHAAL = 1.5;
+
+/** Waar een diagram in een paneel begint. Past de hele tekening leesbaar in de breedte, dan de hele tekening; anders een
+ *  uitsnede op leesbare schaal, over de volle hoogte, gecentreerd op de centrale formulering (en binnen de tekening).
+ *  Zo is een diagram met veel knopen naast elkaar in een paneel van 500 px geen postzegel; slepen en *Groot bekijken*
+ *  tonen de rest. */
+export function leesbaarBegin(alles: { x: number; y: number; b: number; h: number },
+  centraal: { x: number; b: number } | undefined, breedtePx: number, schaal = LEESBARE_SCHAAL) {
+  if (!breedtePx || breedtePx / alles.b >= schaal) return alles;
+  const b = breedtePx / schaal;
+  const midden = centraal ? centraal.x + centraal.b / 2 : alles.x + alles.b / 2;
+  const x = Math.min(Math.max(midden - b / 2, alles.x), alles.x + alles.b - b);
+  return { x, y: alles.y, b, h: alles.h };
+}
+
 /** De maten van de tekening (`api/app/diagram.py` en `diagram_teken.py`): in dezelfde eenheden als de plaatsen. */
 export const MAAT = { kop: 11, regel: 9, marge: 5, tekst: 7.5, kopTekst: 6.5, label: 6, labelRegel: 7.5 } as const;
 export const LIJNKLEUR = "#535353";
