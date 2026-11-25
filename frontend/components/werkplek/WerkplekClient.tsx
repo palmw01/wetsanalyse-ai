@@ -59,7 +59,7 @@ import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
 import { CommandoMenu } from "@/components/werkplek/CommandoMenu";
-import { menuRegels, type Regel, type Uitvoer } from "@/lib/commandos";
+import { hulpOverzicht, menuRegels, type Regel, type Uitvoer } from "@/lib/commandos";
 import { actieveConnectors, beurtBronnen, moetVerversen, toonMenu, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
 import { useConnectorLijst } from "@/lib/useConnectorLijst";
 import {
@@ -75,7 +75,7 @@ import { itemsUitGesprek } from "@/lib/geschiedenis";
 import { bevestigt, startOpties, userVelden, type BeurtVerzoek } from "@/lib/beurtVerzoek";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, VERVOLG_TEKST, chipTekst, overVan, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Suggestie as SuggestieRegel,
+  SOORT_LABEL, VERVOLG_TEKST, chipTekst, commandoContexten, overVan, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Suggestie as SuggestieRegel,
   type Vervolg,
 } from "@/lib/vraagLex";
 
@@ -881,6 +881,13 @@ export function WerkplekClient({
       openOverzicht: (ov) => openContext(overzichtContext(ov)),
       openVraag: () => setWeggeklikt(null),
       openGesprek: (id) => onOpenGesprek?.(id),
+      vulIn: (tekst) => {
+        setInvoer(tekst);
+        setMenuDicht(false);
+        setMenuCursor(0);
+        taRef.current?.focus();
+        requestAnimationFrame(() => taRef.current?.setSelectionRange(tekst.length, tekst.length));
+      },
     };
   });
   const [acties] = useState<ThreadActies>(() => ({
@@ -893,6 +900,7 @@ export function WerkplekClient({
     openOverzicht: (ov) => actiesRef.current?.openOverzicht(ov),
     openVraag: () => actiesRef.current?.openVraag(),
     openGesprek: (id) => actiesRef.current?.openGesprek(id),
+    vulIn: (tekst) => actiesRef.current?.vulIn(tekst),
   }));
 
   /** Een suggestie uitvoeren: een klik op de rij boven het invoerveld én een `/commando` (`lib/commandos.ts`) – één weg. */
@@ -912,8 +920,11 @@ export function WerkplekClient({
   /** Wat een regel uit het commandomenu doet. Een clientcommando is geen beurt: geen tokens, niets in de thread. */
   function voerCommandoUit(u: Uitvoer) {
     if (u.soort === "suggestie") return voerSuggestieUit(u.suggestie);
-    if (u.handeling === "help") return setInvoer("/");
     setInvoer("");
+    // Het overzicht van alle commando's, als bericht van de werkplek: geen beurt, niets bewaard.
+    if (u.handeling === "help") setItems((xs) => [...xs, { id: uid(), type: "hulp", groepen: hulpOverzicht(
+      { suggesties: contextSuggesties, connectors: connectorStand, bezig, geblokkeerd }, commandoContexten(),
+      onderwerp?.soort ?? (werkgebiedId ? "werkgebied" : undefined)) }]);
     if (u.handeling === "context") openContext(CONTEXTOPBOUW_DOEL, "het commando /context");
     if (u.handeling === "bron" && u.argument) kiesConnector(u.argument);
     if (u.handeling === "nieuw") onNieuwGesprek?.();

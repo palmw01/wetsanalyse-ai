@@ -1,5 +1,5 @@
 import { actieveConnectors, schakelbaar, type ConnectorStand } from "./connectorsMenu";
-import type { Suggestie } from "./vraagLex";
+import type { CommandoContext, OnderwerpSoort, Suggestie } from "./vraagLex";
 
 /** `/commando's` in het invoerveld van de werkplek.
  *
@@ -59,10 +59,17 @@ export function beschikbaar(stand: Stand): Commando[] {
   }
   for (const c of CLIENT_COMMANDOS) {
     if (gezien.has(c.naam)) continue;
-    if (c.soort === "client" && c.argument === "connector" && !connectorOpties(stand.connectors).length) continue;
+    if (nietHier(c, stand)) continue;
     uit.push(c);
   }
   return uit;
+}
+
+/** Waarom een commando in deze context niet in het menu staat (los van de context van de suggesties), of `undefined`. */
+function nietHier(c: Commando, stand: Stand): string | undefined {
+  if (c.soort === "client" && c.argument === "connector" && !connectorOpties(stand.connectors).length)
+    return "alleen als de beheerder een bron naast de wet aanbiedt";
+  return undefined;
 }
 
 /** `/naam rest`: alleen met `/` als eerste teken. `null` als de tekst geen commandovorm heeft. */
@@ -153,4 +160,76 @@ export function menuRegels(invoer: string, stand: Stand): Regel[] | null {
   // De exacte naam eerst: `/annoteer` kiest `annoteer`, niet `annoteer-deelvragen`.
   const exact = begin.filter((c) => c.naam === o.naam);
   return [...exact, ...begin.filter((c) => c.naam !== o.naam), ...elders].map((c) => regelVan(c, stand));
+}
+
+/** Of een commando een beurt van Lex start. Een suggestie is een beurt, behalve een klaargezette vraag; de client nooit. Een
+ *  nieuwe soort commando (een plugin) is een beurt tot hij anders zegt. */
+export type Beurt = "beurt" | "klaarzetten" | "geen";
+
+export const BEURT_TEKST: Record<Beurt, string> = {
+  beurt: "start een beurt van Lex",
+  klaarzetten: "geen beurt: zet een vraag in het veld",
+  geen: "geen beurt, geen tokens",
+};
+
+/** Eén commando in het overzicht van `/help`. `aanvulling` is wat een klik in het veld zet, net als Tab in het menu. */
+export interface HulpRegel {
+  naam: string;
+  label: string;
+  hulp: string;
+  beurt: Beurt;
+  /** Hoe je hem gebruikt, als dat meer is dan de naam: met een argument (`/bron rechtspraak`), of de vraag die hij in het
+   *  veld zet (bij `beurt: "klaarzetten"`). */
+  voorbeeld?: string;
+  aanvulling: string;
+  /** Waarom hij nu niet kan (een beurt loopt, het budget is op). */
+  uit?: string;
+}
+
+/** Een groep in het overzicht: wat hier kan (zonder `reden`), en per andere context wat daar kan, met waarom het hier niet in
+ *  het menu staat. */
+export interface HulpGroep {
+  sleutel: string;
+  titel: string;
+  reden?: string;
+  regels: HulpRegel[];
+}
+
+/** `hier`: alleen wat hier kan, krijgt een reden waarom het nu niet kan. */
+function hulpRegel(c: Commando, stand: Stand, hier = false): HulpRegel {
+  const { label, hulp, aanvulling } = regelVan(c, stand);
+  const uit = hier ? uitReden(c, stand) : undefined;
+  const beurt: Beurt = c.soort === "client" ? "geen" : c.soort === "suggestie" && c.suggestie.invullen ? "klaarzetten" : "beurt";
+  const argument = "argument" in c ? c.argument : undefined;
+  const voorbeeld = argument
+    ? `/${c.naam} ${argument === "connector" ? connectorOpties(stand.connectors)[0]?.naam ?? "<bron>" : `<${argument}>`}`
+    : c.soort === "suggestie" && c.suggestie.invullen ? `${c.suggestie.tekst.trim()} …` : undefined;
+  return { naam: c.naam, label, hulp, beurt, ...(voorbeeld ? { voorbeeld } : {}), aanvulling, ...(uit ? { uit } : {}) };
+}
+
+/** Het overzicht van `/help`: eerst wat hier kan (precies het menu bij `/`), dan wat elders kan, gegroepeerd met de reden.
+ *  Alles komt uit `beschikbaar`, dezelfde lijst als het menu, zodat een nieuw commando – een suggestie, een clientcommando of
+ *  een plugin – vanzelf meekomt. `contexten` zijn alle contexten met hun suggesties (`commandoContexten` in `lib/vraagLex.ts`);
+ *  `huidig` is de soort van het onderwerp of het werkgebied waarin je nu werkt. */
+export function hulpOverzicht(stand: Stand, contexten: CommandoContext[], huidig?: OnderwerpSoort): HulpGroep[] {
+  const hier = beschikbaar(stand);
+  const sleutel = (c: Commando) => `${c.naam}|${c.hulp}`;
+  const gezien = new Set(hier.map(sleutel));
+  const groepen: HulpGroep[] = [{ sleutel: "hier", titel: "Hier", regels: hier.map((c) => hulpRegel(c, stand, true)) }];
+  for (const ctx of contexten) {
+    if (ctx.soort === huidig) continue;
+    const elders = beschikbaar({ ...stand, suggesties: ctx.suggesties }).filter((c) => !gezien.has(sleutel(c)));
+    for (const c of elders) gezien.add(sleutel(c));
+    if (elders.length) groepen.push({ sleutel: ctx.soort, titel: ctx.titel, reden: ctx.reden, regels: elders.map((c) => hulpRegel(c, stand)) });
+  }
+  // Wat in geen context in het menu staat, met de reden (`/bron` zonder bron om om te zetten).
+  const perReden = new Map<string, Commando[]>();
+  for (const c of CLIENT_COMMANDOS) {
+    const reden = nietHier(c, stand);
+    if (!reden || gezien.has(sleutel(c))) continue;
+    perReden.set(reden, [...(perReden.get(reden) ?? []), c]);
+  }
+  for (const [reden, lijst] of perReden)
+    groepen.push({ sleutel: `niet:${reden}`, titel: "Nu niet", reden, regels: lijst.map((c) => hulpRegel(c, stand)) });
+  return groepen;
 }
