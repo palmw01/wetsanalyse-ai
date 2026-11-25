@@ -140,7 +140,8 @@ try {
   await page.goto(`${base}/workbench?werkgebied=wg1&vraag=deelvraag%3Ad1&vraag_label=${encodeURIComponent("Wanneer vervalt de termijn?")}`);
   await page.locator('[data-onderwerp="deelvraag"]').waitFor();
   await veld.fill("/s");
-  assert.deepEqual(await regels.locator("span.font-mono").allTextContents(), ["/scherper", "/splits"]);
+  // Wat met "/s" begint staat voorop; een commando met de letter elders in de naam (/contenttoets) mag erachter.
+  assert.deepEqual((await regels.locator("span.font-mono").allTextContents()).slice(0, 2), ["/scherper", "/splits"]);
   await veld.press("Enter");
   await wachtOp(page, 3);
   assert.equal(runs[2].actie, "deelvraag_herformuleren");
