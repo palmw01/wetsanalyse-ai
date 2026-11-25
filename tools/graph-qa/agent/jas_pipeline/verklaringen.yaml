@@ -85,6 +85,10 @@ detectie:
   NOMINALIZED_ACTION: {naam: "Handeling als zelfstandig naamwoord", uitleg: "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."}
   # fusie (specificiteit.py)
   PRIORITY_APPLIED: {naam: "Voorrangsregel toegepast", uitleg: "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."}
+  # rekenvoorbeeld (voorbeeld.py)
+  IN_VOORBEELD: {naam: "In een rekenvoorbeeld", uitleg: "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."}
+  VOORBEELD_WAARDE: {naam: "Waarde in een rekenvoorbeeld", uitleg: "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."}
+  VOORBEELD_GEEN_NORM: {naam: "Een voorbeeld stelt geen norm", uitleg: "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."}
 
 besluit:
   regel: {naam: "vaste regel", uitleg: "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."}

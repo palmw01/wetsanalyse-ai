@@ -226,6 +226,11 @@
     skos:prefLabel "Opsommingsonderdeel"@nl ;
     jas:codeWaarde "ENUMERATED_NP" .
 
+<urn:jas-ns:code:IN_VOORBEELD> a jas:Detectiecode ;
+    skos:definition "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."@nl ;
+    skos:prefLabel "In een rekenvoorbeeld"@nl ;
+    jas:codeWaarde "IN_VOORBEELD" .
+
 <urn:jas-ns:code:LEGAL_EFFECT_CLAUSE> a jas:Detectiecode ;
     skos:definition "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."@nl ;
     skos:prefLabel "Rechtsgevolg als hoofdzin"@nl ;
@@ -330,6 +335,16 @@
     skos:definition "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."@nl ;
     skos:prefLabel "Document of rechtshandeling als ding"@nl ;
     jas:codeWaarde "THING_NP" .
+
+<urn:jas-ns:code:VOORBEELD_GEEN_NORM> a jas:Detectiecode ;
+    skos:definition "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."@nl ;
+    skos:prefLabel "Een voorbeeld stelt geen norm"@nl ;
+    jas:codeWaarde "VOORBEELD_GEEN_NORM" .
+
+<urn:jas-ns:code:VOORBEELD_WAARDE> a jas:Detectiecode ;
+    skos:definition "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."@nl ;
+    skos:prefLabel "Waarde in een rekenvoorbeeld"@nl ;
+    jas:codeWaarde "VOORBEELD_WAARDE" .
 
 <urn:jas-ns:regel:JAS-PRIORITY-001> a jas:Methoderegel ;
     skos:definition "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."@nl ;
@@ -1577,5 +1592,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "59e95542eb98" .
+    jas:vocabulaireVersie "417e41805acc" .
 

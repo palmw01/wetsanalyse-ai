@@ -1,7 +1,8 @@
 # Plan: lessen uit de begrippen- en afleidingsregelbibliotheek van Termijnen
 
 24 nov 2026. Status: **concept**; de eigenaar heeft de acht vragen beantwoord (§7). Analyse en voorstel. De methode-skill is aangevuld buiten de
-methodemarkers (§5a); er is geen code van Lex gewijzigd, en wat het gedrag van Lex raakt, staat als voorstel in §5b.
+methodemarkers (§5a); wat het gedrag van Lex raakt, staat als voorstel in §5b. Daarvan is M2 (V8) gebouwd en zonder model
+gemeten (24 nov 2026).
 
 Dit plan legt gevalideerd praktijkwerk naast de methode en naast Lex. Het vult
 [`plan-lessen-e2e-termijnen.md`](plan-lessen-e2e-termijnen.md) aan: dat plan trok lessen uit wat een agentteam mét Lex
@@ -387,8 +388,16 @@ de methodemarkers is in deze PR doorgevoerd, zie §5a; wat een meting vraagt, st
   - Het voorbeeld als geheel wordt aangeboden als voorbeeld bij de regel die het illustreert (V3), niet als norm.
 - Meten: op de gedeelde bepalingen tegen de referentie (recall op variabele en parameter, en het aandeel afwijzingen),
   en daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
-- Eerst nagaan waarom de markeringen zijn afgewezen: de beslissingen in de audit van die laag zijn voor dit plan niet
-  gelezen (§9).
+- Eerst nagaan waarom de markeringen zijn afgewezen: gedaan (24 nov 2026, zie hieronder).
+- **Nagegaan** (audit van de laag 9.5, acceptatie, alleen lezen): van de 50 afwijzingen hebben er 42 de reden
+  "Rekenvoorbeeld, niet de regel", 6 "dubbel" en 2 "is gesteld op". De 42 liggen alle in de vier voorbeeldzinnen; dat
+  bevestigt de oorzaak. Maar het zijn niet vooral losse data: 12 data, 5 duren, 13 variabelen, 7 operatoren, 4
+  voorwaarden of afleidingsregels en 1 rechtsobject. De jurist wees het voorbeeld als geheel af, ook het jaartal en het
+  schrikkeljaar; dat was vóór de regel in de skill (§5a). Bedragen staan er niet in. De referentie markeert de duur in
+  het voorbeeld als parameter, dus die laat de keten staan.
+- **Gebouwd** (PR "Annotatieketen: een rekenvoorbeeld is geen norm maar wel bron", branch
+  `claude/keten-rekenvoorbeelden-c83ceb`): `tools/graph-qa/agent/jas_pipeline/voorbeeld.py`, de reviewerzin, tests.
+  Gemeten zonder model: `metingen/keten-rekenvoorbeelden-2026-11-24/`. Met het model en blind: nog niet (zie daar).
 
 ### Prioriteit 3: voorstel bij R5 en verder (staat op HOLD)
 
@@ -495,9 +504,18 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
 (`tools/graph-qa/agent/jas_pipeline/`: detectoren, en de prompts van `classificatie.py` en `review.py`, P20)
 - Toen: een voorbeeldzin wordt gemarkeerd als elke andere zin. In Leidraad 9.5 leverde dat 67 voorstellen op, waarvan
   er 49 zijn afgewezen.
-- Nu: V8. Een detector herkent de voorbeeldzin; concrete data en bedragen daarbinnen worden niet los voorgesteld; de
-  woorden die een kenmerk aanduiden wel; de reviewer krijgt de regel uit `references/markeringslijst.md` (het
-  rekenvoorbeeld) als instructie.
+- Nu (gebouwd, 24 nov 2026): V8. Een stap na de fusie (`voorbeeld.py`) herkent de voorbeeldzin aan een inleiding met
+  een datum of bedrag als gegeven, of aan een voorwaardelijke zin met een kalenderdatum als gegeven en als uitkomst;
+  een datum of bedrag daarbinnen wordt niet voorgesteld, de normklassen vervallen, de rest krijgt het kenmerk *in een
+  voorbeeld*; de reviewer krijgt de regel uit `references/markeringslijst.md` in één zin. Een duur valt er niet onder
+  (in een voorbeeld noemt die de parameter).
+- Gemeten zonder model (`metingen/keten-rekenvoorbeelden-2026-11-24/`): in 9.5 vallen 16 van de 50 afgewezen voorstellen
+  weg (12 data, 3 voorwaarden, 1 afleidingsregel), 26 krijgen het kenmerk, en 0 van de 16 geaccordeerde wordt geraakt;
+  op IW 9 lid 1 en 5 en Leidraad 9.1 verandert niets. De kandidaat-dekking op variabele en parameter tegen de referentie
+  is vóór en na gelijk. Op de hele graaf (228 bepalingen met een datum of bedrag) herkent de stap alleen de vier zinnen
+  van 9.5, na twee aanscherpingen op deze set.
+- Open: de meting met het model (na de uitrol, zonder de geaccordeerde laag van Termijnen te overschrijven), en een
+  blinde bepaling met rekenvoorbeelden: de graaf heeft buiten Leidraad 9.5 geen enkele.
 - De kennis hoort in de detector en zijn tests, niet in de prompt (ADR-001). De promptwijziging is één zin.
 - Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
   aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
@@ -626,7 +644,8 @@ markeringen per bepaling). Het pad staat in het bericht bij de PR-sessie, niet h
 
 - **De originelen van de methode** (het boek, de Handleiding, de Leidraad) zijn voor dit plan niet opnieuw gelezen. §2
   steunt op de skill en op `plan-lessen-e2e-termijnen.md` §0.
-- **Waarom de markeringen in Leidraad 9.5 zijn afgewezen.** De beslissingen in de audit van die laag zijn niet gelezen.
+- ~~**Waarom de markeringen in Leidraad 9.5 zijn afgewezen.**~~ Nagegaan op 24 nov 2026 (V8): 42 van de 50 met de reden
+  "Rekenvoorbeeld, niet de regel", alle in de voorbeeldzinnen; zie V8 en `metingen/keten-rekenvoorbeelden-2026-11-24/`.
 - **De afbeeldingen** in de export (de gemarkeerde teksten van activiteit 2 en de schermafdrukken van de regels in de
   regeltaal van het team) zijn niet bekeken; alleen de tabellen en de tekst.
 - **De bijlagen** waar activiteit 1 en 5 naar verwijzen, zitten niet in de export.

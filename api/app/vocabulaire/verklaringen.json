@@ -168,6 +168,10 @@
       "naam": "Opsommingsonderdeel",
       "uitleg": "Een naamwoordgroep als onderdeel van een opsomming."
     },
+    "IN_VOORBEELD": {
+      "naam": "In een rekenvoorbeeld",
+      "uitleg": "Het fragment staat in een zin die een regel voorrekent. Zo'n voorbeeld is geen norm, maar wel bron: markeer de woorden die een kenmerk aanduiden dat een regel nodig heeft."
+    },
     "LEGAL_EFFECT_CLAUSE": {
       "naam": "Rechtsgevolg als hoofdzin",
       "uitleg": "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."
@@ -335,6 +339,14 @@
     "VALUE_INEQUALITY": {
       "naam": "Ongelijkheid",
       "uitleg": "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."
+    },
+    "VOORBEELD_GEEN_NORM": {
+      "naam": "Een voorbeeld stelt geen norm",
+      "uitleg": "Een rekenvoorbeeld stelt geen nieuwe regel: de klassen van een norm (afleidingsregel, voorwaarde, rechtsbetrekking, rechtsfeit) vervallen erin."
+    },
+    "VOORBEELD_WAARDE": {
+      "naam": "Waarde in een rekenvoorbeeld",
+      "uitleg": "Een concrete datum of een bedrag in een rekenvoorbeeld wordt niet los gemarkeerd; het voorbeeld toetst de regel."
     }
   },
   "jas_versie": "1.0.10",
@@ -1064,5 +1076,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "59e95542eb98"
+  "vocabulaire_versie": "417e41805acc"
 }

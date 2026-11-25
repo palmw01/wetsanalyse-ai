@@ -27,7 +27,10 @@ STERK_BEWIJS = frozenset(klasse_van_bewijs())
 KLASSE_VAN_STERK = klasse_van_bewijs()
 STERK_BOVEN_GENERIEK = "STERK_BOVEN_GENERIEK"
 # Bewijs dat niets over de klasse zegt maar over wat er al mee gebeurde.
-_ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED"})
+# Ook het kenmerk van een rekenvoorbeeld (`voorbeeld.py`): het zegt waar de kandidaat staat, niet welke klasse hij heeft.
+_ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED", "IN_VOORBEELD", "VOORBEELD_GEEN_NORM"})
+# De codes waarmee een stap vóór het besluit een kandidaat afwees; de regel ervan is de reden.
+_AFGEWEZEN_DOOR = frozenset({"PRIORITY_APPLIED", "VOORBEELD_WAARDE", "VOORBEELD_GEEN_NORM"})
 
 
 class Beslissing(BaseModel):
@@ -49,7 +52,7 @@ class Beslissing(BaseModel):
 def deterministisch(k: Candidate) -> Beslissing | None:
     """Een beslissing zonder model, of None als de kandidaat naar de classifier moet."""
     if k.status is CandidateStatus.REJECTED:
-        regel = next((e.regel for e in reversed(k.evidence) if e.code == "PRIORITY_APPLIED"), "")
+        regel = next((e.regel for e in reversed(k.evidence) if e.code in _AFGEWEZEN_DOOR), "")
         return Beslissing(kandidaat_id=k.id, label=k.label, status=CandidateStatus.REJECTED,
                           door="specificiteit", reden=regel)
     codes = {e.code for e in k.evidence} - _ADMINISTRATIEF

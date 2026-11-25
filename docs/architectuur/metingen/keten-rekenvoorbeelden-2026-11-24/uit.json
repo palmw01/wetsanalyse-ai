@@ -1,0 +1,156 @@
+{
+ "voorbeeld_versie": "1",
+ "bepalingen": [
+  {
+   "bepaling": "Invorderingswet 1990 – Artikel 9, Lid 1",
+   "voorbeelden": [],
+   "kandidaten": 9,
+   "na_afgewezen_door_stap": 0,
+   "na_met_kenmerk": 0,
+   "elementen_op_acceptatie": {
+    "totaal": 6,
+    "zonder_kandidaat": 0,
+    "human_approved": {
+     "gelijk": 6
+    }
+   },
+   "kandidaatdekking_referentie": {
+    "Variabele en variabelewaarde": {
+     "referentie": 4,
+     "voor": 1,
+     "na": 1
+    },
+    "Parameter en parameterwaarde": {
+     "referentie": 1,
+     "voor": 0,
+     "na": 0
+    }
+   }
+  },
+  {
+   "bepaling": "Invorderingswet 1990 – Artikel 9, Lid 5",
+   "voorbeelden": [],
+   "kandidaten": 43,
+   "na_afgewezen_door_stap": 0,
+   "na_met_kenmerk": 0,
+   "elementen_op_acceptatie": {
+    "totaal": 34,
+    "zonder_kandidaat": 2,
+    "edited": {
+     "al_niet_zo": 1
+    },
+    "human_approved": {
+     "gelijk": 25
+    },
+    "rejected": {
+     "gelijk": 5,
+     "al_niet_zo": 1
+    }
+   },
+   "kandidaatdekking_referentie": {
+    "Variabele en variabelewaarde": {
+     "referentie": 12,
+     "voor": 8,
+     "na": 8
+    },
+    "Parameter en parameterwaarde": {
+     "referentie": 1,
+     "voor": 0,
+     "na": 0
+    }
+   }
+  },
+  {
+   "bepaling": "Leidraad Invordering 2008 – Artikel 9, 9.1",
+   "voorbeelden": [],
+   "kandidaten": 25,
+   "na_afgewezen_door_stap": 0,
+   "na_met_kenmerk": 0,
+   "elementen_op_acceptatie": {
+    "totaal": 17,
+    "zonder_kandidaat": 0,
+    "rejected": {
+     "gelijk": 3
+    },
+    "human_approved": {
+     "gelijk": 14
+    }
+   },
+   "kandidaatdekking_referentie": {
+    "Variabele en variabelewaarde": {
+     "referentie": 7,
+     "voor": 3,
+     "na": 3
+    }
+   }
+  },
+  {
+   "bepaling": "Leidraad Invordering 2008 – Artikel 9, 9.5",
+   "voorbeelden": [
+    {
+     "signaal": "conclusie",
+     "start": 92,
+     "eind": 291
+    },
+    {
+     "signaal": "uitkomst",
+     "start": 292,
+     "eind": 555
+    },
+    {
+     "signaal": "inleiding",
+     "start": 802,
+     "eind": 882
+    },
+    {
+     "signaal": "uitkomst",
+     "start": 883,
+     "eind": 978
+    }
+   ],
+   "kandidaten": 78,
+   "na_afgewezen_door_stap": 22,
+   "na_met_kenmerk": 28,
+   "elementen_op_acceptatie": {
+    "totaal": 67,
+    "zonder_kandidaat": 0,
+    "human_approved": {
+     "gelijk": 16
+    },
+    "rejected": {
+     "gelijk": 8,
+     "valt_weg": 16,
+     "kenmerk": 26
+    },
+    "edited": {
+     "al_niet_zo": 1
+    },
+    "per_klasse": {
+     "rejected:valt_weg": {
+      "Tijdsaanduiding": 12,
+      "Voorwaarde": 3,
+      "Afleidingsregel": 1
+     },
+     "rejected:kenmerk": {
+      "Variabele en variabelewaarde": 13,
+      "Operator": 7,
+      "Tijdsaanduiding": 5,
+      "Rechtsobject": 1
+     }
+    }
+   },
+   "kandidaatdekking_referentie": {
+    "Variabele en variabelewaarde": {
+     "referentie": 16,
+     "voor": 8,
+     "na": 8
+    },
+    "Parameter en parameterwaarde": {
+     "referentie": 6,
+     "voor": 0,
+     "na": 0
+    }
+   }
+  }
+ ]
+}
