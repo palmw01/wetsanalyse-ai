@@ -3,7 +3,7 @@
 PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c111d21f46e3accbbe633976309',
                    'agentrollen.json': 'a87a8bc9a2c6cb16a46fa33150f32cc83f1f2a47c1f0e01184f38a8b7c5994fa',
                    'references/agentrollen.md': '26e1550d15e59ed7fa2c7910b09337cb7e8aa7d476a80d8990a9d8e4cef5564f',
-                   'references/bronnen.md': '4659a40e75d7612733a927675375920bd2cd1c144bca9481b4d787b0f6d1058a',
+                   'references/bronnen.md': 'ab5d92391edce2613217efc77e829f14ac93745c8d914bb0404820d176b84852',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '7e02481953ff545b322f5f46e7a598ef8f663c73de2749ef7c7b0d50290f583d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -228,7 +228,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c1
                                     'doelcontract; verricht geen juridische duiding. Gebruik '
                                     'alleen aangetroffen versiegegevens, geen veronderstelde '
                                     'geldigheid.'}},
- 'sha256': 'b9d08056663fd3b1d1668a49557080fb85ef8c262752931ac3007d6c3b3b8496',
+ 'sha256': '54a37a2ce188516d9f4bd25fbab97a93e274dab36bc60bfdec185ef333e0e5ef',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '

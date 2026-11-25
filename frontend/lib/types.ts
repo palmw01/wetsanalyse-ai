@@ -1053,6 +1053,8 @@ export type BegripStatus = "concept" | "geaccordeerd" | "vervangen";
 export interface Voorbeeld {
   tekst: string;
   oordeel: VoorbeeldOordeel;
+  /** Waarom de stelling wel of niet waar is (B5, plan lessen Termijnen §10). */
+  toelichting?: string;
 }
 
 /** Het begrip volgens NL-SBB (spoor I1): term, definitie, uitleg, toelichting (`context`) en voorbeelden. */
@@ -1093,6 +1095,8 @@ export interface BegripKlasse {
   klasse: string;
   afgeleid: string;
   uit_passages: Record<string, number>;
+  /** De verdieping van de klasse uit de dragende passages, zoals de soort rechtsbetrekking (B6); leeg als er geen is. */
+  subtype?: string;
   gekozen: string;
   reden: string;
 }

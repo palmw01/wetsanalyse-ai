@@ -44,6 +44,10 @@ def test_een_klassekeuze_is_een_jas_klasse_met_een_reden():
     ("3,5", {"soort": "aantal"}, False),
     ("April", {"soort": "opsomming", "waarden": ["april", "mei"]}, True),
     ("6 weken", {"soort": "duur"}, None),
+    # Een ontbrekende invoer hoort in een voorbeeldreeks (B3): geen signaal, bij welk bereik ook.
+    ("onbekend", {"soort": "datum"}, None),
+    ("Leeg", {"soort": "bedrag", "decimalen": 0}, None),
+    ("n.v.t.", {"soort": "opsomming", "waarden": ["april"]}, None),
 ])
 def test_past_een_waarde_in_het_bereik(waarde, bereik, past):
     assert past_in(waarde, bereik) is past
@@ -54,7 +58,8 @@ async def test_de_klasse_komt_uit_de_passages_en_de_keuze_wint(client):
     wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
     b = await _begrip(client, wg, "dagtekening", ids["var"])
     assert b["klasse"] == {"klasse": "Variabele en variabelewaarde", "afgeleid": "Variabele en variabelewaarde",
-                           "uit_passages": {"Variabele en variabelewaarde": 1}, "gekozen": "", "reden": ""}
+                           "uit_passages": {"Variabele en variabelewaarde": 1}, "subtype": "", "gekozen": "",
+                           "reden": ""}
     url = f"/v1/werkgebieden/{wg['id']}/begrippen/{b['id']}"
     r = await client.patch(url, json={"verwachte_revisie": b["revisie"], "inhoud": {
         "klasse_keuze": {"klasse": "Parameter en parameterwaarde", "reden": "De waarde verandert per tijdvak."},

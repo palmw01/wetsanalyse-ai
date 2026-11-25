@@ -28,9 +28,10 @@ KLASSE_VAN_STERK = klasse_van_bewijs()
 STERK_BOVEN_GENERIEK = "STERK_BOVEN_GENERIEK"
 # Bewijs dat niets over de klasse zegt maar over wat er al mee gebeurde.
 # Ook het kenmerk van een rekenvoorbeeld (`voorbeeld.py`): het zegt waar de kandidaat staat, niet welke klasse hij heeft.
-_ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED", "IN_VOORBEELD", "VOORBEELD_GEEN_NORM"})
+# En de hoofdzin van een regel (`hoofdzin.py`): het zegt waar de kandidaat staat.
+_ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED", "IN_VOORBEELD", "VOORBEELD_GEEN_NORM", "HOOFDZIN_VAN_REGEL"})
 # De codes waarmee een stap vóór het besluit een kandidaat afwees; de regel ervan is de reden.
-_AFGEWEZEN_DOOR = frozenset({"PRIORITY_APPLIED", "VOORBEELD_WAARDE", "VOORBEELD_GEEN_NORM"})
+_AFGEWEZEN_DOOR = frozenset({"PRIORITY_APPLIED", "VOORBEELD_WAARDE", "VOORBEELD_GEEN_NORM", "HOOFDZIN_VAN_REGEL"})
 
 
 class Beslissing(BaseModel):

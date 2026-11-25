@@ -398,11 +398,13 @@ de methodemarkers is in deze PR doorgevoerd, zie §5a; wat een meting vraagt, st
 - **Gebouwd** (PR "Annotatieketen: een rekenvoorbeeld is geen norm maar wel bron", branch
   `claude/keten-rekenvoorbeelden-c83ceb`): `tools/graph-qa/agent/jas_pipeline/voorbeeld.py`, de reviewerzin, tests.
   Gemeten zonder model: `metingen/keten-rekenvoorbeelden-2026-11-24/`. Gemerged als #1856 (`a74c0041`).
-- **Gemeten met het model** (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`; één run, de keten zonder
-  schrijfpad, het model van acceptatie): in 9.5 van 67 naar 46 voorstellen, waarvan 22 in een voorbeeldzin (was 42); de 22
-  die wegvallen had de jurist alle afgewezen; alle 17 geaccordeerde of gecorrigeerde staan er nog; het aandeel afgewezen
-  van 75% naar hoogstens 61%. IW 9 lid 1: geen voorbeeld, geen kenmerk, de 6 geaccordeerde blijven. 30.359 tokens. Blind:
-  niet mogelijk (zie de meting).
+- **Gemeten met het model** (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`; de keten zonder
+  schrijfpad, het model van acceptatie, vier runs met de stap en twee zonder op dezelfde code): in 9.5 haalt de stap in elke
+  run dezelfde 20 voorstellen weg, alle in een voorbeeldzin en alle door de jurist afgewezen (12 data, 5 operatoren, 2
+  voorwaarden, 1 afleidingsregel), en voegt hij er 2 toe die de jurist eerder afwees ("het jaartal", dat volgens de skill hoort te
+  blijven, en "hetzelfde nummer"). Van 64 naar 44–46 voorstellen, waarvan in een voorbeeldzin
+  van 41 naar 20–22; alle 17 geaccordeerde of gecorrigeerde staan er in elke run nog; het aandeel afgewezen van 72% naar
+  59–61%. IW 9 lid 1: in alle runs gelijk, met en zonder de stap. 184.574 tokens. Blind: niet mogelijk (zie de meting).
 
 ### Prioriteit 3: voorstel bij R5 en verder (staat op HOLD)
 
@@ -519,16 +521,45 @@ Elk voorstel is uitgeschreven als toen → nu. Geen ervan staat in deze PR.
   op IW 9 lid 1 en 5 en Leidraad 9.1 verandert niets. De kandidaat-dekking op variabele en parameter tegen de referentie
   is vóór en na gelijk. Op de hele graaf (228 bepalingen met een datum of bedrag) herkent de stap alleen de vier zinnen
   van 9.5, na twee aanscherpingen op deze set.
-- Gemeten met het model (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`, één run zonder schrijfpad):
-  in 9.5 46 voorstellen (was 67), 22 in een voorbeeldzin (was 42), 12 data afgewezen met `VOORBEELD_WAARDE`, 28
-  kandidaten met het kenmerk; de 22 die wegvallen had de jurist alle afgewezen, de 17 geaccordeerde of gecorrigeerde staan
-  er alle nog. Op IW 9 lid 1 doet de stap niets.
+- Gemeten met het model (25 nov 2026, `metingen/keten-rekenvoorbeelden-model-2026-11-25/`, zonder schrijfpad, vier runs
+  met de stap en een nulmeting op dezelfde code): in 9.5 van 64 naar 44–46 voorstellen, in een voorbeeldzin van 41 naar
+  20–22; de 20 die door de stap wegvallen (ook de 5 operatoren, in elke run) had de jurist alle afgewezen, "het jaartal"
+  (een kenmerk, dat de skill wil houden) en "hetzelfde nummer" komen erbij, en de 17 geaccordeerde of gecorrigeerde staan er in elke run nog. Op IW 9 lid 1 doet de stap niets.
 - Open: een blinde bepaling met rekenvoorbeelden (de graaf heeft buiten Leidraad 9.5 geen enkele); de reviewerzin, want
-  in deze run kwam geen twijfelgeval bij de reviewer; en meer runs, als de vraag is of de 5 operatoren die het model nu
-  afwees structureel wegvallen.
+  in geen van de runs kwam een twijfelgeval bij de reviewer; en of de 20–22 voorstellen die in een voorbeeldzin blijven
+  (vooral variabelen en tijdsaanduidingen) volgens de regel in de skill horen te blijven: dat beoordeelt de jurist.
 - De kennis hoort in de detector en zijn tests, niet in de prompt (ADR-001). De promptwijziging is één zin.
 - Meting: vóór en na op de vier gedeelde bepalingen (recall op variabele en parameter tegen de referentie, en het
   aandeel afwijzingen), daarna op een blinde bepaling met rekenvoorbeelden uit een andere regeling.
+- **Vervolg** (25 nov 2026, besluit eigenaar "plan en bouw"). De voorstellen die na de meting met het model overbleven,
+  naast de bronnen gelegd: H2-JAS, het boek (M01), de handleiding (M02), de leidraad (M03), de skill en de bibliotheek
+  (M15). Die bronnen bespreken geen rekenvoorbeeld in een bron; de regel daarover rust op M15 en is een projectkeuze.
+  Vier punten in de keten en één in de skill, alle buiten de methodemarkers:
+  1. *Hetzelfde tijdstip, dezelfde klasse.* De kale "de dagtekening" werd Variabele, "de dagtekening van het
+     aanslagbiljet" Tijdsaanduiding. H2:107 kiest bij samenloop de tijdsaanduiding, en het boek één begrip voor elke
+     formulering met dezelfde betekenis (M01 h.3 stap 3). De functiedetector geeft een tijdstip zonder van-bepaling
+     hetzelfde bewijs als het in de tekst al met van-bepaling staat; een losse "de datum" niet.
+  2. *De duur binnen een herhaling.* "een maand" in "een maand later" kreeg een eigen markering; de skill zegt dat de
+     duur binnen een termijn er geen krijgt (markeren-fragmentgrenzen, uit het boek en H2:107). De regel
+     `jas.tijd.herhaling` maakt de duur nu de kern, zoals `jas.tijd.duur` bij "na …".
+  3. *De hoofdzin van een ALS→DAN-regel draagt geen eigen norm.* De regel is de hele zin, met de hoofdzin als optie;
+     "een afleidingsregel markeer je met werkwoord en voorwaarden" (markeren-fragmentgrenzen), en bij één normzin is de
+     hele zin het dragende fragment (markeringslijst). Eerst haalde alleen de Afleidingsregel weg van de hoofdzin; het
+     model maakte er toen een Rechtsfeit van. Besluit eigenaar (25 nov 2026): "alleen de hele zin". Een eigen stap na de
+     fusie (`hoofdzin.py`) haalt Afleidingsregel, Rechtsbetrekking en Rechtsfeit van de hoofdzin weg.
+  4. *De operator in een rekenvoorbeeld vervalt*, zoals de normklassen: hij verbindt daar de waarden van het voorbeeld,
+     geen kenmerken van een regel (`voorbeeld.py` versie 2). Wat het model ervan afwees, verschilde per run.
+  5. *De herkomst in de skill.* P23 in `references/bronnen.md` zegt nu dat de rekenvoorbeeldregel alleen op M15 rust.
+
+  Drie punten zijn van de jurist, niet van de code: de hele zin van IW 9 lid 1 is volgens H2-JAS (tijdsverloop met
+  rechtsgevolg) en de skill (voorbeelden E01) een Rechtsfeit, geen Rechtsbetrekking; de dagtekening is in 9.5 als
+  Variabele gecorrigeerd en in IW 9 lid 1 als Tijdsaanduiding goedgekeurd, wat H2:107 niet toelaat; en "het jaartal",
+  "een schrikkeljaar" en "hetzelfde nummer" zijn afgewezen vóór de regel in de skill, die ze juist als kenmerk noemt.
+  Gemeten (`metingen/keten-rekenvoorbeelden-vervolg-2026-11-25/`): zonder model raakt het 15 van 1873 nodes in vier
+  regelingen, alle op de bedoelde punten; de hele ALS→DAN-zin houdt overal Afleidingsregel. Met het model (twee runs) gaat
+  9.5 van 44–46 naar 38–40 voorstellen, in een voorbeeldzin van 20–22 naar 16–19, afgewezen-aandeel van 59–61% naar
+  53–55%; de hoofdzin wordt niet meer voorgesteld; de 17 geaccordeerde staan er alle, één met de klasse van H2:107 in
+  plaats van die van de jurist. IW 9 lid 1 ongewijzigd. Open: de reviewerzin (in geen run een twijfelgeval).
 
 **M3 · De termijn als tijdsaanduiding die een parameter verbijzondert** (bijgesteld 24 nov 2026; de eerdere vorm,
 een markering Parameter naast de Tijdsaanduiding, vervalt)

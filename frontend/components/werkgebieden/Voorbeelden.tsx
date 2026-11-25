@@ -17,7 +17,10 @@ export function VoorbeeldRijen({ voorbeelden }: { voorbeelden: readonly Voorbeel
     <ul className="divide-y divide-line" aria-label="Voorbeelden">
       {voorbeelden.map((v, i) => (
         <li key={i} className="flex flex-col gap-1 py-1.5 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-          <span className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">{v.tekst}</span>
+          <span className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">
+            {v.tekst}
+            {v.toelichting && <span className="mt-0.5 block text-sm text-muted">{v.toelichting}</span>}
+          </span>
           <OordeelLabel oordeel={v.oordeel} />
         </li>
       ))}
