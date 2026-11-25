@@ -54,6 +54,8 @@ export interface Stand {
   bezig: boolean;
   /** Het tokenbudget is op: een suggestiecommando kan dan niet. */
   geblokkeerd: boolean;
+  /** De plugins die in dit gesprek aanstaan (`lib/plugins.ts`); zonder dit veld alle plugins (een test, de demo). */
+  plugins?: readonly string[];
 }
 
 /** De commando's van deze context: eerst die van de suggesties (in hun volgorde, elke naam één keer), dan de rest. `/bron`
@@ -67,7 +69,7 @@ export function beschikbaar(stand: Stand): Commando[] {
     uit.push({ soort: "suggestie", naam: s.commando.naam, hulp: s.commando.hulp, suggestie: s });
   }
   for (const c of PLUGIN_COMMANDOS) {
-    if (gezien.has(c.naam)) continue;
+    if (gezien.has(c.naam) || (stand.plugins && !stand.plugins.includes(c.naam))) continue;
     gezien.add(c.naam);
     uit.push(c);
   }

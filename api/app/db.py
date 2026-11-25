@@ -839,6 +839,29 @@ connector_audit = Table(
     Index("ix_connector_audit_naam", "naam", "id"),
 )
 
+# De plugins van Lex (plan contenttoets, C4): welke de beheerder aanbiedt. Welke er bestaan, staat in de code
+# (`bronmodel.plugins`); een rij ontbreekt = uit. Hetzelfde patroon als de bronconnectors.
+plugins = Table(
+    "plugins",
+    metadata,
+    Column("naam", String(64), primary_key=True),
+    Column("aan", Boolean, nullable=False, default=False),
+    Column("door", String(128), nullable=False, default=""),
+    Column("bijgewerkt", _DT, nullable=False),
+)
+
+plugin_audit = Table(
+    "plugin_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("naam", String(64), nullable=False),
+    Column("actie", String(32), nullable=False),
+    Column("door", String(128), nullable=False),
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_plugin_audit_naam", "naam", "id"),
+)
+
 # De modelkeuzes van Lex: welk modelprofiel een agentprofiel (`agent:<profiel>`) of een stap zonder profiel (`stap:<rol>`)
 # gebruikt. Welke sleutels er zijn, staat in de code (`bronmodel.modelkeuzes`); een rij ontbreekt = de sleutel volgt het
 # standaardprofiel. Graph-qa leest de stand (`GET /v1/modelkeuzes`) en neemt alleen de modelnaam over. Geen foreign key
@@ -991,6 +1014,8 @@ gesprekken = Table(
     # ADR-013: de bronconnectors die in dit gesprek aanstaan (het menu boven het invoerveld); NULL = de standaard van
     # het werkgebied, en zonder werkgebied wat de beheerder aanzette.
     Column("connectors", _JSON, nullable=True),
+    # De plugins die in dit gesprek aanstaan (plan contenttoets, C4); NULL = wat de beheerder aanbiedt.
+    Column("plugins", _JSON, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 

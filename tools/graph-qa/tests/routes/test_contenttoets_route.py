@@ -31,9 +31,9 @@ def _bouw(aan: bool) -> Bouw:
                 advies_context=lambda _s: "")
 
 
-def _route(vraag: str, *, aan: bool = True, actie: str = "") -> tuple[str, dict]:
+def _route(vraag: str, *, aan: bool = True, actie: str = "", plugins=None) -> tuple[str, dict]:
     state = {"question": vraag, "messages": [{"role": "user", "content": vraag}], "modus": "auto", "werkgebied_id": "",
-             "actie": actie, "context": {}, "opgegeven_doel": {}, "focus": {}, "bronstand": {}}
+             "actie": actie, "context": {}, "opgegeven_doel": {}, "focus": {}, "bronstand": {}, "plugins": plugins}
     b = _bouw(aan)
     upd = supervisie.ingang_node(b, state)
     return supervisie._entry_node(b, {**state, **upd}), upd
@@ -52,6 +52,23 @@ def test_het_commando_gaat_zonder_model_naar_het_profiel():
 def test_de_actie_van_de_werkplek_ook():
     node, upd = _route(f"/contenttoets {TEKST}", actie="contenttoets")
     assert node == "contenttoets_voorbereiden"
+
+
+def test_in_een_gesprek_waar_de_plugin_uit_staat_een_vaste_zin():
+    node, upd = _route(f"/contenttoets {TEKST}", plugins=[])
+    assert node == "afwijzen" and upd["afwijs_melding"] == ct.UIT_IN_GESPREK
+    node, _ = _route(f"/contenttoets {TEKST}", plugins=["contenttoets"])
+    assert node == "contenttoets_voorbereiden"
+
+
+def test_de_beurt_neemt_alleen_bekende_plugins_aan():
+    from pydantic import ValidationError
+
+    from agent.models import ChatRequest
+
+    assert ChatRequest(question="x", plugins=["contenttoets"]).plugins == ["contenttoets"]
+    with pytest.raises(ValidationError):
+        ChatRequest(question="x", plugins=["onbekend"])
 
 
 def test_met_de_proefvlag_uit_een_vaste_zin():

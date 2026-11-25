@@ -235,6 +235,11 @@ acceptatie.
 rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie
 `frontend/scripts/test-contenttoets.mjs`.
 
+**C4 staat er** (26 nov 2026): het pluginregister bij de api (`app/plugins.py`, `/v1/plugins`, beheer met audit) en
+`gesprekken.plugins`; in de werkplek de plugins in *Bronnen en tools*, het commando alleen als de plugin in het gesprek
+aanstaat, en de groep *Plugins* onder *Aanpassingen › Connectors*. Graph-qa weigert de route als de beurt de plugin niet
+draagt (`ChatRequest.plugins`). De skill staat als methode onder *Methodes*; een rij in de groep *Plugins* opent haar.
+
 C0 staat los. C1 en C4 kunnen naast elkaar. C2 en C3 hebben C1 nodig. Bij UI-werk komen eerst screenshots.
 
 **Fase 2: het zijpaneel**

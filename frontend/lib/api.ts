@@ -382,6 +382,34 @@ export async function haalConnectors(): Promise<{ aan: string[]; connectors: Bes
   return json<{ aan: string[]; connectors: BeschikbareConnector[] }>(res);
 }
 
+/** De plugins die de beheerder aanbiedt (plan contenttoets, C4); een storing geeft een lege lijst. */
+export async function haalPlugins(): Promise<import("./plugins").AangebodenPlugin[]> {
+  const { parsePlugins } = await import("./plugins");
+  try {
+    const res = await fetch("/api/plugins", { cache: "no-store" });
+    return res.ok ? parsePlugins(await res.json()) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Een plugin in de beheertab: de beschrijving uit de code en of de beheerder hem aanbiedt. */
+export interface PluginBeheer { naam: string; label: string; beschrijving: string; commando: string; aan: boolean; door: string; bijgewerkt: string }
+
+export async function listPlugins(): Promise<PluginBeheer[]> {
+  const res = await fetch("/api/admin/plugins", { cache: "no-store" });
+  return json<PluginBeheer[]>(res);
+}
+
+export async function zetPlugin(naam: string, aan: boolean): Promise<PluginBeheer> {
+  const res = await fetch(`/api/admin/plugins/${pathSegment(naam)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ aan }),
+  });
+  return json<PluginBeheer>(res);
+}
+
 export async function listConnectors(): Promise<Connector[]> {
   const res = await fetch("/api/admin/connectors", { cache: "no-store" });
   return json<Connector[]>(res);
@@ -792,7 +820,8 @@ export async function hernoemGesprek(id: string, titel: string): Promise<Gesprek
 /** Titel, werkgebied (`""` = loskoppelen) of archief; alleen wat meekomt verandert. */
 export async function wijzigGesprek(
   id: string,
-  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean; connectors?: string[] | null },
+  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean; connectors?: string[] | null;
+    plugins?: string[] | null },
 ): Promise<Gesprek> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}`, {
     method: "PATCH",
@@ -951,6 +980,8 @@ export async function startRun(
     bronnen?: string[];
     /** Waar die stand vandaan komt (`connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron aanzet. */
     bronnen_herkomst?: "gesprek" | "werkgebied" | "standaard";
+    /** De plugins die in dit gesprek aanstaan (plan contenttoets, C4); weggelaten = graph-qa beslist. */
+    plugins?: string[];
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -977,6 +1008,7 @@ export async function startRun(
       ...(extra?.plan_id ? { plan_id: extra.plan_id } : {}),
       ...(extra?.bronnen ? { bronnen: extra.bronnen } : {}),
       ...(extra?.bronnen_herkomst ? { bronnen_herkomst: extra.bronnen_herkomst } : {}),
+      ...(extra?.plugins ? { plugins: extra.plugins } : {}),
     }),
   });
   if (res.status === 409) {

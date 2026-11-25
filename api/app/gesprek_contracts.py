@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 
 from bronmodel.antwoord import Antwoord
 from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
+from bronmodel.plugins import NAMEN as PLUGIN_NAMEN
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_serializer, model_validator
 
 
@@ -360,6 +361,7 @@ class Bericht(BaseModel):
 
 #: De namen uit de connectorbeschrijving (`bronmodel.connectors`), dezelfde als het register.
 ConnectorNaam = Literal[CONNECTOR_NAMEN]  # type: ignore[valid-type]
+PluginNaam = Literal[PLUGIN_NAMEN]  # type: ignore[valid-type]
 
 
 class Gesprek(BaseModel):
@@ -378,6 +380,8 @@ class Gesprek(BaseModel):
     gearchiveerd: datetime | None = None
     # ADR-013: de bronconnectors die in dit gesprek aanstaan; None = de standaard (werkgebied, anders de beheerder).
     connectors: list[str] | None = None
+    # De plugins die in dit gesprek aanstaan (plan contenttoets, C4); None = wat de beheerder aanbiedt.
+    plugins: list[str] | None = None
     berichten: list[Bericht] = []
     created: datetime | None = None
     updated: datetime | None = None
@@ -403,6 +407,8 @@ class GesprekPatch(BaseModel):
     gearchiveerd: bool | None = None
     # ADR-013: het menu *Bronnen en tools*. Meegestuurd als `null` = terug naar de standaard; weggelaten = ongewijzigd.
     connectors: list[ConnectorNaam] | None = Field(default=None, max_length=8)
+    # De plugins (plan contenttoets, C4), in hetzelfde menu. `null` = terug naar wat de beheerder aanbiedt.
+    plugins: list[PluginNaam] | None = Field(default=None, max_length=8)
 
 
 #: De groepen die je in één keer opruimt (instellingen → Gesprekken). **Recent** = actief en los, zoals de sidebar

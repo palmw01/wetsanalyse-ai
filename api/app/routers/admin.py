@@ -39,6 +39,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .. import (
     api_tokens,
     connectors,
+    plugins,
     berichten as berichten_svc,
     feedback as feedback_svc,
     modelkeuzes,
@@ -145,6 +146,28 @@ async def connector_audit(naam: str):
     if naam not in connectors.BEKEND:
         raise HTTPException(status_code=404, detail=f"Onbekende connector: {naam}")
     return await connectors.audit(naam)
+
+
+# --- plugins (plan contenttoets, C4) ---------------------------------------------
+
+@router.get("/plugins", response_model=list[plugins.Plugin])
+async def lijst_plugins():
+    return await plugins.lijst()
+
+
+@router.put("/plugins/{naam}", response_model=plugins.Plugin)
+async def zet_plugin(naam: str, body: plugins.PluginIn, door: str = Depends(beheerder_met_2fa)):
+    """Zoals een connector: een beheerder mét 2FA uit de sessie, en elke wijziging in de audit."""
+    if naam not in plugins.BEKEND:
+        raise HTTPException(status_code=404, detail=f"Onbekende plugin: {naam}")
+    return await plugins.zet(naam, body.aan, door)
+
+
+@router.get("/plugins/{naam}/audit", response_model=list[plugins.AuditRegel])
+async def plugin_audit(naam: str):
+    if naam not in plugins.BEKEND:
+        raise HTTPException(status_code=404, detail=f"Onbekende plugin: {naam}")
+    return await plugins.audit(naam)
 
 
 # --- modellen ------------------------------------------------------------------

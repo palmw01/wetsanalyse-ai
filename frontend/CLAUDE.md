@@ -760,6 +760,12 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
 - **Past de regel niet, dan de korte vorm** (melding gebruiker 10 nov 2026: op een telefoon liep de knop uit beeld): "Bronnen: alle 4 aan" of "3 van 4 aan" (`menuKort`), met één geel label als een bron niet beschikbaar of onbekend is, en zonder aantal zolang er gecontroleerd wordt. De knop meet het zelf tegen `[data-connectors-ruimte]` (`useTePast`), niet op een breakpoint, dus ook naast een open zijpaneel. Het menu en de toegankelijke naam blijven volledig.
+- **Plugins in hetzelfde menu** (plan contenttoets, C4; `lib/plugins.ts`, `usePlugins`): wat de beheerder aanbiedt
+  (`GET /api/plugins` → api `/v1/plugins`) staat onder de bronnen met een eigen uitleg (`[data-plugins-menu]`). De stand
+  staat op het gesprek (`Gesprek.plugins`, PATCH via `wijzigGesprek`; `null` = alles wat aangeboden is), gaat mee met de
+  beurt (`beurtPlugins` → `plugins`) en bepaalt welke plugincommando's het menu toont (`Stand.plugins`). De beheerder biedt
+  een plugin aan in *Aanpassingen › Connectors*, groep *Plugins* (`listPlugins`, `zetPlugin`, met audit). Een storing
+  geeft een lege lijst: dan staat er geen plugin.
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
 
 ### Brongetrouwheid onder en in het antwoord

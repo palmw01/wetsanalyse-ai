@@ -254,6 +254,7 @@ async def answer_stream(
     agent_api: Any = None,
     bronnen: list[str] | None = None,
     bronnen_herkomst: str | None = None,
+    plugins: list[str] | None = None,
     beurtcontext_plek: str = "vraag",
     profiel: str = "",
     opdracht: Any = None,
@@ -333,6 +334,8 @@ async def answer_stream(
         "begrippen_lezen": False,
         "regels_lezen": False,
         "contenttoets": False,
+        # De plugins van het gesprek (plan contenttoets, C4); None = niet meegegeven.
+        "plugins": list(plugins) if plugins is not None else None,
         "werkgebied_id": werkgebied_id or "",
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
         "bronnen": beurtbronnen,

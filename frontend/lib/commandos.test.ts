@@ -77,6 +77,11 @@ describe("een plugin", () => {
     expect(menuRegels("/contenttoets U kunt betalen in 24 maanden.", stand([]))).toBeNull();
   });
 
+  it("staat er alleen als de plugin in het gesprek aanstaat", () => {
+    expect(beschikbaar(stand([], { plugins: [] })).map((c) => c.naam)).not.toContain("contenttoets");
+    expect(beschikbaar(stand([], { plugins: ["contenttoets"] })).map((c) => c.naam)).toContain("contenttoets");
+  });
+
   it("kan niet tijdens een beurt of zonder budget", () => {
     expect(menuRegels("/contenttoets", stand([], { bezig: true }))![0].uit).toBe("Lex is nog bezig");
     expect(menuRegels("/contenttoets", stand([], { geblokkeerd: true }))![0].uit).toBe("je tokenbudget is op");

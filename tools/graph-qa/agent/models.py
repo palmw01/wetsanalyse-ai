@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
+from bronmodel.plugins import NAMEN as PLUGIN_NAMEN
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -171,6 +172,7 @@ BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken", "bepaling_toevoegen")  
 #: De bronconnectors die een beurt kan aan- of uitzetten (ADR-013): de namen uit `bronmodel.connectors`, waar ook
 #: `tools.CONNECTORS` uit komt. Wetgeving is geen connector: die staat altijd aan.
 Connector = Literal[CONNECTOR_NAMEN]  # type: ignore[valid-type]
+PluginNaam = Literal[PLUGIN_NAMEN]  # type: ignore[valid-type]
 
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
@@ -260,6 +262,9 @@ class ChatRequest(BaseModel):
     # Waar die stand vandaan komt (`frontend/lib/connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron
     # weer aanzet (`agent/bronstand.py`).
     bronnen_herkomst: Literal["gesprek", "werkgebied", "standaard"] | None = None
+    # De plugins die in dit gesprek aanstaan (plan contenttoets, C4; `bronmodel.plugins`). None = niet meegegeven: dan
+    # beslist alleen de straat (de proefvlag). De werkplek stuurt alleen wat de beheerder aanbiedt.
+    plugins: list[PluginNaam] | None = Field(default=None, max_length=8)
     # Een meetvlag (ADR-015): waar de context van de beurt staat. `vraag` (standaard) zet hem als eerste blok in de vraag,
     # ná de historie; `systeem` zet hem als variabel deel van de systeemprompt, zoals vóór ADR-015. Alleen om beide
     # vormen op dezelfde code te vergelijken (metingen/context-2026-11-12); de werkplek stuurt hem niet.
