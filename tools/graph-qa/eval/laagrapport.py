@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter, defaultdict
-from pathlib import Path
 from typing import Any
 
 from agent.jas_pipeline.besluit import STERK_BEWIJS
@@ -34,6 +33,7 @@ from eval.metrieken import (
     Ref, classificatie_metrieken, contract_metrieken, controleer_status, kandidaat_metrieken, kern,
     laagste_status, recall_naam,
 )
+from eval.padcontrole import veilig_pad
 from eval.referentieset import sethash
 
 GENERIEK = frozenset({"SUBJECT_NP", "OBJECT_NP", "ENUMERATED_NP"})
@@ -367,17 +367,17 @@ def main() -> int:
     ap.add_argument("--bijlage", help="schrijf de lege relationele checklist (§14) als JSON")
     ap.add_argument("--checklist", help="een ingevulde checklist: correcties en framevragen tellen mee")
     args = ap.parse_args()
-    rapport = json.loads(Path(args.rapport).read_text(encoding="utf-8"))
-    ingevuld = json.loads(Path(args.checklist).read_text(encoding="utf-8")) if args.checklist else None
+    rapport = json.loads(veilig_pad(args.rapport).read_text(encoding="utf-8"))
+    ingevuld = json.loads(veilig_pad(args.checklist).read_text(encoding="utf-8")) if args.checklist else None
     r = bouw(rapport, args.route, ingevuld)
     if args.json:
-        Path(args.json).write_text(json.dumps(r, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        veilig_pad(args.json).write_text(json.dumps(r, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if args.bijlage:
-        Path(args.bijlage).write_text(json.dumps(checklist(rapport, args.route), ensure_ascii=False, indent=2) + "\n",
+        veilig_pad(args.bijlage).write_text(json.dumps(checklist(rapport, args.route), ensure_ascii=False, indent=2) + "\n",
                                       encoding="utf-8")
     md = markdown(r)
     if args.md:
-        Path(args.md).write_text(md, encoding="utf-8")
+        veilig_pad(args.md).write_text(md, encoding="utf-8")
     else:
         print(md)
     return 0

@@ -29,6 +29,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from eval.padcontrole import veilig_pad
 from eval.wortel import WORTEL as WORTEL_REPO
 
 WORTEL = WORTEL_REPO
@@ -338,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
         formulieren = [json.loads(f.read_text(encoding="utf-8")) for f in args.formulieren]
         lezing = json.loads(args.tegenlezing.read_text(encoding="utf-8")) if args.tegenlezing else None
         team = voeg_samen(formulieren, dossier, casus, args.run, tegenlezing=lezing)
-        print(json.dumps(bevries(team, formulieren, args.uit), ensure_ascii=False, indent=2))
+        print(json.dumps(bevries(team, formulieren, veilig_pad(args.uit)), ensure_ascii=False, indent=2))
         return 0
     fouten = controleer(json.loads(args.formulier.read_text(encoding="utf-8")), dossier, args.casus)
     print("\n".join(fouten) if fouten else "Het formulier klopt.")

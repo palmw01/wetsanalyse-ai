@@ -21,6 +21,7 @@ from app.config import Settings
 from app.dekking import Dekking, Stand, bron_tekens, poortbesluit
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
+from app.padcontrole import OnveiligPad, veilig_pad
 from app.rdf_vocab import Vocab
 from app.shacl import toets
 from app.wti_parser import WtiInfo, WtiParser
@@ -378,7 +379,11 @@ def main(argv: list[str] | None = None) -> int:
     # De index van de kennisgroepen staat naast de wet, nooit erin: hij wordt apart gepeild en apart geschreven, en een
     # fout of een poort daar telt in de exitcode maar houdt de wet niet tegen (en andersom).
     if args.droog is not None:
-        return _wetten(bwb_ids, settings, droog=args.droog)
+        try:
+            droog = veilig_pad(args.droog)
+        except OnveiligPad as exc:
+            parser.error(str(exc))
+        return _wetten(bwb_ids, settings, droog=droog)
     if args.alleen_bij_verlies and maak_writer(settings).graaf_is_compleet(bwb_ids):
         logger.info("Graaf is compleet; niets te doen (--alleen-bij-verlies).")
         code = 0

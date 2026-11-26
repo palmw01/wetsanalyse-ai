@@ -11,6 +11,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+from eval.padcontrole import veilig_pad
 from eval.invordering_proef import MEETMAP, ROOT, controleer_cases, schrijf, codehash
 
 
@@ -48,7 +49,7 @@ def main():
             if json.loads(doel.read_text())["herstel"]["origineel_sha256"] != hashlib.sha256(bron.read_bytes()).hexdigest():
                 raise ValueError("oorspronkelijke poging veranderd")
             continue
-        root = args.baseline if r["variant"] == "A_huidig" else ROOT
+        root = veilig_pad(args.baseline) if r["variant"] == "A_huidig" else ROOT
         subprocess.run([sys.executable, str(worker), "--worker", "--code-root", str(root),
             "--cases", str(cases), "--case", r["casus"], "--variant", r["variant"],
             "--ronde", str(r["ronde"]), "--output", str(doel), "--replay-source", str(bron)],

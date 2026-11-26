@@ -29,6 +29,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent.agent import answer_stream  # noqa: E402
+from eval.padcontrole import veilig_pad  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import Verbruiksmeter  # noqa: E402
 from eval.opname import bewaar, lees, neem_op, nieuwe_opname  # noqa: E402
@@ -605,7 +606,7 @@ def main() -> None:
     else:
         _laad_env()
         settings = Settings.from_env()
-        cases = load_golden(args.golden)
+        cases = load_golden(veilig_pad(args.golden))
         if not settings.similarity_index:
             # semantic_search-cases overslaan tot de similarity-index bestaat.
             cases = [c for c in cases if c.get("requires") != "semantic"]

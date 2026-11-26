@@ -14,6 +14,7 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from eval.padcontrole import veilig_pad
 from agent.jas_pipeline.besluit import STERK_BEWIJS, deterministisch
 from agent.jas_pipeline.bewijssterkte import generiek_bewijs
 from agent.jas_pipeline.classificatie import batches, systeemprompt, toolschema, userprompt
@@ -265,8 +266,8 @@ def main():
     args = ap.parse_args()
     m = meet(args.concept)
     if args.vergelijk:
-        m["vergelijking"] = vergelijk(json.loads(Path(args.vergelijk).read_text()), m)
-    Path(args.json).write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n")
+        m["vergelijking"] = vergelijk(json.loads(veilig_pad(args.vergelijk).read_text()), m)
+    veilig_pad(args.json).write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"scenario": m["scenario"], "generic_codes": m["generic_np"]["codes"]}, ensure_ascii=False, indent=2))
 
 

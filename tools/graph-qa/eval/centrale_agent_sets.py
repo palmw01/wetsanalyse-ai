@@ -22,6 +22,7 @@ from typing import Any
 
 from eval.centrale_agent_vat import gewogen, per_ronde, per_soort
 from eval.gesprek import beurt_uit_opname
+from eval.padcontrole import veilig_pad
 from eval.opname import neem_op, nieuwe_opname
 from eval.scoring import score_opname
 
@@ -31,7 +32,7 @@ SPECIALISTROUTES = {"definitie", "duiding", "algemeen"}
 
 
 def _lees(pad: Path) -> list[dict[str, Any]]:
-    return [json.loads(r) for r in pad.read_text(encoding="utf-8").splitlines() if r.strip() and not r.startswith("#")]
+    return [json.loads(r) for r in veilig_pad(pad).read_text(encoding="utf-8").splitlines() if r.strip() and not r.startswith("#")]
 
 
 def kwaliteitsset() -> dict[str, dict[str, Any]]:
@@ -135,7 +136,7 @@ def main() -> None:
                            "gesprek": next((b.get("gesprek", "") for b in rec.get("beurten") or []), ""),
                            **scoor(rec, cases[rec["id"]])})
     if a.uit:
-        a.uit.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in regels), encoding="utf-8")
+        veilig_pad(a.uit).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in regels), encoding="utf-8")
         print(f"{len(regels)} regels naar {a.uit}")
         return
     for r in regels:

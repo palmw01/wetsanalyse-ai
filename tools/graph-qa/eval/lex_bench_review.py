@@ -33,6 +33,7 @@ from typing import Any
 
 from eval import lex_bench_team as team
 from eval.bronselectie_eval import ROUTES, OpnameGraaf, OpnemendeGraaf, _raakt, meet_intake, scoor_deelvraag
+from eval.padcontrole import veilig_pad
 from eval.lex_bench import ROUTE_L1, _maat
 
 REVIEW = team.BENCH / "bronselectie" / "formulier-reviewer.json"
@@ -273,8 +274,9 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     if args.actie == "opnemen":
         from eval.bronselectie_eval import _echte_graaf
-        aantal = neem_op(json.loads(args.dossier.read_text(encoding="utf-8")), args.uit, _echte_graaf())
-        print(f"{aantal} graafantwoorden opgenomen in {args.uit}; sha256 {hashlib.sha256(args.uit.read_bytes()).hexdigest()}")
+        uit = veilig_pad(args.uit)
+        aantal = neem_op(json.loads(veilig_pad(args.dossier).read_text(encoding="utf-8")), uit, _echte_graaf())
+        print(f"{aantal} graafantwoorden opgenomen in {args.uit}; sha256 {hashlib.sha256(uit.read_bytes()).hexdigest()}")
         return 0
     if args.actie == "l2":
         kaart = l2_tegen_team(json.loads(args.dossier.read_text(encoding="utf-8")),

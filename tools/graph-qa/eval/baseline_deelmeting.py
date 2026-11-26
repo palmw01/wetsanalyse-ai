@@ -12,7 +12,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from pathlib import Path
+
+from eval.padcontrole import veilig_pad
 
 
 def _s0(x):
@@ -81,8 +82,8 @@ def hoofdgevallen(voor: dict, na: dict) -> list[str]:
 
 def main():
     wp, dev_pad, voor_pad, na_pad, uit = sys.argv[1:6]
-    dev = json.loads(Path(dev_pad).read_text())
-    voor, na = json.loads(Path(voor_pad).read_text()), json.loads(Path(na_pad).read_text())
+    dev = json.loads(veilig_pad(dev_pad).read_text())
+    voor, na = json.loads(veilig_pad(voor_pad).read_text()), json.loads(veilig_pad(na_pad).read_text())
     v = dev["vergelijking"]
     data = {"werkpakket": wp, "git_sha": dev["git_sha"],
             "hashes_sha256": hashlib.sha256(json.dumps(dev["hashes"], sort_keys=True).encode()).hexdigest(),
@@ -92,9 +93,9 @@ def main():
                              "parse_gewijzigd": sorted(c for c, x in v["per_casus"].items() if x.get("parse_gelijk") is False),
                              "gewijzigde_kandidaten": {c: x["kandidaten"] for c, x in v["per_casus"].items() if x["kandidaten"]}},
             "onderzoek": {c: {"tellingen": x["tellingen"]} for c, x in na["casussen"].items()}}
-    Path(uit + ".json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
-    Path(uit + "-ontwikkelset.txt").write_text("\n".join(ontwikkelset(dev)) + "\n")
-    Path(uit + "-hoofdgevallen.txt").write_text("\n".join(hoofdgevallen(voor, na)) + "\n")
+    veilig_pad(uit + ".json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    veilig_pad(uit + "-ontwikkelset.txt").write_text("\n".join(ontwikkelset(dev)) + "\n")
+    veilig_pad(uit + "-hoofdgevallen.txt").write_text("\n".join(hoofdgevallen(voor, na)) + "\n")
 
 
 if __name__ == "__main__":

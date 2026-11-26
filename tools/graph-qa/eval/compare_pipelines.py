@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from eval import casusbron, manifest
+from eval.padcontrole import veilig_pad
 from eval.keten_fixture import (
     TOKENVELDEN, Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases, ontwikkelcases,
 )
@@ -365,7 +366,7 @@ def main() -> int:
                     help="welke route(s) meten")
     args = ap.parse_args()
     if args.analyseer:
-        a = analyseer(json.loads(args.analyseer.read_text()))
+        a = analyseer(json.loads(veilig_pad(args.analyseer).read_text()))
     else:
         if not args.output or args.output.exists():
             ap.error("--output moet een nieuw pad zijn")
@@ -384,7 +385,8 @@ def main() -> int:
                    "manifest": {**manifest.maak(args.casussen, settings=settings),
                                 "casus_ids": [c["id"] for c in cases], "herhalingen": args.herhalingen,
                                 "offline": args.offline}}
-        bewaar = lambda: args.output.write_text(json.dumps(rapport, ensure_ascii=False, indent=2))  # noqa: E731
+        uitvoer = veilig_pad(args.output)
+        bewaar = lambda: uitvoer.write_text(json.dumps(rapport, ensure_ascii=False, indent=2))  # noqa: E731
         try:
             meet(cases, args.herhalingen, settings, maak, rapport, bewaar, tuple(args.routes))
             rapport["status"] = "gemeten_nog_niet_juridisch_beoordeeld"
@@ -395,7 +397,7 @@ def main() -> int:
     tekst = markdown(a)
     print(tekst)
     if args.md:
-        args.md.write_text(tekst)
+        veilig_pad(args.md).write_text(tekst)
     return 0
 
 
