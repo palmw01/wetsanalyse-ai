@@ -1,0 +1,162 @@
+# SHACL-shapes voor de BWB-kennisgraaf: wat één named graph `urn:bwb:graph:<bwb-id>` moet bevatten.
+#
+# De T-Box (`app/ontology.py`, named graph `urn:bwb:graph:ontologie`) zegt welke klassen en eigenschappen er zijn
+# en hoe ze op ELI aansluiten. Deze shapes zeggen wat een node van elke klasse móét en mág hebben: verplichte
+# eigenschappen, hoe vaak, en van welke soort (IRI of literal, datatype, taal). Ze zijn afgeleid van wat de
+# importer over veertien regelingen werkelijk schrijft (droogloop 26 nov 2026), dus elke regel hieronder is een
+# invariant die vandaag geldt, geen wens.
+#
+# Validatie gebeurt per named graph, zoals de importer schrijft: een node verwijst binnen zijn eigen graph naar
+# zijn delen (sh:class), en naar een andere wet alleen met een IRI (open world: het doel krijgt inhoud zodra die
+# wet in de graaf komt). Zie `app/shacl.py`.
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix bwb:  <urn:bwb-ns:> .
+@prefix bwbs: <urn:bwb-ns:shapes:> .
+
+# ---------------------------------------------------------------- herbruikbare eigenschappen
+
+bwbs:tekstNl a sh:NodeShape ;
+    sh:datatype rdf:langString ; sh:languageIn ( "nl" ) .
+
+# ---------------------------------------------------------------- de regeling
+
+bwbs:Regeling a sh:NodeShape ;
+    sh:targetClass bwb:Regeling ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:bwbId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^BWB[RV][0-9]+$" ] ;
+    sh:property [ sh:path bwb:refKey ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path owl:sameAs ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+                  sh:pattern "^https://wetten\\.overheid\\.nl/" ] ;
+    sh:property [ sh:path bwb:bronUrl ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    # Uit het attribuut `bwb-ng-vast-deel` van de toestand; elke echte toestand heeft het, een ingekorte fixture niet.
+    sh:property [ sh:path bwb:toestandUrl ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path bwb:inhoudHash ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path bwb:soort ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:geldigVanaf ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path bwb:geldigTot ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path bwb:citeertitel ; sh:maxCount 1 ; sh:node bwbs:tekstNl ] ;
+    sh:property [ sh:path bwb:opschrift ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftHoofdstuk ; sh:class bwb:Hoofdstuk ] ;
+    sh:property [ sh:path bwb:heeftArtikel ; sh:class bwb:Artikel ] ;
+    sh:property [ sh:path bwb:heeftDivisie ; sh:class bwb:Divisie ] ;
+    sh:property [ sh:path bwb:heeftBijlage ; sh:class bwb:Bijlage ] ;
+    sh:property [ sh:path bwb:ondertekendDoor ; sh:class bwb:Ondertekenaar ] ;
+    sh:property [ sh:path bwb:uitgegevenDoor ; sh:class bwb:Organisatie ] ;
+    sh:property [ sh:path bwb:eerstverantwoordelijkeOrganisatie ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] .
+
+# ---------------------------------------------------------------- alles met een JuriConnect-identiteit
+
+bwbs:Citeerbaar a sh:NodeShape ;
+    sh:targetClass bwb:Citeerbaar ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:refKey ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path bwb:bronUrl ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:jci ; sh:maxCount 1 ; sh:pattern "^jci1\\.3:" ] ;
+    # Een sameAs alleen waar de bron een echte jci geeft; nooit verzonnen (README §Vindplaats vs. identiteit).
+    sh:property [ sh:path owl:sameAs ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path bwb:nummer ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:tekst ; sh:maxCount 1 ; sh:node bwbs:tekstNl ] ;
+    sh:property [ sh:path bwb:heeftVerwijzing ; sh:class bwb:Verwijzing ] ;
+    sh:property [ sh:path bwb:verwijstNaar ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path bwb:volgtOp ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] .
+
+bwbs:Artikel a sh:NodeShape ;
+    sh:targetClass bwb:Artikel ;
+    # Geen verplichte jci: een artikel in een bijlage heeft er soms geen, en een jci verzinnen mag nooit.
+    sh:property [ sh:path bwb:nummer ; sh:minCount 1 ] ;
+    sh:property [ sh:path bwb:vindplaats ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftLid ; sh:class bwb:Lid ] ;
+    sh:property [ sh:path bwb:heeftOnderdeel ; sh:class bwb:Onderdeel ] .
+
+bwbs:Lid a sh:NodeShape ;
+    sh:targetClass bwb:Lid ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:nummer ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:tekst ; sh:maxCount 1 ; sh:node bwbs:tekstNl ] ;
+    # Een lid draagt tekst, of begint direct met een opsomming (Wet IB 2001, art. 7.2 lid 8): nooit geen van beide.
+    sh:or ( [ sh:path bwb:tekst ; sh:minCount 1 ] [ sh:path bwb:heeftOnderdeel ; sh:minCount 1 ] ) ;
+    sh:property [ sh:path bwb:vindplaats ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftOnderdeel ; sh:class bwb:Onderdeel ] ;
+    sh:property [ sh:path bwb:heeftVerwijzing ; sh:class bwb:Verwijzing ] .
+
+bwbs:Onderdeel a sh:NodeShape ;
+    sh:targetClass bwb:Onderdeel ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:inBepaling ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path bwb:vindplaats ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:volgnummer ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path bwb:tekst ; sh:maxCount 1 ; sh:node bwbs:tekstNl ] ;
+    sh:property [ sh:path bwb:heeftOnderdeel ; sh:class bwb:Onderdeel ] ;
+    sh:property [ sh:path bwb:heeftVerwijzing ; sh:class bwb:Verwijzing ] .
+
+bwbs:Divisie a sh:NodeShape ;
+    sh:targetClass bwb:Divisie ;
+    sh:property [ sh:path bwb:nummer ; sh:minCount 1 ] ;
+    sh:property [ sh:path bwb:vindplaats ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:titel ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftDivisie ; sh:class bwb:Divisie ] ;
+    sh:property [ sh:path bwb:heeftArtikel ; sh:class bwb:Artikel ] ;
+    sh:property [ sh:path bwb:heeftOnderdeel ; sh:class bwb:Onderdeel ] .
+
+bwbs:Bijlage a sh:NodeShape ;
+    sh:targetClass bwb:Bijlage ;
+    sh:property [ sh:path bwb:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:vindplaats ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftHoofdstuk ; sh:class bwb:Hoofdstuk ] ;
+    sh:property [ sh:path bwb:heeftArtikel ; sh:class bwb:Artikel ] ;
+    sh:property [ sh:path bwb:heeftOnderdeel ; sh:class bwb:Onderdeel ] .
+
+# ---------------------------------------------------------------- de structuur
+
+bwbs:Structuurdeel a sh:NodeShape ;
+    sh:targetClass bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:refKey ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:bronUrl ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:soort ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:nummer ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:titel ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:heeftTiteldeel ; sh:class bwb:Titeldeel ] ;
+    sh:property [ sh:path bwb:heeftAfdeling ; sh:class bwb:Afdeling ] ;
+    sh:property [ sh:path bwb:heeftParagraaf ; sh:class bwb:Paragraaf ] ;
+    sh:property [ sh:path bwb:heeftArtikel ; sh:class bwb:Artikel ] .
+
+# ---------------------------------------------------------------- verwijzingen
+
+bwbs:Verwijzing a sh:NodeShape ;
+    sh:targetClass bwb:Verwijzing ;
+    sh:property [ sh:path bwb:naar ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+                  sh:pattern "^urn:bwb:BWB[RV][0-9]+" ] ;
+    sh:property [ sh:path bwb:soort ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:doelSoort ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:ankerTekst ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:doc ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path bwb:betrouwbaarheid ; sh:maxCount 1 ; sh:in ( "laag" ) ] .
+    # Wie de verwijzing draagt: precies één tekstdeel.
+bwbs:VerwijzingDrager a sh:NodeShape ;
+    sh:targetObjectsOf bwb:heeftVerwijzing ;
+    sh:property [ sh:path [ sh:inversePath bwb:heeftVerwijzing ] ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+# ---------------------------------------------------------------- personen, organisaties, afbeeldingen
+
+bwbs:Ondertekenaar a sh:NodeShape ;
+    sh:targetClass bwb:Ondertekenaar ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [ sh:path bwb:naam ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:functie ; sh:minCount 1 ] .
+
+bwbs:Organisatie a sh:NodeShape ;
+    sh:targetClass bwb:Organisatie ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+bwbs:Illustratie a sh:NodeShape ;
+    sh:targetClass bwb:Illustratie ;
+    sh:property [ sh:path bwb:naam ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:formaat ; sh:minCount 1 ; sh:maxCount 1 ] .

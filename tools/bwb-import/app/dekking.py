@@ -37,6 +37,7 @@ def poortbesluit(
     drempel: float,
     wti_mislukt: bool = False,
     overgeslagen: Sequence[str] = (),
+    vormfouten: str | None = None,
 ) -> Poortbesluit:
     """Beslis vóór de PUT, want een named-graph PUT vervangt alles en een controle erna is te laat.
 
@@ -54,7 +55,13 @@ def poortbesluit(
 
     Structuur die de parser oversloeg weegt als een dip, ook bij volle dekking: de speling van de
     drempel is groot genoeg om een heel artikel te verbergen.
+
+    Een graph die niet aan de shapes voldoet (`vormfouten`, `app/shacl.py`) vervangt nooit een bestaande graph,
+    ook niet met meer tekst: wat in de graaf staat, voldoet aan de ontologie. Alleen tegen een lege graaf wordt hij
+    geschreven, om dezelfde reden als hierboven.
     """
+    if vormfouten and stand.tekens > 0:
+        return Poortbesluit(False, f"{vormfouten}; de bestaande graph ({stand.tekens} tekens) blijft staan")
     tekort = drempel > 0 and dekking.bron_tekens > 0 and dekking.verhouding < drempel
     onmeetbaar = dekking.bron_tekens <= 0
     probleem = dekking.regel()
@@ -66,7 +73,9 @@ def poortbesluit(
         )
     if wti_mislukt and stand.wti:
         return Poortbesluit(False, "WTI mislukt; de bestaande verrijkte graph blijft staan")
-    if tekort or overgeslagen:
+    if vormfouten:
+        probleem = f"{probleem}; {vormfouten}"
+    if tekort or overgeslagen or vormfouten:
         return Poortbesluit(True, f"{probleem}; geschreven, er staat niets beters")
     if wti_mislukt:
         return Poortbesluit(True, "WTI mislukt; geschreven zonder verrijking")

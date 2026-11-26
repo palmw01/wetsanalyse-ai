@@ -141,6 +141,33 @@ def test_onbekende_structuur_wordt_gemeld(tmp_path: Path, inhoud: str, melding: 
         assert wet.overgeslagen == []
 
 
+def test_een_divisie_zonder_label_in_een_bijlage_is_tekst(tmp_path: Path) -> None:
+    """De "Algemene aantekening" onder tabel I van de Wet OB 1968: kop met alleen een titel, en alinea's.
+
+    De bijlage leest die tekst en haar verwijzingen al mee; een melding liet de importpoort vals aanslaan.
+    """
+    wet = ToestandParser().parse(
+        _toestand(
+            tmp_path,
+            "<wet-besluit><wettekst/><bijlage><kop/><lijst/><divisie><kop><titel>Algemene aantekening</titel></kop>"
+            "<al>Tot tabel I behoren niet pootgoed.</al></divisie><meta-data/></bijlage></wet-besluit>",
+        )
+    )
+    assert wet.overgeslagen == []
+    assert "Tot tabel I behoren niet pootgoed." in wet.bijlagen[0].tekst
+
+
+def test_een_divisie_zonder_label_met_artikelen_blijft_een_signaal(tmp_path: Path) -> None:
+    wet = ToestandParser().parse(
+        _toestand(
+            tmp_path,
+            "<wet-besluit><wettekst/><bijlage><divisie><kop/><artikel><kop><nr>1</nr></kop><al>x</al></artikel>"
+            "</divisie></bijlage></wet-besluit>",
+        )
+    )
+    assert "bijlage/divisie" in wet.overgeslagen
+
+
 def test_tekst_en_meta_in_een_bijlage_zijn_niet_onbekend(tmp_path: Path) -> None:
     wet = ToestandParser().parse(
         _toestand(

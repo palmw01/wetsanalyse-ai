@@ -22,6 +22,7 @@ from app.dekking import Dekking, Stand, bron_tekens, poortbesluit
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
 from app.rdf_vocab import Vocab
+from app.shacl import toets
 from app.wti_parser import WtiInfo, WtiParser
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,9 @@ def _laad_wti(downloader: BwbDownloader, toestand: ToestandRef) -> WtiInfo | Non
         return None
 
 
-def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
+def run_imports(
+    bwb_ids: list[str], settings: Settings, droog: Path | None = None
+) -> list[ImportResult]:
     """Importeer meerdere regelingen met één gedeelde writer: eerst verzamelen, dan schrijven.
 
     **Waarom twee fasen en niet één lus.** Een verwijzing duidt haar doel vaak onvolledig aan — de
@@ -105,9 +108,15 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
 
     Per wet idempotent (named-graph PUT); een falende wet breekt de batch niet – de fout komt in het
     per-wet resultaat terecht, in welke fase hij ook optreedt.
+
+    **Droogloop** (``droog``): alles behalve GraphDB. De run haalt op, valideert, parst, bouwt elke
+    graph met de index van de hele run en meet de dekking, en schrijft dan Turtle naar ``droog`` in
+    plaats van een PUT. De importpoort rekent tegen een lege stand, dus zoals bij een eerste import.
+    Zo toets je een nieuwe regeling vóór ze de graaf raakt.
     """
     writer = maak_writer(settings)
-    prepare(writer)
+    if droog is None:
+        prepare(writer)
 
     # Fase 1 – verzamelen. Een wet die hier sneuvelt (download, XSD, parse) ontbreekt simpelweg in
     # de index; de rest van de batch gaat gewoon door.
@@ -129,13 +138,18 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
 
     # De stand voor de importpoort. Faalt dit, dan stopt de run: terugvallen op "er staat niets"
     # zou de poort stil openzetten, en die bestaat juist om een goede graph te beschermen.
-    stand = writer.graaf_stand([v.wet.bwb_id for v in verzameld]) if verzameld else {}
+    if droog is not None:
+        stand = {}
+    else:
+        stand = writer.graaf_stand([v.wet.bwb_id for v in verzameld]) if verzameld else {}
 
     # Fase 2 – schrijven, met de index van álle wetten bij de hand.
     verwerkt: dict[str, ImportSummary] = {}
     for item in verzameld:
         try:
-            verwerkt[item.wet.bwb_id] = _schrijf(item, writer, index, bepalingen, stand, settings)
+            verwerkt[item.wet.bwb_id] = _schrijf(
+                item, writer, index, bepalingen, stand, settings, droog=droog
+            )
         except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
             logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
             mislukt[item.wet.bwb_id] = str(exc)
@@ -145,7 +159,7 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     # aanmaken getraind over wat er op dát moment staat. In `prepare()` zou hij dus over een lege
     # graaf worden gebouwd en daarna nooit iets vinden.
     geschreven = [bwb_id for bwb_id, summary in verwerkt.items() if not summary.tegengehouden]
-    if geschreven:
+    if geschreven and droog is None:
         # Kwam er een wet bij, dan mist een bestaande index die: bijvoorbeeld na een run waarin ze mislukte.
         writer.ensure_similarity_index(herbouw=any(not stand[b].tekens for b in geschreven if b in stand))
 
@@ -190,6 +204,7 @@ def _schrijf(
     bepalingen: set[str],
     stand: dict[str, Stand],
     settings: Settings,
+    droog: Path | None = None,
 ) -> ImportSummary:
     """Bouw één verzamelde wet, meet hem, en schrijf hem pas als de importpoort dat toestaat.
 
@@ -211,6 +226,10 @@ def _schrijf(
     _meet_dekking(summary, item.xml_path, bwb_id)
     if summary.graaf_tekens <= 0:
         raise LegeToestand(f"{bwb_id}: de toestand levert geen tekst op; niet geschreven")
+    vorm = toets(graph)
+    summary.vormfouten = vorm.afwijkingen if vorm else None
+    if vorm is None:
+        logger.warning("SHACL-toets overgeslagen voor %s: pyshacl ontbreekt", bwb_id)
 
     besluit = poortbesluit(
         Dekking(bwb_id, summary.bron_tekens, summary.graaf_tekens),
@@ -218,12 +237,17 @@ def _schrijf(
         drempel=settings.min_dekking,
         wti_mislukt=settings.import_wti and item.wti is None,
         overgeslagen=item.wet.overgeslagen,
+        vormfouten=vorm.regel() if vorm and not vorm.conform else None,
     )
     summary.poort = besluit.reden
     summary.tegengehouden = not besluit.schrijven
     if besluit.reden:
         logger.warning("Importpoort %s: %s", bwb_id, besluit.reden)
-    if besluit.schrijven:
+    if droog is not None:
+        droog.mkdir(parents=True, exist_ok=True)
+        graph.serialize(destination=droog / f"{bwb_id}.ttl", format="turtle")
+        logger.info("Droogloop %s: %d triples naar %s", bwb_id, len(graph), droog)
+    elif besluit.schrijven:
         writer.vervang_wet(bwb_id, graph)
         logger.info("Import voltooid voor %s", bwb_id)
     return summary
@@ -258,6 +282,8 @@ def _print_overzicht(summary: ImportSummary) -> None:
         )
     if summary.xsd_geldig is not None:
         regels.append(("XSD", "geldig" if summary.xsd_geldig else "ONGELDIG"))
+    regels.append(("Vorm (SHACL)", "niet getoetst" if summary.vormfouten is None
+                   else "conform" if summary.vormfouten == 0 else f"{summary.vormfouten} AFWIJKINGEN"))
     if summary.poort:
         status = "NIET GESCHREVEN" if summary.tegengehouden else "geschreven"
         regels.append(("Importpoort", f"{status} – {summary.poort}"))
@@ -337,11 +363,22 @@ def main(argv: list[str] | None = None) -> int:
             "app/kennisgroepen.py). Met --alleen-bij-verlies alleen als die index ontbreekt."
         ),
     )
+    parser.add_argument(
+        "--droog",
+        type=Path,
+        metavar="MAP",
+        help=(
+            "Droogloop: ophalen, valideren, parsen, bouwen en meten zonder GraphDB; "
+            "elke graph gaat als Turtle naar MAP."
+        ),
+    )
     args = parser.parse_args(argv)
     bwb_ids = args.bwb_ids or [settings.default_bwb_id]
 
     # De index van de kennisgroepen staat naast de wet, nooit erin: hij wordt apart gepeild en apart geschreven, en een
     # fout of een poort daar telt in de exitcode maar houdt de wet niet tegen (en andersom).
+    if args.droog is not None:
+        return _wetten(bwb_ids, settings, droog=args.droog)
     if args.alleen_bij_verlies and maak_writer(settings).graaf_is_compleet(bwb_ids):
         logger.info("Graaf is compleet; niets te doen (--alleen-bij-verlies).")
         code = 0
@@ -371,8 +408,8 @@ def _kennisgroepen(settings: Settings, alleen_bij_verlies: bool) -> int:
     return 0 if uitkomst.geschreven else 2
 
 
-def _wetten(bwb_ids: list[str], settings: Settings) -> int:
-    resultaten = run_imports(bwb_ids, settings)
+def _wetten(bwb_ids: list[str], settings: Settings, droog: Path | None = None) -> int:
+    resultaten = run_imports(bwb_ids, settings, droog=droog)
     for resultaat in resultaten:
         if resultaat.ok and resultaat.overzicht:
             _print_overzicht(resultaat.overzicht)

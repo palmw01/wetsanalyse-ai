@@ -109,3 +109,29 @@ def test_sameas_naar_wettenoverheid() -> None:
 
 def test_ontologie_graph_iri() -> None:
     assert str(V.ontology_graph()) == "urn:bwb:graph:ontologie"
+
+
+def test_soort_property_past_bij_wat_de_writer_schrijft() -> None:
+    """Een objectproperty krijgt een IRI, een datatypeproperty een literal.
+
+    `inhoudHash` stond als objectproperty en `eerstverantwoordelijkeOrganisatie` als datatypeproperty: de
+    termencheck hierboven zag dat niet, omdat hij alleen kijkt óf een term gedeclareerd is.
+    """
+    from rdflib import Literal
+
+    from app.wti_parser import WtiParser
+
+    onto = build_ontology(V)
+    objectprops = set(onto.subjects(RDF.type, OWL.ObjectProperty))
+    dataprops = set(onto.subjects(RDF.type, OWL.DatatypeProperty))
+    writer = GraphDbWriter(url="http://graphdb:7200", repository="inning", vocab=V)
+    wti = WtiParser().parse(FIXTURES / "sample_wti.xml")
+    fout: set[str] = set()
+    for bestand in ("sample_toestand.xml", "sample_circulaire.xml", "sample_regeling.xml", "sample_bijlage.xml"):
+        g, _ = writer.build_graph(ToestandParser().parse(FIXTURES / bestand), wti=wti)
+        for _s, p, o in g:
+            if p in objectprops and isinstance(o, Literal):
+                fout.add(f"{p} (objectproperty) kreeg een literal")
+            if p in dataprops and not isinstance(o, Literal):
+                fout.add(f"{p} (datatypeproperty) kreeg een IRI")
+    assert not fout, sorted(fout)
