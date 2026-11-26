@@ -233,7 +233,9 @@ TEKST_TOESLAG = ("De standaardbetalingsregeling gaat uit van een af te lossen be
 
 
 def _na_te_lopen(a: Antwoord) -> list[str]:
-    return [b.tekst for b in a.blokken if b.soort == "leemte" and b.tekst.startswith("Na te lopen")]
+    """Wat de controlestap vond: sinds C5b punten onder Ontbreekt, met de tekst uit de code en de zinnen als citaat."""
+    return [o.tekst + " " + " ".join(f"“{b.tekst}”" for b in o.bronnen) for o in rapport(a).ontbreekt
+            if o.tekst.startswith("Uit de controle")]
 
 
 def test_de_controle_per_bepaling_noemt_een_gevolg_dat_rapport_en_tekst_missen():
@@ -298,3 +300,78 @@ def test_juist_met_dezelfde_ruimte_en_doelgroep_krijgt_geen_kanttekening():
     bron = {"bepaling": ONDERNEMERS, "van": "Er kan", "tot": "verleend."}
     b = rapport(vul(NAAM, invoer(bevinding("Dan kunt u kort uitstel krijgen.", "juist", "J4", [bron])), tr)).bevindingen[0]
     assert b.twijfel == ""
+
+
+# Meting C5b (kort uitstel): de vorm van 25.5.3 en 25.6.2d, met hun onderdelen zoals `get_bepaling` ze geeft.
+_ONDERDELEN_KORT = {
+    "a": "De totale openstaande schuld van de belastingschuldige bedraagt minder dan € 20.000.",
+    "b": "Vervallen.",
+    "c": "Aan de belastingschuldige is niet voor dezelfde belastingaanslag of voor andere belastingaanslagen uitstel van "
+         "betaling in verband met betalingsproblemen verleend.",
+    "d": "Het verzoek betreft niet een voorlopige aanslag als bedoeld in artikel 9, vijfde lid, van de wet die in meerdere "
+         "termijnen betaald mag worden.",
+    "e": "De belastingschuldige heeft geen belastingschuld openstaan waarvoor een dwangbevel is betekend.",
+}
+_ONDERDELEN_ONDERNEMERS = {
+    "b": "Er staan ten name van de belastingschuldige geen belastingaanslagen open waarvoor dwangbevelen zijn betekend.",
+    "c": "Aan de belastingschuldige is niet voor dezelfde belastingaanslag of voor andere aanslagen uitstel van betaling "
+         "in verband met betalingsproblemen of uitstel in verband met een te verwachten uit te betalen bedrag verleend.",
+    "d": _ONDERDELEN_KORT["d"],
+}
+CONTENT_KORT = ("Bel ons, dan krijgt u kort uitstel. Dit kan als uw totale schuld lager is dan € 25.000. Heeft u al een "
+                "dwangbevel gekregen? Dan kunt u geen kort uitstel krijgen.")
+
+
+def _kort_uitstel() -> list[tuple[str, str]]:
+    def lezing(iri, label, tekst, onderdelen):
+        return "get_bepaling", json.dumps({
+            "status": "ok", "volledig": True, "aantal": len(onderdelen),
+            "bepaling": {"iri": iri, "label": label, "tekst": tekst},
+            "resultaten": [{"onderdeel": f"{iri}%2FTekst%2FOnderdeel{n}", "nummer": n, "tekst": t}
+                           for n, t in onderdelen.items()]}, ensure_ascii=False)
+    return [(CONTENT_TOOL, content_resultaat(CONTENT_KORT)),
+            lezing(KORT, "Kort uitstel particulieren", TEKST_KORT, _ONDERDELEN_KORT),
+            lezing(ONDERNEMERS, "Kort uitstel van betaling voor ondernemers",
+                   "Ondernemers kunnen zonder nader onderzoek kort uitstel van betaling krijgen.", _ONDERDELEN_ONDERNEMERS)]
+
+
+def _kort_rapport(**rest):
+    grens = {"bepaling": f"{KORT}%2FTekst%2FOnderdeela", "van": "", "tot": ""}
+    eerder = {"bepaling": f"{KORT}%2FTekst%2FOnderdeelc", "van": "", "tot": ""}
+    return vul(NAAM, invoer(bevinding("Dit kan als uw totale schuld lager is dan € 25.000.", "mogelijk_onjuist", "J1",
+                                      [grens]),
+                            bevinding("Heeft u al een dwangbevel gekregen?", "onvolledig", "V1", [eerder]), **rest),
+               _kort_uitstel())
+
+
+def test_de_controle_noemt_geen_vervallen_onderdeel_en_geen_onderwerp_van_een_bewering():
+    punten = " ".join(_na_te_lopen(_kort_rapport()))
+    assert "Vervallen." not in punten
+    # 25.5.3 onder e en 25.6.2d onder b gaan over het dwangbevel, en daar gaat een bewering over.
+    assert "dwangbevel" not in punten
+    # 25.6.2d onder c is 25.5.3 onder c, die het rapport al citeert, met een staart erbij.
+    assert "te verwachten uit te betalen bedrag" not in punten
+    # Wat overblijft is wezenlijk: de voorlopige aanslag in termijnen, één keer, ook al staat ze in beide bepalingen.
+    assert punten.count("voorlopige aanslag") == 1
+
+
+def test_wat_de_controle_vindt_staat_onder_ontbreekt_en_niet_in_een_melding():
+    # Meting C5b (reguliere regeling): de kwijtschelding stond alleen in de melding Na te lopen, niet in het rapport en
+    # niet in de export.
+    a = _kort_rapport()
+    [o] = [o for o in rapport(a).ontbreekt if o.tekst.startswith("Uit de controle")]
+    assert "Kort uitstel particulieren" in o.tekst
+    assert o.bronnen[0].tekst == _ONDERDELEN_KORT["d"]
+    assert o.bronnen[0].vindplaats.iri == f"{KORT}%2FTekst%2FOnderdeeld"
+    assert not [b for b in a.blokken if b.soort == "leemte" and "Na te lopen" in b.tekst]
+    assert "Uit de controle" in antwoord_tekst(a)
+
+
+def test_voor_de_redacteur_staat_op_nummervolgorde():
+    # Meting C5b (kort uitstel): [3], [2], [4].
+    a = vul(NAAM, invoer(bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [TWAALF]),
+                         bevinding("minimaal € 20 per maand", "juist", "J1", [TWINTIG]),
+                         bevinding("4 maanden kort uitstel", "niet_in_de_bron"),
+                         voor_redacteur=["[3] Waar komt dit vandaan?", "Lees alles na.", "[1] Maak er 12 maanden van."]),
+            trace())
+    assert rapport(a).voor_redacteur == ["[1] Maak er 12 maanden van.", "[3] Waar komt dit vandaan?", "Lees alles na."]

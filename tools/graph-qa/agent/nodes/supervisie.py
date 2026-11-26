@@ -528,7 +528,24 @@ def ingang_node(b: Bouw, state: State) -> dict[str, Any]:
     upd = _kies(b, state)
     if state.get("onderwerp") and "focus" not in upd:
         upd = {**upd, "focus": bij_onderwerp(state.get("focus"), state.get("onderwerp"))}
+    if upd.get("contenttoets"):
+        # Een werkwijze met een vast profiel: alleen de bronnen van dat profiel, niet de keuze per vraag.
+        return {**upd, **_bronnen_van_profiel(state, upd["specialist"])}
     return {**upd, **_bronkeuze(b, state, upd)}
+
+
+def _bronnen_van_profiel(state: State, profiel: str) -> dict[str, Any]:
+    """De bronstand voor de werkwijze van `profiel` (`bronstand.voor_profiel`): wat het profiel niet noemt, doet niet mee,
+    en het event zegt dat aan wie meekijkt. De keuze voor de vervolgvraag (`bronkeuze`) blijft van het gesprek."""
+    from ..profielen import PROFIELEN
+
+    stand = state.get("bronstand") or {}
+    nieuw = bronstand.voor_profiel(stand, PROFIELEN[profiel].connectors)
+    if nieuw is stand:
+        return {}
+    get_stream_writer()(bronstand.event(nieuw))
+    logger.info("bronnen van de werkwijze", extra={"categorie": "functioneel", "bronstand": bronstand.als_tekst(nieuw)})
+    return {"bronstand": nieuw, "bronnen": bronstand.actief(nieuw)}
 
 
 def _bronkeuze(b: Bouw, state: State, upd: dict[str, Any]) -> dict[str, Any]:
