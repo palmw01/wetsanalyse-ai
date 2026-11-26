@@ -2,7 +2,7 @@
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c111d21f46e3accbbe633976309',
                    'agentrollen.json': 'a87a8bc9a2c6cb16a46fa33150f32cc83f1f2a47c1f0e01184f38a8b7c5994fa',
-                   'contenttoets/SKILL.md': '93b72233a02725844b15c42914f4b39b69629e4e1c712788659b3065bafcbbeb',
+                   'contenttoets/SKILL.md': 'c5486e5a7dbbff6c01a060067994a362483ed28f44135681d111a8e576c050a4',
                    'contenttoets/agentrollen.json': '75a21f94f4ff6c7ed9d228c1e92fcb0d7a578aa1de5bc64d6a07b371de002082',
                    'contenttoets/references/agentrollen.md': 'ffebe30fa08efa1f5d212542d806189ad5387149f10b1722a733e9d9a55539b1',
                    'contenttoets/references/bronnen.md': '04f9fe22cf049b18bc8d09a57ce78b38850d5f6395e03736ed20377fabe013f6',
@@ -289,7 +289,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'f93633fc990b075c0b1de92fdb5f321d13c25c1
                                     'doelcontract; verricht geen juridische duiding. Gebruik '
                                     'alleen aangetroffen versiegegevens, geen veronderstelde '
                                     'geldigheid.'}},
- 'sha256': 'c8d1c5286b621f1fb463737c3daebc717d01a0f81913aadc0e2f0f04722d2c23',
+ 'sha256': '7321837345273ebeaee0f2ae594714154a55f6b8368c8573b8f0a5ae22afcc38',
  'skills': {'contenttoets': {'lex': {'beschrijving': 'Toetst een stuk content, zoals een webtekst, '
                                                      'brief of FAQ, op juistheid en volledigheid '
                                                      'tegen de bron: de geldende wet- en '

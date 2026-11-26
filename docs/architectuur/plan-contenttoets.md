@@ -29,8 +29,8 @@ Fase 1 bouwt al naar dat doel toe: hetzelfde commando, dezelfde skill en hetzelf
 content). Fase 2 voegt alleen het kaartje en het paneel toe.
 
 **De bron.** Op termijn hoort RegelSpraak de basis te zijn: de geformaliseerde regels waartegen je een bewering exact
-kunt toetsen. Die is er nog niet. Fase 1 toetst daarom tegen de **wet- en regelgeving in de graaf**, met de connectors
-die in het gesprek aanstaan erbij.
+kunt toetsen. Die is er nog niet. Fase 1 toetst daarom tegen de **wet- en regelgeving in de graaf**, en alleen daartegen:
+geen connectors, ook niet als ze in het gesprek aanstaan (besluit 26 nov 2026, zie *Besluiten*, punt 3).
 
 ## Wat er al is, en wat we hergebruiken
 
@@ -70,7 +70,7 @@ noemt de skill wetsanalyse niet en leunt er niet op. `test_methodes_gescheiden.p
   voor wie iets geldt, en verwijzingen naar regels. Ook wat **niet** toetsbaar is: procesinformatie (formulieren, DigiD,
   per post), tone of voice en advies.
 - `references/criteria.md`: de criteria hieronder, elk met een herkenningsvraag en een voorbeeld.
-- `references/bronnen.md`: wat de bron is. Nu de wet- en regelgeving in de graaf en de connectors die aanstaan; later
+- `references/bronnen.md`: wat de bron is. Nu alleen de wet- en regelgeving in de graaf; later
   RegelSpraak. Welke bron een bewering kan dragen, en wat *niet in de bron* betekent: niet gevonden in wat Lex kan lezen,
   en dus niet fout.
 - `references/eenvoud-is-geen-fout.md`: een publiekstekst mag vereenvoudigen. Weglaten is pas onvolledig als de lezer er
@@ -124,7 +124,7 @@ paneel komt erbij zonder dat graph-qa verandert.
   het criterium; de bronnen (vindplaats, BWB-id, jci of bron-URL, toestand en een letterlijk citaat); een toelichting;
   de twijfels en aannames apart; en een `voorstel`, de herschreven zin.
 - `ontbreekt[]`: wat de bron zegt en de tekst niet noemt, met het citaat.
-- `peildatum`, `getoetst_tegen` (de regelingen en connectors met hun toestand) en `niet_getoetst` (wat Lex bewust liet
+- `peildatum`, `getoetst_tegen` (de regelingen uit de graaf) en `niet_getoetst` (wat Lex bewust liet
   liggen, zoals procesinformatie).
 
 **Hoe het rapport er in het gesprek uitziet (fase 1):**
@@ -153,7 +153,7 @@ Lijsten, geen tabellen, zodat *Kopieer* het rapport ongeschonden aan de redacteu
 ```
 
 - **Profiel** `.claude/lex-agents/contenttoets.md`: de skill vooraf, de leestools van `centraal` plus `semantic_search`
-  en `follow_verwijzingen`, de connectors die aanstaan, het sjabloon `contenttoets`, en `modelklasse: zwaar`. Geen
+  en `follow_verwijzingen`, geen connectors, het sjabloon `contenttoets`, en `modelklasse: zwaar`. Geen
   annotatie-, begrippen- of werkgebiedtools. Gegenereerd en bewaakt zoals de andere profielen.
 - **Delegeren past hier.** Een lange tekst met veel beweringen leest veel bronnen. Het profiel kan per groep beweringen
   een subagent starten (ADR-016 §A1).
@@ -288,8 +288,11 @@ geen tabel. De waarden staan in `bronmodel.contenttoets` (`TOETSOORDELEN`, `VOOR
 1. **Naam**: `/contenttoets`. De skill heet ook `contenttoets`.
 2. **Voor wie**: allebei, in twee lagen. Een samenvatting in gewone taal voor de redacteur, en de juridische kern voor
    de jurist.
-3. **Bronnen**: de wet- en regelgeving in de graaf, en de connectors als ze in het gesprek aanstaan. Op termijn is
-   RegelSpraak de basis.
+3. **Bronnen**: alleen de wet- en regelgeving in de kennisgraaf. Eerst stond hier "en de connectors als ze in het gesprek
+   aanstaan"; op 26 nov 2026 besloot de gebruiker dat de contenttoets zich alleen op de graaf baseert. Het profiel heeft
+   geen connectors meer, en het sjabloon weigert een passage van buiten de graaf (`sjablonen/contenttoets.in_de_graaf`):
+   een kennisgroepstandpunt, een stuk naast de wet of wettekst die live van overheid.nl komt. Op termijn is RegelSpraak
+   de basis.
 4. **Herschrijven**: ja. Per bevinding een betere zin als voorstel.
 5. **Bewaren**: alleen in het gesprek. Geen werkgebied, geen gedeelde opslag, geen audit.
 6. **Peildatum**: standaard vandaag. Geef je een publicatiedatum mee, dan toetst Lex tegen de toestand op die datum.

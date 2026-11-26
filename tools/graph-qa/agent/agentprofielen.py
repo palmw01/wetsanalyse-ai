@@ -570,7 +570,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'en volledigheid tegen de wet- en regelgeving in '
                                                 'de graaf.',
                                 'budget': 400000,
-                                'connectors': ('kennisgroepen',),
+                                'connectors': (),
                                 'instructie': 'De content die je toetst staat in de vraag, na '
                                               '/contenttoets. Staat vooraan peildatum=…, dan toets '
                                               'je tegen de bron zoals die op die datum gold; '
@@ -583,9 +583,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'meestal een beleidsregel, zoals de Leidraad '
                                               'Invordering 2008: bedragen, termijnen en '
                                               'voorwaarden staan daar, de bevoegdheid in de wet. '
-                                              'Haal in één ronde op wat je samen nodig hebt. Een '
-                                              'kennisgroepstandpunt mag een bewering dragen als '
-                                              'die connector aanstaat; het is beleid, geen wet.\n'
+                                              'Haal in één ronde op wat je samen nodig hebt. Je '
+                                              'toetst alleen tegen de kennisgraaf: een bron buiten '
+                                              'de graaf, zoals een kennisgroepstandpunt of '
+                                              'wettekst die live van overheid.nl komt, draagt geen '
+                                              'bewering, ook niet als die bron in het gesprek '
+                                              'aanstaat.\n'
                                               'AFRONDEN: je schrijft geen antwoord in tekst. Rond '
                                               'als laatste stap af met antwoord_contenttoets. Per '
                                               'bewering wijs je het citaat uit de content '
@@ -936,4 +939,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'b2a8d1f3874a2c5d64dd6b523958af42c1a2860dae68c998ab4259628538e928'}
+ 'sha256': 'bb1323c5ab8edaa1c8a4e835a141f7ac06cba4f50f7acbe87736b15a5617dae3'}
