@@ -174,3 +174,21 @@ def test_het_rapport_begrenst_het_aantal_bevindingen():
     a = vul(NAAM, invoer(*veel), trace())
     assert len(rapport(a).bevindingen) == 1                              # dezelfde plek telt één keer
     assert any(b.soort == "leemte" and "eerste 30" in b.tekst for b in a.blokken)
+
+
+def test_alleen_een_passage_uit_de_kennisgraaf_draagt_een_bevinding():
+    # Besluit 26 nov 2026: de contenttoets baseert zich alleen op de kennisgraaf, geen connector en geen live wettekst.
+    live = {"bepaling": "bwb:BWBR0002320:2026-01-01:artikel:3", "van": "een looptijd van maximaal", "tot": "twaalf maanden"}
+    with pytest.raises(Onvulbaar, match="niet in de kennisgraaf"):
+        vul(NAAM, invoer(bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [live])), trace())
+
+
+def test_een_passage_van_buiten_de_graaf_valt_weg_naast_een_uit_de_graaf():
+    standpunt = {"bepaling": "kg:KG:204:2026:5", "van": "De ontvanger", "tot": "verlenen"}
+    a = vul(NAAM, invoer(bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [standpunt, TWAALF])), trace())
+    assert [br.vindplaats.iri for br in rapport(a).bevindingen[0].bronnen] == [STANDAARD]
+
+
+def test_het_profiel_heeft_geen_connectors():
+    from agent.profielen import PROFIELEN
+    assert PROFIELEN["contenttoets"].connectors == ()

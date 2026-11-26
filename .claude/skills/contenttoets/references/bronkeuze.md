@@ -4,8 +4,10 @@
 
 Nu: **de tekst van de wet- en regelgeving in de kennisgraaf**, zoals de BWB hem levert. Dat zijn wetten, algemene
 maatregelen van bestuur, ministeriële regelingen en beleidsregels, zoals de Invorderingswet 1990, de Uitvoeringsregeling
-Invorderingswet 1990 en de Leidraad Invordering 2008. Daarnaast de bronnen die in het gesprek aanstaan, zoals
-kennisgroepstandpunten.
+Invorderingswet 1990 en de Leidraad Invordering 2008. **Alleen de kennisgraaf**: een bron buiten de graaf draagt geen
+bevinding, ook niet als die in het gesprek aanstaat. Dat geldt voor een kennisgroepstandpunt, een Kamerstuk of een
+uitspraak, en voor wettekst die live van overheid.nl komt (besluit 26 nov 2026). Staat de regeling die de tekst noemt
+niet in de graaf, dan is de bewering *niet in de bron*, met die aanname erbij.
 
 Later: **RegelSpraak**. Zodra regels als RegelSpraak beschikbaar zijn, wordt die de basis van de toets: een bewering kan
 dan exact worden vergeleken met de geformaliseerde regel. Tot dan is de toets een lezing van de tekst.

@@ -30,7 +30,7 @@ class Plugin:
 CONTENTTOETS = Plugin(
     naam="contenttoets",
     label="Contenttoets",
-    beschrijving="Toetst content, zoals een webtekst, op juistheid en volledigheid tegen de wet- en regelgeving.",
+    beschrijving="Toetst content, zoals een webtekst, op juistheid en volledigheid tegen de wet- en regelgeving in de kennisgraaf.",
     skill="contenttoets",
     profiel="contenttoets",
     sjabloon="antwoord_contenttoets",

@@ -9,6 +9,7 @@ Hier vult de code het rapport, zoals bij elk sjabloon:
   de code neemt de tekst letterlijk uit de rijen die de graaf in deze beurt teruggaf (`duiding._citaat`);
 - het oordeel komt uit een gesloten lijst, het criterium moet bij het oordeel passen, en een oordeel over juistheid rust
   op een bronpassage. "Mogelijk onjuist" zonder passage bestaat niet: dan is het "niet in de bron";
+- alleen een passage uit de kennisgraaf telt (`in_de_graaf`): geen connector, geen wettekst live van overheid.nl;
 - de regelingen waartegen getoetst is, komen uit de vindplaatsen van de passages.
 
 Het model levert alleen wat een oordeel of formulering vraagt: de samenvatting, de regels voor de redacteur, het oordeel,
@@ -36,6 +37,8 @@ CONTENT_TOOL = "contenttoets_content"
 MAX_BEVINDINGEN = 30
 #: Zoveel bronpassages per bevinding.
 MAX_BRONNEN = 3
+#: Het voorvoegsel van een graafadres: alleen daartegen toetst de contenttoets.
+GRAAF = "urn:bwb:"
 
 _BRON = {
     "type": "object",
@@ -144,14 +147,29 @@ def plek_in(citaat: str, content: str) -> tuple[int, int] | None:
     return (m.start(), m.end()) if m else None
 
 
+def in_de_graaf(iri: str) -> bool:
+    """Of een bepaling uit de kennisgraaf komt: een graafadres (`urn:bwb:`) of een jci, die de code naar de graaf
+    vertaalt. De contenttoets toetst alleen tegen de graaf (besluit 26 nov 2026); een kennisgroepstandpunt, een stuk naast
+    de wet of wettekst die live van overheid.nl komt, draagt geen bevinding."""
+    return iri.startswith((GRAAF, "jci"))
+
+
 def _bronnen(aanwijzingen: Any, rijen: dict[str, dict[str, Any]], trace: Trace, fouten: list[str]) -> list[ToetsBron]:
     uit: list[ToetsBron] = []
     for stuk in (aanwijzingen if isinstance(aanwijzingen, list) else [])[:MAX_BRONNEN]:
         if not isinstance(stuk, dict):
             continue
+        iri = str(stuk.get("bepaling") or "").strip()
+        if iri and not in_de_graaf(iri):
+            fouten.append(f"{iri} staat niet in de kennisgraaf: de contenttoets toetst alleen tegen de wet- en regelgeving "
+                          "in de graaf. Wijs een bepaling uit de graaf aan, of kies niet_in_de_bron")
+            continue
         c = _citaat({**stuk, "waarom": ""}, rijen, trace, fouten)
         for x in (c if isinstance(c, list) else [c] if c else []):
-            uit.append(ToetsBron(tekst=x.tekst, vindplaats=x.vindplaats))
+            if in_de_graaf(x.vindplaats.iri):
+                uit.append(ToetsBron(tekst=x.tekst, vindplaats=x.vindplaats))
+            else:
+                fouten.append(f"{x.vindplaats.iri} staat niet in de kennisgraaf; kies niet_in_de_bron")
     return uit
 
 

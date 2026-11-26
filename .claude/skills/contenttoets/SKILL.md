@@ -66,7 +66,7 @@ Contenttoets – voortgang
    [beweringen](references/beweringen.md).
 2. **De bron zoeken en lezen.** Zoek per bewering de bepaling die haar draagt en lees de tekst zelf, niet een
    samenvatting. Kijk welke bronnen er zijn: de wet, de uitvoeringsregeling, de beleidsregel (zoals de Leidraad
-   Invordering) en de bronnen die in het gesprek aanstaan. Zie [bronnen](references/bronkeuze.md).
+   Invordering), alles uit de kennisgraaf. Een bron buiten de graaf telt niet. Zie [bronnen](references/bronkeuze.md).
 3. **Oordelen.** Kies één oordeel uit de vaste lijst en noem het criterium. Zie [criteria](references/criteria.md).
 4. **Tweede lezing.** Lees elke *mogelijk onjuist* opnieuw met de tekst rond het citaat. Gaat de bepaling wel over
    dezelfde groep, dezelfde belasting, dezelfde regeling? Bij twijfel wordt het *niet in de bron*, met de twijfel erbij.
