@@ -18,6 +18,7 @@ Het **aantal** in de tabellen komt uit de shapes: `1` is verplicht, `0..1` optio
 Elke soort inhoud staat in een eigen named graph. De pijlen zijn verwijzingen: een annotatie, begrip of regel noemt een bepaling als object van een triple, nooit als subject.
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 flowchart LR
   ont["urn:bwb:graph:ontologie<br/>T-Box"]:::bwb
   wet["urn:bwb:graph:#lt;bwb-id#gt;<br/>wettekst per regeling"]:::bwb
@@ -35,10 +36,10 @@ flowchart LR
   wg -->|wa:bron| wet
   breg -->|registreert| wg
   kg -.->|bwbId en artikel als tekst| wet
-  classDef bwb fill:#e6eef8,stroke:#1f5fa8,color:#15212e
-  classDef jas fill:#fbf0e1,stroke:#a8620c,color:#15212e
-  classDef wa fill:#e5f3ea,stroke:#2f7a4b,color:#15212e
-  classDef kg fill:#eceff2,stroke:#5b6673,color:#15212e
+  classDef bwb fill:#E8EEF5,stroke:#154273,color:#1A1A1A
+  classDef jas fill:#FBEFE2,stroke:#8E4600,color:#1A1A1A
+  classDef wa fill:#E9F3E1,stroke:#2C6608,color:#1A1A1A
+  classDef kg fill:#EDF0F4,stroke:#4A5A6E,color:#1A1A1A
 ```
 
 | Named graph | Inhoud | Schrijver |
@@ -65,6 +66,7 @@ De BWB-importer haalt de wettekst bij de officiële bron en schrijft per regelin
 ### Klassenhiërarchie
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 classDiagram
   direction BT
   class eli_LegalResource["eli:LegalResource"]
@@ -118,6 +120,7 @@ classDiagram
 ### Klassendiagram
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 classDiagram
   direction TB
   class bwb_Afdeling["bwb:Afdeling"]
@@ -489,6 +492,7 @@ Een markering is een W3C Web Annotation (`oa:Annotation`) op een bronnode: het d
 ### Klassendiagram
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 classDiagram
   direction TB
   class oa_TextualBody["oa:TextualBody"]
@@ -706,6 +710,7 @@ Per werkgebied staat er één named graph met het begrippenkader (`skos:ConceptS
 ### Klassendiagram
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 classDiagram
   direction TB
   class wa_Afleidingsregel["wa:Afleidingsregel"]
@@ -981,6 +986,7 @@ Een index van de openbaar gepubliceerde standpunten van de kennisgroepen van de 
 ### Klassendiagram
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5F6F8", "primaryBorderColor": "#154273", "primaryTextColor": "#1A1A1A", "lineColor": "#4A5A6E", "secondaryColor": "#EDF0F4", "tertiaryColor": "#FFFFFF"}}}%%
 classDiagram
   direction TB
   class kgo_Gebeurtenis["kgo:Gebeurtenis"]
