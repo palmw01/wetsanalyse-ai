@@ -87,13 +87,14 @@ def bron_rijen(trace: Trace) -> dict[str, dict[str, Any]]:
 
 
 def ouders(trace: Trace) -> dict[str, str]:
-    """Per onderdeel uit `get_lid` het lid waar het bij hoort. Een slotzin na de onderdelen ("…, indien …") heeft een
-    eigen `:id:`-iri die niet onder die van het lid valt; zonder deze kaart stond hij voor de code in geen enkel lid
-    (Iw 24 lid 1, eval 7 nov 2026)."""
+    """Per onderdeel uit `get_lid` het lid waar het bij hoort, en uit `get_bepaling` de bepaling. Een slotzin na de
+    onderdelen ("…, indien …") heeft een eigen `:id:`-iri die niet onder die van het lid valt; zonder deze kaart stond hij
+    voor de code in geen enkel lid (Iw 24 lid 1, eval 7 nov 2026). Een onderdeel van een divisie van een beleidsregel heeft
+    altijd zo'n iri (Leidraad 25.3a.1)."""
     uit: dict[str, str] = {}
     for naam, tekst in trace:
-        data = _data(tekst) if naam == "get_lid" else None
-        lid = ((data or {}).get("lid") or {}).get("iri")
+        data = _data(tekst) if naam in ("get_lid", "get_bepaling") else None
+        lid = ((data or {}).get("lid") or (data or {}).get("bepaling") or {}).get("iri")
         for r in (data or {}).get("resultaten") or []:
             if isinstance(r, dict) and lid and isinstance(r.get("onderdeel"), str):
                 uit[r["onderdeel"]] = lid
