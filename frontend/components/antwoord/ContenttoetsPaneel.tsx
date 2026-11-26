@@ -22,7 +22,8 @@ import {
   contentDelen, nieuweTekst, parseToetsbesluiten, tellingTekst, toetsMarkdown,
   type ContenttoetsBlok, type Oordeel, type ToetsBericht, type Toetsbesluit, type ToetsbesluitInvoer, type Toetsbevinding,
 } from "@/lib/contenttoets";
-import { useKopieer } from "@/lib/kopieer";
+import { KOPIEER_MISLUKT_KORT, useKopieer } from "@/lib/kopieer";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 
 /** De markering in de content: de kleur van het oordeel, zoals het label. */
 const MARK: Record<Oordeel, string> = {
@@ -40,7 +41,7 @@ const UITLEG: Record<Oordeel, string> = {
   juist: "klopt met de bron",
 };
 
-const KEUZE = "focus-ring rounded-full border px-2.5 py-0.5 text-xs";
+const KEUZE = "focus-ring rounded-knop-xs border px-2.5 py-0.5 text-xs";
 const keuze = (aan: boolean) => `${KEUZE} ${aan ? "border-lint bg-lint text-white" : "border-line bg-surface text-ink hover:border-lint/40"}`;
 
 export function ContenttoetsPaneel({ toets, bericht }: { toets: ContenttoetsBlok; bericht?: ToetsBericht }) {
@@ -98,18 +99,16 @@ export function ContenttoetsPaneel({ toets, bericht }: { toets: ContenttoetsBlok
       <div className="space-y-2">
         <GetoetstTegen blok={toets} />
         <p className="sr-only" aria-live="polite">{tellingTekst(toets)}</p>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Toon alleen">
-          <button type="button" aria-pressed={!filter} onClick={() => setFilter(null)} data-toets-filter="alle"
-            className={`focus-ring rounded-full border px-2.5 py-0.5 text-xs ${!filter ? "border-lint bg-lint text-white" : "border-line bg-surface text-muted"}`}>
+        <KeuzeRij label="Toon alleen">
+          <FilterChip gekozen={!filter} onKies={() => setFilter(null)} data-toets-filter="alle">
             Alle {toets.bevindingen.length}
-          </button>
+          </FilterChip>
           {OORDELEN.filter((o) => n[o]).map((o) => (
-            <button key={o} type="button" aria-pressed={filter === o} onClick={() => setFilter(filter === o ? null : o)} data-toets-filter={o}
-              className={`focus-ring rounded-full border px-2.5 py-0.5 text-xs ${TOON[OORDEEL_TOON[o]]} ${filter === o ? "ring-2 ring-lint ring-offset-1" : ""}`}>
+            <FilterChip key={o} gekozen={filter === o} onKies={() => setFilter(filter === o ? null : o)} data-toets-filter={o}>
               {n[o]} {OORDEEL_LABEL[o].toLowerCase()}
-            </button>
+            </FilterChip>
           ))}
-        </div>
+        </KeuzeRij>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {bericht && (
             <span className="mr-auto text-xs text-muted" data-toets-voortgang>
@@ -118,7 +117,7 @@ export function ContenttoetsPaneel({ toets, bericht }: { toets: ContenttoetsBlok
           )}
           <button type="button" className={knopKlasse("secondary", "xs")} data-toets-kopieer
             onClick={() => void kopieer(markdown())}>
-            {kopieerStand === "gekopieerd" ? "Gekopieerd" : kopieerStand === "mislukt" ? "Kopiëren lukte niet" : "Kopieer als Markdown"}
+            {kopieerStand === "gekopieerd" ? "Gekopieerd" : kopieerStand === "mislukt" ? KOPIEER_MISLUKT_KORT : "Kopieer als Markdown"}
           </button>
           <button type="button" className={knopKlasse("secondary", "xs")} data-toets-download
             onClick={() => downloadTekst(markdown(), bestandsnaam("contenttoets"), "text/markdown")}>
