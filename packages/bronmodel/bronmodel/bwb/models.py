@@ -328,6 +328,9 @@ class ImportSummary:
     # Uitslag van de XSD-validatie. None = niet gevalideerd. Een signaal: een afwijkend document is
     # nog geen fout document, en verloren tekst vangt de dekking.
     xsd_geldig: bool | None = None
+    # Uitslag van de SHACL-toets tegen de shapes van de importer (`app/shapes/bwb-graaf.ttl`): het aantal
+    # afwijkingen, None = niet getoetst (pyshacl ontbreekt). Een afwijkende graph vervangt nooit een bestaande.
+    vormfouten: int | None = None
 
     def as_dict(self) -> dict[str, int | str | bool | None]:
         return {
@@ -352,4 +355,5 @@ class ImportSummary:
             "poort": self.poort,
             "tegengehouden": self.tegengehouden,
             "xsd_geldig": self.xsd_geldig,
+            "vormfouten": self.vormfouten,
         }

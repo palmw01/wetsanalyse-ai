@@ -15,6 +15,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from rdflib import Graph
 from bronmodel.bwb.models import ImportResult, ImportSummary
 
 import app.main as main_module
@@ -56,7 +57,7 @@ def nep_import(monkeypatch: pytest.MonkeyPatch):
             )
 
         monkeypatch.setattr(main_module, "_verzamel", _verzamel)
-        monkeypatch.setattr(main_module, "_schrijf", lambda item, writer, *_indexen: item.summary)
+        monkeypatch.setattr(main_module, "_schrijf", lambda item, writer, *_indexen, **_opties: item.summary)
 
     return stel_in
 
@@ -136,7 +137,7 @@ def test_graafwacht_importeert_wel_bij_verlies(monkeypatch: pytest.MonkeyPatch) 
     _wacht_writer(monkeypatch, compleet=False)
     gedraaid: list[list[str]] = []
 
-    def nep_import(bwb_ids, settings):
+    def nep_import(bwb_ids, settings, **_opties):
         gedraaid.append(list(bwb_ids))
         return [ImportResult(bwb_id=b, ok=True, overzicht=_summary(b, bron=10, graaf=10))
                 for b in bwb_ids]
@@ -158,7 +159,7 @@ def test_zonder_de_vlag_peilt_hij_niet(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main_module,
         "run_imports",
-        lambda ids, s: [ImportResult(bwb_id=b, ok=True, overzicht=_summary(b, bron=10, graaf=10))
+        lambda ids, s, **_opties: [ImportResult(bwb_id=b, ok=True, overzicht=_summary(b, bron=10, graaf=10))
                         for b in ids],
     )
     assert main_module.main(["BWBR0004770"]) == 0
@@ -174,7 +175,7 @@ class _PoortWriter:
         self.similarity = 0
 
     def build_graph(self, wet, **_kw):
-        return object(), ImportSummary(bwb_id=wet.bwb_id, wetten=1)
+        return Graph(), ImportSummary(bwb_id=wet.bwb_id, wetten=1)
 
     def tel_tekens(self, graph) -> int:
         return self._tekens

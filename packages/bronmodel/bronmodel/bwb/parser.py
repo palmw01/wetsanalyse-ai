@@ -226,6 +226,15 @@ class ToestandParser:
             logger.warning("Onbekende structuur overgeslagen: %s", melding)
             self._overgeslagen.append(melding)
 
+    @staticmethod
+    def _is_tekstdivisie(element: etree._Element) -> bool:
+        """Een ``<divisie>`` zonder koplabel waarin geen artikel of nieuwe divisie staat: alleen tekst."""
+        if element.tag != "divisie":
+            return False
+        if element.find("kop/label") is not None:
+            return False
+        return not element.xpath(".//artikel | .//divisie")
+
     def _structuursoort(self, element: etree._Element) -> str | None:
         """De structuursoort van een element. Een ``<divisie>`` in een bijlage noemt die in zijn kop."""
         if element.tag == "divisie":
@@ -262,6 +271,11 @@ class ToestandParser:
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag == "structuurtekst" and divisies is not None:
                 divisies.append(self._parse_structuurtekst(child, element, bwb_id))
+            elif tekst is _BIJLAGE_TEKST and self._is_tekstdivisie(child):
+                # Een ``<divisie>`` zonder structuurlabel en zonder eigen artikelen of delen is tekst van de bijlage:
+                # de "Algemene aantekening" onder tabel I van de Wet OB 1968 (BWBR0002629). `_bijlage_tekst` en de
+                # verwijzingen van de bijlage lezen haar al mee, dus melden zou de importpoort vals laten aanslaan.
+                continue
             elif tag not in tekst:
                 self._meld_onbekend(element, tag)
 
