@@ -41,7 +41,18 @@ def test_het_rapport_draait_na_de_testjobs_en_alleen_bij_code():
     assert re.search(r"^    needs: \[raakt, frontend, graph-qa, api\]\s*$", JOB, re.M)
     assert "if: always() && needs.raakt.outputs.kruis == 'true'" in JOB
     assert "fetch-depth: 2" in JOB and "--basis HEAD^1" in JOB, "de eerste ouder van de merge-commit is de basis"
-    assert "uv run scripts/kwaliteit.py" in JOB, "de versies van ruff en coverage staan in de kop van het script"
+    assert "uv run --locked --no-build scripts/kwaliteit.py" in JOB, "de versies van ruff en coverage staan in de kop van het script"
+
+
+def test_de_lock_van_het_script_volgt_zijn_kop():
+    """De poort draait het script met `--locked` (supply chain, SonarQube S8544): de versies komen uit
+    `scripts/kwaliteit.py.lock`. Dependabot kent die lock niet; wie de kop van het script bijwerkt, draait
+    `uv lock --script scripts/kwaliteit.py`. Anders faalt de stap stil, want het rapport mag falen."""
+    kop = re.search(r"^# dependencies = \[(.*)\]$", (WORTEL / "scripts/kwaliteit.py").read_text(encoding="utf-8"), re.M)
+    gevraagd = set(re.findall(r'"([^"]+)"', kop.group(1)))
+    lock = tomllib.loads((WORTEL / "scripts/kwaliteit.py.lock").read_text(encoding="utf-8"))
+    vastgelegd = {f'{d["name"]}{d["specifier"]}' for d in lock["manifest"]["requirements"]}
+    assert gevraagd == vastgelegd, f"draai `uv lock --script scripts/kwaliteit.py`: kop {gevraagd}, lock {vastgelegd}"
 
 
 def test_de_testjobs_bewaren_hun_dekking_waar_het_script_zoekt():

@@ -182,10 +182,12 @@ jobs:
               code = instructies(pad.read_text(encoding="utf-8"))
               if not re.search(r"^FROM\s+python:", code, re.M) or "pip install" not in code:
                   continue
-              rm = re.search(r"rm\s+(-\w+\s+)*(\S*pip/_vendor/bom\.cdx\.json)", code)
+              # Goed is: de SBOM weg, of pip als geheel weg uit de runtime (SonarQube F2: de runtime installeert niets).
+              rm = (re.search(r"rm\s+(-\w+\s+)*(\S*pip/_vendor/bom\.cdx\.json)", code)
+                    or re.search(r"rm\s+(-\w+\s+)*(\S*site-packages/pip)(\s|$)", code))
               if not rm:
                   fout.append(f"{pad}: python-image met `pip install`, maar verwijdert "
-                              f"`pip/_vendor/bom.cdx.json` niet")
+                              f"`pip/_vendor/bom.cdx.json` (of pip zelf) niet")
               elif re.search(r"python3\.\d", rm.group(2)):
                   # 17 nov 2026: bwb-import ging naar python:3.15 en de rm op het pad van 3.14 deed stil niets.
                   fout.append(f"{pad}: het pad naar `bom.cdx.json` noemt een vaste Python-versie; gebruik "
@@ -491,8 +493,8 @@ jobs:
             echo "── $map"
             (
               cd "$map"
-              npm ci
-              npx tsc --noEmit
+              npm ci --ignore-scripts
+              node_modules/.bin/tsc --noEmit
               # Niet `npm pkg get`: die gaf in CI uitvoer voor een script dat ontbreekt, en dan faalt `npm test`.
               if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then npm test; fi
               npm run build
@@ -558,9 +560,9 @@ jobs:
         working-directory: frontend
         run: |
           if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then
-            npx playwright install-deps chromium
+            node_modules/.bin/playwright install-deps chromium
           else
-            npx playwright install --with-deps chromium
+            node_modules/.bin/playwright install --with-deps chromium
           fi
       - name: frontend – browserregressie (shard ${{ matrix.shard }}/4)
         working-directory: frontend
@@ -619,13 +621,15 @@ jobs:
         run: |
           # `nlp`: de taalanalyse van de hybride JAS-pijplijn (ADR-002). Zonder die extra slaan de
           # tests tegen de echte parser zichzelf over, en dan bewaakt niets het providercontract.
-          uv sync --extra dev --extra mcp --extra nlp
-          # Het spaCy-model staat niet in uv.lock (Dependabot kan geen directe URL aan); de URL uit pyproject.toml.
-          uv pip install "$(uv run python scripts/taalmodel.py)"
-          if [ "${{ matrix.shard }}" = 1 ]; then uv run python scripts/genereer_jas_klassen.py --check; fi
+          # Supply chain (SonarQube S8541/S8544): alleen de versies uit uv.lock (`--locked`), en niets vanaf de bron
+          # bouwen behalve onze eigen pakketten (`--no-build`; de uitzonderingen staan in `[tool.uv]` van pyproject.toml).
+          uv sync --locked --no-build --extra dev --extra mcp --extra nlp
+          # Het spaCy-model staat niet in uv.lock (Dependabot kan geen directe URL aan); URL en hash in taalmodel.txt.
+          uv pip install --no-deps --no-build --require-hashes -r taalmodel.txt
+          if [ "${{ matrix.shard }}" = 1 ]; then uv run --locked --no-build python scripts/genereer_jas_klassen.py --check; fi
           # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
           COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/graph-qa/graph-qa-${{ matrix.shard }}.coverage" \
-            uv run --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
+            uv run --locked --no-build --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
       - name: graph-qa – dekking bewaren
         if: always()
         continue-on-error: true
@@ -672,10 +676,10 @@ jobs:
           PYTEST_SHARD: ${{ matrix.shard }}/3
           PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
-          uv sync --extra dev
+          uv sync --locked --no-build --extra dev
           # Met dekking voor het kwaliteitsrapport (de bron staat in [tool.coverage.run] van pyproject.toml).
           COVERAGE_FILE="$GITHUB_WORKSPACE/dekking/api/api-${{ matrix.shard }}.coverage" \
-            uv run --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
+            uv run --locked --no-build --with pytest-cov==7.1.0 pytest -q -p pytest_shard --cov --cov-report=
       - name: api – dekking bewaren
         if: always()
         continue-on-error: true
@@ -686,7 +690,7 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # bwb-import draait op pip + requirements.txt, niet op uv – zie zijn publish-workflow.
+  # bwb-import is een uv-project met lock, zoals api en graph-qa (Python 3.13, zoals zijn publish-workflow).
   bwb-import:
     name: bwb-import
     needs: raakt
@@ -694,15 +698,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - name: uv installeren
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
-          cache: pip
-          cache-dependency-path: tools/bwb-import/requirements.txt
+          enable-cache: true
+          python-version: "3.13"
       - name: bwb-import – tests
         working-directory: tools/bwb-import
         run: |
-          pip install -r requirements.txt
-          python -m pytest -q
+          uv sync --locked --no-build --extra dev
+          uv run --locked --no-build python -m pytest -q
 
   # Het kwaliteitsrapport (scripts/kwaliteit.py): ruff met `ruff.toml`, complexiteit en testdekking, vergeleken met de
   # doelbranch. Een RAPPORT, geen poort: `poort` wacht er niet op en elke stap mag falen. Het rapport staat
@@ -735,7 +740,7 @@ jobs:
       - name: Rapport
         continue-on-error: true
         run: |
-          uv run scripts/kwaliteit.py --basis HEAD^1 --dekking dekking --uit kwaliteit
+          uv run --locked --no-build scripts/kwaliteit.py --basis HEAD^1 --dekking dekking --uit kwaliteit
           cat kwaliteit/kwaliteit.md >> "$GITHUB_STEP_SUMMARY"
       - name: Rapport bewaren
         if: always()

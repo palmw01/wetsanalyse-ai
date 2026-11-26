@@ -59,7 +59,7 @@ mcp = [
 # extra degradeert de provider zichtbaar (alleen lexicale detectoren) in plaats van te falen.
 # Het model zelf staat niet in deze lijst en niet in uv.lock: het staat niet op PyPI, en een directe URL in de
 # lock liet Dependabot voor graph-qa sinds okt 2026 elke update weigeren (private_source_authentication_failure).
-# De URL staat in [tool.graph-qa] hieronder; installeer met `uv pip install "$(uv run python scripts/taalmodel.py)"`.
+# URL en hash staan in taalmodel.txt; installeer met `uv pip install --no-deps --no-build --require-hashes -r taalmodel.txt`.
 nlp = [
     "spacy>=3.8,<3.9",
 ]
@@ -79,6 +79,12 @@ graph-qa-mcp = "agent.mcp_server:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+# Supply chain (SonarQube S8541): uv bouwt niets vanaf de bron, behalve onze eigen pakketten hieronder. Die hebben geen
+# wheel; de rest komt als wheel uit de lock. CI en de image zeggen het ook op de opdrachtregel (`--no-build`).
+no-build = true
+no-binary-package = ["wetsanalyse-bronmodel", "graph-qa"]
 
 [tool.uv.sources]
 wetsanalyse-bronmodel = { path = "../../packages/bronmodel" }
@@ -111,9 +117,3 @@ markers = [
 [tool.coverage.run]
 source = ["agent", "api", "eval", "scripts"]
 relative_files = true
-
-# Het spaCy-model van de taalanalyse (de extra `nlp`): niet op PyPI, dus een wheel van de release van explosion. Hier
-# en niet in [tool.uv.sources], zodat het buiten uv.lock blijft (zie de extra `nlp`). De Dockerfile en de CI lezen
-# dezelfde URL; `tests/runs/test_deploy_drift.py` bewaakt dat.
-[tool.graph-qa]
-taalmodel = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl"

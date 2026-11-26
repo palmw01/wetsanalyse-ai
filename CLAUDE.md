@@ -439,9 +439,10 @@ PostgreSQL-servicecontainer (`RUNSTORE_TEST_DSN`, `ANNOTATIE_TEST_DSN`), zodat d
 alleen lokaal bestaan. Daarvóór staan structurele guards:
 
 - geen workflow-job die op `merged == true` wacht;
-- elk Python-image met `pip install` verwijdert de vendored pip-SBOM (`pip/_vendor/bom.cdx.json`) –
+- elk Python-image met `pip install` verwijdert de vendored pip-SBOM (`pip/_vendor/bom.cdx.json`) of pip zelf –
   Trivy leest die anders als geïnstalleerde pakketten; de toets staat op de vorm, niet op een lijst
-  Dockerfiles;
+  Dockerfiles. De Python-images bouwen hun venv met uv uit de lock (`uv sync --frozen --no-build`) en hebben in de
+  runtime geen pip meer; CI installeert met `--locked --no-build` en npm met `--ignore-scripts` (SonarQube F2);
 - alle Trivy-poorten hebben één beleid en falen minstens op HIGH;
 - `apiExtern` staat default op `false` en wordt alleen op acceptatie gezet;
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;

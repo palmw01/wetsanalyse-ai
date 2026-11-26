@@ -8,7 +8,7 @@
 FROM node:26-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 FROM node:26-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a AS builder

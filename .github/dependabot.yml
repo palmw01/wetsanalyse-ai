@@ -93,8 +93,8 @@ updates:
       patch-and-minor:
         update-types: ["patch", "minor"]
 
-  # ── BWB-importer (Python, requirements.txt) ───────────────────────────────────
-  - package-ecosystem: pip
+  # ── BWB-importer (Python, uv) ─────────────────────────────────────────────────
+  - package-ecosystem: uv
     directory: /tools/bwb-import
     schedule:
       interval: weekly

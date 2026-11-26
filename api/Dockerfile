@@ -19,20 +19,16 @@ WORKDIR /app/api
 # Eerst alleen de dependency-manifesten → betere layer-cache. --extra llm: LiteLLM voor de
 # verbindingstest van een modelprofiel. --extra otel: OpenTelemetry, zodat een gezette
 # OTEL_EXPORTER_OTLP_ENDPOINT werkt (gated op runtime; zonder endpoint gebeurt er niets).
-# De lock zorgt voor reproduceerbare builds.
+# De lock zorgt voor reproduceerbare builds. Supply chain (SonarQube S8541/S8544): `--frozen` installeert precies de
+# versies uit uv.lock, en `--no-build` bouwt niets vanaf de bron behalve onze eigen pakketten (`[tool.uv]
+# no-binary-package`).
 COPY api/pyproject.toml api/uv.lock /app/api/
 COPY packages/bronmodel /app/packages/bronmodel
-RUN uv sync --extra llm --extra otel --frozen
-
-# uv laat een gebundelde setuptools 70.3.0 in de .venv achter; Trivy scant die venv
-# (de runtime-pip-bump raakt alleen /usr/local/lib, niet /app/api/.venv). Overschrijf
-# 'm binnen de venv – dekt CVE-2025-47273 (HIGH, Path Traversal) én CVE-2026-59890
-# (MEDIUM, MANIFEST.in bypass via Unicode-normalisatie).
-RUN uv pip install --python /app/api/.venv/bin/python --no-cache-dir 'setuptools>=83.0.0'
+RUN uv sync --extra llm --extra otel --frozen --no-build
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 # Schone base, identiek aan de builder → de venv-symlinks naar /usr/local/bin/python
-# blijven geldig. Geen uv meer; systeem-pip naar een gepatchte versie (BIO2 / ISO 27002).
+# blijven geldig. Geen uv en geen pip: de runtime installeert niets.
 FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6 AS runtime
 
 # OS-pakketten patchen (BIO2 / ISO 27002:2022 §8.8), spiegelt de MCP-/frontend-image.
@@ -41,12 +37,10 @@ RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade 'pip>=26.1' 'setuptools>=83.0.0' \
- && rm -f /usr/local/lib/python3*/site-packages/pip/_vendor/bom.cdx.json
-# ↑ pip 26.x bakt een CycloneDX-SBOM van zijn vendored deps mee (msgpack 1.1.2,
-# setuptools 70.3.0, …). Trivy pikt die op als "third-party SBOM" en rapporteert
-# die versies als kwetsbaar – ook al is de echte image al gepatcht. Verwijderen
-# sluit de valse alerts zonder pip-functionaliteit te breken.
+# De runtime installeert niets: pip eruit, zoals de frontend npm weghaalt. Een achterlopende pip uit de base (en de
+# CycloneDX-SBOM van zijn vendored deps, `pip/_vendor/bom.cdx.json`) leverde anders Trivy-alerts op zonder ooit te draaien.
+RUN rm -rf /usr/local/lib/python3*/site-packages/pip /usr/local/lib/python3*/site-packages/pip-*.dist-info \
+    /usr/local/bin/pip /usr/local/bin/pip3*
 
 WORKDIR /app/api
 

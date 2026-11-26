@@ -34,10 +34,10 @@ draai "graph-qa" tools/graph-qa uv run --frozen --extra dev --extra mcp pytest -
 # shellcheck disable=SC2046
 draai "api" api uv run --frozen --extra dev pytest -q $(gevonden api)
 # shellcheck disable=SC2046
-draai "bwb-import" tools/bwb-import uv run --no-project --with-requirements requirements.txt \
+draai "bwb-import" tools/bwb-import uv run --frozen --extra dev \
   python -m pytest -q $(gevonden tools/bwb-import)
 
-if [ -n "${ZONDER_FRONTEND:-}" ]; then
+if [[ -n "${ZONDER_FRONTEND:-}" ]]; then
   echo "─── kruistests · frontend overgeslagen ───"
 else
   # shellcheck disable=SC2046
@@ -45,7 +45,7 @@ else
     $(cd frontend && grep -rlE '\.\./\.\./(tools|api)/' --include='*.test.ts' lib app components)
 fi
 
-if [ -n "$mislukt" ]; then
+if [[ -n "$mislukt" ]]; then
   echo "kruistests mislukt:$mislukt"
   exit 1
 fi

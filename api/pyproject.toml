@@ -63,6 +63,10 @@ relative_files = true
 
 [tool.uv]
 package = false
+# Supply chain (SonarQube S8541): uv bouwt niets vanaf de bron, behalve onze eigen pakketten hieronder. Die hebben geen
+# wheel; de rest komt als wheel uit de lock. CI en de image zeggen het ook op de opdrachtregel (`--no-build`).
+no-build = true
+no-binary-package = ["wetsanalyse-bronmodel"]
 # filelock < 4.2.1 heeft drie bekende kwetsbaarheden (CVE-2026-112907, -112913, -112940); het komt indirect
 # binnen via litellm en huggingface-hub. Geldt tot die zelf een veilige ondergrens eisen.
 constraint-dependencies = ["filelock>=4.2.1"]

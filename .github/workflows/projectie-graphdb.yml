@@ -84,5 +84,5 @@ jobs:
           ANNOTATIE_TEST_DSN: postgresql+asyncpg://test:test@localhost:5432/test
           ANNOTATIE_TEST_GRAPHDB_URL: http://localhost:7200
         run: |
-          uv sync --extra dev
-          uv run pytest -q tests/test_projector_v2_integration.py
+          uv sync --locked --no-build --extra dev
+          uv run --locked --no-build pytest -q tests/test_projector_v2_integration.py
