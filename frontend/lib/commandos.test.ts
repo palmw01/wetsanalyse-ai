@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CLIENT_COMMANDOS, NAAM_RE, beschikbaar, connectorOpties, menuRegels, ontleed, type Stand } from "./commandos";
+import { CLIENT_COMMANDOS, NAAM_RE, beschikbaar, connectorOpties, hulpOverzicht, menuRegels, ontleed, type Stand } from "./commandos";
 import type { ConnectorStand } from "./connectorsMenu";
-import { ACTIES, MODULES, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Suggestie } from "./vraagLex";
+import { ACTIES, MODULES, commandoContexten, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Suggestie } from "./vraagLex";
 
 const geenBronnen: ConnectorStand = { beschikbaar: [] };
 const bronnen: ConnectorStand = {
@@ -143,5 +143,71 @@ describe("het menu", () => {
     expect(opties.map((r) => r.hulp)).toEqual(["Kamerstukken staat nu aan – zet uit", "Rechtspraak staat nu uit – zet aan"]);
     expect(menuRegels("/bron recht", b)!.map((r) => r.uitvoer)).toEqual([{ soort: "client", handeling: "bron", argument: "rechtspraak" }]);
     expect(menuRegels("/bron staatsblad", b)).toEqual([]);
+  });
+});
+
+describe("/help: het overzicht van alle commando's", () => {
+  const contexten = commandoContexten();
+  const namen = (st: Stand, huidig?: Parameters<typeof hulpOverzicht>[2]) =>
+    hulpOverzicht(st, contexten, huidig).flatMap((g) => g.regels.map((r) => r.label));
+  /** Elke stand waarin het menu kan openen: zonder onderwerp, in elke context, met en zonder bron om om te zetten. */
+  const standen = (): [Stand, Parameters<typeof hulpOverzicht>[2]][] => [geenBronnen, bronnen].flatMap((connectors) => [
+    [stand([], { connectors }), undefined] as [Stand, undefined],
+    ...contexten.map((c) => [stand(c.suggesties, { connectors }), c.soort] as [Stand, typeof c.soort]),
+  ]);
+
+  it("de contexten zijn die van de werkplek: dezelfde suggesties als de rij boven het veld", () => {
+    const per = Object.fromEntries(contexten.map((c) => [c.soort, c.suggesties]));
+    expect(per.werkgebied).toEqual(werkgebiedSuggesties());
+    expect(per.deelvraag).toEqual(suggestiesVan(deelvraag));
+    expect(per.begrip).toEqual(suggestiesVan(begrip));
+    expect(contexten.map((c) => c.soort)).not.toContain("markering");
+  });
+
+  it("de groep Hier is precies het menu bij /, in elke stand", () => {
+    for (const [st, huidig] of standen()) {
+      const [hier] = hulpOverzicht(st, contexten, huidig);
+      expect(hier.reden).toBeUndefined();
+      expect(hier.regels.map((r) => r.label)).toEqual(menuRegels("/", st)!.map((r) => r.label));
+      expect(hier.regels.map((r) => r.aanvulling)).toEqual(menuRegels("/", st)!.map((r) => r.aanvulling));
+    }
+  });
+
+  it("vanuit elke stand staat elk commando dat ergens in het menu kan erin: het menu loopt nooit voor op /help", () => {
+    const ooitInMenu = new Set(standen().flatMap(([st]) => menuRegels("/", st)!.map((r) => r.label)));
+    for (const c of CLIENT_COMMANDOS) expect(ooitInMenu).toContain(`/${c.naam}`);
+    for (const [st, huidig] of standen()) {
+      const overzicht = new Set(namen(st, huidig));
+      for (const label of ooitInMenu) expect(overzicht, `${label} ontbreekt (${huidig ?? "geen context"})`).toContain(label);
+    }
+  });
+
+  it("wat hier niet kan staat gegroepeerd met de reden, en een groep herhaalt niet wat hier al staat", () => {
+    const groepen = hulpOverzicht(stand([]), contexten);
+    const wg = groepen.find((g) => g.sleutel === "werkgebied")!;
+    expect(wg).toMatchObject({ titel: "In een werkgebied", reden: "alleen in een werkgebied" });
+    expect(wg.regels.map((r) => r.label)).toContain("/deelvragen");
+    // Zonder bron om om te zetten: /bron niet in het menu, wel in het overzicht met waarom.
+    const niet = groepen.find((g) => g.sleutel.startsWith("niet:"))!;
+    expect(niet.regels.map((r) => r.label)).toEqual(["/bron"]);
+    expect(niet.reden).toMatch(/bron naast de wet/);
+    for (const g of groepen.slice(1)) expect(g.reden).toBeTruthy();
+    // Een clientcommando staat één keer, onder Hier.
+    expect(namen(stand([])).filter((l) => l === "/nieuw")).toHaveLength(1);
+    // In een werkgebied geen eigen groep voor het werkgebied: die commando's staan onder Hier.
+    expect(hulpOverzicht(stand(werkgebiedSuggesties()), contexten, "werkgebied").map((g) => g.sleutel)).not.toContain("werkgebied");
+  });
+
+  it("per commando: of het een beurt start, en een voorbeeld als dat helpt", () => {
+    const regels = hulpOverzicht(stand(suggestiesVan(begrip), { connectors: bronnen }), contexten, "begrip")[0].regels;
+    const r = (label: string) => regels.find((x) => x.label === label)!;
+    expect(r("/uitleg")).toMatchObject({ beurt: "beurt" });
+    expect(r("/uitleg").voorbeeld).toBeUndefined();
+    expect(r("/verschil")).toMatchObject({ beurt: "klaarzetten", voorbeeld: "Wat is het betekenisverschil met …" });
+    expect(r("/nieuw")).toMatchObject({ beurt: "geen" });
+    expect(r("/bron")).toMatchObject({ beurt: "geen", voorbeeld: "/bron kamerstukken", aanvulling: "/bron " });
+    // Tijdens een beurt zegt Hier waarom een suggestie nu niet kan.
+    const bezig = hulpOverzicht(stand(suggestiesVan(begrip), { bezig: true }), contexten, "begrip")[0].regels;
+    expect(bezig.find((x) => x.label === "/uitleg")?.uit).toBe("Lex is nog bezig");
   });
 });

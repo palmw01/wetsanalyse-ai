@@ -252,6 +252,41 @@ export const MODULES: { markering: Module<Markering>; bepaling: Module<Bepaling>
 /** De suggesties van het werkgebied, voor de werkplek in een werkgebied zonder ander onderwerp. */
 export const werkgebiedSuggesties = (): Suggestie[] => SUGGESTIES.werkgebied;
 
+/** Waar de suggesties van een soort onderwerp te krijgen zijn, voor `/help` (`lib/commandos.ts`). Een `Record` op de soort: een
+ *  nieuwe soort onderwerp breekt hier de typecheck tot hij erbij staat. De markering heeft alleen vragen, geen commando's. */
+const WAAR: Record<Exclude<OnderwerpSoort, "markering">, { titel: string; reden: string; voorbeeld: Onderwerp }> = {
+  werkgebied: { titel: "In een werkgebied", reden: "alleen in een werkgebied",
+    voorbeeld: { soort: "werkgebied", werkgebied_id: "", id: "", label: "" } },
+  deelvraag: { titel: "Bij een deelvraag", reden: "alleen met Vraag Lex bij een deelvraag",
+    voorbeeld: { soort: "deelvraag", werkgebied_id: "", id: "", label: "" } },
+  begrip: { titel: "Bij een begrip", reden: "alleen met Vraag Lex bij een begrip",
+    voorbeeld: { soort: "begrip", werkgebied_id: "", id: "", label: "" } },
+  bron: { titel: "Bij een bron", reden: "alleen met Vraag Lex bij een bron van het werkgebied",
+    voorbeeld: { soort: "bron", werkgebied_id: "", id: "", label: "" } },
+  kandidaat: { titel: "Bij een kandidaat", reden: "alleen met Vraag Lex bij een voorgestelde bron",
+    voorbeeld: { soort: "kandidaat", werkgebied_id: "", id: "", label: "" } },
+  bepaling: { titel: "Bij een bepaling", reden: "alleen met Vraag Lex bij een bepaling",
+    voorbeeld: { soort: "bepaling", bron_iri: "", label: "" } },
+  stuk: { titel: "Bij een stuk", reden: "alleen met Vraag Lex bij een stuk uit een bron naast de wet",
+    voorbeeld: { soort: "stuk", connector: "", stuk_id: "", label: "" } },
+};
+
+export interface CommandoContext {
+  soort: Exclude<OnderwerpSoort, "markering">;
+  titel: string;
+  /** Waarom de commando's van deze context elders niet in het menu staan. */
+  reden: string;
+  suggesties: Suggestie[];
+}
+
+/** Elke context met zijn suggesties, uit dezelfde modules als de rij boven het veld en het commandomenu. */
+export function commandoContexten(): CommandoContext[] {
+  return (Object.keys(WAAR) as (keyof typeof WAAR)[]).map((soort) => {
+    const { titel, reden, voorbeeld } = WAAR[soort];
+    return { soort, titel, reden, suggesties: suggestiesVan(voorbeeld) };
+  });
+}
+
 /** Een object uit een werkgebied (geen markering, bepaling of stuk): alleen dat kent een actie. */
 export function isObjectOnderwerp(o: Onderwerp | undefined): o is Object_ {
   return !!o && o.soort !== "markering" && o.soort !== "bepaling" && o.soort !== "stuk";
