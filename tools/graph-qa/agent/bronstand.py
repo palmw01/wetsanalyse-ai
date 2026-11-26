@@ -9,6 +9,9 @@ nodig: staat Kamerstukken uit, dan moet Lex kunnen zeggen wie hem aanzet. De red
   uitzette; de werkplek geeft de herkomst mee (`ChatRequest.bronnen_herkomst`);
 - `niet_nodig`: de connector staat aan, maar deze beurt biedt hem niet aan, omdat de vraag (of het gesprek) een andere bron
   noemt (`agent/bronkeuze.py`). Dat is geen "uit": de jurist neemt hem erbij door hem te noemen;
+- `werkwijze`: de connector staat aan, maar de werkwijze van deze beurt gebruikt hem niet: haar profiel noemt hem niet
+  (de contenttoets steunt alleen op de kennisgraaf, besluit 26 nov 2026; `voor_profiel`). Ook geen "uit": het gesprek
+  houdt hem aan voor de volgende vraag;
 - `register_onleesbaar`: het register van de beheerder kon niet worden gelezen, dus staat alles uit;
 - `beheerder`: de beheerder zette hem uit in het register;
 - `aan`.
@@ -24,7 +27,7 @@ from typing import Any, Literal
 
 from bronmodel.connectors import CONNECTORS
 
-Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied", "niet_nodig"]
+Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied", "niet_nodig", "werkwijze"]
 Herkomst = Literal["gesprek", "werkgebied", "standaard"]
 
 #: Waarom een connector uit staat en wie hem aanzet, in de woorden van de jurist (`{label}` wordt ingevuld).
@@ -37,6 +40,7 @@ WIE_ZET_AAN: dict[str, str] = {
                "invoerveld.",
     "niet_nodig": "{label} staat aan, maar is niet nodig voor deze vraag: je vraag noemt een andere bron. Noem {label} "
                   "in je vraag om de bron erbij te nemen.",
+    "werkwijze": "{label} staat aan, maar deze werkwijze gebruikt de bron niet: ze steunt alleen op de kennisgraaf.",
     "werkgebied": "{label} staat uit in de standaard van dit werkgebied. Je kunt de bron aanzetten bij *Bronnen en "
                   "tools* boven het invoerveld.",
 }
@@ -80,6 +84,17 @@ def bepaal(settings: Any, bronnen: list[str] | None, herkomst: str | None = None
     return stand
 
 
+def voor_profiel(stand: dict[str, dict[str, Any]], connectors) -> dict[str, dict[str, Any]]:
+    """De stand voor een werkwijze met een vast profiel: een connector die aanstaat (of alleen voor deze vraag niet nodig
+    was) en die het profiel niet noemt, heet `werkwijze`. De rest blijft. Dezelfde stand terug als er niets verandert, zodat
+    de aanroeper alleen bij een verschil een event stuurt (meting C5b: de events noemden de connectors van het
+    gespreksmenu, terwijl de contenttoets alleen de graaf gebruikt)."""
+    eigen = set(connectors or ())
+    nieuw = {n: ({**s, "aan": False, "reden": "werkwijze"} if s.get("reden") in ("aan", "niet_nodig") and n not in eigen
+                 else s) for n, s in stand.items()}
+    return stand if nieuw == stand else nieuw
+
+
 def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
     """BRONNEN IN DEZE BEURT, voor het variabele deel van de prompt (ná het cachepunt). Per connector uit de
     beschrijving: aan (wat hij dekt, waarvoor hij staat, zijn grenzen, de vorm van zijn id) of uit (waarom, en wie
@@ -88,7 +103,8 @@ def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
     from bronmodel.connectors import herkende
 
     genoemd = set(herkende(vraag))
-    if not any(s["reden"] != "straat" for s in stand.values()) and not genoemd:
+    # Een bron die de werkwijze niet gebruikt, noemt de prompt niet: het profiel zegt al waartegen hij werkt.
+    if not any(s["reden"] not in ("straat", "werkwijze") for s in stand.values()) and not genoemd:
         return ""
     regels = ["BRONNEN IN DEZE BEURT – de wet- en regelgeving (de kennisgraaf) staat altijd aan."]
     for naam, s in stand.items():
@@ -102,6 +118,8 @@ def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
             regels.append(f"- {c.label}: staat aan, maar is niet nodig voor deze vraag en heeft deze beurt geen tools. "
                           "Zeg niet dat de bron uit staat; vraagt de jurist erom, dan neemt hij haar erbij door haar te "
                           "noemen.")
+        elif s["reden"] == "werkwijze":
+            continue
         elif s["reden"] != "straat" or naam in genoemd:
             regels.append(f"- {c.label}: uit. {uit_zin(stand, naam)} Zoek er niet in en vul niet uit eigen kennis "
                           "in wat erin staat.")

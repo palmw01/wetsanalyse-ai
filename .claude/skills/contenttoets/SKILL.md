@@ -67,13 +67,15 @@ Contenttoets – voortgang
 2. **De bron zoeken en lezen.** Zoek per bewering de bepaling die haar draagt en lees de tekst zelf, niet een
    samenvatting. Kijk welke bronnen er zijn: de wet, de uitvoeringsregeling, de beleidsregel (zoals de Leidraad
    Invordering), alles uit de kennisgraaf. Een bron buiten de graaf telt niet. Zie [bronnen](references/bronkeuze.md).
-3. **Oordelen.** Kies één oordeel uit de vaste lijst en noem het criterium. Zie [criteria](references/criteria.md).
+3. **Oordelen.** Kies één oordeel uit de vaste lijst en noem het criterium. Eén bevinding per bewering: een bewering die
+   klopt en een voorwaarde die de tekst elders mist, zijn twee punten (*juist*, en de voorwaarde onder *ontbreekt*). Zie
+   [criteria](references/criteria.md).
 4. **Tweede lezing.** Lees elke *mogelijk onjuist* opnieuw met de tekst rond het citaat. Gaat de bepaling wel over
    dezelfde groep, dezelfde belasting, dezelfde regeling? Bij twijfel wordt het *niet in de bron*, met de twijfel erbij.
 5. **Het geheel.** Kijk of de tekst zichzelf tegenspreekt en of de bron iets wezenlijks zegt dat de tekst weglaat. Loop
    daarvoor elke gelezen bepaling na, ook de onderdelen van een opsomming: welke voorwaarden, uitzonderingen en gevolgen
-   staan er, en noemt de tekst ze? Wat ontbreekt en de lezer nodig heeft, zet je onder *ontbreekt*. De code noemt daarna
-   wat het rapport en de tekst allebei missen, als *na te lopen*.
+   staan er, en noemt de tekst ze? Wat ontbreekt en de lezer nodig heeft, zet je onder *ontbreekt*. De code zet daarna
+   wat het rapport en de tekst allebei missen er zelf bij, als punt *uit de controle*.
 6. **Herschrijven.** Stel per bevinding een betere zin voor. Zie [herschrijven](references/herschrijven.md).
 7. **Rapporteren** in het [sjabloon](assets/toetsrapport.md). Zie [rapport](references/rapport.md).
 
