@@ -112,6 +112,8 @@ Toelichting bij enkele documenten:
   Ook los: [`architectuur/plan-contenttoets.md`](architectuur/plan-contenttoets.md), de contenttoets: een eigen
   plugin-skill die content zoals een webtekst toetst op juistheid en volledigheid tegen de wet- en regelgeving, eerst
   als rapport in het gesprek en daarna in een zijpaneel (25 nov 2026; concept, nog niets gebouwd).
+  Ook los: [`architectuur/plan-sonarqube.md`](architectuur/plan-sonarqube.md), de bevindingen van SonarQube Cloud
+  oplossen in fasen F0–F7, zonder Lex te breken (26 nov 2026; prioriteit 1, in uitvoering).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
