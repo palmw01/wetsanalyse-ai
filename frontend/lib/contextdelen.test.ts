@@ -22,7 +22,9 @@ describe("het register van contextdelen", () => {
     expect(new Set(CONTEXTDELEN.map((d) => d.label)).size).toBe(CONTEXTDELEN.length);
     expect(new Set(CONTEXTDELEN.map((d) => d.kleur)).size).toBe(CONTEXTDELEN.length);
     for (const d of CONTEXTDELEN) {
-      expect(d.kleur).toMatch(/^bg-[a-z-]+(\/\d+)?$/);   // een token (eventueel met dekking), geen hex-waarde
+      // Een token (eventueel met dekking), geen hex-waarde. Bewust niet `bg-` direct gevolgd door `[`: Tailwind leest
+      // dat als klasse en zet `background-color: a-z-` in de css.
+      expect(d.kleur).toMatch(/^bg-(?:[a-z]|-)+(\/\d+)?$/);
       expect(d.uitleg.length).toBeGreaterThan(10);
     }
   });

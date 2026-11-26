@@ -12,7 +12,7 @@ import httpx
 from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from . import annotatie_v2_store, bepaling_graaf, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
+from . import annotatie_v2_store, bepaling_graaf, bestandsnaam, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .deps import get_gesprek_store
@@ -325,8 +325,7 @@ async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md", "json"] =
                                             "paginas": pdf_opmaak.aantal_paginas(body) if formaat == "pdf" else None,
                                             "ms": round((time.monotonic() - start) * 1000)})
     soort = {"md": "text/markdown; charset=utf-8", "json": "application/json"}.get(formaat, "application/pdf")
-    return Response(body, media_type=soort, headers={
-        "Content-Disposition": f'attachment; filename="{werkgebied_export.bestandsnaam(data, formaat)}"'})
+    return bestandsnaam.download(body, soort, werkgebied_export.bestandsnaam(data, formaat))
 
 
 @router.get("/{werkgebied_id}/audit")

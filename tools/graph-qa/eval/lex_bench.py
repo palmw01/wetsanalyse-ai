@@ -303,7 +303,7 @@ def schrijf_dashboard(pad: Path = DASHBOARD_DATA) -> Path:
     return pad
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--json", type=Path, help="het verschil ook als JSON")
     p.add_argument("--manifest", action="store_true", help="schrijf het manifest opnieuw uit de sets")
@@ -314,18 +314,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.manifest:
         MANIFEST.write_text(json.dumps(bouw_manifest(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(MANIFEST)
-        return 0
+        return
     if args.l1:
         print(run_l1(args.l1, args.datum))
-        return 0
+        return
     if args.dashboard:
         print(schrijf_dashboard())
-        return 0
+        return
     rijen = vergelijk()
     print(_tabel(rijen))
     if args.json:
         args.json.write_text(json.dumps(rijen, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return 0
 
 
 if __name__ == "__main__":

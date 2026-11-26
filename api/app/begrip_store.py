@@ -205,7 +205,9 @@ async def _koppelingen_van(conn, werkgebied_id: str | None, begrip_id: str | Non
     huidig = await _huidige_elementen(conn, {r["element_id"] for r in rows})
     # Een passage die verdween omdat haar annotatie werd verwijderd, zegt dat (`bron_verwijderd`), met de prullenbak.
     from .annotatie_prullenbak import met_bron_verwijderd
-    return await met_bron_verwijderd(conn, [actualiteit(r, huidig.get(r["element_id"])) for r in rows])
+    koppelingen = [actualiteit(r, huidig.get(r["element_id"])) for r in rows]
+    await met_bron_verwijderd(conn, koppelingen)
+    return koppelingen
 
 
 def _context_open(koppelingen: list[dict]) -> list[str]:

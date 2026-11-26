@@ -237,7 +237,7 @@ def test_de_cli_leest_en_vergelijkt(tmp_path, capsys):
     (tmp_path / "afk.json").write_text(json.dumps(AFKORTINGEN), encoding="utf-8")
     assert eb.main(["vergelijk", "--referentie", str(tmp_path / "ref.json"), "--werkgebied", str(tmp_path / "wg.json"),
                     "--begrippen", str(tmp_path / "bg.json"), "--afkortingen", str(tmp_path / "afk.json"),
-                    "--uit", str(tmp_path / "rapport.json")]) == 0
+                    "--uit", str(tmp_path / "rapport.json")]) is None
     assert "Begrippen:" in capsys.readouterr().out
     assert json.loads((tmp_path / "rapport.json").read_text())["schema"] == "extern-bibliotheek-v1-rapport"
 

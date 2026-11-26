@@ -587,7 +587,7 @@ def _print(r: dict[str, Any]) -> None:
         print(f"Regels: {g['telling']}; alleen in het werkgebied: {len(g['alleen_in_lex'])}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Een begrippen- en regelbibliotheek inlezen en vergelijken met Lex")
     sub = ap.add_subparsers(dest="actie", required=True)
     lees = sub.add_parser("lees")
@@ -618,17 +618,16 @@ def main(argv: list[str] | None = None) -> int:
         args.uit.write_text(json.dumps(ref, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"{len(ref['begrippen'])} begrippen, {len(ref['regels'])} regels, "
               f"{len(ref['formuleringen'])} formuleringen")
-        return 0
+        return
     if args.actie == "manifest":
         args.uit.write_text(json.dumps(manifest(args.naam, args.mappen), indent=2) + "\n", encoding="utf-8")
-        return 0
+        return
     regels = [laad(p) for p in sorted(args.regels.glob("*.json"))] if args.regels else None
     rapport = vergelijk(laad(args.referentie), laad(args.werkgebied), laad(args.begrippen), regels,
                         laad(args.afkortingen))
     if args.uit:
         args.uit.write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(rapport)
-    return 0
 
 
 if __name__ == "__main__":

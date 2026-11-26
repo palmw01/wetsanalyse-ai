@@ -18,7 +18,7 @@ test("woorden in tekst, IRI's, namen en commentaar zijn geen update", () => {
     `PREFIX ex: <urn:x#> SELECT ?add { ?add ex:move ex:copy }`,
     `SELECT * { ?s ?p ?o } # delete dit later`,
   ]) {
-    controleerSparql(q);
+    assert.doesNotThrow(() => controleerSparql(q), q);
   }
 });
 

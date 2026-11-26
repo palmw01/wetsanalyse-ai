@@ -305,7 +305,9 @@ async def test_profiel(name: str, admin_id: str = Depends(require_admin)):
     except Exception as e:  # noqa: BLE001 – geef een gesaniteerde melding, lek geen requestdetails
         # De ruwe provider-exceptie kan endpoint-URL's, headers of (delen van) de key
         # bevatten; die hoort in het server-log, niet in de API-respons.
-        logger.warning("Verbindingstest profiel %r mislukt: %s: %s", name, type(e).__name__, e)
+        # Vaste melding, de invoer als velden: de JSON-logvorm escapet ze, dus geen nagemaakte logregels (S5145).
+        logger.warning("Verbindingstest profiel mislukt",
+                       extra={"profiel": name, "fout_soort": type(e).__name__, "fout": str(e)})
         return TestResult(
             ok=False,
             model=cfg.model if cfg else "",

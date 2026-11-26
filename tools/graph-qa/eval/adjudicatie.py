@@ -247,7 +247,7 @@ def _casus(ann: dict[str, Any]) -> dict[str, Any]:
     return alle[ann["casus_id"]]
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="actie", required=True)
     v = sub.add_parser("vergelijk")
@@ -278,10 +278,9 @@ def main(argv: list[str] | None = None) -> int:
                  "verschillen": [asdict(x) for x in verschillen], "besluiten": besluitsjabloon(a, b, verschillen)},
                 ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         sys.stdout.write(md)
-        return 0
+        return
     uit = adjudiceer(casus, a, b, _laad(args.besluiten), args.adjudicator, args.datum)
     sys.stdout.write(json.dumps(uit, ensure_ascii=False, indent=2) + "\n")
-    return 0
 
 
 if __name__ == "__main__":

@@ -569,3 +569,21 @@ async def test_afgeleid_alleen_op_een_afleidingsregel(client):
     r = await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
                            json={"verwachte_revisie": b["revisie"], "rol": "afgeleid"})
     assert r.status_code == 422 and r.json()["detail"]["fout"] == "geen_afleidingsregel"
+
+
+# --- de export is een download, nooit een pagina (SonarQube S5131) ---------------------------------
+
+@pytest.mark.parametrize("formaat", ["json", "csv", "ttl"])
+async def test_export_met_html_in_de_inhoud_is_een_inerte_download(client, formaat):
+    """De export geeft de inhoud letterlijk terug – een naam met `<script>` hoort er ongewijzigd in. Dat mag alleen
+    omdat de browser het antwoord nooit als HTML leest: een bijlage met een eigen MIME-type, zonder sniffen, en met
+    een CSP die elk script blokkeert als iemand de url toch rechtstreeks opent."""
+    wg = await _werkgebied(client)
+    await _begrip(client, wg, naam='<script>alert("x")</script>')
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen/export",
+                         params={"formaat": formaat, "inclusief": "alle"})
+    assert r.status_code == 200, r.text
+    assert "text/html" not in r.headers["content-type"]
+    assert r.headers["content-disposition"].startswith("attachment;")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["content-security-policy"] == "default-src 'none'; sandbox"

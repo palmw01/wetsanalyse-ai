@@ -207,7 +207,7 @@ class RegelDetector:
 
     def __init__(self, naam: str, regels: tuple[Regel, ...]):
         self.naam = naam
-        self.regels = regels
+        self.familie = regels  # de Regel-objecten; `REGELS` (de id's) is de conventie van elke detector
         self.versie = ".".join(str(r.versie) for r in regels)
         if any("verwijzing" in r.niet_binnen for r in regels):
             self.versie += f"+verwijzing.{VERWIJZING_VERSIE}"
@@ -219,7 +219,7 @@ class RegelDetector:
         masker = maskers(bron.tekst)
         kandidaten: dict[str, Candidate] = {}
         bijdragen = []
-        for regel in self.regels:
+        for regel in self.familie:
             weg = [b for naam in regel.niet_binnen for b in masker.get(naam, [])]
             for grenzen in regel.vind(bron.tekst, bron.analyse):
                 if _binnen(grenzen[0], weg):

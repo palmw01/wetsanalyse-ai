@@ -237,10 +237,10 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     // De placeholder staat er al vóór de hydratatie, de luisteraar van `BrowserFouten` nog niet: een fout die dan valt
     // meldt niemand. Dus herhalen tot er een melding is, en daarna toetsen dat elke melding de juiste is.
     const melding = page.waitForRequest((r) => r.url().endsWith("/api/ui-spoor"), { timeout: 30_000 });
-    let gemeld = false;
-    const klaar = () => { gemeld = true; };
-    melding.then(klaar, klaar);
-    while (!gemeld && !page.isClosed()) {
+    // `gemeld` wint de race zodra de melding er is (of de wachttijd verliep); de lus stopt dan zelf.
+    const gemeld = melding.then(() => true, () => true);
+    let klaar = false;
+    while (!klaar && !page.isClosed()) {
       await page.evaluate(() => {
         setTimeout(() => {
           const afgebroken = new Error("weg"); afgebroken.name = "AbortError";
@@ -248,7 +248,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
           Promise.reject(new TypeError("de vraag van de jurist"));
         });
       });
-      await page.waitForTimeout(250);
+      klaar = await Promise.race([gemeld, page.waitForTimeout(250).then(() => false)]);
     }
     await melding;
     await page.waitForTimeout(300);

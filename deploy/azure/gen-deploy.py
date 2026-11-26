@@ -27,6 +27,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -34,6 +35,16 @@ from pathlib import Path
 
 TEMPLATE = Path(__file__).parent / "main.bicep"
 DEFAULT_PARAMS = Path(__file__).parent / "params.json"
+
+#: Een Azure-naam (resource group, app, regio): begint met een letter of cijfer, dus nooit als optie van `az` te lezen.
+_AZURE_NAAM = re.compile(r"[A-Za-z0-9][A-Za-z0-9._()-]{0,89}")
+
+
+def azure_naam(waarde: str) -> str:
+    """Argparse-type: alleen een geldige Azure-naam gaat het `az`-commando in (SonarQube S8705)."""
+    if not _AZURE_NAAM.fullmatch(waarde):
+        raise argparse.ArgumentTypeError(f"geen geldige Azure-naam: {waarde!r}")
+    return waarde
 
 
 def _secret(env: str, maak):
@@ -65,9 +76,9 @@ def main() -> None:
     p.add_argument("--license-file", default=os.environ.get("GRAPHDB_LICENSE_FILE"),
                    help="Pad naar graphdb.license. Zonder licentie komt de graaf read-only op en "
                         "faalt de import-job – GraphDB 11 staat schrijven alleen met licentie toe.")
-    p.add_argument("--resource-group", default="rg-wetsanalyse")
-    p.add_argument("--location", default="westeurope")
-    p.add_argument("--app-name", default="wetsanalyse")
+    p.add_argument("--resource-group", default="rg-wetsanalyse", type=azure_naam)
+    p.add_argument("--location", default="westeurope", type=azure_naam)
+    p.add_argument("--app-name", default="wetsanalyse", type=azure_naam)
     p.add_argument("--db-server-name", default=None)
     # Image-refs. Meegeven houdt een infra-deploy IMAGE-NEUTRAAL: zonder deze vlaggen vallen de
     # bicep-defaults (`:latest`) terug op hun plek en zet een infra-deploy de digest-pins van de

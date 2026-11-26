@@ -282,13 +282,13 @@ async def bron_verwijderd(conn, element_ids: set[str]) -> dict[str, dict]:
     return uit
 
 
-async def met_bron_verwijderd(conn, items: list[dict]) -> list[dict]:
-    """Zet `bron_verwijderd` op elk item (koppeling of drager, met `actualiteit`) waarvan het element verdween."""
+async def met_bron_verwijderd(conn, items: list[dict]) -> None:
+    """Zet `bron_verwijderd` op elk item (koppeling of drager, met `actualiteit`) waarvan het element verdween; in
+    place, dus de aanroeper houdt zijn eigen lijst."""
     weg = {k["element_id"] for k in items if k.get("actualiteit") == "verdwenen"}
     if not weg:
-        return items
+        return
     info = await bron_verwijderd(conn, weg)
     for k in items:
         if k.get("actualiteit") == "verdwenen" and k["element_id"] in info:
             k["bron_verwijderd"] = info[k["element_id"]]
-    return items

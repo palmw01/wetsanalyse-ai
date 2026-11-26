@@ -227,3 +227,29 @@ async def test_test_route_rate_limited(admin_client, monkeypatch):
     ]
     assert codes[:2] == [200, 200]
     assert codes[2] == 429
+
+
+async def test_mislukte_verbindingstest_logt_de_invoer_als_veld(admin_client, monkeypatch, caplog):
+    """De profielnaam en de providerfout staan als velden in de logregel, niet in de melding: zo kan een naam of fout
+    met een regelovergang geen eigen logregel nadoen (SonarQube S5145)."""
+    import json
+    import logging
+
+    from app.observability import JsonFormatter
+
+    await admin_client.put("/v1/admin/profiles/snel", headers=_H, json={"model": "gpt-x"})
+
+    class BoomClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        async def complete(self, *a, **kw):
+            raise RuntimeError('mislukt\n{"niveau": "info", "bericht": "nagemaakt"}')
+
+    monkeypatch.setattr("app.routers.admin.build_llm_client", lambda cfg: BoomClient())
+    with caplog.at_level(logging.WARNING, logger="app.routers.admin"):
+        await admin_client.post("/v1/admin/profiles/snel/test", headers=_H)
+    [rec] = [r for r in caplog.records if r.getMessage() == "Verbindingstest profiel mislukt"]
+    assert (rec.profiel, rec.fout_soort) == ("snel", "RuntimeError") and "nagemaakt" in rec.fout
+    regel = JsonFormatter().format(rec)
+    assert "\n" not in regel and json.loads(regel)["fout"] == rec.fout

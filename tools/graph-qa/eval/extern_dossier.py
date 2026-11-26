@@ -953,7 +953,7 @@ def _print(rapport: dict[str, Any]) -> None:
               f"niet meetbaar={t['niet_meetbaar']}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Een bestaande wetsanalyse inlezen en vergelijken met Lex")
     sub = ap.add_subparsers(dest="actie", required=True)
     lees = sub.add_parser("lees", help="een Confluence-export inlezen naar het neutrale schema")
@@ -989,14 +989,13 @@ def main(argv: list[str] | None = None) -> int:
         args.uit.write_text(json.dumps(referentie, ensure_ascii=False, indent=2), encoding="utf-8")
         n = sum(len(b["elementen"]) for b in referentie["bepalingen"])
         print(f"{len(referentie['bepalingen'])} bepalingen, {n} fragmenten, {len(referentie['bronnen'])} bronnen")
-        return 0
+        return
     rapport = vergelijk(laad(args.referentie), laad(args.platform), werkgebied=laad(args.werkgebied),
                         relaties=laad(args.relaties), weergaven=laad_weergaven(args.weergaven),
                         relatie_mapping=laad(args.relatie_mapping))
     if args.uit:
         args.uit.write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(rapport)
-    return 0
 
 
 if __name__ == "__main__":

@@ -48,7 +48,8 @@ def main():
             if json.loads(doel.read_text())["herstel"]["origineel_sha256"] != hashlib.sha256(bron.read_bytes()).hexdigest():
                 raise ValueError("oorspronkelijke poging veranderd")
             continue
-        root = args.baseline if r["variant"] == "A_huidig" else ROOT
+        # Absoluut: een pad dat met `-` begint, leest de worker anders als optie (SonarQube S8705).
+        root = (args.baseline if r["variant"] == "A_huidig" else ROOT).resolve()
         subprocess.run([sys.executable, str(worker), "--worker", "--code-root", str(root),
             "--cases", str(cases), "--case", r["casus"], "--variant", r["variant"],
             "--ronde", str(r["ronde"]), "--output", str(doel), "--replay-source", str(bron)],
