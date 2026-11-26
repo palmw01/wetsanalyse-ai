@@ -249,6 +249,22 @@ C0 staat los. C1 en C4 kunnen naast elkaar. C2 en C3 hebben C1 nodig. Bij UI-wer
 | **C6** | Het paneel *Contenttoets* uit de mockup, met de ankers en het bronvenster | frontend, graph-qa (ankers) |
 | **C7** | Voorstellen overnemen en beoordelen, bewaard op het bericht | api (gesprekken), frontend |
 
+**C6 staat er** (26 nov 2026): in de werkplek zegt het gesprek kort wat de toets vond (waartegen, de telling, *Voor de
+redacteur*) met de kaart *Bekijk de contenttoets*. Die opent het paneel *Contenttoets* naast het gesprek (soort
+`contenttoets` van `ContextPaneel`, een eigen tab die herladen overleeft): de content heel, elke bewering gemarkeerd in de
+kleur van haar oordeel op de ankers uit C1 (`begin`/`eind` in codepoints, `lib/contenttoets.contentDelen`), een legenda,
+de telling als filter, en per bewering de bron en het voorstel. Een markering kiest haar bevinding en andersom; een
+vindplaats opent de bepaling als tab in het bronvenster. Graph-qa hoefde niets: de ankers rekent het sjabloon al uit de
+content. Buiten de werkplek staat het hele rapport in het bericht, zoals in fase 1.
+
+**C7 staat er** (26 nov 2026): per bevinding beslist de mens in het paneel: *Eens* of *Oneens* met het oordeel van Lex,
+en het voorstel *Overnemen*, *Aanpassen* (met een eigen tekst, die begint bij het voorstel) of *Afwijzen*, met een reden
+bij oneens of afwijzen. Het besluit staat op het bericht (api `toetsbesluiten`, `GET`/`PUT
+/v1/gesprekken/{id}/runs/{run_id}/toetsbesluiten[/{nr}]`), want daar bestaat de toets; graph-qa zet er niets (het
+agent-token komt er niet). Het paneel telt *Beoordeeld: n van m*, toont de tekst met de overgenomen voorstellen erin
+(doorgehaald en nieuw), en geeft het rapport met de besluiten als Markdown: naar het klembord of als bestand. Lijsten,
+geen tabel. De waarden staan in `bronmodel.contenttoets` (`TOETSOORDELEN`, `VOORSTELBESLUITEN`) en de werkplek spiegelt ze.
+
 **Later**: RegelSpraak als bron, zodra die er is.
 
 ## Risico's

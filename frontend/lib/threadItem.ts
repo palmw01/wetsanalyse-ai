@@ -22,6 +22,9 @@ export type ThreadItem = (
       // van de jurist maar een blok van Lex (`ThreadRij`).
       doorgegeven?: "opdracht" | "antwoorden" }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
+      // De run die dit bericht schreef (uit `opgeslagen`, of na herladen van het bericht): het adres van wat bij het
+      // bericht bewaard wordt, zoals de besluiten over een contenttoets (C7).
+      runId?: string;
       // De brongetrouwheidstoets van déze beurt: live uit de stroom, na herladen van het bericht.
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
@@ -64,4 +67,7 @@ export type ThreadItem = (
   // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }
   // Meerdere onderdelen van één artikel in één run: per onderdeel een regel met zijn eigen spoor.
-  | { id: string; type: "reeks"; reeks: Reeks; tekst?: string; uitkomst?: import("./types").BeurtUitkomst });
+  | { id: string; type: "reeks"; reeks: Reeks; tekst?: string; uitkomst?: import("./types").BeurtUitkomst }
+  // Het overzicht van `/help` (`lib/commandos.ts`, `hulpOverzicht`): een bericht van de werkplek zelf, geen beurt. Het wordt
+  // niet bewaard; na herladen is het weg, net als het menu.
+  | { id: string; type: "hulp"; groepen: import("./commandos").HulpGroep[] });

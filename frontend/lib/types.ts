@@ -679,6 +679,8 @@ export interface Bericht {
    *  antwoorden van de jurist die bij het hervatten zijn doorgegeven. Nooit een bericht van de jurist zelf (bugonderzoek
    *  ADR-016, B5). */
   doorgegeven?: "opdracht" | "antwoorden" | null;
+  /** De besluiten over de bevindingen van een contenttoets (C7); het paneel leest ze vers bij de api. */
+  toetsbesluiten?: import("./contenttoets").Toetsbesluit[];
   created?: string;
 }
 

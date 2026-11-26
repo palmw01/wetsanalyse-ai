@@ -6,6 +6,7 @@ import {
 } from "@/lib/modelkeuzes";
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
+import type { Toetsbesluit, ToetsbesluitInvoer } from "./contenttoets";
 import {
   UIT as WERKPLAATS_UIT, parseImageOnderdeel, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseToets,
   parseVersie, type ImageOnderdeel, type Toets, type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
@@ -846,6 +847,22 @@ export async function wijzigGesprek(
     body: JSON.stringify(wijziging),
   });
   return json<Gesprek>(res);
+}
+
+/** De besluiten over de contenttoets in het bericht van een run (plan contenttoets, C7). */
+export async function haalToetsbesluiten(gesprekId: string, runId: string): Promise<Toetsbesluit[]> {
+  const res = await fetch(`/api/gesprekken/${pathSegment(gesprekId)}/runs/${pathSegment(runId)}/toetsbesluiten`, { cache: "no-store" });
+  return json<Toetsbesluit[]>(res);
+}
+
+/** Het besluit over één bevinding; een lege invoer wist het. Geeft alle besluiten van de toets terug. */
+export async function zetToetsbesluit(gesprekId: string, runId: string, nr: number, invoer: ToetsbesluitInvoer): Promise<Toetsbesluit[]> {
+  const res = await fetch(`/api/gesprekken/${pathSegment(gesprekId)}/runs/${pathSegment(runId)}/toetsbesluiten/${nr}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(invoer),
+  });
+  return json<Toetsbesluit[]>(res);
 }
 
 /** Verwijder een gesprek. Een 404 telt als geslaagd: dan is het al weg, en dat is precies wat er

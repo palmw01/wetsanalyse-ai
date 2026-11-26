@@ -65,3 +65,26 @@ def telling_tekst(aantallen: dict[str, int], ontbreekt: int = 0) -> str:
     if ontbreekt:
         zin += f" {ontbreekt} {'punt ontbreekt' if ontbreekt == 1 else 'punten ontbreken'}."
     return zin
+
+
+# ── Het oordeel van de redacteur of de jurist (C7) ──────────────────────────────────────────────────────────────────
+# Lex stelt voor; de mens beoordeelt. Per bevinding twee vragen: klopt het oordeel van Lex (eens, oneens), en wat
+# gebeurt er met het voorstel (overgenomen, aangepast, afgewezen). Bewaard op het bericht (api `toetsbesluiten`), want
+# de toets zelf bestaat alleen daar. De werkplek spiegelt deze waarden in `lib/contenttoets.ts`.
+
+#: Klopt het oordeel van Lex?
+TOETSOORDELEN: tuple[str, ...] = ("eens", "oneens")
+
+#: Wat er met het voorstel gebeurt. "Aangepast" draagt de tekst die de redacteur ervan maakte.
+VOORSTELBESLUITEN: tuple[str, ...] = ("overgenomen", "aangepast", "afgewezen")
+
+TOETSOORDEEL_LABEL: dict[str, str] = {
+    "eens": "Eens",
+    "oneens": "Oneens",
+}
+
+VOORSTELBESLUIT_LABEL: dict[str, str] = {
+    "overgenomen": "Overgenomen",
+    "aangepast": "Aangepast",
+    "afgewezen": "Afgewezen",
+}

@@ -11,7 +11,10 @@ const RIJ = readFileSync(join(__dirname, "..", "components/werkplek/ThreadRij.ts
 
 describe("een beurt van Lex heeft één vorm", () => {
   it("de naam Lex boven een beurt staat alleen in LexRij", () => {
-    expect(RIJ.match(/font-medium text-muted">Lex<\/p>/g)?.length).toBe(1);
+    // De naam is een prop met Lex als default: het overzicht van `/help` is een bericht van de werkplek zelf.
+    expect(RIJ.match(/font-medium text-muted">\{naam\}<\/p>/g)?.length).toBe(1);
+    expect(RIJ).toContain('function LexRij({ denk, denkt = false, naam = "Lex", children }');
+    expect(RIJ).not.toMatch(/font-medium text-muted">Lex<\/p>/);
   });
 
   it("het denkproces staat alleen in LexRij en in het spoor per lid van een reeks", () => {

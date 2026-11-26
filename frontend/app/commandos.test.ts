@@ -20,7 +20,9 @@ const code = [...bestanden("app"), ...bestanden("components"), ...bestanden("lib
 describe("commando's: één register, één ingang", () => {
   it("alleen de werkplek gebruikt het menu en de regels", () => {
     const gebruikers = code.filter((p) => /from "@\/lib\/commandos"|from "\.\/commandos"/.test(bron(p)));
-    expect(gebruikers.sort()).toEqual(["components/werkplek/CommandoMenu.tsx", "components/werkplek/WerkplekClient.tsx"]);
+    // Het overzicht van `/help` (`CommandoOverzicht`) leest dezelfde regels, zodat het nooit uit de pas loopt met het menu.
+    expect(gebruikers.sort()).toEqual(["components/werkplek/CommandoMenu.tsx", "components/werkplek/CommandoOverzicht.tsx",
+      "components/werkplek/WerkplekClient.tsx"]);
     expect(code.filter((p) => /<CommandoMenu\b/.test(bron(p)))).toEqual(["components/werkplek/WerkplekClient.tsx"]);
   });
 

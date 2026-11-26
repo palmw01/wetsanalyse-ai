@@ -8,8 +8,13 @@
  *  - `/content` toont `/contenttoets` in het menu; Enter vult het commando aan en verstuurt niets;
  *  - met tekst erachter is het menu dicht, en Enter verstuurt de hele tekst als vraag, zonder actie of doel, met de
  *    plugins van het gesprek;
- *  - het rapport staat als blok in het gesprek: de telling, *Voor de redacteur*, per bewering het oordeel met de
- *    letterlijke bron en de vindplaats, het voorstel van Lex, *Ontbreekt* en *Niet getoetst*;
+ *  - in het gesprek een korte toelichting (de telling, *Voor de redacteur*) met de kaart *Bekijk de contenttoets* (C6);
+ *  - de kaart opent het rapport naast het gesprek: de content heel met elke bewering gemarkeerd in de kleur van haar
+ *    oordeel, een legenda, per bewering het oordeel met de letterlijke bron en de vindplaats, het voorstel van Lex,
+ *    *Ontbreekt* en *Niet getoetst*; een markering kiest haar bevinding en andersom; de telling filtert;
+ *  - per bevinding het oordeel van de mens (C7): eens of oneens, het voorstel overnemen, aanpassen of afwijzen, met een
+ *    reden; de voortgang, de tekst met de overgenomen voorstellen, en het rapport als Markdown (klembord en bestand);
+ *  - een vindplaats opent de bepaling als tab, en de toets blijft als tab staan;
  *  - op een telefoon (390 px) loopt niets buiten beeld.
  */
 import assert from "node:assert/strict";
@@ -25,7 +30,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
 await context.addCookies(await sessieCookies(base));
 await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
-const errors = [], runs = [];
+const errors = [], runs = [], besluitVerzoeken = [];
+// De besluiten op het bericht (C7), zoals de api ze teruggeeft: per bevinding één, op volgorde.
+let besluiten = [];
 
 // Een zelfgemaakte testtekst met bewust geplaatste fouten; de bron is letterlijk de Leidraad Invordering 2008.
 const CONTENT = "Betaalt u liever in termijnen? Dan kunt u een standaardbetalingsregeling van maximaal 12 maanden krijgen. " +
@@ -33,7 +40,8 @@ const CONTENT = "Betaalt u liever in termijnen? Dan kunt u een standaardbetaling
   "Uw belastingschuld is niet hoger dan € 90.000. Vul het formulier in met uw DigiD.";
 const LI = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.";
 const vp = (n, label) => ({ iri: `${LI}${n}`, label, jci: "", regeling: "Leidraad Invordering 2008" });
-const TWAALF = { tekst: "een standaardbetalingsregeling verlenen met een looptijd van maximaal twaalf maanden", vindplaats: vp(1, "Artikel 25.3a.1") };
+const TWAALF = { tekst: "een standaardbetalingsregeling verlenen met een looptijd van maximaal twaalf maanden",
+  vindplaats: { ...vp(1, "Artikel 25.3a.1"), jci: "jci1.3:c:BWBR0024096" } };
 const plek = (s) => { const b = [...CONTENT].length - [...CONTENT.slice(CONTENT.indexOf(s))].length; return { begin: b, eind: b + [...s].length }; };
 const bevinding = (nr, citaat, oordeel, criterium, bronnen, rest = {}) => ({ nr, citaat, ...plek(citaat), oordeel, criterium,
   bronnen, toelichting: "", twijfel: "", voorstel: "", ...rest });
@@ -72,6 +80,19 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p === "/api/gesprekken/g9") return route.fulfill({ json: { id: "g9", titel: "Contenttoets", berichten: [] } });
   if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ status: 201, json: { id: 1 } });
+  if (p === "/api/gesprekken/g9/runs/r1/toetsbesluiten" && m === "GET") return route.fulfill({ json: besluiten });
+  const besluitPad = /^\/api\/gesprekken\/g9\/runs\/r1\/toetsbesluiten\/(\d+)$/.exec(p);
+  if (besluitPad && m === "PUT") {
+    const nr = Number(besluitPad[1]);
+    besluitVerzoeken.push({ nr, ...body });
+    besluiten = besluiten.filter((b) => b.nr !== nr);
+    if (body.oordeel || body.voorstel || body.reden) {
+      besluiten.push({ nr, oordeel: body.oordeel ?? null, voorstel: body.voorstel ?? null, tekst: body.tekst ?? "",
+        reden: body.reden ?? "", door: "browser-test", op: "2026-11-26T10:00:00Z" });
+    }
+    besluiten.sort((a, b) => a.nr - b.nr);
+    return route.fulfill({ json: besluiten });
+  }
   if (p === "/api/annotatie/run" && m === "POST") {
     runs.push(body);
     return route.fulfill({ status: 201, json: { run_id: "r1", conversation_id: body.conversation_id, status: "loopt" } });
@@ -82,7 +103,8 @@ await page.route("**/api/**", async (route) => {
     label: "Contenttoets", beschrijving: "Toetst content op juistheid en volledigheid.", commando: "contenttoets" }] } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return onbekend(route, { stil: SCHIL, leeg: [] });
+  // De bepaling die een vindplaats opent: alleen dat ze als tab opent telt hier, niet haar tekst.
+  return onbekend(route, { stil: [...SCHIL, /^GET \/api\/annotatie\/v2\/(weergave|bepaling)$/], leeg: { detail: "Niet in deze test." }, stilStatus: 404 });
 });
 
 try {
@@ -125,38 +147,123 @@ try {
   assert.ok(!runs[0].actie && !runs[0].doel, "graph-qa herkent het commando zelf");
   assert.deepEqual(runs[0].plugins, ["contenttoets"], "de beurt draagt de plugins van het gesprek");
 
-  // Het rapport in het gesprek.
-  const rapport = page.locator("[data-contenttoets]");
-  await rapport.waitFor();
-  const tekst = await rapport.innerText();
-  assert.match(tekst, /Getoetst tegen Leidraad Invordering 2008, geldend op/);
-  assert.match(tekst, /Voor de redacteur/);
-  assert.equal(await rapport.locator("[data-toetsbevinding]").count(), 4);
-  const twee = rapport.locator('[data-toetsbevinding="2"]');
-  assert.equal(await twee.getAttribute("data-oordeel"), "mogelijk_onjuist");
-  assert.match(await twee.innerText(), /J1 Waarde[\s\S]*“maximaal 24 maanden”[\s\S]*maximaal twaalf maanden[\s\S]*Artikel 25\.3a\.1[\s\S]*Voorstel van Lex/);
-  assert.match(await rapport.locator('[data-toetsbevinding="4"]').innerText(), /Twijfel of aanname/);
-  assert.match(tekst, /Ontbreekt[\s\S]*verrekent de ontvanger/);
-  assert.match(tekst, /Niet getoetst[\s\S]*DigiD/);
-  await rapport.scrollIntoViewIfNeeded();
-  const naarBegin = () => rapport.evaluate((el) => el.scrollIntoView({ block: "start" }));
-  if (shots) {
-    await page.screenshot({ path: `${shots}/contenttoets-einde-1440.png` });
-    await naarBegin();
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: `${shots}/contenttoets-begin-1440.png` });
-  }
+  // In het gesprek: een korte toelichting met de kaart (C6); het rapport staat naast het gesprek.
+  const kort = page.locator('[data-contenttoets="kort"]');
+  await kort.waitFor();
+  const kortTekst = await kort.innerText();
+  assert.match(kortTekst, /Getoetst tegen Leidraad Invordering 2008, geldend op/);
+  assert.match(kortTekst, /Voor de redacteur[\s\S]*Zet de looptijd op 12 maanden/);
+  assert.equal(await kort.locator("[data-toetsbevinding]").count(), 0, "de bevindingen staan in het paneel, niet in het gesprek");
+  const chip = kort.locator("[data-contenttoets-chip]");
+  assert.match(await chip.innerText(), /Bekijk de contenttoets[\s\S]*4 beweringen: 2 mogelijk onjuist, 2 juist\. 1 punt ontbreekt\./);
+  if (shots) { await kort.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${shots}/contenttoets-gesprek-1440.png` }); }
 
-  // Op een telefoon loopt niets buiten beeld.
+  // Het paneel: de content met de markeringen, de tellers als filter, de legenda en de bevindingen.
+  await chip.click();
+  const paneel = page.locator("[data-contenttoets-paneel]");
+  await paneel.waitFor();
+  const content = paneel.locator("[data-toets-content]");
+  const heel = await content.evaluate((el) => { const k = el.cloneNode(true); k.querySelectorAll("sup").forEach((x) => x.remove()); return k.textContent; });
+  assert.equal(heel, CONTENT, "de content staat er heel, met de markeringen erin");
+  assert.equal(await content.locator("[data-toets-mark]").count(), 4);
+  assert.equal(await content.locator('[data-toets-mark="2"]').getAttribute("data-oordeel"), "mogelijk_onjuist");
+  assert.match(await content.locator('[data-toets-mark="2"]').innerText(), /maximaal 24 maanden/);
+  assert.equal(await paneel.locator("[data-toets-legenda] li").count(), 4);
+  assert.equal(await paneel.locator("[data-toetsbevinding]").count(), 4);
+  const twee = paneel.locator('[data-toetsbevinding="2"]');
+  assert.match(await twee.innerText(), /J1 Waarde[\s\S]*“maximaal 24 maanden”[\s\S]*maximaal twaalf maanden[\s\S]*Artikel 25\.3a\.1[\s\S]*Voorstel van Lex/);
+  assert.match(await paneel.locator('[data-toetsbevinding="4"]').innerText(), /Twijfel of aanname/);
+  const paneelTekst = await paneel.innerText();
+  assert.match(paneelTekst, /Ontbreekt[\s\S]*verrekent de ontvanger/);
+  assert.match(paneelTekst, /Niet getoetst[\s\S]*DigiD/);
+  if (shots) await page.screenshot({ path: `${shots}/contenttoets-paneel-1440.png` });
+
+  // Een markering kiest haar bevinding; het nummer van een bevinding kiest haar markering.
+  await content.locator('[data-toets-mark="4"]').click();
+  assert.equal(await paneel.locator('[data-toetsbevinding="4"]').getAttribute("data-actief"), "true");
+  await paneel.locator('[data-toon-in-tekst="2"]').click();
+  assert.equal(await twee.getAttribute("data-actief"), "true");
+  assert.equal(await paneel.locator('[data-toetsbevinding="4"]').getAttribute("data-actief"), null);
+
+  // De telling is een filter: alleen "mogelijk onjuist", dan weer alles.
+  await paneel.locator('[data-toets-filter="mogelijk_onjuist"]').click();
+  assert.equal(await paneel.locator("[data-toetsbevinding]").count(), 2);
+  assert.match(await content.locator('[data-toets-mark="1"]').getAttribute("class"), /opacity-30/);
+  if (shots) { await paneel.locator("[data-toetsbevinding]").first().scrollIntoViewIfNeeded(); await page.screenshot({ path: `${shots}/contenttoets-filter-1440.png` }); }
+  await paneel.locator('[data-toets-filter="alle"]').click();
+  assert.equal(await paneel.locator("[data-toetsbevinding]").count(), 4);
+
+  // Het oordeel van de mens (C7): eens of oneens, en het voorstel overnemen, aanpassen of afwijzen. Bewaard op het bericht.
+  const voortgang = paneel.locator("[data-toets-voortgang]");
+  assert.match(await voortgang.innerText(), /Beoordeeld: 0 van 4/);
+  const b2 = paneel.locator('[data-toets-beoordeling="2"]');
+  await b2.locator('[data-toets-oordeel="eens"]').click();
+  await b2.locator('[data-toets-voorstel="overgenomen"]').click();
+  await page.waitForFunction(() => /Beoordeeld: 1 van 4/.test(document.querySelector("[data-toets-voortgang]")?.textContent ?? ""));
+  assert.deepEqual(besluitVerzoeken.at(-1), { nr: 2, oordeel: "eens", voorstel: "overgenomen", tekst: "", reden: "" });
+  assert.equal(await b2.locator('[data-toets-voorstel="overgenomen"]').getAttribute("aria-pressed"), "true");
+  const b4 = paneel.locator('[data-toets-beoordeling="4"]');
+  await b4.locator('[data-toets-oordeel="oneens"]').click();
+  await b4.locator('[data-toets-voorstel="aangepast"]').click();
+  const eigen = b4.locator("[data-toets-aanpassen] textarea");
+  assert.match(await eigen.inputValue(), /online formulier/, "aanpassen begint bij het voorstel van Lex");
+  await eigen.fill("Is uw schuld hoger dan € 100.000? Dan kunt u geen standaardregeling krijgen.");
+  await b4.locator("[data-toets-aanpassen] button[type=submit]").click();
+  await b4.locator("[data-toets-nieuwe-tekst]").waitFor();
+  await b4.locator("[data-toets-reden-knop]").click();
+  await b4.locator("[data-toets-reden] textarea").fill("De grens van het formulier is geen regel uit de Leidraad.");
+  await b4.locator("[data-toets-reden] button[type=submit]").click();
+  await page.waitForFunction(() => /Beoordeeld: 2 van 4/.test(document.querySelector("[data-toets-voortgang]")?.textContent ?? ""));
+  assert.equal(besluiten.find((b) => b.nr === 4).reden, "De grens van het formulier is geen regel uit de Leidraad.");
+  assert.equal(besluiten.find((b) => b.nr === 4).voorstel, "aangepast");
+  // Nog eens op *Eens* drukken neemt het oordeel terug, het voorstel blijft.
+  await b2.locator('[data-toets-oordeel="eens"]').click();
+  await page.waitForFunction(() => /Beoordeeld: 1 van 4/.test(document.querySelector("[data-toets-voortgang]")?.textContent ?? ""));
+  assert.deepEqual(besluitVerzoeken.at(-1), { nr: 2, oordeel: null, voorstel: "overgenomen", tekst: "", reden: "" });
+  await b2.locator('[data-toets-oordeel="eens"]').click();
+
+  // De tekst met de overgenomen voorstellen erin.
+  await paneel.locator("[data-toets-met-voorstellen]").check();
+  assert.match(await content.locator('[data-toets-vervangen="2"]').innerText(), /maximaal 24 maanden[\s\S]*U betaalt uw belastingschuld in maximaal 12 maanden\./);
+  assert.match(await content.locator('[data-toets-vervangen="4"]').innerText(), /Dan kunt u geen standaardregeling krijgen\./);
+  if (shots) { await content.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${shots}/contenttoets-met-voorstellen-1440.png` }); }
+  await paneel.locator("[data-toets-met-voorstellen]").uncheck();
+  if (shots) { await b4.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${shots}/contenttoets-beoordeling-1440.png` }); }
+
+  // Markdown: naar het klembord en als bestand, met de besluiten, in lijsten.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base });
+  await paneel.locator("[data-toets-kopieer]").click();
+  await page.waitForFunction(() => document.querySelector("[data-toets-kopieer]")?.textContent === "Gekopieerd");
+  const md = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(md, /^# Contenttoets/);
+  assert.match(md, /### \[4\] Mogelijk onjuist – J2 Voorwaarde en uitzondering[\s\S]*Besluit: oneens met Lex, voorstel aangepast \(browser-test\)\n- Nieuwe tekst: Is uw schuld hoger/);
+  assert.match(md, /Beoordeeld: 2 van 4\./);
+  assert.doesNotMatch(md, /\|/, "geen tabel");
+  const [download] = await Promise.all([page.waitForEvent("download"), paneel.locator("[data-toets-download]").click()]);
+  assert.match(download.suggestedFilename(), /^contenttoets-\d{8}-\d{6}\.md$/);
+
+  // Opnieuw openen leest de besluiten vers van het bericht.
+  await page.locator('[data-context-paneel="contenttoets"]').getByRole("button", { name: "Sluiten", exact: true }).click();
+  await paneel.waitFor({ state: "detached" });
+  await chip.click();
+  await page.waitForFunction(() => /Beoordeeld: 2 van 4/.test(document.querySelector("[data-toets-voortgang]")?.textContent ?? ""));
+
+  // Een bron in een bevinding opent de bepaling als eigen tab; de toets blijft als tab staan.
+  await twee.locator("[data-vindplaats]").first().click();
+  await page.locator('[data-context-paneel="bron"]').waitFor();
+  const tab = page.getByRole("tab", { name: /Contenttoets/ });
+  assert.equal(await tab.count(), 1, "de contenttoets staat als tab naast de bepaling");
+  await tab.click();
+  await paneel.waitFor();
+
+  // Op een telefoon loopt niets buiten beeld; het paneel is een sheet.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(400);
   const breed = await page.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(breed <= 390, `de pagina is ${breed} px breed op 390 px`);
   if (shots) {
-    await naarBegin();
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: `${shots}/contenttoets-begin-390.png` });
-    await rapport.locator('[data-toetsbevinding="2"]').evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.screenshot({ path: `${shots}/contenttoets-paneel-390.png` });
+    await twee.evaluate((el) => el.scrollIntoView({ block: "start" }));
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${shots}/contenttoets-bevinding-390.png` });
   }

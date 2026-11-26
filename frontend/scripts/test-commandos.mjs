@@ -10,8 +10,11 @@
  *  - ↓ kiest een volgende regel, Tab vult de naam aan, Escape sluit het menu en laat de tekst staan;
  *  - een onbekend commando zegt dat, en Enter verstuurt de tekst gewoon als vraag (zonder actie);
  *  - bij een deelvraag als onderwerp zijn het de commando's van de deelvraag;
- *  - `/help` toont alle commando's; `/nieuw` begint een leeg gesprek, zonder beurt;
- *  - op een telefoon (375 px, touch) past het menu en zijn de regels minstens 44 px hoog.
+ *  - `/help` zet het overzicht van alle commando's in het gesprek (zonder beurt): wat hier kan, en ingeklapt wat elders kan
+ *    met de reden; een klik zet een commando in het veld. `/nieuw` begint een leeg gesprek, zonder beurt;
+ *  - op een telefoon (375 px, touch) past het menu en zijn de regels minstens 44 px hoog; het overzicht van `/help` past ook.
+ *
+ * Met `COMMANDO_SCREENSHOT=<map>` schrijft hij het overzicht van `/help` weg op 1440 en 390 px.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -22,6 +25,7 @@ import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
 const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
+const beelden = process.env.COMMANDO_SCREENSHOT;
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
 await context.addCookies(await sessieCookies(base));
@@ -121,11 +125,30 @@ try {
   assert.equal(runs[1].actie, undefined, "geen commando: geen actie");
   await page.getByText("Goed.").nth(1).waitFor();
 
-  // --- /help toont alles; /nieuw begint een leeg gesprek zonder beurt ---
+  // --- /help zet het overzicht in het gesprek, zonder beurt; /nieuw begint een leeg gesprek zonder beurt ---
   await veld.fill("/help");
   await veld.press("Enter");
-  assert.equal(await veld.inputValue(), "/");
+  const overzicht = page.locator("[data-commando-overzicht]");
+  await overzicht.waitFor();
+  assert.equal(await veld.inputValue(), "", "het veld is leeg: /help opent het menu niet opnieuw");
+  assert.equal(await menu.count(), 0);
+  assert.equal(runs.length, 2, "/help is geen beurt");
+  const hier = await overzicht.locator("section [data-commando]").evaluateAll((rs) => rs.map((r) => r.getAttribute("data-commando")));
+  assert.ok(hier.includes("/deelvragen") && hier.includes("/help") && hier.includes("/nieuw"), `hier: ${hier.join(" ")}`);
+  assert.match(await overzicht.locator('section [data-commando="/deelvragen"]').innerText(), /start een beurt van Lex/);
+  assert.match(await overzicht.locator('section [data-commando="/nieuw"]').innerText(), /geen beurt/);
+  // Wat hier niet kan: ingeklapt per context, met de reden – ook /bron zonder bron om om te zetten.
+  const deelvraagGroep = overzicht.locator('[data-commando-groep="deelvraag"]');
+  assert.equal(await deelvraagGroep.getAttribute("open"), null, "ingeklapt");
+  await deelvraagGroep.locator("summary").click();
+  await deelvraagGroep.getByText("Vraag Lex bij een deelvraag").waitFor();
+  assert.ok(await deelvraagGroep.locator('[data-commando="/scherper"]').count());
+  assert.ok(await overzicht.locator('[data-commando-groep^="niet:"] [data-commando="/bron"]').count(), "/bron staat er met de reden");
+  // Een klik zet het commando in het veld; er start niets.
+  await overzicht.locator('section [data-commando="/deelvragen"] button').click();
+  assert.equal(await veld.inputValue(), "/deelvragen");
   await menu.waitFor();
+  assert.equal(runs.length, 2, "een klik verstuurt niets");
   await veld.fill("/nieuw");
   await veld.press("Enter");
   // Het vorige gesprek is weg: geen antwoord van Lex meer in de thread. (De tekst "Stel deelvragen voor" blijft wel: in een
@@ -171,14 +194,45 @@ try {
   assert.ok((await telMenu.getByRole("option").first().getAttribute("title"))?.length, "de hulp voluit in de tooltip");
   const breedte = await tel.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(breedte <= 375, `geen horizontale scroll (${breedte})`);
+  // Het overzicht van /help past ook op een telefoon, en een commando is groot genoeg om te tikken.
+  await telVeld.fill("/help");
+  await telMenu.getByRole("option").filter({ hasText: "/help" }).tap();
+  const telOverzicht = tel.locator("[data-commando-overzicht]");
+  await telOverzicht.waitFor();
+  const ovVak = await telOverzicht.boundingBox();
+  assert.ok(ovVak && ovVak.x >= 0 && ovVak.x + ovVak.width <= 375, `het overzicht past op 375 px (${JSON.stringify(ovVak)})`);
+  const knop = await telOverzicht.locator("[data-commando] button").first().boundingBox();
+  assert.ok(knop && knop.height >= 44, `een commando is minstens 44 px hoog (${knop?.height})`);
+  assert.ok((await tel.evaluate(() => document.documentElement.scrollWidth)) <= 375, "geen horizontale scroll met het overzicht");
+  await telVeld.fill("/");
   await telMenu.getByRole("option").filter({ hasText: "/deelvragen" }).tap();
   for (let i = 0; i < 100 && runs.length < 4; i++) await tel.waitForTimeout(50);
   assert.equal(runs[3]?.actie, "deelvragen_voorstellen", "een tik voert uit");
   await mobiel.close();
 
+  // Beelden van het overzicht op 1440 en 390 px (de PR): een hoge viewport, zodat het hele overzicht in beeld staat.
+  if (beelden) {
+    for (const [breed, hoog, mobiel] of [[1440, 2000, false], [390, 3200, true]]) {
+      const ctx = await browser.newContext({ viewport: { width: breed, height: hoog }, isMobile: mobiel, hasTouch: mobiel });
+      await ctx.addCookies(await sessieCookies(base));
+      const p = await ctx.newPage();
+      await opzet(p);
+      await p.goto(`${base}/workbench?werkgebied=wg1`);
+      const v = p.locator('[data-tour="invoer"] textarea');
+      await v.fill("/help");
+      await v.press("Enter");
+      const ov = p.locator("[data-commando-overzicht]");
+      await ov.waitFor();
+      await ov.locator('[data-commando-groep="deelvraag"] summary').click();
+      await ov.evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await p.screenshot({ path: `${beelden}/help-overzicht-${breed}.png` });
+      await ctx.close();
+    }
+  }
+
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: het commandomenu bij /, /dee + Enter als de suggestie, ↓/Tab/Escape, onbekend als vraag, /help, /nieuw zonder beurt, de commando's van een deelvraag, en mobiel (375 px, 44 px, tikken).");
+  console.log("Browser OK: het commandomenu bij /, /dee + Enter als de suggestie, ↓/Tab/Escape, onbekend als vraag, /help als overzicht zonder beurt (klik zet in het veld), /nieuw zonder beurt, de commando's van een deelvraag, en mobiel (375 px, 44 px, tikken).");
 } finally {
   await browser.close();
 }

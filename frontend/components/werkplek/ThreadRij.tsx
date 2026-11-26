@@ -14,7 +14,7 @@ import { memo, useMemo, useState } from "react";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
 import { BepalingChips } from "@/components/antwoord/BepalingChip";
-import { BerichtSamenhangContext, type BerichtSamenhang } from "@/components/werkplek/ContextPaneel";
+import { BerichtRunContext, BerichtSamenhangContext, type BerichtSamenhang } from "@/components/werkplek/ContextPaneel";
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
 import { alleenNietGetoetst } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +27,7 @@ import { PaneelChip, chipSub } from "@/components/ui/PaneelChip";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
+import { CommandoOverzicht } from "@/components/werkplek/CommandoOverzicht";
 import { DelegatieBlok } from "@/components/werkplek/DelegatieBlok";
 import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
@@ -75,6 +76,8 @@ export interface ThreadActies {
   openVraag: () => void;
   /** Een ander gesprek openen: het deelgesprek van een subagent of regie. */
   openGesprek: (id: string) => void;
+  /** Tekst in het invoerveld zetten, zonder te versturen: een commando uit het overzicht van `/help`. */
+  vulIn: (tekst: string) => void;
 }
 
 interface Props {
@@ -106,6 +109,10 @@ export const ThreadRij = memo(function ThreadRij({
   const kaarten = useMemo(() => (item.type === "antwoord" ? kaartenVan(item) : null), [item]);
   const bericht = useMemo<BerichtSamenhang | null>(() => (kaarten?.doelen.length
     ? { doelen: kaarten.doelen, graaf: { keten: true } } : null), [kaarten]);
+  // Het bewaarde bericht (gesprek + run), voor wat een blok bij zijn bericht bewaart (C7). Niet in een demo.
+  const runId = item.type === "antwoord" ? item.runId : undefined;
+  const runBericht = useMemo(() => (gesprekId && runId && !demo ? { gesprek_id: gesprekId, run_id: runId } : null),
+    [gesprekId, runId, demo]);
   const restBronnen = useMemo(() => (item.type === "antwoord" && item.bronnen
     ? zonderKaarten(item.bronnen, kaarten?.bepalingen ?? []) : []), [item, kaarten]);
   if (vragen) {
@@ -158,8 +165,10 @@ export const ThreadRij = memo(function ThreadRij({
           <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
         )}
         {item.antwoord ? (
+          <BerichtRunContext.Provider value={runBericht}>
           <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk}
             interpretatie={item.grounding?.interpretatie} />
+          </BerichtRunContext.Provider>
         ) : item.tekst ? (
           streamt ? (
             <StreamendeTekst tekst={item.tekst} />
@@ -223,6 +232,11 @@ export const ThreadRij = memo(function ThreadRij({
         />
         {/* De samenvatting van een werkgebied-run komt ná de bepalingen. */}
         {item.tekst && <div className="mt-3"><Markdown tekst={item.tekst} /></div>}
+    </LexRij>
+  ) : item.type === "hulp" ? (
+    // Het overzicht van `/help`: een bericht van de werkplek zelf, geen beurt van Lex.
+    <LexRij naam="Werkplek · geen beurt">
+      <CommandoOverzicht groepen={item.groepen} onKies={acties.vulIn} />
     </LexRij>
   ) : item.type === "artefact" ? (
     // Een ander artefact (begripsvoorstellen): dezelfde vorm als een annotatie – naam, wat Lex erover
@@ -467,12 +481,17 @@ function KopieerKnop({ tekst }: { tekst: string }) {
 
 /** Een beurt van Lex: avatar, naam en, als er een spoor is, het denkproces bovenaan. Elke soort rij van Lex gebruikt
  *  dit, zodat het denkproces overal op dezelfde plek en met hetzelfde label staat (besluit gebruiker 15 nov 2026). */
-function LexRij({ denk, denkt = false, children }: { denk?: string; denkt?: boolean; children: React.ReactNode }) {
+function LexRij({ denk, denkt = false, naam = "Lex", children }: {
+  denk?: string; denkt?: boolean;
+  /** Wie spreekt: Lex, of de werkplek zelf (het overzicht van `/help`). */
+  naam?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="group flex animate-rise gap-3">
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        <p className="mb-1 text-xs font-medium text-muted">{naam}</p>
         {denk && <DenkProces tekst={denk} actief={denkt} />}
         {children}
       </div>

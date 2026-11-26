@@ -1774,6 +1774,14 @@ staat in de code (`bronmodel.plugins`: nu de contenttoets); het register zegt al
 - Per gesprek de eigen stand: `gesprekken.plugins` (JSON, `null` = wat de beheerder aanbiedt), te zetten met
   `PATCH /v1/gesprekken/{id}` `{plugins}`. De werkplek stuurt de stand mee met de beurt; graph-qa draait een plugin alleen
   als hij daarin staat én zijn straatvlag hem aanzet. `tests/test_plugins.py`.
+- **De besluiten over een contenttoets** (C7) staan op het bericht, in `inhoud["toetsbesluiten"]` (geen kolom): per
+  bevinding één `Toetsbesluit` (oordeel `eens`/`oneens`, voorstel `overgenomen`/`aangepast`/`afgewezen`, de eigen tekst
+  alleen bij `aangepast`, een reden, wie en wanneer). `GET /v1/gesprekken/{id}/runs/{run_id}/toetsbesluiten` en
+  `PUT …/{nr}` (leeg wist): geadresseerd met de run, want die is uniek per bericht en de werkplek kent hem. Schrijven
+  onder een rij-slot (`gesprek_store.zet_toetsbesluit`), zodat twee tabbladen elkaars andere bevindingen niet
+  overschrijven. Een bericht zonder blok `contenttoets` is 404 `geen_contenttoets`, een onbekend nummer 422
+  `onbekende_bevinding`. Het agent-token komt er niet (een besluit van de mens, `tests/poort/test_agent_toegang.py`).
+  `BerichtInvoer` kent het veld niet: bij het aanmaken van een bericht zet niemand een besluit. `tests/test_toetsbesluiten.py`.
 
 ## Bronconnectors (ADR-013)
 

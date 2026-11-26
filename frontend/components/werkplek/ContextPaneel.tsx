@@ -36,6 +36,8 @@ import { StukVenster } from "@/components/wettekst/StukVenster";
 import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
 import type { TekstBij } from "@/lib/antwoord";
+import type { ContenttoetsBlok, ToetsBericht } from "@/lib/contenttoets";
+import { ContenttoetsPaneel } from "@/components/antwoord/ContenttoetsPaneel";
 import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
@@ -56,6 +58,12 @@ export type ContextDoel =
    *  zoals *Bronnen* in de chatkop de bronnen van het werkgebied; een rij opent de bepaling als eigen tab. */
   | { soort: "bepalingen"; bepalingen: AntwoordVindplaats[]; titel: string }
   | { soort: "overzicht"; overzicht: Overzicht; titel: string }
+  /** Het rapport van een contenttoets (plan contenttoets, C6): de content met de bevindingen erin gemarkeerd. Komt uit het
+   *  bericht, zoals een overzicht: het hoort bij een antwoord en bestaat nergens anders. */
+  | { soort: "contenttoets"; toets: ContenttoetsBlok; titel: string;
+      /** Het bericht van de toets: daar staan de besluiten (C7). Zonder (een demo, een bericht dat nog niet bewaard is)
+       *  is het paneel alleen om te lezen. */
+      bericht?: ToetsBericht }
   /** De contextweergave (`/context`, de contextmeter): hoe de context van een beurt is opgebouwd en wat de beurt kostte.
    *  De inhoud komt van de werkplek (`ContextopbouwContext`), niet uit het doel: de tab wordt bewaard, de meting niet. */
   | { soort: "contextopbouw"; titel: string }
@@ -75,6 +83,10 @@ export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) 
 export interface BerichtSamenhang { doelen: NodeDoel[]; graaf: Samenhang["graaf"] }
 export const BerichtSamenhangContext = createContext<BerichtSamenhang | null>(null);
 
+/** Het bewaarde bericht waar een blok in staat: gesprek en run. Een blok dat iets bij zijn bericht bewaart (de besluiten
+ *  over een contenttoets, C7) leest het hier; `null` zolang de beurt loopt of buiten de werkplek. */
+export const BerichtRunContext = createContext<ToetsBericht | null>(null);
+
 /** Dé opener van een bron naast het gesprek (ontdubbelen PR 2): elke ingang gaat hierlangs, en geen andere plek leest
  *  `ContextPaneelContext`. Binnen een bericht neemt een bepaling de samenhang van dat bericht mee. `null` buiten de
  *  werkplek: dan is er geen gesprek om naast te staan, en de aanroeper toont een link. */
@@ -92,6 +104,7 @@ export function metSamenhang(b: BerichtSamenhang, bronIri: string): Samenhang {
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
+  contenttoets: "Contenttoets",
   stuk: "Stuk", bepalingen: "Bepalingen in dit antwoord", contextopbouw: "Context van deze beurt",
 };
 
@@ -103,6 +116,13 @@ export function contextSleutel(d: ContextDoel): string {
 /** Het doel van de contextweergave: één tab per gesprek, voor de meter en voor `/context`. */
 export const CONTEXTOPBOUW_DOEL: ContextDoel = { soort: "contextopbouw", titel: "Context van deze beurt" };
 
+export function contenttoetsContext(toets: ContenttoetsBlok, bericht?: ToetsBericht | null): ContextDoel {
+  // De kop noemt de getoetste tekst, zodat twee toetsen in één gesprek uit elkaar te houden zijn.
+  const tekens = [...toets.content.replace(/\s+/g, " ").trim()];
+  const titel = tekens.length > 60 ? `${tekens.slice(0, 60).join("").replace(/\s\S*$/, "")} …` : tekens.join("");
+  return { soort: "contenttoets", toets, titel: titel || "Contenttoets", ...(bericht ? { bericht } : {}) };
+}
+
 export function overzichtContext(overzicht: Overzicht): ContextDoel {
   return { soort: "overzicht", overzicht, titel: overzicht.gevraagd };
 }
@@ -112,7 +132,7 @@ export function overzichtContext(overzicht: Overzicht): ContextDoel {
 export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
     : d.soort === "element" ? elementPad(d.element_id)
-    : d.soort === "overzicht" || d.soort === "stuk" || d.soort === "bepalingen" || d.soort === "contextopbouw" ? undefined
+    : d.soort === "overzicht" || d.soort === "contenttoets" || d.soort === "stuk" || d.soort === "bepalingen" || d.soort === "contextopbouw" ? undefined
     : projectPad(d.werkgebied_id, "bronnen");
 }
 
@@ -228,6 +248,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
               onOpenElement={(id, titel) => onWissel({ soort: "element", element_id: id, titel })}
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
+            : doel.soort === "contenttoets" ? <ContenttoetsPaneel toets={doel.toets} bericht={doel.bericht} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
             : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld} tekst={doel.tekst}
               onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />

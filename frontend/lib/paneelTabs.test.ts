@@ -90,3 +90,25 @@ describe("paneelTabs", () => {
     expect(leesBewaard({ tabs: [{ inhoud: { soort: "context", ctx: { soort: "bepalingen", bepalingen: [] } } }] })).toBeUndefined();
   });
 });
+
+describe("de tab van een contenttoets", () => {
+  const toets = { soort: "contenttoets", door: "lex", content: "U betaalt in maximaal 24 maanden.", peildatum: "2026-11-25",
+    getoetst_tegen: [], voor_redacteur: [], niet_getoetst: [], ontbreekt: [],
+    bevindingen: [{ nr: 1, citaat: "maximaal 24 maanden", begin: 13, eind: 32, oordeel: "mogelijk_onjuist", criterium: "J1",
+      bronnen: [], toelichting: "", twijfel: "", voorstel: "" }] } as const;
+  const inhoud = { soort: "context", ctx: { soort: "contenttoets", toets, titel: "U betaalt" } } as unknown as PaneelInhoud;
+
+  it("is één tab per toets, met de telling in de tooltip", () => {
+    expect(sleutelVan(inhoud)).toMatch(/^contenttoets:/);
+    const stand = openTab(openTab({ tabs: [] }, inhoud), inhoud);
+    expect(stand.tabs).toHaveLength(1);
+    expect(tabLabel(stand.tabs[0])).toEqual({ kort: "Contenttoets", vol: "Contenttoets: 1 bewering: 1 mogelijk onjuist." });
+  });
+
+  it("overleeft herladen, en een toets met een gat valt weg", () => {
+    const stand = openTab({ tabs: [] }, inhoud);
+    expect(leesBewaard(JSON.parse(JSON.stringify(bewaarVorm(stand))))?.tabs).toHaveLength(1);
+    const kapot = { ...stand, tabs: [{ ...stand.tabs[0], inhoud: { soort: "context", ctx: { soort: "contenttoets", toets: { ...toets, bevindingen: [{ ...toets.bevindingen[0], eind: 999 }] }, titel: "" } } }] };
+    expect(leesBewaard(kapot)).toBeUndefined();
+  });
+});

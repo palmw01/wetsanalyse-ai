@@ -651,13 +651,19 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   suggestie, geen eigen lijst.
 - **Clientcommando's** (`CLIENT_COMMANDOS`) zijn geen beurt en kosten geen tokens: `/nieuw` (*Nieuw gesprek*, in het
   werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
-  aan te zetten is), `/context` (de contextweergave naast het gesprek, zie hieronder) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
+  aan te zetten is), `/context` (de contextweergave naast het gesprek, zie hieronder) en `/help` (het overzicht, zie hieronder). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
   (sessie contextbeheer, 12 nov 2026), dus samenvatten levert bijna geen tokens op.
 - **Plugincommando's** (`PLUGIN_COMMANDOS`, uit `lib/plugins.ts`, de spiegel van `bronmodel/plugins.py`): een plugin naast
   de wetsanalyse met tekst erachter, nu `/contenttoets <tekst>` (plan `docs/architectuur/plan-contenttoets.md`). Enter op de
   regel vult het commando aan; met tekst erachter is het menu dicht en gaat de hele tekst als gewone vraag naar Lex, die het
   commando zonder model herkent (graph-qa `agent/contenttoets.py`). Geen actie of doel op de beurt. Het rapport is het blok
-  `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). Browserregressie:
+  `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). In de werkplek toont het gesprek
+  alleen de korte toelichting met de kaart *Bekijk de contenttoets*; het rapport staat naast het gesprek
+  (`ContenttoetsPaneel`, soort `contenttoets` van `ContextPaneel`), met de content en de markeringen op de ankers. De
+  markering is zelf de knop (`role="button"`): een `<button>` is in Chrome altijd inline-block en breekt de regel. Per
+  bevinding beslist de mens daar (C7: eens/oneens, overnemen/aanpassen/afwijzen); dat staat op het bericht, geadresseerd
+  met de run (`BerichtRunContext` uit `ThreadRij`, `runId` op het antwoord-item), en het paneel leest het vers bij elke
+  opening. Zonder bewaard bericht (een demo, een beurt die nog loopt) is het paneel alleen om te lezen. Browserregressie:
   `scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
 - **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
   actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf
@@ -671,8 +677,15 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
 - **Eén regel per commando**, zoals het slash-menu van Claude: de naam, dan de hulp die afkapt (voluit in de tooltip);
   waarom een commando nu niet kan, staat apart aan het eind en kapt nooit af.
 - Tijdens een beurt of zonder budget staat een suggestiecommando er met de reden, en doet Enter niets.
-- Tests: `lib/commandos.test.ts` (register, context, menu), `app/commandos.test.ts` (één ingang) en
-  `scripts/test-commandos.mjs`.
+- **`/help`** zet een overzicht van álle commando's in het gesprek: een bericht van de werkplek (`LexRij` met de naam
+  *Werkplek*, het item `hulp` in `lib/threadItem.ts`), geen beurt en niet bewaard. Bovenaan wat hier kan (precies het menu
+  bij `/`), daaronder ingeklapt per context wat daar kan met de reden (*alleen in een werkgebied*, *alleen met Vraag Lex bij
+  een deelvraag*), en wat nergens in het menu staat (`/bron` zonder bron om om te zetten). Per commando: of het een beurt
+  start, en een voorbeeld als dat helpt. Een klik zet het in het veld, zoals Tab. Het komt uit `hulpOverzicht`, dat
+  `beschikbaar` per context draait (`commandoContexten` in `lib/vraagLex.ts`, een `Record` op de soort onderwerp): een
+  nieuw commando komt vanzelf mee, en `lib/commandos.test.ts` bewaakt dat het menu nooit voorloopt op `/help`.
+- Tests: `lib/commandos.test.ts` (register, context, menu, `/help`), `app/commandos.test.ts` (één ingang) en
+  `scripts/test-commandos.mjs` (met `COMMANDO_SCREENSHOT=<map>` beelden van `/help` op 1440 en 390 px).
 
 ### De contextweergave: de meter en `/context` (plan contextweergave, ADR-015)
 
