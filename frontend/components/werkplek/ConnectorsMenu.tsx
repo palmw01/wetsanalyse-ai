@@ -49,13 +49,14 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
   if (!metBronnen && !aangeboden.length) return null;
   const pluginsAan = plugins ? actievePlugins(plugins) : [];
   const aan = actieveConnectors(stand);
-  const samenvatting = menuKort(stand);
+  const tools = aangeboden.map((p) => ({ label: p.label, aan: pluginsAan.includes(p.naam) }));
+  const samenvatting = menuKort(stand, tools);
   const herkomst = herkomstVan(stand);
   const melding = menuMelding(stand);
   return (
     <Popover ariaLabel="Bronnen en tools" positie="left-0 bottom-full mb-1" className={`w-72 ${MENU_PANEEL}`}
       trigger={(open, toggle) => (
-        <button type="button" onClick={() => { if (!open) onOpen?.(); toggle(); }} aria-expanded={open} aria-haspopup="menu" aria-label={menuNaam(stand)}
+        <button type="button" onClick={() => { if (!open) onOpen?.(); toggle(); }} aria-expanded={open} aria-haspopup="menu" aria-label={menuNaam(stand, tools)}
           data-connectors-menu data-kort={kort ? "" : undefined} data-laden={stand.controleert ? "controleert" : stand.laden === "mislukt" ? "mislukt" : undefined}
           aria-busy={stand.controleert || undefined}
           className={`${knopKlasse("ghost", "sm")} relative max-w-full gap-1.5 text-xs ${kort ? "overflow-hidden" : ""}`}>
