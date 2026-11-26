@@ -74,3 +74,35 @@ export function isContenttoets(b: Record<string, unknown>): boolean {
     Array.isArray(x.bronnen) && x.bronnen.every(isBron)) &&
     (b.ontbreekt == null || (Array.isArray(b.ontbreekt) && b.ontbreekt.every((o) => isObject(o) && typeof o.tekst === "string")));
 }
+
+/** Een stuk van de content in het zijpaneel: gewone tekst, of de tekst van één bevinding (`nr`). */
+export interface ContentDeel { tekst: string; nr?: number; oordeel?: Oordeel }
+
+/** De content in stukken, met de bevindingen als markering (fase 2 van het plan, het zijpaneel). `begin` en `eind` zijn
+ *  Unicode-codepoints, zoals in `bronmodel` (`[...tekst]`, niet `tekst.slice`: een emoji of een samengesteld teken telt
+ *  anders mee). Overlappen twee bevindingen, dan krijgt de eerste de tekst en de tweede alleen het deel erna; een
+ *  bevinding zonder eigen tekst (eind = begin, of helemaal overlapt) staat in de lijst, niet in de content. */
+export function contentDelen(b: Pick<ContenttoetsBlok, "content" | "bevindingen">): ContentDeel[] {
+  const tekens = [...b.content];
+  const marks = [...b.bevindingen].filter((x) => x.eind > x.begin).sort((x, y) => x.begin - y.begin || x.nr - y.nr);
+  const uit: ContentDeel[] = [];
+  let plek = 0;
+  for (const m of marks) {
+    const begin = Math.max(m.begin, plek);
+    const eind = Math.min(m.eind, tekens.length);
+    if (eind <= begin) continue;
+    if (begin > plek) uit.push({ tekst: tekens.slice(plek, begin).join("") });
+    uit.push({ tekst: tekens.slice(begin, eind).join(""), nr: m.nr, oordeel: m.oordeel });
+    plek = eind;
+  }
+  if (plek < tekens.length) uit.push({ tekst: tekens.slice(plek).join("") });
+  return uit;
+}
+
+/** De sleutel van de tab van een toets: dezelfde toets is dezelfde tab, een nieuwe toets van dezelfde tekst ook (hij
+ *  vervangt de vorige op haar plek). Een korte hash van de content en de peildatum; geen inhoud in de sleutel. */
+export function toetsSleutel(b: Pick<ContenttoetsBlok, "content" | "peildatum">): string {
+  let h = 5381;
+  for (const c of `${b.peildatum}\n${b.content}`) h = ((h * 33) ^ c.codePointAt(0)!) >>> 0;
+  return h.toString(36);
+}
