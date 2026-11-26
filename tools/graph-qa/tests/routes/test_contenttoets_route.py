@@ -31,9 +31,10 @@ def _bouw(aan: bool) -> Bouw:
                 advies_context=lambda _s: "")
 
 
-def _route(vraag: str, *, aan: bool = True, actie: str = "", plugins=None) -> tuple[str, dict]:
+def _route(vraag: str, *, aan: bool = True, actie: str = "", plugins=None, stand=None) -> tuple[str, dict]:
     state = {"question": vraag, "messages": [{"role": "user", "content": vraag}], "modus": "auto", "werkgebied_id": "",
-             "actie": actie, "context": {}, "opgegeven_doel": {}, "focus": {}, "bronstand": {}, "plugins": plugins}
+             "actie": actie, "context": {}, "opgegeven_doel": {}, "focus": {}, "bronstand": stand or {},
+             "plugins": plugins}
     b = _bouw(aan)
     upd = supervisie.ingang_node(b, state)
     return supervisie._entry_node(b, {**state, **upd}), upd
@@ -124,3 +125,29 @@ def test_het_pluginregister_klopt_met_profiel_actie_en_sjabloon():
     for p in PLUGINS:
         assert p.profiel in profielen.PROFIELEN and p.sjabloon in SJABLONEN
     assert CONTENTTOETS.commando == ct.COMMANDO.lstrip("/")
+
+
+def test_de_bronstand_zegt_dat_de_contenttoets_alleen_de_graaf_gebruikt(monkeypatch):
+    # Meting C5b: het bronstand-event noemde de connectors uit het gespreksmenu als aan, terwijl de contenttoets alleen
+    # de kennisgraaf gebruikt (besluit 26 nov 2026).
+    from agent import bronstand
+    events = []
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: events.append)
+    stand = {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": True, "reden": "aan"},
+             "rechtspraak": {"naam": "rechtspraak", "label": "Rechtspraak", "aan": False, "reden": "gesprek"}}
+    _, upd = _route(f"/contenttoets {TEKST}", stand=stand)
+    assert upd["bronnen"] == [] and upd["bronstand"]["kamerstukken"]["reden"] == "werkwijze"
+    assert upd["bronstand"]["rechtspraak"]["reden"] == "gesprek"  # wat al uit stond, blijft zo
+    assert "bronkeuze" not in upd  # de keuze voor de vervolgvraag blijft van het gesprek
+    [ev] = [e for e in events if e.get("type") == "bronstand"]
+    assert {b["naam"]: b["reden"] for b in ev["bronnen"]} == {"kamerstukken": "werkwijze", "rechtspraak": "gesprek"}
+    # De prompt noemt een bron die de werkwijze niet gebruikt niet.
+    assert "Kamerstukken" not in bronstand.prompt_blok(upd["bronstand"])
+    assert "deze werkwijze" in bronstand.uit_zin(upd["bronstand"], "kamerstukken")
+
+
+def test_zonder_connectors_aan_geen_tweede_event(monkeypatch):
+    events = []
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: events.append)
+    _, upd = _route(f"/contenttoets {TEKST}")
+    assert "bronstand" not in upd and not [e for e in events if e.get("type") == "bronstand"]

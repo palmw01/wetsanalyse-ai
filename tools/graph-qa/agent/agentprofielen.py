@@ -589,7 +589,16 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'uitzonderingen en gevolgen staan er (een '
                                               'beëindiging, een afwijzing, wie is uitgezonderd), '
                                               'en noemt de tekst ze? Wat ontbreekt en de lezer '
-                                              'nodig heeft, hoort onder ontbreekt. Steunt een '
+                                              'nodig heeft, hoort onder ontbreekt. Eén bevinding '
+                                              'per bewering: oordeel over wat de bewering zelf '
+                                              'zegt, met de passage die precies dat draagt. Klopt '
+                                              'de bewering en mist de tekst elders een voorwaarde, '
+                                              'dan is de bewering juist en staat de voorwaarde '
+                                              'onder ontbreekt; neem ze niet samen in één '
+                                              'onvolledig. Onvolledig is een bewering alleen als '
+                                              'de lezer door wat ze weglaat anders zou handelen; '
+                                              'een tussenstap van de uitvoering die de lezer niets '
+                                              'laat doen, maakt haar niet onvolledig. Steunt een '
                                               'bewering op een bepaling voor een andere doelgroep '
                                               'dan de lezer (ondernemers tegenover particulieren), '
                                               'of zegt de bron dat iets kan waar de tekst zegt dat '
@@ -951,4 +960,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'e0ba25c739b885532409f52529a187c93316c88ec3bb3457fb53106657ad9220'}
+ 'sha256': 'b3022c96b0fd34d8a24a75681169612c8e2a8af75ba745b2ae553ebad5127772'}

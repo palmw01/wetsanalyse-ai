@@ -29,7 +29,7 @@ from bronmodel.contenttoets import CRITERIA, CRITERIA_BIJ, MET_BRON, OORDEEL_LAB
 
 from ..annotatie import TYPOGRAFISCH
 from .duiding import _binnen, _citaat, _lex, valuta_patroon
-from .vullen import Onvulbaar, Trace, bron_rijen, ouders
+from .vullen import Onvulbaar, Trace, bron_rijen, ouders, vindplaats_van
 
 logger = logging.getLogger(__name__)
 
@@ -260,14 +260,25 @@ def _getoetst_tegen(bevindingen: list[Toetsbevinding], ontbreekt: list[ToetsOntb
 _STERK = re.compile(r"\b(tenzij|behalve|uitgezonderd|uitzondering|niet|geen|beëindigd|beëindigen|vervalt|vervallen|"
                     r"ingetrokken|afgewezen|wijst\s+\S+(?:\s+\S+){0,3}\s+af)\b", re.IGNORECASE)
 _DRAGEND = re.compile(r"\b(als|indien|wanneer|mits|uitsluitend|alleen|voorwaarden?)\b", re.IGNORECASE)
+#: Een onderdeel zonder inhoud: "Vervallen.", "[Vervallen]", "Gereserveerd." (meting C5b, 25.5.3 onder b).
+_ZONDER_INHOUD = re.compile(r"\W*(vervallen|gereserveerd)\W*", re.IGNORECASE)
 #: Zoveel zinnen noemt de controle hoogstens; meer is geen controle meer maar de hele bepaling.
 MAX_NA_TE_LOPEN = 5
 _ZIN = re.compile(r"(?<=[.;:])\s+(?=[A-Z0-9–(])")
 _WOORD = re.compile(r"[a-zà-ÿ0-9€]{5,}", re.IGNORECASE)
+#: Een woord van zoveel letters dat in hoogstens `MAX_RIJEN_SPECIFIEK` gelezen rijen staat, is het onderwerp van een zin
+#: ("dwangbevel"); "belastingschuldige" staat in bijna elke rij en zegt daarvoor niets.
+MIN_SPECIFIEK = 8
+MAX_RIJEN_SPECIFIEK = 3
 
 
 def _stam(woord: str) -> str:
     return woord.casefold()[:6]
+
+
+def _lange_stam(woord: str) -> str:
+    """Een stam die "dwangbevel" en "dwangbevelen" samen neemt, maar "betalingsregeling" en "betalingscapaciteit" niet."""
+    return woord.casefold()[:10]
 
 
 def _noemt(content: str, zin: str) -> bool:
@@ -285,41 +296,111 @@ def _noemt(content: str, zin: str) -> bool:
     return len(woorden & in_content) * 2 >= len(woorden)
 
 
+def _al_geciteerd(zin: str, citaten: list[str]) -> bool:
+    """Staat de zin al in het rapport: letterlijk, of als dezelfde zin uit een andere bepaling (de helft van haar woorden in
+    één citaat; 25.6.2d onder c naast 25.5.3 onder c, meting C5b)."""
+    woorden = {_stam(w) for w in _WOORD.findall(zin)}
+    for c in citaten:
+        if zin in c or c in zin:
+            return True
+        if woorden and len(woorden & {_stam(w) for w in _WOORD.findall(c)}) * 2 >= len(woorden):
+            return True
+    return False
+
+
+def _specifiek(rijen: dict[str, dict[str, Any]]) -> dict[str, int]:
+    """Per lange stam in hoeveel gelezen rijen hij staat."""
+    telling: dict[str, int] = {}
+    for r in rijen.values():
+        for st in {_lange_stam(w) for w in _WOORD.findall(str(r.get("tekst") or "")) if len(w) >= MIN_SPECIFIEK}:
+            telling[st] = telling.get(st, 0) + 1
+    return telling
+
+
+def _gaat_over_bewering(zin: str, beweringen: list[str], telling: dict[str, int]) -> bool:
+    """Gaat de zin over iets wat een getoetste bewering al noemt? Ze delen een woord dat maar in een paar rijen staat: het
+    onderwerp ("dwangbevel"). Dan heeft de bewering haar eigen oordeel, en hoort de zin niet bij wat ontbreekt (meting
+    C5b, kort uitstel: 25.5.3 onder e naast "Heeft u al een dwangbevel gekregen?")."""
+    eigen = {_lange_stam(w) for w in _WOORD.findall(zin) if len(w) >= MIN_SPECIFIEK}
+    onderwerp = {st for st in eigen if telling.get(st, 0) <= MAX_RIJEN_SPECIFIEK}
+    in_beweringen = {_lange_stam(w) for b in beweringen for w in _WOORD.findall(b) if len(w) >= MIN_SPECIFIEK}
+    return bool(onderwerp & in_beweringen)
+
+
 def na_te_lopen(bevindingen: list[Toetsbevinding], ontbreekt: list[ToetsOntbreekt], content: str,
-                rijen: dict[str, dict[str, Any]], trace: Trace) -> list[tuple[str, str]]:
+                rijen: dict[str, dict[str, Any]], trace: Trace) -> list[tuple[str, str, str]]:
     """De controlestap per gelezen bepaling (meting C5): in elke bepaling waaruit het rapport citeert, de zinnen met een
-    voorwaarde, uitzondering of gevolg, en de onderdelen van een opsomming, die het rapport niet citeert en die de content
-    niet noemt. Letterlijk uit de rijen van de graaf, als (label, zin). Bij 79.7 werd zo de beëindiging bij niet nakomen
-    gemist, bij 25.3a.1 de uitzondering in de opsomming. De code beslist niet: de jurist loopt het na."""
+    voorwaarde, uitzondering of gevolg, en de onderdelen van een opsomming, die het rapport niet noemt en de content ook
+    niet. Letterlijk uit de rijen van de graaf, als (iri van de rij, label van de bepaling, zin). Bij 79.7 werd zo de
+    beëindiging bij niet nakomen gemist, bij 25.3a.1 de uitzondering in de opsomming.
+
+    Niet erin (meting C5b): een onderdeel zonder inhoud ("Vervallen."), een zin die het rapport al citeert (ook dezelfde
+    zin uit een andere bepaling), een zin die de content noemt, en een zin over het onderwerp van een getoetste bewering:
+    die heeft haar eigen oordeel. Elke zin één keer, ook als twee bepalingen hem dragen."""
     geciteerd = [br for b in [*bevindingen, *ontbreekt] for br in b.bronnen]
     citaten = [" ".join(br.tekst.split()) for br in geciteerd]
-    label_van = {br.vindplaats.iri: br.vindplaats.label for br in geciteerd}
+    beweringen = [b.citaat for b in bevindingen]
     lid_van = ouders(trace)
-    uit: list[tuple[str, str]] = []
+    # Een geciteerd onderdeel brengt zijn bepaling mee: de controle loopt de hele bepaling na, niet alleen dat onderdeel.
+    label_van: dict[str, str] = {}
+    for br in geciteerd:
+        iri = lid_van.get(br.vindplaats.iri, br.vindplaats.iri)
+        label_van.setdefault(iri, str((rijen.get(iri) or {}).get("label") or "")
+                             or (br.vindplaats.label if iri == br.vindplaats.iri else vindplaats_van(iri).label))
+    telling = _specifiek(rijen)
+    uit: list[tuple[str, str, str]] = []
+    gezien: set[str] = set()
     for iri, label in label_van.items():
         onder = [(k, r) for k, r in rijen.items() if _binnen(k, iri) or lid_van.get(k) == iri]
         for k, r in onder:
             tekst = " ".join(str(r.get("tekst") or "").split())
             zinnen = [tekst] if r.get("onderdeel") and k != iri else _ZIN.split(tekst)
             for zin in zinnen:
-                if not zin or not (r.get("onderdeel") or _STERK.search(zin) or _DRAGEND.search(zin)):
+                if not zin or zin in gezien or _ZONDER_INHOUD.fullmatch(zin):
                     continue
-                if any(zin in c or c in zin for c in citaten) or _noemt(content, zin):
+                if not (r.get("onderdeel") or _STERK.search(zin) or _DRAGEND.search(zin)):
                     continue
-                if (label, zin) not in uit:
-                    uit.append((label, zin))
+                if (_al_geciteerd(zin, citaten) or _noemt(content, zin)
+                        or _gaat_over_bewering(zin, beweringen, telling)):
+                    continue
+                gezien.add(zin)
+                uit.append((k, label, zin))
     # Eerst de onderdelen en de gevolgen en uitzonderingen, dan de voorwaarden; binnen elk de volgorde van de bron.
-    return sorted(uit, key=lambda p: 0 if _STERK.search(p[1]) or p[1] in _onderdelen(rijen) else 1)[:MAX_NA_TE_LOPEN]
+    return sorted(uit, key=lambda p: 0 if _STERK.search(p[2]) or p[2] in _onderdelen(rijen) else 1)[:MAX_NA_TE_LOPEN]
 
 
 def _onderdelen(rijen: dict[str, dict[str, Any]]) -> set[str]:
     return {" ".join(str(r.get("tekst") or "").split()) for r in rijen.values() if r.get("onderdeel")}
 
 
-def na_te_lopen_tekst(punten: list[tuple[str, str]]) -> str:
-    return ("Na te lopen: in de bepalingen waaruit het rapport citeert, staan voorwaarden, uitzonderingen of gevolgen "
-            "die het rapport niet noemt en de tekst ook niet. Ga na of de lezer ze nodig heeft. "
-            + " ".join(f"{label}: “{zin}”" for label, zin in punten))
+#: De tekst van een punt onder *Ontbreekt* dat de code vond, niet het model: zo staat erbij waar het vandaan komt.
+UIT_DE_CONTROLE = ("Uit de controle: {label} noemt dit, en de tekst en de bevindingen niet. Ga na of de lezer het nodig "
+                   "heeft.")
+
+
+def ontbreekt_uit_controle(punten: list[tuple[str, str, str]], rijen: dict[str, dict[str, Any]],
+                           trace: Trace) -> list[ToetsOntbreekt]:
+    """Wat de controlestap vond, als punten onder *Ontbreekt* (meting C5b: de kwijtschelding bij te weinig
+    betalingscapaciteit stond alleen in een melding onder het rapport, en de export kende die niet). Eén punt per bepaling,
+    met de zinnen letterlijk uit de rij (dezelfde citaatcontrole als een passage van het model); de tekst komt uit de code
+    en zegt dat. Het model beslist niet mee: het rapport is dan in één ronde af."""
+    per: dict[str, list[ToetsBron]] = {}
+    for iri, label, zin in punten:
+        # Een hele rij (een onderdeel) zonder ankers; een zin uit een langere rij met haar eerste en laatste woorden.
+        woorden, heel = zin.split(), " ".join(str((rijen.get(iri) or {}).get("tekst") or "").split()) == zin
+        k = min(6, len(woorden) // 2)
+        van, tot = ("", "") if heel else (" ".join(woorden[:k]), " ".join(woorden[-min(6, len(woorden) - k):]))
+        fouten: list[str] = []
+        c = _citaat({"bepaling": iri, "van": van, "tot": tot, "waarom": ""}, rijen, trace, fouten)
+        gevonden = [x for x in (c if isinstance(c, list) else [c] if c else []) if in_de_graaf(x.vindplaats.iri)]
+        if not gevonden:
+            continue
+        lijst = per.setdefault(label, [])
+        for x in gevonden:
+            if len(lijst) < MAX_BRONNEN and all(x.tekst != b.tekst for b in lijst):
+                lijst.append(ToetsBron(tekst=x.tekst, vindplaats=x.vindplaats))
+    return [ToetsOntbreekt(tekst=UIT_DE_CONTROLE.format(label=label or "de bepaling"), bronnen=bronnen)
+            for label, bronnen in per.items() if bronnen]
 
 
 _VERWIJZING = re.compile(r"\[(\d+)\]")
@@ -337,7 +418,9 @@ def voor_redacteur(regels: Any, nummers: dict[int, int]) -> list[str]:
         if not regel or any(n not in nummers for n in genoemd):
             continue
         uit.append(_VERWIJZING.sub(lambda m: f"[{nummers[int(m.group(1))]}]", regel))
-    return uit
+    # Op het nummer van de bevinding, zoals de redacteur het rapport leest (meting C5b: [3], [2], [4]); een regel zonder
+    # nummer achteraan, in de volgorde van het model.
+    return sorted(uit, key=lambda r: int(m.group(1)) if (m := _VERWIJZING.search(r)) else MAX_BEVINDINGEN + 1)
 
 
 def meld_weggevallen(fouten: list[str]) -> None:
@@ -392,6 +475,8 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
             ontbreekt.append(ToetsOntbreekt(tekst=wat, bronnen=bronnen))
         else:
             fouten.append(f"ontbreekt (“{wat[:40]}”): zonder passage uit de bron niet te tonen")
+    # De controlestap per gelezen bepaling: wat het rapport en de tekst allebei missen, onder Ontbreekt.
+    ontbreekt += ontbreekt_uit_controle(na_te_lopen(bevindingen, ontbreekt, content, rijen, trace), rijen, trace)
     blok = Contenttoets(
         content=content, peildatum=str(gegeven.get("peildatum") or ""),
         getoetst_tegen=_getoetst_tegen(bevindingen, ontbreekt),
@@ -399,8 +484,6 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         bevindingen=bevindingen, ontbreekt=ontbreekt,
         niet_getoetst=[r for x in invoer.get("niet_getoetst") or [] if (r := str(x).strip())])
     blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), blok]
-    if punten := na_te_lopen(bevindingen, ontbreekt, content, rijen, trace):
-        blokken.append(Leemte(tekst=na_te_lopen_tekst(punten)))
     if overgeslagen := len(aanwijzingen) - MAX_BEVINDINGEN:
         if overgeslagen > 0:
             blokken.append(Leemte(tekst=f"Het rapport toont de eerste {MAX_BEVINDINGEN} beweringen; {overgeslagen} "

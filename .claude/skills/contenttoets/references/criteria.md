@@ -77,6 +77,16 @@ is op de peildatum mogelijk onjuist; zeg dan welke toestand de tekst volgt, als 
 Volledigheid toets je alleen op wat **materieel** is: zou de lezer anders handelen als hij het wist? Zie
 [eenvoud is geen fout](eenvoud-is-geen-fout.md).
 
+**Eén bewering, één oordeel.** Het oordeel gaat over wat de bewering zelf zegt. "Heeft u een dwangbevel gekregen? Dan
+krijgt u geen kort uitstel" is *juist* als de bron dat zegt. Dat de bron nog een voorwaarde stelt die de tekst nergens
+noemt, maakt deze bewering niet onvolledig: die voorwaarde zet je onder *ontbreekt*. Samen in één *onvolledig* verbergen
+ze het juiste oordeel en de juiste vindplaats.
+
+**Een tussenstap is geen voorwaarde.** Regelt de uitvoering eerst iets wat de lezer niet hoeft te doen, dan mist de tekst
+geen voorwaarde. *Voorbeeld:* bij een nieuwe toeslagschuld biedt de ontvanger eerst een afzonderlijke regeling aan, en op
+verzoek bundelt hij de regelingen. "Dan kunt u vragen om de regelingen samen te voegen" is *juist*: de lezer handelt niet
+anders als hij die tussenstap kent.
+
 ### V1 Voorwaarde ontbreekt
 
 **Herkenningsvraag:** stelt de bron een voorwaarde waardoor een deel van de lezers er niet onder valt, en noemt de tekst

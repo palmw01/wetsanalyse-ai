@@ -255,6 +255,31 @@ hele bron mee. Zie [`metingen/contenttoets-c5-2026-11-26/`](metingen/contenttoet
 
 De methodetekst en het profiel zijn gewijzigd: na de uitrol volgt een lichte meting (één run per eval).
 
+**C5b is gemeten** (26 nov 2026): 17 van de 20 graders, geen vals *mogelijk onjuist*
+([`metingen/contenttoets-c5b-2026-11-26/`](metingen/contenttoets-c5b-2026-11-26/README.md)). De zes bevindingen zijn
+opgepakt, weer in het algemene mechanisme:
+
+1. *De controlestap filtert.* Niet erin: een onderdeel zonder inhoud ("Vervallen."), een zin die het rapport al citeert
+   (ook dezelfde zin uit een andere bepaling), en een zin over het onderwerp van een getoetste bewering: ze delen een
+   woord dat in hoogstens drie gelezen rijen staat ("dwangbevel"; `_gaat_over_bewering`). Elke zin één keer. Een
+   geciteerd onderdeel brengt zijn bepaling mee in de controle.
+2. *Wat de controle vindt, staat onder Ontbreekt.* Gekozen: de code neemt het zelf op (`ontbreekt_uit_controle`), niet een
+   melding terug naar het model. Eén punt per bepaling, de zinnen letterlijk uit de rij met dezelfde citaatcontrole als een
+   passage van het model, en een tekst uit de code die zegt dat het uit de controle komt. Zo staat het ook in de export, en
+   kost het geen tweede modelronde. De losse melding *Na te lopen* is weg.
+3. *Eén bevinding per bewering.* Het profiel, de skill (stap 3) en de criteria zeggen het: een bewering die klopt en een
+   voorwaarde die de tekst elders mist, zijn *juist* en een punt onder *ontbreekt*.
+4. *Voor de redacteur* staat op het nummer van de bevinding (`voor_redacteur`).
+5. *De bronstand.* De route van de contenttoets zet elke connector die het profiel niet noemt op de reden `werkwijze`
+   (`bronstand.voor_profiel`), stuurt het event opnieuw en laat die bronnen uit de prompt. De keuze voor de vervolgvraag
+   blijft van het gesprek.
+6. *Samenvoegen bij de toeslagschuld.* De eval blijft: *juist*. Leidraad 79.7 laat de ontvanger eerst een afzonderlijke
+   regeling aanbieden en op verzoek bundelen; "dan kunt u vragen om de regelingen samen te voegen" klopt, en de lezer
+   handelt niet anders als hij de tussenstap kent. Dat is geen voorwaarde (V1) maar uitvoering. De criteria noemen het nu
+   als voorbeeld (*een tussenstap is geen voorwaarde*).
+
+Methodetekst en profiel zijn weer gewijzigd: na de uitrol volgt meting C5c (één run per eval).
+
 **C3 staat er** (26 nov 2026): `/contenttoets` in het menu van de werkplek (een plugincommando, `lib/plugins.ts` en
 `PLUGIN_COMMANDOS` in `lib/commandos.ts`). Enter vult aan; met tekst erachter gaat de hele tekst als vraag naar Lex. Het
 rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie
