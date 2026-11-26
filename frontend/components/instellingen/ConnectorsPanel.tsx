@@ -12,9 +12,7 @@ import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { connectorAudit, foutTekst, getAccount, haalConnectors, haalPlugins, listConnectors, listPlugins, zetConnector, zetPlugin,
-  type PluginBeheer } from "@/lib/api";
-import type { AangebodenPlugin } from "@/lib/plugins";
+import { connectorAudit, foutTekst, getAccount, haalConnectors, listConnectors, zetConnector } from "@/lib/api";
 import type { Onderdeel } from "@/lib/catalogus";
 import { naamVan } from "@/lib/catalogus";
 import { datumTijd } from "@/lib/datum";
@@ -24,10 +22,8 @@ import type { Connector, ConnectorAuditRegel } from "@/lib/types";
 /** Instellingen › Aanpassingen › Connectors (ADR-013, plan instellingen-aanpassingen): de bronnen buiten de wettekst die
  *  Lex mag raadplegen, voor iedereen in één lijst. Welke er bestaan staat in de code; een beheerder met 2FA zet ze hier
  *  aan of uit (elke wijziging staat in de audit). Aan betekent: beschikbaar in het menu bij het gesprek; de straat moet
- *  hem ook aanbieden (`CONNECTOR_*`). Een analist ziet dezelfde lijst zonder knop.
- *
- *  Daaronder de plugins (plan contenttoets, C4): een werkwijze naast de wetsanalyse, zoals de contenttoets. De beheerder
- *  biedt er een aan; in het gesprek zet je hem aan of uit in *Bronnen en tools*. Een rij opent de skill onder Methodes. */
+ *  hem ook aanbieden (`CONNECTOR_*`). Een analist ziet dezelfde lijst zonder knop. De plugins (een werkwijze met een
+ *  eigen commando) staan apart, in de tab Plugins (`PluginsPanel`), zoals in Claude Code. */
 export function ConnectorsPanel() {
   const { data: sessie } = useSession();
   const beheerder = sessie?.user?.role === "beheerder";
@@ -38,21 +34,17 @@ export function ConnectorsPanel() {
   const [tfaNodig, setTfaNodig] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState<string | null>(null);
-  const [pluginBeheer, setPluginBeheer] = useState<PluginBeheer[] | null>(null);
-  const [pluginsAangeboden, setPluginsAangeboden] = useState<AangebodenPlugin[] | null>(null);
 
   const laad = useCallback(async () => {
     setFout(null);
     try {
       if (beheerder) {
-        const [account, alle, plugins] = await Promise.all([getAccount(), listConnectors(), listPlugins().catch(() => [])]);
+        const [account, alle] = await Promise.all([getAccount(), listConnectors()]);
         setTfaNodig(account.tfa_nodig);
         setBeheer(alle);
-        setPluginBeheer(plugins);
       } else {
-        const [stand, plugins] = await Promise.all([haalConnectors(), haalPlugins()]);
+        const stand = await haalConnectors();
         setAan(stand.aan);
-        setPluginsAangeboden(plugins);
       }
     } catch (e) {
       setFout(foutTekst(e, "De stand van de connectors kon niet worden geladen."));
@@ -77,36 +69,6 @@ export function ConnectorsPanel() {
       setBezig(null);
     }
   }
-
-  async function wisselPluginAanbod(p: PluginBeheer) {
-    setBezig(`plugin:${p.naam}`);
-    setFout(null);
-    try {
-      const nieuw = await zetPlugin(p.naam, !p.aan);
-      setPluginBeheer((oud) => oud?.map((x) => (x.naam === nieuw.naam ? nieuw : x)) ?? null);
-    } catch (e) {
-      setFout(foutTekst(e, "De plugin kon niet worden omgezet."));
-    } finally {
-      setBezig(null);
-    }
-  }
-
-  // De plugins: de beheerder ziet ze allemaal met een knop, een analist wat aangeboden is.
-  const pluginRijen = (pluginBeheer ?? (pluginsAangeboden ?? []).map((p) => ({ ...p, aan: true, door: "", bijgewerkt: "" })))
-    .map((p) => ({
-      id: `plugin/${p.naam}`, naam: p.label, titel: p.label, zoektekst: `${p.label} ${p.beschrijving} ${p.commando} plugin`,
-      onOpen: () => kiesInstellingenTab("methodes", { onderdeel: `methode/${p.naam}` }),
-      sub: [p.beschrijving, `Commando /${p.commando}`,
-        p.door && `${p.aan ? "Aangeboden" : "Niet aangeboden"} door ${p.door}${p.bijgewerkt ? `, ${datumTijd(p.bijgewerkt)}` : ""}`]
-        .filter(Boolean).join(" · "),
-      status: <StatusLabel toon={p.aan ? "groen" : "neutraal"}>{p.aan ? "Aangeboden" : "Uit"}</StatusLabel>,
-      eind: pluginBeheer && !tfaNodig ? (
-        <Button size="sm" variant={p.aan ? "secondary" : "primary"} disabled={bezig === `plugin:${p.naam}`}
-          onClick={() => wisselPluginAanbod(p as PluginBeheer)}>
-          {bezig === `plugin:${p.naam}` ? "Bezig…" : p.aan ? "Uitzetten" : "Aanbieden"}</Button>
-      ) : undefined,
-      data: { "data-plugin-rij": p.naam },
-    }));
 
   // De catalogus beschrijft wat een bron dekt; de stand komt van de api. Een beheerder ziet ook een connector die de
   // catalogus (nog) niet kent, zodat hij hem altijd kan uitzetten.
@@ -142,12 +104,11 @@ export function ConnectorsPanel() {
       uitleg="Bronnen buiten de wettekst die Lex mag raadplegen en citeren, elk met een eigen vindplaats. Een bron is geen wettekst: Lex zegt wat de wet zegt alleen op grond van de bepaling zelf."
       segment="lex"
       onSegment={() => {}}
-      tellers={{ lex: rijen.length + pluginRijen.length }}
+      tellers={{ lex: rijen.length }}
       zoek={lijst.zoek}
       onZoek={lijst.setZoek}
       zoekLabel="Zoeken in de connectors"
-      groepen={[{ kop: "Bronnen naast de wet", rijen, leeg: "Er zijn nog geen connectors." },
-        ...(pluginRijen.length ? [{ kop: "Plugins", rijen: pluginRijen, leeg: "" }] : [])]}
+      groepen={[{ kop: "Bronnen naast de wet", rijen, leeg: "Er zijn nog geen connectors." }]}
       boven={beheerder && tfaNodig ? (
         <Melding type="waarschuwing" titel="Koppel eerst tweestapsverificatie">
           <p className="mb-2 text-sm">Aan- en uitzetten gaat pas als er een authenticator-app aan je account hangt.</p>

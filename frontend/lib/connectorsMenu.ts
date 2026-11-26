@@ -1,4 +1,4 @@
-/** Het menu *Bronnen en tools* boven het invoerveld (ADR-013, fase 1b): welke bronconnectors in dit gesprek aanstaan.
+/** Het menu *Bronnen en plugins* boven het invoerveld (ADR-013, fase 1b): welke bronconnectors in dit gesprek aanstaan.
  *
  *  Wetgeving (de graaf) staat altijd aan en is geen connector. De stand komt, in deze volgorde, van het gesprek
  *  (`Gesprek.connectors`), van het werkgebied (`standaard_connectors`) of is alles wat de beheerder aanzette. Wat de
@@ -182,22 +182,35 @@ export function menuRegel(stand: ConnectorStand): { label: string; stand: BronWe
   return [{ label: "Wetgeving", stand: "aan" }, ...stand.beschikbaar.map((c) => ({ label: c.label, stand: standVan(c) }))];
 }
 
+/** Een plugin in het menu naast de bronnen: een plugin die de beheerder aanbiedt (plan contenttoets, C4), aan of uit. */
+export interface ToolWeergave { label: string; aan: boolean }
+
+/** Het woord vóór de dubbele punt, en de naam van het menu: "Bronnen", of "Bronnen en plugins" zodra er ook een plugin in
+ *  het menu staat. Connectors zijn de bronnen, plugins de werkwijzen ernaast (zoals in Claude Code). */
+export function menuKop(tools: readonly ToolWeergave[]): string {
+  return tools.length ? "Bronnen en plugins" : "Bronnen";
+}
+
 /** De korte vorm van de knop, als de regel niet past (een telefoon, of een smalle kolom naast het paneel): het aantal
- *  bronnen dat aan staat, en één geel label als een bron niet beschikbaar of onbekend is. Zolang er een bron wordt
+ *  bronnen en plugins dat aan staat, en één geel label als een bron niet beschikbaar of onbekend is. Zolang er een bron wordt
  *  gecontroleerd, zegt hij niets over aantallen: laden is geen oordeel. Het menu zelf is hetzelfde. */
-export function menuKort(stand: ConnectorStand): { tekst: string; aandacht: "onbekend" | "niet_aangeboden" | null } {
+export function menuKort(stand: ConnectorStand, tools: readonly ToolWeergave[] = []):
+  { tekst: string; aandacht: "onbekend" | "niet_aangeboden" | null } {
   const regel = menuRegel(stand);
+  const kop = menuKop(tools);
   const zorg = regel.find((d) => d.stand === "niet_aangeboden" || d.stand === "onbekend");
   const aandacht = zorg ? (zorg.stand as "onbekend" | "niet_aangeboden")
     : stand.laden === "mislukt" && !stand.controleert ? "onbekend" : null;
-  if (regel.some((d) => d.stand === "laden")) return { tekst: "Bronnen", aandacht };
-  const aan = regel.filter((d) => d.stand === "aan").length;
-  const tekst = aan === regel.length ? `Bronnen: alle ${aan} aan` : `Bronnen: ${aan} van ${regel.length} aan`;
+  if (regel.some((d) => d.stand === "laden")) return { tekst: kop, aandacht };
+  const aan = regel.filter((d) => d.stand === "aan").length + tools.filter((t) => t.aan).length;
+  const totaal = regel.length + tools.length;
+  const tekst = aan === totaal ? `${kop}: alle ${aan} aan` : `${kop}: ${aan} van ${totaal} aan`;
   return { tekst, aandacht };
 }
 
-/** De toegankelijke naam van de knop: "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit". */
-export function menuNaam(stand: ConnectorStand): string {
-  const delen = menuRegel(stand).map((d) => `${d.label} ${d.stand === "aan" ? "aan" : STAND_WOORD[d.stand]}`).join(", ");
-  return `Bronnen: ${delen}${stand.laden === "mislukt" && !stand.controleert ? " (nu niet te controleren)" : ""}`;
+/** De toegankelijke naam van de knop: "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit", met de tools erachter. */
+export function menuNaam(stand: ConnectorStand, tools: readonly ToolWeergave[] = []): string {
+  const delen = [...menuRegel(stand).map((d) => `${d.label} ${d.stand === "aan" ? "aan" : STAND_WOORD[d.stand]}`),
+    ...tools.map((t) => `${t.label} ${t.aan ? "aan" : "uit"}`)].join(", ");
+  return `${menuKop(tools)}: ${delen}${stand.laden === "mislukt" && !stand.controleert ? " (nu niet te controleren)" : ""}`;
 }

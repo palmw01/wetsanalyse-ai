@@ -1,4 +1,4 @@
-/** Browserregressie voor het menu *Bronnen en tools* boven het invoerveld (ADR-013), op de echte Next-UI met een
+/** Browserregressie voor het menu *Bronnen en plugins* boven het invoerveld (ADR-013), op de echte Next-UI met een
  * gemockte BFF. Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-connectors-menu.mjs`.
@@ -389,7 +389,7 @@ const menu = (page) => page.locator("[data-connectors-menu]");
   await context.close();
 }
 
-console.log("ok - Bronnen en tools");
+console.log("ok - Bronnen en plugins");
 // Smal scherm: de korte vorm, binnen beeld, en hetzelfde menu.
 {
   const VIER = [KST, { naam: "bekendmakingen", label: "Staatsblad en Staatscourant", brontype: "bekendmaking" },

@@ -4,7 +4,7 @@
  * en draai `node scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
  *
  * Bewaakt:
- *  - de plugin staat in *Bronnen en tools* (C4); uitgezet is `/contenttoets` uit het menu, aangezet weer erin;
+ *  - de plugin staat in *Bronnen en plugins* (C4); uitgezet is `/contenttoets` uit het menu, aangezet weer erin;
  *  - `/content` toont `/contenttoets` in het menu; Enter vult het commando aan en verstuurt niets;
  *  - met tekst erachter is het menu dicht, en Enter verstuurt de hele tekst als vraag, zonder actie of doel, met de
  *    plugins van het gesprek;
@@ -112,7 +112,7 @@ try {
   const veld = page.locator('[data-tour="invoer"] textarea');
   const menu = page.locator("[data-commandomenu]");
 
-  // De plugin staat in *Bronnen en tools*: uitgezet is het commando weg, aangezet weer terug.
+  // De plugin staat in *Bronnen en plugins*: uitgezet is het commando weg, aangezet weer terug.
   const bronnenKnop = page.locator("[data-connectors-menu]");
   await bronnenKnop.waitFor();
   assert.ok(await bronnenKnop.locator('[data-plugin="contenttoets"][data-aan]').count(), "de plugin staat standaard aan");

@@ -10,7 +10,7 @@
  *  - een weigering van de api (geen 2FA) staat als melding in het paneel, en de stand blijft *Uit*;
  *  - een beheerder zonder 2FA ziet waarom er geen knop staat; een analist ziet de lijst zonder knop;
  *  - op 375 px scrolt niets horizontaal;
- *  - de plugins (plan contenttoets, C4) staan als eigen groep: een beheerder biedt er een aan met `PUT {aan: true}`, een
+ *  - de plugins (plan contenttoets, C4) staan in een eigen tab Plugins, niet bij de connectors: een beheerder biedt er een aan met `PUT {aan: true}`, een
  *    analist ziet wat aangeboden is zonder knop (met `CONNECTORS_SCREENSHOT=<map>` beelden op 1280 en 390 px).
  */
 import assert from "node:assert/strict";
@@ -33,7 +33,7 @@ const CATALOGUS = { soorten: [], onderdelen: [
     aan: true, concept: "agent", deel_van: null },
 ] };
 
-async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = false } = {}) {
+async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = false, tab = "connectors" } = {}) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const errors = [];
@@ -80,7 +80,7 @@ async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = f
     if (p.endsWith("/ongelezen-aantal")) return route.fulfill({ json: { aantal: 0 } });
     return route.fulfill({ json: [] });
   });
-  await page.goto(`${base}/workbench?instellingen=connectors`);
+  await page.goto(`${base}/workbench?instellingen=${tab}`);
   return { page, context, stand, errors };
 }
 
@@ -138,9 +138,16 @@ for (const [opties, uitleg] of [[{ tfaNodig: true }, true], [{ role: "analist" }
   await context.close();
 }
 
-// 4. De plugins: een beheerder biedt de contenttoets aan, een analist ziet wat aangeboden is.
+// 4. De plugins staan in hun eigen tab: een beheerder biedt de contenttoets aan, een analist ziet wat aangeboden is.
 {
-  const { page, context, stand, errors } = await open({ width: 1280, height: 900 });
+  const { page, context, errors } = await open({ width: 1280, height: 900 });
+  await page.locator('[data-connector="kamerstukken"]').waitFor();
+  assert.equal(await page.locator("[data-plugin-rij]").count(), 0, "de tab Connectors toont geen plugins");
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+{
+  const { page, context, stand, errors } = await open({ width: 1280, height: 900 }, { tab: "plugins" });
   const rij = page.locator('[data-plugin-rij="contenttoets"]');
   await rij.waitFor();
   assert.match(await rij.innerText(), /Contenttoets[\s\S]*Commando \/contenttoets[\s\S]*Uit/);
@@ -152,7 +159,7 @@ for (const [opties, uitleg] of [[{ tfaNodig: true }, true], [{ role: "analist" }
   await context.close();
 }
 {
-  const { page, context, errors } = await open({ width: 390, height: 844 }, { role: "analist" });
+  const { page, context, errors } = await open({ width: 390, height: 844 }, { role: "analist", tab: "plugins" });
   const rij = page.locator('[data-plugin-rij="contenttoets"]');
   await rij.waitFor();
   assert.equal(await rij.getByRole("button", { name: /Aanbieden|Uitzetten/ }).count(), 0);

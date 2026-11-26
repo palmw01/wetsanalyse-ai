@@ -1,4 +1,4 @@
-// De plugins voor het menu *Bronnen en tools* en de commando's (plan contenttoets, C4): wat de beheerder aanbiedt, uit
+// De plugins voor het menu *Bronnen en plugins* en de commando's (plan contenttoets, C4): wat de beheerder aanbiedt, uit
 // het register bij de api. Faalt het, dan krijgt de werkplek een lege lijst: een storing kost de plugins, niet het gesprek.
 import { proxy } from "@/app/api/_lib/proxy";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";

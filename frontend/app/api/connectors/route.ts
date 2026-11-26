@@ -1,4 +1,4 @@
-// De bronconnectors voor het menu *Bronnen en tools* boven het invoerveld (ADR-013): wat de beheerder aanzette (het
+// De bronconnectors voor het menu *Bronnen en plugins* boven het invoerveld (ADR-013): wat de beheerder aanzette (het
 // register bij de api), met per connector of deze straat hem aanbiedt (graph-qa `GET /v1/bronnen`). Is graph-qa niet
 // te lezen, dan is die beschikbaarheid `onbekend`; biedt de straat hem niet aan, dan `niet_aangeboden`. Het menu toont
 // beide met de reden, zonder schakelaar (`lib/connectorsMenu.ts`).

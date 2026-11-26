@@ -170,6 +170,13 @@ describe("menuKort", () => {
   const c = (naam: string, label: string, beschikbaarheid: "aan" | "onbekend" | "niet_aangeboden" = "aan") =>
     ({ naam, label, brontype: naam, beschikbaarheid });
 
+  it("telt een aangeboden plugin mee en heet dan Bronnen en plugins", () => {
+    const stand = met([c("kamerstukken", "Kamerstukken"), c("rechtspraak", "Rechtspraak")]);
+    expect(menuKort(stand, [{ label: "Contenttoets", aan: true }]).tekst).toBe("Bronnen en plugins: alle 4 aan");
+    expect(menuKort(stand, [{ label: "Contenttoets", aan: false }]).tekst).toBe("Bronnen en plugins: 3 van 4 aan");
+    expect(menuNaam(stand, [{ label: "Contenttoets", aan: false }]))
+      .toBe("Bronnen en plugins: Wetgeving aan, Kamerstukken aan, Rechtspraak aan, Contenttoets uit");
+  });
   it("telt de bronnen die aan staan, Wetgeving meegerekend", () => {
     const stand = met([c("kamerstukken", "Kamerstukken"), c("bekendmakingen", "Staatsblad en Staatscourant"), c("rechtspraak", "Rechtspraak")]);
     expect(menuKort(stand)).toEqual({ tekst: "Bronnen: alle 4 aan", aandacht: null });

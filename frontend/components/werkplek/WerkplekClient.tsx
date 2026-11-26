@@ -163,7 +163,7 @@ export function WerkplekClient({
   // `geblokkeerd` per definitie false en verandert er niets.
   const geblokkeerd = Boolean(verbruik?.actief && verbruik.geblokkeerd);
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
-  // ADR-013, *Bronnen en tools*: wat de beheerder aanzette, de stand van dit gesprek en de standaard van het werkgebied.
+  // ADR-013, *Bronnen en plugins*: wat de beheerder aanzette, de stand van dit gesprek en de standaard van het werkgebied.
   // De ref volgt de stand, zodat `verstuur` de stand van nu leest; `connectorsTeBewaren` = gekozen vóór er een gesprek was.
   // De lijst is van het venster (`lib/connectorLijst.ts`): een nieuwe mount (ander gesprek) toont meteen de laatst bekende.
   const connectorLijst = useConnectorLijst(!demo);
