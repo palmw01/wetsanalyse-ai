@@ -192,3 +192,109 @@ def test_een_passage_van_buiten_de_graaf_valt_weg_naast_een_uit_de_graaf():
 def test_het_profiel_heeft_geen_connectors():
     from agent.profielen import PROFIELEN
     assert PROFIELEN["contenttoets"].connectors == ()
+
+
+def test_een_regel_voor_de_redacteur_bij_een_weggevallen_bevinding_valt_mee_weg():
+    # Meting C5 (standaardregeling): de citaatcontrole liet bevinding 4 vallen, en "[4]" wees daarna naar bevinding 5.
+    weg = bevinding("dit staat er niet", "mogelijk_onjuist", "J1", [TWAALF])
+    a = vul(NAAM, invoer(bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [TWAALF]), weg,
+                         bevinding("minimaal € 20 per maand", "juist", "J1", [TWINTIG]),
+                         voor_redacteur=["[1] Maak er 12 maanden van.", "[2] Schrap dit.", "[3] Laat staan.",
+                                         "Lees de hele tekst nog eens na."]), trace())
+    assert rapport(a).voor_redacteur == ["[1] Maak er 12 maanden van.", "[2] Laat staan.",
+                                         "Lees de hele tekst nog eens na."]
+
+
+def test_de_verwijzing_volgt_de_volgorde_van_de_content():
+    # Het model zette de bevindingen niet in de volgorde van de content: het rapport nummert om, de regels ook.
+    a = vul(NAAM, invoer(bevinding("4 maanden kort uitstel", "niet_in_de_bron"),
+                         bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [TWAALF]),
+                         voor_redacteur=["[2] Maak er 12 maanden van.", "[1] Waar komt dit vandaan?"]), trace())
+    r = rapport(a)
+    assert [b.citaat for b in r.bevindingen] == ["maximaal 24 maanden", "4 maanden kort uitstel"]
+    assert r.voor_redacteur == ["[1] Maak er 12 maanden van.", "[2] Waar komt dit vandaan?"]
+
+
+def test_een_spatie_na_het_eurosteken_is_opmaak():
+    # Run 1104571876 (C5): het citaat over € 20 viel weg; de graaf schrijft "€ 20", het model "€20" of omgekeerd.
+    content = CONTENT.replace("€ 20", "€ 20")
+    zonder = {"bepaling": STANDAARD, "van": "termijnen van ten minste €20.", "tot": "€20."}
+    a = vul(NAAM, invoer(bevinding("minimaal €20 per maand", "juist", "J1", [zonder])), trace(content))
+    b = rapport(a).bevindingen[0]
+    assert b.citaat == "minimaal € 20 per maand" and b.bronnen[0].tekst.endswith("ten minste € 20.")
+    assert plek_in("€ 20", "kost €20") == (5, 8)
+
+
+TOESLAG = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.7"
+TEKST_TOESLAG = ("De standaardbetalingsregeling gaat uit van een af te lossen bedrag van € 20 per maand voor iedere "
+                 "terugvordering afzonderlijk. De belanghebbende lost de toeslagschuld af door maandelijks het "
+                 "termijnbedrag over te maken. Wanneer een belanghebbende niet aan zijn aflossingsverplichtingen voldoet "
+                 "wordt de betalingsregeling beëindigd.")
+
+
+def _na_te_lopen(a: Antwoord) -> list[str]:
+    return [b.tekst for b in a.blokken if b.soort == "leemte" and b.tekst.startswith("Na te lopen")]
+
+
+def test_de_controle_per_bepaling_noemt_een_gevolg_dat_rapport_en_tekst_missen():
+    # Meting C5, 79.7: de beëindiging bij niet nakomen stond in de gelezen bepaling, het rapport noemde haar niet.
+    content = "U betaalt € 25 per maand per terugvordering."
+    tr = [(CONTENT_TOOL, content_resultaat(content)), ("get_bepaling", json.dumps({
+        "status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+        "bepaling": {"iri": TOESLAG, "nummer": "79.7", "tekst": TEKST_TOESLAG, "label": "Toeslagschuld"}}, ensure_ascii=False))]
+    a = vul(NAAM, invoer(bevinding("€ 25 per maand", "mogelijk_onjuist", "J1",
+                                   [{"bepaling": TOESLAG, "van": "De standaardbetalingsregeling", "tot": "afzonderlijk."}])), tr)
+    [melding] = _na_te_lopen(a)
+    assert "“Wanneer een belanghebbende niet aan zijn aflossingsverplichtingen voldoet wordt de betalingsregeling beëindigd.”" in melding
+    assert "termijnbedrag" not in melding  # geen voorwaarde, gevolg of uitzondering
+    assert "€ 20 per maand" not in melding  # dat citeert het rapport al
+
+
+def test_wat_de_content_al_noemt_hoeft_niet_nagelopen():
+    content = "U betaalt € 25 per maand. Betaalt u niet, dan wordt de betalingsregeling beëindigd."
+    tr = [(CONTENT_TOOL, content_resultaat(content)), ("get_bepaling", json.dumps({
+        "status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+        "bepaling": {"iri": TOESLAG, "nummer": "79.7", "tekst": TEKST_TOESLAG}}, ensure_ascii=False))]
+    a = vul(NAAM, invoer(bevinding("€ 25 per maand", "mogelijk_onjuist", "J1",
+                                   [{"bepaling": TOESLAG, "van": "De standaardbetalingsregeling", "tot": "afzonderlijk."}])), tr)
+    assert not _na_te_lopen(a)
+
+
+def test_een_onderdeel_van_de_opsomming_wordt_nagelopen():
+    # Meting C5, 25.3a.1: de uitzondering stond in onderdeel 3 van de opsomming.
+    o3 = f"{STANDAARD}%2FTekst%2FOnderdeel._3"
+    tr = [*trace(), ("get_bepaling", json.dumps({
+        "status": "ok", "volledig": True, "aantal": 1, "bepaling": {"iri": STANDAARD, "tekst": TEKST_STANDAARD},
+        "resultaten": [{"onderdeel": o3, "nummer": "–", "tekst": "aanslagen waartegen bezwaar in behandeling is."}]},
+        ensure_ascii=False))]
+    a = vul(NAAM, invoer(bevinding("maximaal 24 maanden", "mogelijk_onjuist", "J1", [TWAALF])), tr)
+    assert any("“aanslagen waartegen bezwaar in behandeling is.”" in m for m in _na_te_lopen(a))
+
+
+ONDERNEMERS = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d"
+
+
+def test_juist_op_een_bepaling_voor_een_andere_doelgroep_krijgt_een_kanttekening():
+    # Meting C5: "dan krijgt u kort uitstel" (een tekst voor particulieren) werd gestaafd met de ondernemersbepaling
+    # 25.6.2d, terwijl de bepaling voor particulieren "kan … worden getroffen" zegt.
+    content = "Bent u particulier? Dan krijgt u 4 maanden kort uitstel."
+    rij = {"iri": ONDERNEMERS, "label": "Kort uitstel ondernemers",
+           "tekst": "Ondernemers kunnen een kort uitstel van betaling krijgen van ten hoogste vier maanden."}
+    tr = [(CONTENT_TOOL, content_resultaat(content)),
+          ("get_bepaling", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [], "bepaling": rij},
+                                      ensure_ascii=False))]
+    bron = {"bepaling": ONDERNEMERS, "van": "Ondernemers kunnen", "tot": "vier maanden."}
+    b = rapport(vul(NAAM, invoer(bevinding("Dan krijgt u 4 maanden kort uitstel.", "juist", "J1", [bron])), tr)).bevindingen[0]
+    assert b.oordeel == "juist"
+    assert "ruimte (“kunnen”)" in b.twijfel and "ondernemers" in b.twijfel and "J4" in b.twijfel
+
+
+def test_juist_met_dezelfde_ruimte_en_doelgroep_krijgt_geen_kanttekening():
+    content = "Dan kunt u kort uitstel krijgen."
+    rij = {"iri": ONDERNEMERS, "label": "Kort uitstel", "tekst": "Er kan kort uitstel van betaling worden verleend."}
+    tr = [(CONTENT_TOOL, content_resultaat(content)),
+          ("get_bepaling", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [], "bepaling": rij},
+                                      ensure_ascii=False))]
+    bron = {"bepaling": ONDERNEMERS, "van": "Er kan", "tot": "verleend."}
+    b = rapport(vul(NAAM, invoer(bevinding("Dan kunt u kort uitstel krijgen.", "juist", "J4", [bron])), tr)).bevindingen[0]
+    assert b.twijfel == ""

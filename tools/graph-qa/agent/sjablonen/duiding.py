@@ -75,11 +75,22 @@ logger = logging.getLogger("graph_qa.orchestrator")
 MAX_HELE_TEKST = 600
 
 
+#: Het valutateken waarna een spatie opmaak is: "€20" en "€ 20" zijn hetzelfde bedrag.
+VALUTA = "€"
+
+
+def valuta_patroon(patroon: str) -> str:
+    """Een regex waarin de witruimte na een valutateken mag ontbreken of staan. `patroon` is al ontsnapt; `re.escape` laat
+    "€" staan en ontsnapt een spatie als "\\ "."""
+    return re.sub(r"€(?:\\ |\\s\+|\\s\*)?", "€\\\\s*", patroon)
+
+
 def _ankers(anker: str, tekst: str) -> list[tuple[int, int]]:
     """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Gezocht wordt in de zoekvorm (`TYPOGRAFISCH`).
     Bijna-letterlijk herstelt `herstel_citaten`; die leest aanhalingstekens, dus een anker dat er zelf een bevat kan alleen
     letterlijk."""
     tekst, vorm = tekst.translate(TYPOGRAFISCH), _normaliseer(anker).translate(TYPOGRAFISCH)
+    aangewezen = vorm
     if not komt_letterlijk_voor(tekst, vorm) and '"' not in vorm:
         _, hersteld = herstel_citaten(f'"{vorm}"', [("", tekst)])
         vorm = hersteld[0][1] if hersteld else ""
@@ -87,6 +98,10 @@ def _ankers(anker: str, tekst: str) -> list[tuple[int, int]]:
     while i >= 0:
         uit.append((i, i + len(vorm)))
         i = tekst.find(vorm, i + 1)
+    if not uit and VALUTA in aangewezen:
+        # "€20" tegen "€ 20" (of omgekeerd): de spatie na een valutateken is opmaak, geen ander woord (contenttoets C5,
+        # run 1104571876: het citaat over € 20 viel weg). Alleen als de letterlijke vorm niets vond.
+        uit = [(m.start(), m.end()) for m in re.finditer(valuta_patroon(re.escape(aangewezen)), tekst)]
     return uit
 
 

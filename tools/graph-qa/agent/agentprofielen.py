@@ -583,9 +583,20 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'meestal een beleidsregel, zoals de Leidraad '
                                               'Invordering 2008: bedragen, termijnen en '
                                               'voorwaarden staan daar, de bevoegdheid in de wet. '
-                                              'Haal in één ronde op wat je samen nodig hebt. Je '
-                                              'toetst alleen tegen de kennisgraaf: een bron buiten '
-                                              'de graaf, zoals een kennisgroepstandpunt of '
+                                              'Haal in één ronde op wat je samen nodig hebt. Loop '
+                                              'daarna elke bepaling die je las na, met de '
+                                              'onderdelen van een opsomming: welke voorwaarden, '
+                                              'uitzonderingen en gevolgen staan er (een '
+                                              'beëindiging, een afwijzing, wie is uitgezonderd), '
+                                              'en noemt de tekst ze? Wat ontbreekt en de lezer '
+                                              'nodig heeft, hoort onder ontbreekt. Steunt een '
+                                              'bewering op een bepaling voor een andere doelgroep '
+                                              'dan de lezer (ondernemers tegenover particulieren), '
+                                              'of zegt de bron dat iets kan waar de tekst zegt dat '
+                                              'het gebeurt, dan is dat J4: zoek de bepaling voor '
+                                              'de eigen groep, en zet het verschil in de twijfel. '
+                                              'Je toetst alleen tegen de kennisgraaf: een bron '
+                                              'buiten de graaf, zoals een kennisgroepstandpunt of '
                                               'wettekst die live van overheid.nl komt, draagt geen '
                                               'bewering, ook niet als die bron in het gesprek '
                                               'aanstaat.\n'
@@ -600,8 +611,9 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                               'mogelijk_onjuist of onvolledig zonder passage uit '
                                               'wat je las, weigert de code: dan is het '
                                               'niet_in_de_bron. Schrijf voor_redacteur in gewone '
-                                              'taal, met het nummer van de bevinding in de '
-                                              'volgorde van de content, zoals [2].',
+                                              'taal, met het nummer van de bevinding in je lijst '
+                                              'bevindingen (de eerste is [1]), zoals [2]; zet de '
+                                              'bevindingen in de volgorde van de content.',
                                 'kiesbaar': False,
                                 'max_rondes': 12,
                                 'mcp': (),
@@ -939,4 +951,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'tools': ('geldigheid',
                                                     'get_artikel',
                                                     'search_wetgeving')}},
- 'sha256': 'bb1323c5ab8edaa1c8a4e835a141f7ac06cba4f50f7acbe87736b15a5617dae3'}
+ 'sha256': 'e0ba25c739b885532409f52529a187c93316c88ec3bb3457fb53106657ad9220'}

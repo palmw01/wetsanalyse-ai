@@ -24,4 +24,4 @@ Artikel 25.3a.1 Voorwaarden standaardbetalingsregeling
 
 Artikel 25.3a.2 Verrekening tijdens de standaardbetalingsregeling
 
-"Gedurende de looptijd van de standaardbetalingsregeling verrekent de ontvanger belastingteruggaven en andere teruggaven met de openstaande belastingschuld. De ontvanger kan op verzoek van de belastingschuldige afzien van het verrekenen van voornoemde teruggaven."
+"Gedurende de looptijd van de standaardbetalingsregeling verrekent de ontvanger belastingteruggaven en andere teruggaven met de openstaande belastingschuld. De ontvanger kan op verzoek van de belastingschuldige afzien van het verrekenen van voornoemde teruggaven. Tenzij anders overeengekomen, verrekent de ontvanger een voorlopige teruggaaf inkomstenbelasting over het lopende jaar niet met een belastingschuld waarvoor de betalingsregeling is verleend."

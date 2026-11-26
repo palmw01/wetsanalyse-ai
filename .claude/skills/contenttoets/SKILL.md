@@ -70,7 +70,10 @@ Contenttoets – voortgang
 3. **Oordelen.** Kies één oordeel uit de vaste lijst en noem het criterium. Zie [criteria](references/criteria.md).
 4. **Tweede lezing.** Lees elke *mogelijk onjuist* opnieuw met de tekst rond het citaat. Gaat de bepaling wel over
    dezelfde groep, dezelfde belasting, dezelfde regeling? Bij twijfel wordt het *niet in de bron*, met de twijfel erbij.
-5. **Het geheel.** Kijk of de tekst zichzelf tegenspreekt en of de bron iets wezenlijks zegt dat de tekst weglaat.
+5. **Het geheel.** Kijk of de tekst zichzelf tegenspreekt en of de bron iets wezenlijks zegt dat de tekst weglaat. Loop
+   daarvoor elke gelezen bepaling na, ook de onderdelen van een opsomming: welke voorwaarden, uitzonderingen en gevolgen
+   staan er, en noemt de tekst ze? Wat ontbreekt en de lezer nodig heeft, zet je onder *ontbreekt*. De code noemt daarna
+   wat het rapport en de tekst allebei missen, als *na te lopen*.
 6. **Herschrijven.** Stel per bevinding een betere zin voor. Zie [herschrijven](references/herschrijven.md).
 7. **Rapporteren** in het [sjabloon](assets/toetsrapport.md). Zie [rapport](references/rapport.md).
 

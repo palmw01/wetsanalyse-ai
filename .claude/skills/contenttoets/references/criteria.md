@@ -41,6 +41,12 @@ belastingschulden (art. 25.3a.1).
 Vergelijk de sterkte. "De ontvanger kan uitstel verlenen" is een bevoegdheid, geen recht van de burger. "U krijgt
 uitstel" is sterker dan de bron; "misschien kunt u" is zwakker en vaak juist goed.
 
+Let ook op de **doelgroep**. Steunt een bewering op een bepaling voor een andere groep dan de lezer van de tekst (de
+bepaling voor ondernemers bij een tekst voor particulieren), dan is dat een signaal: de bepaling voor de eigen groep kan
+anders luiden ("kan … worden getroffen" tegenover "kunnen … krijgen"). Een *juist* mag dan niet zonder die kanttekening.
+De code zet zo'n kanttekening zelf bij de twijfel, als de bron ruimte laat en het citaat niet, of als de bepaling een
+doelgroep noemt die de tekst niet noemt.
+
 ### J5 Telmoment
 
 **Herkenningsvraag:** noemt de tekst een termijn of looptijd?

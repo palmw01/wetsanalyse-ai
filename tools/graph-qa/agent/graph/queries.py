@@ -646,6 +646,21 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
 }} ORDER BY ?sub"""
 
 
+def bepaling_onderdelen(iri: str) -> str:
+    """De onderdelen van één bepaling (`heeftOnderdeel+`), met nummer, tekst, jci en volgnummer: de opsomming ván een
+    divisie van een beleidsregel ("– conserverende aanslagen, en"). Los van `get_bepaling`, want samen met de subdivisies
+    vermenigvuldigen de twee takken elkaar. Zonder deze lezing las Lex bij Leidraad 25.3a.1 alleen de aanhef, en miste de
+    contenttoets de uitzonderingen in de opsomming (meting C5, 26 nov 2026)."""
+    return PREFIXES + f"""SELECT ?o ?onummer ?otekst ?ojci ?ovolg WHERE {{
+  <{iri}> bwb:heeftOnderdeel+ ?o .
+  FILTER(STRSTARTS(STR(?o), "{NS}"))
+  OPTIONAL {{ ?o bwb:nummer ?onummer }}
+  OPTIONAL {{ ?o bwb:tekst ?otekst }}
+  OPTIONAL {{ ?o bwb:jci ?ojci }}
+  OPTIONAL {{ ?o bwb:volgnummer ?ovolg }}
+}} ORDER BY ?ovolg ?o LIMIT 200"""
+
+
 def get_regeling_info(bwb_id: str) -> str:
     """Metadata van één regeling, inclusief de WTI-verrijking – in ÉÉN rij.
 

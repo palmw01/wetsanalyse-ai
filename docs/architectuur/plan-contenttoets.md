@@ -236,6 +236,25 @@ citaatcontrole laat vallen, staat nog in *Voor de redacteur*; Lex mist binnen ee
 uitzondering; de modaliteit (J4) werd gemist bij een verwante bepaling; de eval van de standaardregeling geeft niet de
 hele bron mee. Zie [`metingen/contenttoets-c5-2026-11-26/`](metingen/contenttoets-c5-2026-11-26/README.md).
 
+**De vier bevindingen van C5 zijn opgepakt** (26 nov 2026), in het algemene mechanisme en niet per eval:
+
+1. *Weggevallen bevinding.* `voor_redacteur` verwijst met het nummer in de lijst van het model; de code nummert mee naar
+   het rapport en laat een regel vallen die naar een weggevallen bevinding verwijst (`sjablonen/contenttoets.voor_redacteur`).
+   De reden van het wegvallen staat per bevinding in het denkproces (`meld_weggevallen`). Het citaat over € 20 viel
+   waarschijnlijk weg op de spatie na het eurosteken ("€20" tegen "€ 20"): die is nu opmaak, in het citaat uit de content
+   (`plek_in`) en in de bronpassage (`duiding._ankers`, `valuta_patroon`). De run zelf was niet meer na te lezen.
+2. *Ontbreekt binnen de gelezen bepaling.* `get_bepaling` leest de onderdelen van de bepaling mee
+   (`queries.bepaling_onderdelen`; bij Leidraad 25.3a.1 de opsomming), en een onderdeel hoort voor het citeren bij zijn
+   bepaling (`vullen.ouders`). Na het vullen loopt de code elke bepaling na waaruit het rapport citeert: de zinnen met een
+   voorwaarde, uitzondering of gevolg en de onderdelen die het rapport niet citeert en de tekst niet noemt, letterlijk in
+   een melding *Na te lopen* (`na_te_lopen`, hoogstens vijf). Het profiel en de skill vragen dezelfde stap van Lex.
+3. *Modaliteit (J4).* Bij een *juist* zet de code een kanttekening bij de twijfel als de bron ruimte laat ("kan") en het
+   citaat niet, of als de bepaling een doelgroep noemt die de tekst niet noemt (`kanttekening_j4`). Het oordeel blijft.
+4. *Gouden set.* `standaardregeling-zonder-fouten` draagt de derde zin van 25.3a.2, letterlijk uit de graaf; *onvolledig*
+   over de verrekening is daar een verwachte uitkomst.
+
+De methodetekst en het profiel zijn gewijzigd: na de uitrol volgt een lichte meting (één run per eval).
+
 **C3 staat er** (26 nov 2026): `/contenttoets` in het menu van de werkplek (een plugincommando, `lib/plugins.ts` en
 `PLUGIN_COMMANDOS` in `lib/commandos.ts`). Enter vult aan; met tekst erachter gaat de hele tekst als vraag naar Lex. Het
 rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie

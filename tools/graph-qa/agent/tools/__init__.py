@@ -253,11 +253,23 @@ def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
     bepaling = {"iri": kop.get("node", ""), **{k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")}, **_werking(kop)}
     subs = {r["sub"]: compact({"sub": r["sub"], "nummer": r.get("subnummer"), "label": r.get("sublabel"),
                                "begin": r.get("subbegin")}) for r in rijen if r.get("sub")}
-    eenheden = sorted(subs.values(), key=lambda r: (natuurlijke_sleutel(r.get("nummer", "")), r["sub"]))
+    # De onderdelen van de bepaling zelf (de opsomming na de aanhef) horen bij haar tekst: hele rijen, in documentvolgorde,
+    # vóór de subdivisies. Zonder dit las Lex bij Leidraad 25.3a.1 alleen de aanhef (meting C5).
+    orijen = parse_select(g.sparql(queries.bepaling_onderdelen(bepaling["iri"]))) if bepaling["iri"] else []
+    onderdelen = {r["o"]: compact({"onderdeel": r["o"], "nummer": r.get("onummer"), "tekst": r.get("otekst"),
+                                   "jci": _zonder_datum(r.get("ojci", ""))}) for r in orijen if r.get("o")}
+    eenheden = [onderdelen[iri] for iri in _in_documentvolgorde(onderdelen, orijen)]
+    eenheden += sorted(subs.values(), key=lambda r: (natuurlijke_sleutel(r.get("nummer", "")), r["sub"]))
+    toelichting = ("Subdivisies met het begin van hun tekst; de volledige tekst via get_bepaling(nummer=<subnummer>)."
+                   if subs else "")
+    if onderdelen:
+        toelichting = ("De onderdelen (rijen met 'onderdeel') horen bij de tekst van de bepaling: lees ze mee. "
+                       + toelichting).strip()
     return per_eenheid(eenheden, tool="get_bepaling", args={k: v for k, v in a.items() if k != "offset"},
-                       offset=_offset(a), extra={"bepaling": compact({**bepaling, "subdivisies": len(eenheden)})},
-                       toelichting="Subdivisies met het begin van hun tekst; de volledige tekst via "
-                                   "get_bepaling(nummer=<subnummer>).")
+                       offset=_offset(a), extra={"bepaling": compact({**bepaling, "subdivisies": len(subs),
+                                                                       **({"onderdelen": len(onderdelen)} if onderdelen else {})})},
+                       toelichting=toelichting or "Subdivisies met het begin van hun tekst; de volledige tekst via "
+                                                  "get_bepaling(nummer=<subnummer>).")
 
 
 def _lijst(g: GraphPort, a: dict[str, Any], tool: str, bouw: Callable[..., str], standaard: int, hoogste: int,

@@ -57,6 +57,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("get_artikel", q.get_artikel(IW, "36")),
     ("get_lid", q.get_lid(IW, "2", "1")),
     ("get_bepaling", q.get_bepaling(LEIDRAAD, "25.1")),
+    ("bepaling_onderdelen", q.bepaling_onderdelen("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1")),
     ("get_regeling_info", q.get_regeling_info(IW)),
     ("follow_verwijzingen", q.follow_verwijzingen(IW, "36")),
     ("follow_verwijzingen+lid", q.follow_verwijzingen(IW, "36", "1")),
