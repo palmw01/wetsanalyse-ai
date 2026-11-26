@@ -15,6 +15,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from eval.padcontrole import veilig_pad
 from eval.wortel import WORTEL as WORTEL_REPO
 
 ROOT = WORTEL_REPO
@@ -196,7 +197,7 @@ def worker(args):
         if r["status"] != "ok" or next(oude_calls, None) is not None or r["fusie"] != vorig["fusie"]:
             raise ValueError("snapshotreplay veranderde detectie/verzoeken of faalde")
         r["herstel"] = {"origineel": args.replay_source.name,
-            "origineel_sha256": hashlib.sha256(args.replay_source.read_bytes()).hexdigest(),
+            "origineel_sha256": hashlib.sha256(veilig_pad(args.replay_source).read_bytes()).hexdigest(),
             "reden": "lokale onderzoeksboom afsluiten met behoud van graafouder en alle letterlijke teksten",
             "nieuwe_review_calls": opnieuw, "replay_seconden": r["seconden"], "hersteld_op": r["tijd"]}
         r["tijd"] = vorig["tijd"]
@@ -205,7 +206,7 @@ def worker(args):
     r["kosten"] = {"factuurbedrag": None, "schatting_usd": round(sum(r["tokens"][k] * TARIEVEN[k] / 1e6 for k in TOKENS), 6),
                    "usd_per_miljoen": TARIEVEN, "tariefbron": TARIEFBRON, "tariefdatum": "2026-05-27",
                    "reden": "schatting volgens Microsoft Foundry-lijstprijs, geen Azure-factuur"}
-    schrijf(args.output, r)
+    schrijf(veilig_pad(args.output), r)
     print(c["id"], args.variant, args.ronde, r["status"], len(calls), "calls", flush=True)
 
 
@@ -257,8 +258,12 @@ def main():
                         continue
                     if codehash(args.baseline) != hashes["baseline"] or codehash(args.code_root) != hashes["variant"]:
                         raise RuntimeError("code gewijzigd tijdens proef; geen gemengde meetversie")
+<<<<<<< HEAD
                     # Absoluut: een pad dat met `-` begint, leest de worker anders als optie (SonarQube S8705).
                     root = (args.baseline if variant == "A_huidig" else args.code_root).resolve()
+=======
+                    root = veilig_pad(args.baseline if variant == "A_huidig" else args.code_root)
+>>>>>>> origin/claude/charming-roentgen-32c691
                     subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker", "--code-root", str(root),
                         "--cases", str(args.cases.resolve()), "--case", c["id"], "--variant", variant,
                         "--ronde", str(ronde), "--output", str(out.resolve())], cwd=root / "tools/graph-qa", check=True)

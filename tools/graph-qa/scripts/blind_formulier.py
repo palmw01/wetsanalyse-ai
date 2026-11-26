@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent.jas_klassen import JAS_KLASSEN  # noqa: E402
 from agent.jas_pipeline.subtype import REGELS as SUBTYPES  # noqa: E402
 from eval.adjudicatie import PROTOCOLVERSIE  # noqa: E402
+from eval.padcontrole import veilig_pad  # noqa: E402
 from eval.referentieset import ACTUELE_VERSIE, casussen  # noqa: E402
 
 SJABLOON = Path(__file__).with_suffix(".html")
@@ -58,7 +59,7 @@ def main() -> int:
     ap.add_argument("--versie", default=ACTUELE_VERSIE)
     ap.add_argument("--casus", nargs="+")
     args = ap.parse_args()
-    Path(args.uit).write_text(render(gegevens(args.versie, args.casus)), encoding="utf-8")
+    veilig_pad(args.uit).write_text(render(gegevens(args.versie, args.casus)), encoding="utf-8")
     print(f"Formulier geschreven: {args.uit}")
     return 0
 

@@ -39,6 +39,8 @@ import tomllib
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from padcontrole import veilig_pad
+
 WORTEL = Path(__file__).resolve().parents[1]
 CONFIG = WORTEL / "ruff.toml"
 
@@ -387,11 +389,12 @@ def main(argv: list[str] | None = None) -> int:
     rapport = meet(basis, args.dekking.resolve() if args.dekking else None)
     tekst = markdown(rapport)
     if args.uit:
-        args.uit.mkdir(parents=True, exist_ok=True)
-        (args.uit / "kwaliteit.md").write_text(tekst, encoding="utf-8")
+        uit = veilig_pad(args.uit)
+        uit.mkdir(parents=True, exist_ok=True)
+        (uit / "kwaliteit.md").write_text(tekst, encoding="utf-8")
         data = json.dumps(rapport, default=lambda o: sorted(o) if isinstance(o, set) else str(o), ensure_ascii=False,
                           indent=1)
-        (args.uit / "kwaliteit.json").write_text(data + "\n", encoding="utf-8")
+        (uit / "kwaliteit.json").write_text(data + "\n", encoding="utf-8")
     print(tekst)
     return 0
 

@@ -33,6 +33,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from padcontrole import OnveiligPad, veilig_argument, veilig_pad
+
 TEMPLATE = Path(__file__).parent / "main.bicep"
 DEFAULT_PARAMS = Path(__file__).parent / "params.json"
 
@@ -129,7 +131,10 @@ def main() -> None:
 
     licentie_b64 = ""
     if args.license_file:
-        lic = Path(args.license_file)
+        try:
+            lic = veilig_pad(args.license_file)
+        except OnveiligPad as exc:
+            p.error(str(exc))
         if not lic.is_file():
             p.error(f"licentiebestand niet gevonden: {lic}")
         licentie_b64 = base64.b64encode(lic.read_bytes()).decode()
@@ -211,7 +216,12 @@ def main() -> None:
         if vlag is not None:
             params["parameters"][param] = {"value": vlag}
 
-    params_path = Path(args.params_file)
+    try:
+        params_path = veilig_pad(args.params_file)
+        resource_group = veilig_argument(args.resource_group)
+        app_name = veilig_argument(args.app_name)
+    except OnveiligPad as exc:
+        p.error(str(exc))
     params_path.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding="utf-8")
     params_path.chmod(0o600)
     print(f"✓ Parameterbestand: {params_path}", file=sys.stderr)
@@ -220,10 +230,10 @@ def main() -> None:
     verb = "what-if" if args.what_if else "create"
     cmd = [
         "az", "deployment", "group", verb,
-        "--resource-group", args.resource_group,
+        "--resource-group", resource_group,
         "--template-file", str(TEMPLATE),
         "--parameters", f"@{params_path}",
-        "--name", f"{args.app_name}-infra",
+        "--name", f"{app_name}-infra",
     ]
     if not args.what_if:
         cmd += ["--output", "json"]

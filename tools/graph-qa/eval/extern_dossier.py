@@ -49,6 +49,7 @@ from urllib.parse import unquote
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent.jas_relaties import VERBIJZONDERINGEN as _VERBIJZONDERINGEN  # noqa: E402
+from eval.padcontrole import veilig_pad  # noqa: E402
 from eval.scoring import _norm, _token_iou, _zelfde_plek, klasse_dekking  # noqa: E402
 from eval.wortel import WORTEL as WORTEL_REPO
 
@@ -365,7 +366,7 @@ def lees_confluence(paden: list[Path]) -> dict[str, Any]:
     """Alle pagina's van een export samen: de bepalingen met annotaties en de bronnen met deelvragen."""
     bepalingen, bronnen = [], []
     for p in paden:
-        tekst = p.read_text(encoding="utf-8")
+        tekst = veilig_pad(p).read_text(encoding="utf-8")
         bepalingen += lees_annotaties(tekst)
         bronnen += lees_bronnen(tekst)
     return {"schema": "extern-dossier-v1", "bepalingen": bepalingen, "bronnen": bronnen}
@@ -975,7 +976,7 @@ def main(argv: list[str] | None = None) -> None:
         ap.error("--weergaven en --relatie-mapping horen samen, en vragen --relaties")
 
     def laad(p: Path | None) -> Any:
-        return json.loads(p.read_text(encoding="utf-8")) if p else None
+        return json.loads(veilig_pad(p).read_text(encoding="utf-8")) if p else None
 
     def laad_weergaven(paden: list[Path] | None) -> list[Any] | None:
         if not paden:
@@ -986,7 +987,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.actie == "lees":
         paden = sorted(args.export.glob("*.html")) if args.export.is_dir() else [args.export]
         referentie = toets_letterlijk(lees_confluence(paden), laad(args.bronteksten))
-        args.uit.write_text(json.dumps(referentie, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.uit).write_text(json.dumps(referentie, ensure_ascii=False, indent=2), encoding="utf-8")
         n = sum(len(b["elementen"]) for b in referentie["bepalingen"])
         print(f"{len(referentie['bepalingen'])} bepalingen, {n} fragmenten, {len(referentie['bronnen'])} bronnen")
         return
@@ -994,7 +995,7 @@ def main(argv: list[str] | None = None) -> None:
                         relaties=laad(args.relaties), weergaven=laad_weergaven(args.weergaven),
                         relatie_mapping=laad(args.relatie_mapping))
     if args.uit:
-        args.uit.write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.uit).write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(rapport)
 
 
