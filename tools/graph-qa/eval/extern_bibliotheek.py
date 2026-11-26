@@ -621,13 +621,8 @@ def main(argv: list[str] | None = None) -> None:
               f"{len(ref['formuleringen'])} formuleringen")
         return
     if args.actie == "manifest":
-<<<<<<< HEAD
-        args.uit.write_text(json.dumps(manifest(args.naam, args.mappen), indent=2) + "\n", encoding="utf-8")
-        return
-=======
         veilig_pad(args.uit).write_text(json.dumps(manifest(args.naam, args.mappen), indent=2) + "\n", encoding="utf-8")
-        return 0
->>>>>>> origin/claude/charming-roentgen-32c691
+        return
     regels = [laad(p) for p in sorted(args.regels.glob("*.json"))] if args.regels else None
     rapport = vergelijk(laad(args.referentie), laad(args.werkgebied), laad(args.begrippen), regels,
                         laad(args.afkortingen))

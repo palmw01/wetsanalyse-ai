@@ -258,12 +258,8 @@ def main():
                         continue
                     if codehash(args.baseline) != hashes["baseline"] or codehash(args.code_root) != hashes["variant"]:
                         raise RuntimeError("code gewijzigd tijdens proef; geen gemengde meetversie")
-<<<<<<< HEAD
-                    # Absoluut: een pad dat met `-` begint, leest de worker anders als optie (SonarQube S8705).
-                    root = (args.baseline if variant == "A_huidig" else args.code_root).resolve()
-=======
+                    # Absoluut en binnen de repo: een pad dat met `-` begint, leest de worker anders als optie (S8705).
                     root = veilig_pad(args.baseline if variant == "A_huidig" else args.code_root)
->>>>>>> origin/claude/charming-roentgen-32c691
                     subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker", "--code-root", str(root),
                         "--cases", str(args.cases.resolve()), "--case", c["id"], "--variant", variant,
                         "--ronde", str(ronde), "--output", str(out.resolve())], cwd=root / "tools/graph-qa", check=True)
