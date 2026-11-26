@@ -660,7 +660,10 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   `contenttoets` in het antwoord (`ContenttoetsBlok`, rekenkern `lib/contenttoets.ts`). In de werkplek toont het gesprek
   alleen de korte toelichting met de kaart *Bekijk de contenttoets*; het rapport staat naast het gesprek
   (`ContenttoetsPaneel`, soort `contenttoets` van `ContextPaneel`), met de content en de markeringen op de ankers. De
-  markering is zelf de knop (`role="button"`): een `<button>` is in Chrome altijd inline-block en breekt de regel. Browserregressie:
+  markering is zelf de knop (`role="button"`): een `<button>` is in Chrome altijd inline-block en breekt de regel. Per
+  bevinding beslist de mens daar (C7: eens/oneens, overnemen/aanpassen/afwijzen); dat staat op het bericht, geadresseerd
+  met de run (`BerichtRunContext` uit `ThreadRij`, `runId` op het antwoord-item), en het paneel leest het vers bij elke
+  opening. Zonder bewaard bericht (een demo, een beurt die nog loopt) is het paneel alleen om te lezen. Browserregressie:
   `scripts/test-contenttoets.mjs` (met `CONTENTTOETS_SCREENSHOT=<map>` beelden op 1440 en 390 px).
 - **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
   actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf

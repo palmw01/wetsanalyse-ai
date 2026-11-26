@@ -7,7 +7,8 @@
 
 import { Citaat } from "@/components/ui/Citaat";
 import { PaneelChip, chipSub } from "@/components/ui/PaneelChip";
-import { useOpenBron, contenttoetsContext } from "@/components/werkplek/ContextPaneel";
+import { useContext } from "react";
+import { BerichtRunContext, useOpenBron, contenttoetsContext } from "@/components/werkplek/ContextPaneel";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Vindplaats } from "./Vindplaats";
 import { OORDEEL_LABEL, OORDEEL_TOON, OORDELEN, aantallen, criteriumTekst, tellingTekst,
@@ -27,7 +28,9 @@ export function Bronnen({ bronnen }: { bronnen: readonly ToetsBron[] }) {
   );
 }
 
-export function Bevinding({ b, actief = false, onKies }: { b: Toetsbevinding; actief?: boolean; onKies?: () => void }) {
+export function Bevinding({ b, actief = false, onKies, beoordeling }: { b: Toetsbevinding; actief?: boolean; onKies?: () => void;
+  /** Het oordeel van de mens onder de bevinding (C7), alleen in het paneel. */
+  beoordeling?: React.ReactNode }) {
   return (
     <li className={`space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0 ${actief ? "rounded-kaart bg-lint/5 px-3 pb-3 ring-2 ring-inset ring-lint/40 first:pt-3" : ""}`}
       data-toetsbevinding={b.nr} data-oordeel={b.oordeel} data-actief={actief || undefined}>
@@ -69,6 +72,7 @@ export function Bevinding({ b, actief = false, onKies }: { b: Toetsbevinding; ac
           <p className="break-words">{b.voorstel}</p>
         </div>
       )}
+      {beoordeling}
     </li>
   );
 }
@@ -117,6 +121,7 @@ const TOETSICOON = (
 
 export function ContenttoetsBlok({ blok }: { blok: Blok }) {
   const opener = useOpenBron();
+  const bericht = useContext(BerichtRunContext);
   // In de werkplek: een korte toelichting en de kaart; het rapport staat naast het gesprek.
   if (opener) {
     return (
@@ -128,7 +133,7 @@ export function ContenttoetsBlok({ blok }: { blok: Blok }) {
         </div>
         <VoorRedacteur blok={blok} />
         <PaneelChip titel="Bekijk de contenttoets" sub={chipSub(tellingTekst(blok), "bekijken")} icoon={TOETSICOON}
-          onClick={() => opener(contenttoetsContext(blok))} data-contenttoets-chip />
+          onClick={() => opener(contenttoetsContext(blok, bericht))} data-contenttoets-chip />
       </section>
     );
   }

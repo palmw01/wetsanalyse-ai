@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 
 from bronmodel.antwoord import Antwoord
 from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
+from bronmodel.contenttoets import TOETSOORDELEN, VOORSTELBESLUITEN
 from bronmodel.plugins import NAMEN as PLUGIN_NAMEN
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_serializer, model_validator
 
@@ -297,6 +298,43 @@ MAX_DELEGATIES = 10
 Doorgegeven = Literal["opdracht", "antwoorden"]
 
 
+ToetsOordeel = Literal[TOETSOORDELEN]  # type: ignore[valid-type]
+VoorstelBesluit = Literal[VOORSTELBESLUITEN]  # type: ignore[valid-type]
+
+
+class ToetsbesluitInvoer(BaseModel):
+    """Het oordeel over één bevinding van een contenttoets (plan contenttoets, C7): klopt het oordeel van Lex, en wat
+    gebeurt er met zijn voorstel. Beide los te geven; beide leeg wist het besluit. `tekst` is wat de redacteur van het
+    voorstel maakte, alleen bij `aangepast` en dan verplicht."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    oordeel: ToetsOordeel | None = None
+    voorstel: VoorstelBesluit | None = None
+    tekst: Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)] = ""
+    reden: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] = ""
+
+    @model_validator(mode="after")
+    def _tekst_bij_aangepast(self):
+        if self.voorstel == "aangepast" and not self.tekst:
+            raise ValueError("Een aangepast voorstel draagt de tekst die je ervan maakte.")
+        if self.tekst and self.voorstel != "aangepast":
+            raise ValueError("Alleen een aangepast voorstel draagt een eigen tekst.")
+        return self
+
+    @property
+    def leeg(self) -> bool:
+        return self.oordeel is None and self.voorstel is None and not self.reden
+
+
+class Toetsbesluit(ToetsbesluitInvoer):
+    """Een vastgelegd besluit: met de bevinding, wie het nam en wanneer."""
+
+    nr: int
+    door: str
+    op: datetime
+
+
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
     verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
@@ -356,6 +394,9 @@ class Bericht(BaseModel):
     # er geen tekst van de code als bericht van de jurist in het gesprek staat; het veld is aan geen rol gebonden. De
     # werkplek toont het als blok van Lex, nooit als bericht van de jurist. Leeg = een gewoon bericht.
     doorgegeven: Doorgegeven | None = None
+    # De besluiten over de bevindingen van een contenttoets (C7), per bevinding één, op volgorde. Alleen te zetten via
+    # `PUT …/runs/{run_id}/toetsbesluiten/{nr}`, nooit bij het aanmaken: Lex stelt voor, de mens beslist.
+    toetsbesluiten: list[Toetsbesluit] = []
     created: datetime | None = None
 
 

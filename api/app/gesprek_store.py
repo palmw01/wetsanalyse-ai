@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import and_, delete, exists, func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -17,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from . import db
 from .gesprek_contracts import (
     Bericht, BerichtContext, BerichtInvoer, Contextopbouw, Gesprek, GesprekGroep, GesprekSamenvatting, GesprekTelling,
-    KindContext,
+    KindContext, Toetsbesluit, ToetsbesluitInvoer,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
 _OPTIONEEL = ("hergebruik", "dekking", "overzicht", "antwoord", "annotatie_doel", "tool_executions", "reeks", "artefact",
               "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst", "contextopbouw",
-              "delegaties", "doorgegeven")
+              "delegaties", "doorgegeven", "toetsbesluiten")
 
 
 #: Hoeveel deelgesprekken de boom van de contextopbouw hooguit leest: ruim boven een regie (hoogstens tientallen).
@@ -65,6 +66,7 @@ def _bericht_uit_row(row) -> Bericht:
         contextopbouw=inhoud.get("contextopbouw") or None,
         delegaties=inhoud.get("delegaties", []) or [],
         doorgegeven=inhoud.get("doorgegeven") or None,
+        toetsbesluiten=inhoud.get("toetsbesluiten", []) or [],
         created=db.aware(d["created"]),
     )
     try:
@@ -77,6 +79,13 @@ def _bericht_uit_row(row) -> Bericht:
                        extra={"categorie": "functioneel", "bericht_id": d["id"], "velden": weg})
         return Bericht(**{**velden, **{k: Bericht.model_fields[k].get_default(call_default_factory=True)
                                        for k in weg}})
+
+
+def _contenttoets_van(inhoud: dict) -> dict | None:
+    """Het blok `contenttoets` in het antwoord van een bericht, of None."""
+    antwoord = inhoud.get("antwoord") or {}
+    return next((b for b in antwoord.get("blokken") or [] if isinstance(b, dict) and b.get("soort") == "contenttoets"),
+                None)
 
 
 def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
@@ -330,6 +339,49 @@ class GesprekStore:
             nieuw_id = result.inserted_primary_key[0] if result.inserted_primary_key else None
         # Het hele bericht terug, niet een deel: wie het antwoord gebruikt, krijgt wat er staat.
         return Bericht(id=nieuw_id, created=db.aware(now), **inv.model_dump())
+
+    async def zet_toetsbesluit(self, gesprek_id: str, run_id: str, nr: int,
+                               invoer: ToetsbesluitInvoer, door: str) -> list[Toetsbesluit]:
+        """Leg het besluit over bevinding `nr` van de contenttoets in het bericht van `run_id` vast (C7), of wis het als
+        de invoer leeg is. Het bericht is de enige plek waar de toets bestaat, dus daar staat ook het besluit. Onder een
+        rij-slot: twee tabbladen die tegelijk beslissen, overschrijven elkaars andere bevindingen niet. Een bericht
+        zonder contenttoets of een bevinding die er niet in staat: 404 en 422 uit de store (stijl C)."""
+        async with db.get_engine().begin() as conn:
+            row = (await conn.execute(
+                select(db.gesprek_berichten)
+                .where(db.gesprek_berichten.c.gesprek_id == gesprek_id, db.gesprek_berichten.c.run_id == run_id)
+                .with_for_update()
+            )).first()
+            inhoud = dict((row._mapping["inhoud"] or {}) if row is not None else {})
+            toets = _contenttoets_van(inhoud)
+            if row is None or toets is None:
+                raise HTTPException(404, {"fout": "geen_contenttoets",
+                                          "melding": "Dit bericht heeft geen contenttoets om te beoordelen."})
+            if nr not in {b.get("nr") for b in toets.get("bevindingen") or []}:
+                raise HTTPException(422, {"fout": "onbekende_bevinding",
+                                          "melding": f"De contenttoets heeft geen bevinding {nr}."})
+            besluiten = [b for b in inhoud.get("toetsbesluiten") or [] if b.get("nr") != nr]
+            if not invoer.leeg:
+                besluiten.append(Toetsbesluit(nr=nr, door=door, op=db.aware(db.utcnow()),
+                                              **invoer.model_dump()).model_dump(mode="json"))
+            besluiten.sort(key=lambda b: b["nr"])
+            inhoud["toetsbesluiten"] = besluiten
+            await conn.execute(update(db.gesprek_berichten)
+                               .where(db.gesprek_berichten.c.id == row._mapping["id"]).values(inhoud=inhoud))
+        return [Toetsbesluit(**b) for b in besluiten]
+
+    async def toetsbesluiten(self, gesprek_id: str, run_id: str) -> list[Toetsbesluit]:
+        """De besluiten bij de contenttoets van één bericht; 404 als er geen is."""
+        async with db.get_engine().connect() as conn:
+            row = (await conn.execute(
+                select(db.gesprek_berichten.c.inhoud)
+                .where(db.gesprek_berichten.c.gesprek_id == gesprek_id, db.gesprek_berichten.c.run_id == run_id)
+            )).first()
+        inhoud = (row._mapping["inhoud"] or {}) if row is not None else {}
+        if row is None or _contenttoets_van(inhoud) is None:
+            raise HTTPException(404, {"fout": "geen_contenttoets",
+                                      "melding": "Dit bericht heeft geen contenttoets om te beoordelen."})
+        return [Toetsbesluit(**b) for b in inhoud.get("toetsbesluiten") or []]
 
     async def wijzig_gesprek(
         self, gesprek_id: str, *, titel: str | None = None,

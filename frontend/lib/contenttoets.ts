@@ -106,3 +106,84 @@ export function toetsSleutel(b: Pick<ContenttoetsBlok, "content" | "peildatum">)
   for (const c of `${b.peildatum}\n${b.content}`) h = ((h * 33) ^ c.codePointAt(0)!) >>> 0;
   return h.toString(36);
 }
+
+// ── Het oordeel van de mens (C7) ────────────────────────────────────────────────────────────────────────────────────
+// De spiegel van TOETSOORDELEN en VOORSTELBESLUITEN in `bronmodel/contenttoets.py` (drift: `contenttoets.test.ts`).
+
+export type ToetsOordeel = "eens" | "oneens";
+export type VoorstelBesluit = "overgenomen" | "aangepast" | "afgewezen";
+
+export const TOETSOORDELEN: readonly ToetsOordeel[] = ["eens", "oneens"];
+export const VOORSTELBESLUITEN: readonly VoorstelBesluit[] = ["overgenomen", "aangepast", "afgewezen"];
+export const TOETSOORDEEL_LABEL: Record<ToetsOordeel, string> = { eens: "Eens", oneens: "Oneens" };
+export const VOORSTELBESLUIT_LABEL: Record<VoorstelBesluit, string> = {
+  overgenomen: "Overgenomen", aangepast: "Aangepast", afgewezen: "Afgewezen",
+};
+
+export interface ToetsbesluitInvoer { oordeel?: ToetsOordeel | null; voorstel?: VoorstelBesluit | null; tekst?: string; reden?: string }
+export interface Toetsbesluit { nr: number; oordeel: ToetsOordeel | null; voorstel: VoorstelBesluit | null; tekst: string; reden: string; door: string; op: string }
+
+/** Waar de besluiten van een toets staan: het bericht dat de run schreef, in dit gesprek. */
+export interface ToetsBericht { gesprek_id: string; run_id: string }
+
+/** Hoeveel bevindingen beoordeeld zijn: een oordeel, of bij een voorstel ook een besluit daarover. */
+export function beoordeeld(b: Pick<ContenttoetsBlok, "bevindingen">, besluiten: readonly Toetsbesluit[]): number {
+  const per = new Map(besluiten.map((x) => [x.nr, x]));
+  return b.bevindingen.filter((x) => {
+    const d = per.get(x.nr);
+    return !!d?.oordeel && (!x.voorstel || !!d.voorstel);
+  }).length;
+}
+
+/** De tekst die in de content komt: het aangepaste voorstel, anders het overgenomen voorstel, anders niets. */
+export function nieuweTekst(b: Toetsbevinding, d?: Toetsbesluit): string {
+  return d?.voorstel === "aangepast" ? d.tekst : d?.voorstel === "overgenomen" ? b.voorstel : "";
+}
+
+/** Het rapport als Markdown, om te kopiëren of te bewaren: lijsten, geen tabel, zodat het overal heel blijft. Met de
+ *  besluiten van de redacteur erbij; een bevinding zonder besluit zegt dat. */
+export function toetsMarkdown(b: ContenttoetsBlok, besluiten: readonly Toetsbesluit[] = []): string {
+  const per = new Map(besluiten.map((x) => [x.nr, x]));
+  const tegen = b.getoetst_tegen.length ? b.getoetst_tegen.join(", ") : "de wet- en regelgeving in de graaf";
+  const r: string[] = ["# Contenttoets", "", `Getoetst tegen ${tegen}${b.peildatum ? `, geldend op ${b.peildatum}` : ""}.`,
+    tellingTekst(b), `Beoordeeld: ${beoordeeld(b, besluiten)} van ${b.bevindingen.length}.`, ""];
+  if (b.voor_redacteur.length) r.push("## Voor de redacteur", "", ...b.voor_redacteur.map((x) => `- ${x}`), "");
+  r.push("## Per bewering", "");
+  for (const x of b.bevindingen) {
+    const d = per.get(x.nr);
+    r.push(`### [${x.nr}] ${OORDEEL_LABEL[x.oordeel]}${x.criterium ? ` – ${criteriumTekst(x.criterium)}` : ""}`, "",
+      `- De tekst: “${x.citaat}”`);
+    for (const bron of x.bronnen) r.push(`- De bron (${bron.vindplaats.label}${bron.vindplaats.regeling ? `, ${bron.vindplaats.regeling}` : ""}): “${bron.tekst}”`);
+    if (x.toelichting) r.push(`- Toelichting van Lex: ${x.toelichting}`);
+    if (x.twijfel) r.push(`- Twijfel of aanname: ${x.twijfel}`);
+    if (x.voorstel) r.push(`- ${x.oordeel === "niet_in_de_bron" ? "Vraag" : "Voorstel"} van Lex: ${x.voorstel}`);
+    if (!d) r.push("- Besluit: nog niet beoordeeld");
+    else {
+      const delen = [d.oordeel ? `${TOETSOORDEEL_LABEL[d.oordeel].toLowerCase()} met Lex` : "",
+        d.voorstel ? `voorstel ${VOORSTELBESLUIT_LABEL[d.voorstel].toLowerCase()}` : ""].filter(Boolean);
+      r.push(`- Besluit: ${delen.join(", ") || "geen"} (${d.door})`);
+      if (d.voorstel === "aangepast") r.push(`- Nieuwe tekst: ${d.tekst}`);
+      if (d.reden) r.push(`- Reden: ${d.reden}`);
+    }
+    r.push("");
+  }
+  if (b.ontbreekt.length) {
+    r.push("## Ontbreekt", "");
+    for (const o of b.ontbreekt) {
+      r.push(`- ${o.tekst}`);
+      for (const bron of o.bronnen) r.push(`  - ${bron.vindplaats.label}: “${bron.tekst}”`);
+    }
+    r.push("");
+  }
+  if (b.niet_getoetst.length) r.push("## Niet getoetst", "", ...b.niet_getoetst.map((x) => `- ${x}`), "");
+  r.push("Lex stelt voor; de redacteur en de jurist beoordelen. Dit rapport is geen juridisch advies.");
+  return r.join("\n");
+}
+
+export function parseToetsbesluiten(v: unknown): Toetsbesluit[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is Toetsbesluit => isObject(x) && typeof x.nr === "number" &&
+    (x.oordeel == null || TOETSOORDELEN.includes(x.oordeel as ToetsOordeel)) &&
+    (x.voorstel == null || VOORSTELBESLUITEN.includes(x.voorstel as VoorstelBesluit)))
+    .map((x) => ({ ...x, oordeel: x.oordeel ?? null, voorstel: x.voorstel ?? null, tekst: x.tekst ?? "", reden: x.reden ?? "" }));
+}

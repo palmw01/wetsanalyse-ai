@@ -36,7 +36,7 @@ import { StukVenster } from "@/components/wettekst/StukVenster";
 import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
 import type { TekstBij } from "@/lib/antwoord";
-import type { ContenttoetsBlok } from "@/lib/contenttoets";
+import type { ContenttoetsBlok, ToetsBericht } from "@/lib/contenttoets";
 import { ContenttoetsPaneel } from "@/components/antwoord/ContenttoetsPaneel";
 import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
@@ -60,7 +60,10 @@ export type ContextDoel =
   | { soort: "overzicht"; overzicht: Overzicht; titel: string }
   /** Het rapport van een contenttoets (plan contenttoets, C6): de content met de bevindingen erin gemarkeerd. Komt uit het
    *  bericht, zoals een overzicht: het hoort bij een antwoord en bestaat nergens anders. */
-  | { soort: "contenttoets"; toets: ContenttoetsBlok; titel: string }
+  | { soort: "contenttoets"; toets: ContenttoetsBlok; titel: string;
+      /** Het bericht van de toets: daar staan de besluiten (C7). Zonder (een demo, een bericht dat nog niet bewaard is)
+       *  is het paneel alleen om te lezen. */
+      bericht?: ToetsBericht }
   /** De contextweergave (`/context`, de contextmeter): hoe de context van een beurt is opgebouwd en wat de beurt kostte.
    *  De inhoud komt van de werkplek (`ContextopbouwContext`), niet uit het doel: de tab wordt bewaard, de meting niet. */
   | { soort: "contextopbouw"; titel: string }
@@ -79,6 +82,10 @@ export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) 
  *  ingang in dat antwoord – kaart, vindplaats, citatie – de bepaling opent met "Dit antwoord" op de tab Graaf. */
 export interface BerichtSamenhang { doelen: NodeDoel[]; graaf: Samenhang["graaf"] }
 export const BerichtSamenhangContext = createContext<BerichtSamenhang | null>(null);
+
+/** Het bewaarde bericht waar een blok in staat: gesprek en run. Een blok dat iets bij zijn bericht bewaart (de besluiten
+ *  over een contenttoets, C7) leest het hier; `null` zolang de beurt loopt of buiten de werkplek. */
+export const BerichtRunContext = createContext<ToetsBericht | null>(null);
 
 /** Dé opener van een bron naast het gesprek (ontdubbelen PR 2): elke ingang gaat hierlangs, en geen andere plek leest
  *  `ContextPaneelContext`. Binnen een bericht neemt een bepaling de samenhang van dat bericht mee. `null` buiten de
@@ -109,11 +116,11 @@ export function contextSleutel(d: ContextDoel): string {
 /** Het doel van de contextweergave: één tab per gesprek, voor de meter en voor `/context`. */
 export const CONTEXTOPBOUW_DOEL: ContextDoel = { soort: "contextopbouw", titel: "Context van deze beurt" };
 
-export function contenttoetsContext(toets: ContenttoetsBlok): ContextDoel {
+export function contenttoetsContext(toets: ContenttoetsBlok, bericht?: ToetsBericht | null): ContextDoel {
   // De kop noemt de getoetste tekst, zodat twee toetsen in één gesprek uit elkaar te houden zijn.
   const tekens = [...toets.content.replace(/\s+/g, " ").trim()];
   const titel = tekens.length > 60 ? `${tekens.slice(0, 60).join("").replace(/\s\S*$/, "")} …` : tekens.join("");
-  return { soort: "contenttoets", toets, titel: titel || "Contenttoets" };
+  return { soort: "contenttoets", toets, titel: titel || "Contenttoets", ...(bericht ? { bericht } : {}) };
 }
 
 export function overzichtContext(overzicht: Overzicht): ContextDoel {
@@ -241,7 +248,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
               onOpenElement={(id, titel) => onWissel({ soort: "element", element_id: id, titel })}
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
-            : doel.soort === "contenttoets" ? <ContenttoetsPaneel toets={doel.toets} />
+            : doel.soort === "contenttoets" ? <ContenttoetsPaneel toets={doel.toets} bericht={doel.bericht} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
             : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld} tekst={doel.tekst}
               onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />

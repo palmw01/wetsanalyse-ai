@@ -781,6 +781,10 @@ export function WerkplekClient({
             );
             break;
           case "opgeslagen":
+            if (opgeslagen!.run_id) {
+              const runId = opgeslagen!.run_id;
+              setItems((xs) => xs.map((x) => (x.id === antId && x.type === "antwoord" ? { ...x, runId } : x)));
+            }
             await toonVastgelegdeBeurt(opgeslagen!, {
               antId, tekst, denk, hergebruik: stand.hergebruik, doel: doelInvoerVan(stand.doel),
               meting: stand.meting,

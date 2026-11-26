@@ -22,6 +22,9 @@ export type ThreadItem = (
       // van de jurist maar een blok van Lex (`ThreadRij`).
       doorgegeven?: "opdracht" | "antwoorden" }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
+      // De run die dit bericht schreef (uit `opgeslagen`, of na herladen van het bericht): het adres van wat bij het
+      // bericht bewaard wordt, zoals de besluiten over een contenttoets (C7).
+      runId?: string;
       // De brongetrouwheidstoets van déze beurt: live uit de stroom, na herladen van het bericht.
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek

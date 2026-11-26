@@ -14,7 +14,7 @@ import { memo, useMemo, useState } from "react";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
 import { BepalingChips } from "@/components/antwoord/BepalingChip";
-import { BerichtSamenhangContext, type BerichtSamenhang } from "@/components/werkplek/ContextPaneel";
+import { BerichtRunContext, BerichtSamenhangContext, type BerichtSamenhang } from "@/components/werkplek/ContextPaneel";
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
 import { alleenNietGetoetst } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
@@ -106,6 +106,10 @@ export const ThreadRij = memo(function ThreadRij({
   const kaarten = useMemo(() => (item.type === "antwoord" ? kaartenVan(item) : null), [item]);
   const bericht = useMemo<BerichtSamenhang | null>(() => (kaarten?.doelen.length
     ? { doelen: kaarten.doelen, graaf: { keten: true } } : null), [kaarten]);
+  // Het bewaarde bericht (gesprek + run), voor wat een blok bij zijn bericht bewaart (C7). Niet in een demo.
+  const runId = item.type === "antwoord" ? item.runId : undefined;
+  const runBericht = useMemo(() => (gesprekId && runId && !demo ? { gesprek_id: gesprekId, run_id: runId } : null),
+    [gesprekId, runId, demo]);
   const restBronnen = useMemo(() => (item.type === "antwoord" && item.bronnen
     ? zonderKaarten(item.bronnen, kaarten?.bepalingen ?? []) : []), [item, kaarten]);
   if (vragen) {
@@ -158,8 +162,10 @@ export const ThreadRij = memo(function ThreadRij({
           <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
         )}
         {item.antwoord ? (
+          <BerichtRunContext.Provider value={runBericht}>
           <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk}
             interpretatie={item.grounding?.interpretatie} />
+          </BerichtRunContext.Provider>
         ) : item.tekst ? (
           streamt ? (
             <StreamendeTekst tekst={item.tekst} />
