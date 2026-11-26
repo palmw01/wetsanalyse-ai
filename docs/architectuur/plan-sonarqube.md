@@ -36,15 +36,15 @@ hoofdsessie bundelt en volgt de uitrol naar acceptatie.
 | **F3** | path injection: één gedeelde padcontrole in plaats van 83 losse fixes | laag | tests op de helper en op elk script dat hem gebruikt |
 | **F4** | regexen (ReDoS) in onder meer de detectoren, de verwijzingsherkenning en de citaatcontrole | **hoog** | eerst karakteriseringstests op echte wettekst, dan herschrijven; daarna de annotatie-eval en een lichte meting op acceptatie (ADR-010) |
 | **F5** | UI-toegankelijkheid en kleine reliability-issues | middel (UI) | browsertests en screenshots |
-| **F6** | Azure-bicep: managed identity en clientcertificaten | – | **besluit gebruiker**: accepteren met reden, of de Azure-rechten aanpassen |
-| **F7** | de quality gate als verplichte check in `poort` | – | pas als de teller op nul staat |
+| **F6** | Azure-bicep: managed identity en clientcertificaten | – | **geparkeerd** (besluit gebruiker 26 nov 2026): de Azure-inrichting blijft ongewijzigd, want de gebruiker kan er zelf niet bij. De bevindingen blijven open en tellen niet mee voor F7 |
+| **F7** | de quality gate als verplichte check in `poort` | – | pas als de teller op nul staat, op F6 na |
 
 ## Regels
 
 - **Een fix is generiek.** Eén mechanisme voor een groep, geen uitzondering per bestand.
 - **Accepteren in Sonar mag alleen met reden**, vastgelegd in de PR. Het geldt alleen waar de bevinding aantoonbaar
   niet van toepassing is, bijvoorbeeld een bind op `0.0.0.0` in een container achter de ingress. Een besluit dat de
-  inrichting raakt (F6) legt de hoofdsessie eerst voor aan de gebruiker.
+  inrichting raakt, legt de hoofdsessie eerst voor aan de gebruiker.
 - **Geen gedragswijziging zonder test die het oude gedrag vastlegt.**
 - **Meet na elke fase opnieuw** via de publieke API:
   `https://sonarcloud.io/api/issues/search?componentKeys=palmw01_wetsanalyse-ai&resolved=false&facets=rules`.
