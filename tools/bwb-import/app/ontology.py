@@ -141,16 +141,16 @@ _OBJECT_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], str | None]] = {
         "Verwijzing",
     ),
     "naar": ("naar", "Doel van de gereïficeerde verwijzing.", (), "Citeerbaar"),
-    "toestandUrl": (
-        "toestand-URL",
-        "Identiteit van de geïmporteerde toestand (versie) op wetten.overheid.nl.",
+    "eerstverantwoordelijkeOrganisatie": (
+        "eerstverantwoordelijke organisatie",
+        "Het eerstverantwoordelijke ministerie als TOOI-URI (identifier.overheid.nl), uit de WTI-naam "
+        "via het TOOI-register (`app/tooi.py`); de naam zelf staat op bwb:eerstverantwoordelijke.",
         (),
         None,
     ),
-    "inhoudHash": (
-        "inhoudshash",
-        "sha256 over de inhoud van de named graph van deze regeling: verandert bij elke andere tekst, ook zonder "
-        "nieuwe toestand.",
+    "toestandUrl": (
+        "toestand-URL",
+        "Identiteit van de geïmporteerde toestand (versie) op wetten.overheid.nl.",
         (),
         None,
     ),
@@ -320,12 +320,12 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
         (),
         None,
     ),
-    "eerstverantwoordelijkeOrganisatie": (
-        "eerstverantwoordelijke organisatie",
-        "Het eerstverantwoordelijke ministerie als TOOI-URI (identifier.overheid.nl), uit de WTI-naam "
-        "via het TOOI-register (`app/tooi.py`); de naam zelf staat op bwb:eerstverantwoordelijke.",
+    "inhoudHash": (
+        "inhoudshash",
+        "sha256 over de inhoud van de named graph van deze regeling: verandert bij elke andere tekst, ook zonder "
+        "nieuwe toestand.",
         (),
-        None,
+        XSD.string,
     ),
     "doelLabel": (
         "doel-label",

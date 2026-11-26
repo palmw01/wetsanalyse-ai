@@ -53,7 +53,7 @@ def test_het_formulier_en_de_briefing_staan_er(rol, formulier):
 # --- de pilot (LB3, §9): drie nieuwe ontwikkelcasussen, één per niveau, zonder verwachting ---
 
 PILOT = WORTEL / "docs" / "lex-bench" / "bronselectie" / "pilot"
-#: De acht regelingen in de graaf op Azure (`bwbIds` in `deploy/azure/main.bicep`).
+#: De regelingen in de graaf op Azure (`bwbIds` in `deploy/azure/main.bicep`).
 IN_DE_GRAAF = set(re.findall(r"'(BWBR\d{7})'", re.search(r"(?s)param bwbIds array = \[(.*?)\]", (
     WORTEL / "deploy" / "azure" / "main.bicep").read_text(encoding="utf-8")).group(1)))
 VERWACHTING = {"verwacht", "uitgesloten", "buiten_graaf", "onenig", "open_punten", "verwachting"}

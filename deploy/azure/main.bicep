@@ -52,6 +52,13 @@ param bwbIds array = [
   'BWBR0018472'
   'BWBR0019237'
   'BWBR0024096'
+  // De fiscale en invorderingskern: de heffingswetten waar AWR, Iw 1990 en de Leidraad het vaakst naar verwijzen.
+  'BWBR0011353' // Wet inkomstenbelasting 2001
+  'BWBR0002471' // Wet op de loonbelasting 1964
+  'BWBR0002672' // Wet op de vennootschapsbelasting 1969
+  'BWBR0002629' // Wet op de omzetbelasting 1968
+  'BWBR0002645' // Kostenwet invordering rijksbelastingen
+  'BWBR0002226' // Successiewet 1956
 ]
 
 @description('Ondergrens voor de tekstdekking van de import (graaf/bron). Zakt een regeling eronder, dan eindigt de import-job met exitcode 2 en wordt hij rood — de poort beslist vóór de named-graph PUT en vervangt nooit door minder, dus de bestaande graph blijft staan. Zet op 0 om de dipregel uit te zetten; dat is de ontsnapping voor een regeling die legitiem lager meet. Let op: de job heeft replicaRetryLimit 1, dus een dip wordt eerst nog één keer volledig opnieuw geprobeerd.')

@@ -1,9 +1,12 @@
 # bwb-import
 
 ETL-pijplijn die Nederlandse wetgeving uit het **Basiswettenbestand (BWB)**
-importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om acht regelingen (param `bwbIds` in
+importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om veertien regelingen (param `bwbIds` in
 `deploy/azure/main.bicep`): `BWBR0002320`, `BWBR0004766`, `BWBR0004770` (Invorderingswet 1990, de
-standaardregeling), `BWBR0005537`, `BWBR0014168` (Mijnbouwwet), `BWBR0018472`, `BWBR0019237` en `BWBR0024096`. Een andere regeling
+standaardregeling), `BWBR0005537`, `BWBR0014168` (Mijnbouwwet), `BWBR0018472`, `BWBR0019237` en `BWBR0024096`, plus
+de fiscale en invorderingskern: `BWBR0011353` (Wet IB 2001), `BWBR0002471` (Wet LB 1964), `BWBR0002672` (Wet Vpb
+1969), `BWBR0002629` (Wet OB 1968), `BWBR0002645` (Kostenwet invordering rijksbelastingen) en `BWBR0002226`
+(Successiewet 1956). Een andere regeling
 importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hieronder behoort.
 
 ## Pijplijn
@@ -73,6 +76,15 @@ waarde niet als segmentgrens leest.
   met sub-axioma's naar **ELI** (`eli:LegalResource(Subdivision)`, `eli:has_part`,
   `eli:cites`, `eli:title`, …). De repository draait `rdfsplus-optimized`,
   dus SPARQL over `eli:`-termen werkt via inferentie.
+- **De vorm is formeel vastgelegd in SHACL** (`app/shapes/bwb-graaf.ttl`, getoetst door `app/shacl.py`). De T-Box
+  zegt welke klassen en eigenschappen er zijn; de shapes zeggen wat een node van elke klasse moet en mag hebben:
+  verplichte eigenschappen, hoe vaak, IRI of literal, datatype en taal, en naar welke klasse een `heeft…`-relatie
+  binnen de eigen graph wijst. Ze zijn afgeleid van wat de importer over veertien regelingen werkelijk schrijft
+  (droogloop 26 nov 2026), dus elke regel is een invariant die vandaag geldt. De importer toetst elke named graph
+  vóór de PUT, per graph en zonder inferentie: een graph die afwijkt **vervangt nooit een bestaande graph**, en wordt
+  tegen een lege graaf alleen geschreven met exitcode 2 (`dekking.poortbesluit`). Het overzicht toont
+  `Vorm (SHACL)`. `tests/test_shacl.py` bewaakt dat elke fixture conform is en dat de shapes bijten, en
+  `tests/test_ontology.py` dat de soort van elke property (object of datatype) klopt met wat de writer schrijft.
 - **Canonieke identiteit**: wet- en citeerbare nodes krijgen `owl:sameAs` naar
   `https://wetten.overheid.nl/{bwb_id}` resp. de jci-resolver-URL; de
   geïmporteerde toestand staat als `bwb:toestandUrl`. Wil je sameAs-expansie
@@ -342,7 +354,15 @@ cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 
 # Naar een andere GraphDB
 GRAPHDB_URL=http://localhost:7200 .venv/bin/python main.py BWBR0004770
+
+# Droogloop: ophalen, XSD, parsen, bouwen, dekking en SHACL, zonder GraphDB; elke graph als Turtle naar de map
+.venv/bin/python main.py BWBR0004770 BWBR0011353 --droog /tmp/droog
 ```
+
+**Een nieuwe regeling toets je eerst met een droogloop**, samen met de regelingen die al in de graaf staan: dan is de
+structuurindex die van de echte run, en zie je ook of verwijzingen uit de bestaande regelingen op een bepaling in de
+nieuwe landen. De droogloop raakt GraphDB niet (geen `prepare`, geen peiling, geen PUT, geen similarity-index) en
+rekent de importpoort tegen een lege stand, zoals bij een eerste import.
 
 Na afloop verschijnt per wet een overzicht met tellingen per elementtype
 (wetten, hoofdstukken, afdelingen, paragrafen, divisies, artikelen, leden,
