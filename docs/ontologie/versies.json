@@ -1,0 +1,26 @@
+{
+  "bwb": {
+    "historie": {
+      "1.0.0": "9557083e753409f93bddc9bf9f54b596e6271c6ae22a449d01b232bfcdaecc20"
+    },
+    "versie": "1.0.0"
+  },
+  "jas": {
+    "historie": {
+      "4.0.0": "688e8efb085722f2a56db2b8643f168f5b6f9f81fad08cbb0179707943c80990"
+    },
+    "versie": "4.0.0"
+  },
+  "kgo": {
+    "historie": {
+      "1.0.0": "c13d9a1f45f993046e8594e09adc3c1859f4869fd87cdc3032c8e9647f5c749a"
+    },
+    "versie": "1.0.0"
+  },
+  "wa": {
+    "historie": {
+      "3.0.0": "db7cb8b57e21bd4027b53dd08e1405a76bfb595c00bfe921464b622a192df420"
+    },
+    "versie": "3.0.0"
+  }
+}

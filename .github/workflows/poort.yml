@@ -111,9 +111,12 @@ jobs:
             poort_zelf=true
             graph_qa=true; api=true; bwb_import=true
           fi
-          # Elke wijziging aan code draait de kruistests (scripts/kruistests.sh); alleen documentatie niet.
+          # Elke wijziging aan code draait de kruistests (scripts/kruistests.sh); alleen documentatie niet. Behalve de
+          # ontologiedocumentatie: die is gegenereerd (`genereer_ontologie_docs.py`), en de drift-test erop is een
+          # kruistest, ook als alleen de Markdown wijzigt.
+          ontologie=$(echo "$gewijzigd" | grep '^docs/ontologie/' || true)
           kruis=false
-          if [ -n "$code" ] || [ -n "$skill" ]; then kruis=true; fi
+          if [ -n "$code" ] || [ -n "$skill" ] || [ -n "$ontologie" ]; then kruis=true; fi
           {
             echo "kruis=$kruis"
             if [ "$poort_zelf" = true ]; then echo "mcp=true"; else echo "mcp=$(heeft 'tools/wetsanalyse-')"; fi

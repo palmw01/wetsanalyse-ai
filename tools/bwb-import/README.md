@@ -75,7 +75,9 @@ waarde niet als segmentgrens leest.
   comments `@nl`, domains/ranges) naar de named graph `BASE graph:ontologie`,
   met sub-axioma's naar **ELI** (`eli:LegalResource(Subdivision)`, `eli:has_part`,
   `eli:cites`, `eli:title`, …). De repository draait `rdfsplus-optimized`,
-  dus SPARQL over `eli:`-termen werkt via inferentie.
+  dus SPARQL over `eli:`-termen werkt via inferentie. Als bestand, met versie, en met per klasse wat verplicht is:
+  [`docs/ontologie/`](../../docs/ontologie/README.md) (gegenereerd; wijzig je de T-Box of de shapes, draai dan
+  `tools/graph-qa/scripts/genereer_ontologie_docs.py`).
 - **De vorm is formeel vastgelegd in SHACL** (`app/shapes/bwb-graaf.ttl`, getoetst door `app/shacl.py`). De T-Box
   zegt welke klassen en eigenschappen er zijn; de shapes zeggen wat een node van elke klasse moet en mag hebben:
   verplichte eigenschappen, hoe vaak, IRI of literal, datatype en taal, en naar welke klasse een `heeft…`-relatie

@@ -1,0 +1,496 @@
+# GEGENEREERD door tools/graph-qa/scripts/genereer_ontologie_docs.py; niet met de hand bewerken.
+# De T-Box van de BWB-graaf (bron: tools/bwb-import/app/ontology.py). De importer laadt dezelfde T-Box naar
+# de named graph urn:bwb:graph:ontologie; owl:versionInfo en owl:versionIRI staan alleen in dit bestand.
+# Wat een node moet hebben: tools/bwb-import/app/shapes/bwb-graaf.ttl.
+
+@prefix bwb: <urn:bwb-ns:> .
+@prefix eli: <http://data.europa.eu/eli/ontology#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:bwb-ns> a owl:Ontology ;
+    rdfs:label "BWB-ontologie"@nl ;
+    rdfs:comment "Vocabulaire voor het Basiswettenbestand, gealigneerd op ELI."@nl ;
+    owl:versionIRI <urn:bwb-ns:versie:1.0.0> ;
+    owl:versionInfo "1.0.0" .
+
+bwb:AMvB a owl:Class ;
+    rdfs:label "AMvB"@nl ;
+    rdfs:comment "Algemene maatregel van bestuur."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:Beleidsregel a owl:Class ;
+    rdfs:label "beleidsregel"@nl ;
+    rdfs:comment "Beleidsregel (bv. een leidraad)."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:Circulaire a owl:Class ;
+    rdfs:label "circulaire"@nl ;
+    rdfs:comment "Circulaire."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:KoninklijkBesluit a owl:Class ;
+    rdfs:label "koninklijk besluit"@nl ;
+    rdfs:comment "Koninklijk besluit."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:MinisterieleRegeling a owl:Class ;
+    rdfs:label "ministeriële regeling"@nl ;
+    rdfs:comment "Ministeriële regeling."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:Wet a owl:Class ;
+    rdfs:label "Wet"@nl ;
+    rdfs:comment "Wet in formele zin."@nl ;
+    rdfs:subClassOf bwb:Regeling .
+
+bwb:aanhef a owl:DatatypeProperty ;
+    rdfs:label "aanhef"@nl ;
+    rdfs:comment "Aanhef van de regeling."@nl .
+
+bwb:achternaam a owl:DatatypeProperty ;
+    rdfs:label "achternaam"@nl ;
+    rdfs:comment "Achternaam van de ondertekenaar."@nl .
+
+bwb:afkorting a owl:DatatypeProperty ;
+    rdfs:label "afkorting"@nl ;
+    rdfs:comment "Gangbare afkorting van de regeling (uit de WTI)."@nl .
+
+bwb:alt a owl:DatatypeProperty ;
+    rdfs:label "alt-tekst"@nl ;
+    rdfs:comment "Alternatieve tekst/bijschrift van een illustratie."@nl .
+
+bwb:alternatieveTitel a owl:DatatypeProperty ;
+    rdfs:label "alternatieve titel"@nl ;
+    rdfs:comment "Niet-officiële titel van de regeling (uit de WTI)."@nl ;
+    rdfs:subPropertyOf eli:title_alternative .
+
+bwb:ankerTekst a owl:DatatypeProperty ;
+    rdfs:label "ankertekst"@nl ;
+    rdfs:comment "Tekst waarmee de verwijzing in de bron staat."@nl .
+
+bwb:betrouwbaarheid a owl:DatatypeProperty ;
+    rdfs:label "betrouwbaarheid"@nl ;
+    rdfs:comment "Betrouwbaarheid van een gedetecteerde (tekstuele) verwijzing."@nl .
+
+bwb:bevatIllustratie a owl:ObjectProperty ;
+    rdfs:label "bevat illustratie"@nl ;
+    rdfs:comment "Tekstdrager bevat een afbeelding."@nl ;
+    rdfs:range bwb:Illustratie .
+
+bwb:bevoegdheidVoor a owl:ObjectProperty ;
+    rdfs:label "bevoegdheid voor"@nl ;
+    rdfs:comment "Regeling waarvoor dit tekstdeel de wettelijke bevoegdheid geeft (WTI)."@nl ;
+    rdfs:range bwb:Regeling .
+
+bwb:breedte a owl:DatatypeProperty ;
+    rdfs:label "breedte"@nl ;
+    rdfs:comment "Breedte van een illustratie (bv. 1417px)."@nl .
+
+bwb:bron a owl:DatatypeProperty ;
+    rdfs:label "bron"@nl ;
+    rdfs:comment "Publicatiebron (bv. Stb.2009-265)."@nl .
+
+bwb:bronUrl a owl:ObjectProperty ;
+    rdfs:label "bron-URL"@nl ;
+    rdfs:comment "Vindplaats van dit tekstdeel in de gepubliceerde toestand op wetten.overheid.nl (anker-URL, afgeleid uit het documentpad). GEEN JuriConnect-identiteit: de meeste circulaire-divisies krijgen van de BWB-redactie geen eigen jci, en er zelf een verzinnen landt stil op de hele regeling. Gebruik owl:sameAs of bwb:jci als je een citeerbare, versie-onafhankelijke sleutel nodig hebt."@nl .
+
+bwb:bwbId a owl:DatatypeProperty ;
+    rdfs:label "BWB-id"@nl ;
+    rdfs:comment "Identificatie in het Basiswettenbestand."@nl ;
+    rdfs:range xsd:string .
+
+bwb:citeertitel a owl:DatatypeProperty ;
+    rdfs:label "citeertitel"@nl ;
+    rdfs:comment "Officiële citeertitel."@nl ;
+    rdfs:subPropertyOf eli:title .
+
+bwb:considerans a owl:DatatypeProperty ;
+    rdfs:label "considerans"@nl ;
+    rdfs:comment "Considerans (overwegingen) van de regeling."@nl .
+
+bwb:definieertBegrip a owl:DatatypeProperty ;
+    rdfs:label "definieert begrip"@nl ;
+    rdfs:comment "Begrip dat in dit tekstdeel wordt gedefinieerd."@nl .
+
+bwb:doc a owl:DatatypeProperty ;
+    rdfs:label "doc"@nl ;
+    rdfs:comment "Ruwe jci-doc van de verwijzing."@nl ;
+    rdfs:range xsd:string .
+
+bwb:doelLabel a owl:DatatypeProperty ;
+    rdfs:label "doel-label"@nl ;
+    rdfs:comment "Leesbare naam voor een verwijsdoel dat (nog) niet is geïmporteerd. Bewust GEEN rdfs:label: elke wet staat in een eigen named graph, dus een fallback-label op rdfs:label komt naast het echte label van dat tekstdeel te staan zodra die wet wél wordt geïmporteerd — en dan levert elke query die een label ophaalt dubbele rijen. Lees dit als COALESCE(rdfs:label, bwb:doelLabel)."@nl .
+
+bwb:doelLid a owl:DatatypeProperty ;
+    rdfs:label "doel-lid"@nl ;
+    rdfs:comment "Lidnummer dat de verwijzing noemt, ook als het doel op het artikel is blijven staan."@nl .
+
+bwb:doelPad a owl:DatatypeProperty ;
+    rdfs:label "doel-pad"@nl ;
+    rdfs:comment "bwb-ng-variabel-deel van het verwijsdoel."@nl .
+
+bwb:doelSoort a owl:DatatypeProperty ;
+    rdfs:label "doel-soort"@nl ;
+    rdfs:comment "Niveau van het verwijsdoel (artikel/lid/…)."@nl .
+
+bwb:dossier a owl:DatatypeProperty ;
+    rdfs:label "dossier"@nl ;
+    rdfs:comment "Kamerdossiernummer. Op de regeling: het dossier van de oorspronkelijke wet. Op een tekstdeel: het dossier (of de dossiers) van de wet die het zijn huidige inhoud gaf, uit zijn eigen brondata."@nl .
+
+bwb:eerstverantwoordelijke a owl:DatatypeProperty ;
+    rdfs:label "eerstverantwoordelijke"@nl ;
+    rdfs:comment "Eerstverantwoordelijk ministerie (uit de WTI)."@nl .
+
+bwb:eerstverantwoordelijkeOrganisatie a owl:ObjectProperty ;
+    rdfs:label "eerstverantwoordelijke organisatie"@nl ;
+    rdfs:comment "Het eerstverantwoordelijke ministerie als TOOI-URI (identifier.overheid.nl), uit de WTI-naam via het TOOI-register (`app/tooi.py`); de naam zelf staat op bwb:eerstverantwoordelijke."@nl .
+
+bwb:effect a owl:DatatypeProperty ;
+    rdfs:label "effect"@nl ;
+    rdfs:comment "Effect van de laatste wijziging."@nl .
+
+bwb:formaat a owl:DatatypeProperty ;
+    rdfs:label "formaat"@nl ;
+    rdfs:comment "Bestandsformaat van een illustratie (bv. png)."@nl .
+
+bwb:functie a owl:DatatypeProperty ;
+    rdfs:label "functie"@nl ;
+    rdfs:comment "Functie/hoedanigheid van de ondertekenaar."@nl .
+
+bwb:geldigTot a owl:DatatypeProperty ;
+    rdfs:label "geldig tot"@nl ;
+    rdfs:comment "Einde van het geldigheidsvenster."@nl ;
+    rdfs:range xsd:date .
+
+bwb:geldigVanaf a owl:DatatypeProperty ;
+    rdfs:label "geldig vanaf"@nl ;
+    rdfs:comment "Begin van het geldigheidsvenster van de toestand."@nl ;
+    rdfs:range xsd:date ;
+    rdfs:subPropertyOf eli:first_date_entry_in_force .
+
+bwb:grondslagVoor a owl:ObjectProperty ;
+    rdfs:label "grondslag voor"@nl ;
+    rdfs:comment "Regeling die (mede) op dit tekstdeel is gebaseerd (WTI-regelingelement)."@nl ;
+    rdfs:range bwb:Regeling .
+
+bwb:heeftAfdeling a owl:ObjectProperty ;
+    rdfs:label "heeft afdeling"@nl ;
+    rdfs:comment "Bevat afdeling."@nl ;
+    rdfs:range bwb:Afdeling ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftArtikel a owl:ObjectProperty ;
+    rdfs:label "heeft artikel"@nl ;
+    rdfs:comment "Bevat artikel."@nl ;
+    rdfs:range bwb:Artikel ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftBijlage a owl:ObjectProperty ;
+    rdfs:label "heeft bijlage"@nl ;
+    rdfs:comment "Regeling bevat bijlage."@nl ;
+    rdfs:range bwb:Bijlage ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftDivisie a owl:ObjectProperty ;
+    rdfs:label "heeft divisie"@nl ;
+    rdfs:comment "Bevat circulaire-divisie."@nl ;
+    rdfs:range bwb:Divisie ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftGrondslag a owl:ObjectProperty ;
+    rdfs:label "heeft grondslag"@nl ;
+    rdfs:comment "Regeling waarop deze regeling (mede) is gebaseerd (uit de WTI)."@nl ;
+    rdfs:range bwb:Regeling ;
+    rdfs:subPropertyOf eli:based_on .
+
+bwb:heeftHoofdstuk a owl:ObjectProperty ;
+    rdfs:label "heeft hoofdstuk"@nl ;
+    rdfs:comment "Wet bevat hoofdstuk."@nl ;
+    rdfs:range bwb:Hoofdstuk ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftLid a owl:ObjectProperty ;
+    rdfs:label "heeft lid"@nl ;
+    rdfs:comment "Artikel bevat lid."@nl ;
+    rdfs:range bwb:Lid ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftOnderdeel a owl:ObjectProperty ;
+    rdfs:label "heeft onderdeel"@nl ;
+    rdfs:comment "Bevat lijstonderdeel."@nl ;
+    rdfs:range bwb:Onderdeel ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftParagraaf a owl:ObjectProperty ;
+    rdfs:label "heeft paragraaf"@nl ;
+    rdfs:comment "Bevat paragraaf."@nl ;
+    rdfs:range bwb:Paragraaf ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftTiteldeel a owl:ObjectProperty ;
+    rdfs:label "heeft titeldeel"@nl ;
+    rdfs:comment "Bevat titeldeel."@nl ;
+    rdfs:range bwb:Titeldeel ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftVerwijzing a owl:ObjectProperty ;
+    rdfs:label "heeft verwijzing"@nl ;
+    rdfs:comment "Koppelt de gereïficeerde verwijzing aan de bron."@nl ;
+    rdfs:range bwb:Verwijzing .
+
+bwb:hoogte a owl:DatatypeProperty ;
+    rdfs:label "hoogte"@nl ;
+    rdfs:comment "Hoogte van een illustratie (bv. 364px)."@nl .
+
+bwb:inBepaling a owl:ObjectProperty ;
+    rdfs:label "in bepaling"@nl ;
+    rdfs:comment "De bepaling waarin een onderdeel staat (lid, artikel, divisie of bijlage), uit de echte boom: de IRI van een onderdeel van een beleidsregel zegt dat niet."@nl .
+
+bwb:inFamilie a owl:ObjectProperty ;
+    rdfs:label "in familie"@nl ;
+    rdfs:comment "Verwante regeling binnen dezelfde wetsfamilie (uit de WTI)."@nl ;
+    rdfs:range bwb:Regeling .
+
+bwb:inhoudHash a owl:DatatypeProperty ;
+    rdfs:label "inhoudshash"@nl ;
+    rdfs:comment "sha256 over de inhoud van de named graph van deze regeling: verandert bij elke andere tekst, ook zonder nieuwe toestand."@nl ;
+    rdfs:range xsd:string .
+
+bwb:inwerking a owl:DatatypeProperty ;
+    rdfs:label "inwerking"@nl ;
+    rdfs:comment "Datum inwerkingtreding van dit tekstdeel."@nl ;
+    rdfs:range xsd:date .
+
+bwb:inwerkingtredingsbron a owl:DatatypeProperty ;
+    rdfs:label "inwerkingtredingsbron"@nl ;
+    rdfs:comment "Stb-bron van het inwerkingtredingsbesluit van de laatste wijziging van dit tekstdeel."@nl .
+
+bwb:jci a owl:DatatypeProperty ;
+    rdfs:label "jci"@nl ;
+    rdfs:comment "Ruwe JuriConnect-verwijzing uit de bron."@nl ;
+    rdfs:range xsd:string .
+
+bwb:label a owl:DatatypeProperty ;
+    rdfs:label "label"@nl ;
+    rdfs:comment "Structuurlabel uit de bron-XML."@nl .
+
+bwb:labelId a owl:DatatypeProperty ;
+    rdfs:label "label-id"@nl ;
+    rdfs:comment "WTI-koppelsleutel (label-id uit de bron-XML)."@nl ;
+    rdfs:range xsd:string .
+
+bwb:naam a owl:DatatypeProperty ;
+    rdfs:label "naam"@nl ;
+    rdfs:comment "Naam (bestandsnaam van een illustratie of naam van een persoon)."@nl .
+
+bwb:naar a owl:ObjectProperty ;
+    rdfs:label "naar"@nl ;
+    rdfs:comment "Doel van de gereïficeerde verwijzing."@nl ;
+    rdfs:range bwb:Citeerbaar .
+
+bwb:nummer a owl:DatatypeProperty ;
+    rdfs:label "nummer"@nl ;
+    rdfs:comment "Nummer binnen de ouder (artikel-/lid-/onderdeelnummer)."@nl .
+
+bwb:ondertekendDoor a owl:ObjectProperty ;
+    rdfs:label "ondertekend door"@nl ;
+    rdfs:comment "Regeling is ondertekend door deze persoon."@nl ;
+    rdfs:range bwb:Ondertekenaar ;
+    rdfs:subPropertyOf eli:passed_by .
+
+bwb:ondertekeningsdatum a owl:DatatypeProperty ;
+    rdfs:label "ondertekeningsdatum"@nl ;
+    rdfs:comment "Datum van ondertekening."@nl ;
+    rdfs:range xsd:date ;
+    rdfs:subPropertyOf eli:date_document .
+
+bwb:opmerking a owl:DatatypeProperty ;
+    rdfs:label "opmerking"@nl ;
+    rdfs:comment "Redactionele opmerking bij dit tekstdeel uit de brondata (vaak: waar het overgangsrecht staat)."@nl .
+
+bwb:opschrift a owl:DatatypeProperty ;
+    rdfs:label "opschrift"@nl ;
+    rdfs:comment "Intitulé/opschrift van de regeling."@nl ;
+    rdfs:subPropertyOf eli:title_alternative .
+
+bwb:plaats a owl:DatatypeProperty ;
+    rdfs:label "plaats"@nl ;
+    rdfs:comment "Plaats van ondertekening."@nl .
+
+bwb:publicatiejaar a owl:DatatypeProperty ;
+    rdfs:label "publicatiejaar"@nl ;
+    rdfs:comment "Jaar van de oorspronkelijke publicatie."@nl ;
+    rdfs:range xsd:gYear .
+
+bwb:publicatienr a owl:DatatypeProperty ;
+    rdfs:label "publicatienummer"@nl ;
+    rdfs:comment "Nummer van de oorspronkelijke publicatie."@nl .
+
+bwb:refKey a owl:DatatypeProperty ;
+    rdfs:label "ref-sleutel"@nl ;
+    rdfs:comment "JuriConnect-afgeleide identiteitssleutel."@nl ;
+    rdfs:range xsd:string .
+
+bwb:soort a owl:DatatypeProperty ;
+    rdfs:label "soort"@nl ;
+    rdfs:comment "Soort regeling of verwijzing."@nl .
+
+bwb:status a owl:DatatypeProperty ;
+    rdfs:label "status"@nl ;
+    rdfs:comment "Redactionele status."@nl .
+
+bwb:tekst a owl:DatatypeProperty ;
+    rdfs:label "tekst"@nl ;
+    rdfs:comment "Lopende tekst van het tekstdeel."@nl .
+
+bwb:terugwerkendTot a owl:DatatypeProperty ;
+    rdfs:label "terugwerkend tot"@nl ;
+    rdfs:comment "Retroactieve ingangsdatum van de wijziging die dit tekstdeel zijn huidige inhoud gaf."@nl ;
+    rdfs:range xsd:date .
+
+bwb:titel a owl:DatatypeProperty ;
+    rdfs:label "titel"@nl ;
+    rdfs:comment "Titel van het structuurdeel of de divisie."@nl .
+
+bwb:toestandUrl a owl:ObjectProperty ;
+    rdfs:label "toestand-URL"@nl ;
+    rdfs:comment "Identiteit van de geïmporteerde toestand (versie) op wetten.overheid.nl."@nl .
+
+bwb:uitgegevenDoor a owl:ObjectProperty ;
+    rdfs:label "uitgegeven door"@nl ;
+    rdfs:comment "Verantwoordelijke organisatie/ministerie van de regeling (uit de WTI)."@nl ;
+    rdfs:range bwb:Organisatie ;
+    rdfs:subPropertyOf eli:responsibility_of .
+
+bwb:uitgiftedatum a owl:DatatypeProperty ;
+    rdfs:label "uitgiftedatum"@nl ;
+    rdfs:comment "Datum van uitgifte."@nl ;
+    rdfs:range xsd:date ;
+    rdfs:subPropertyOf eli:date_publication .
+
+bwb:verwijstNaar a owl:ObjectProperty ;
+    rdfs:label "verwijst naar"@nl ;
+    rdfs:comment "Citatie naar een ander citeerbaar tekstdeel (open-world doel)."@nl ;
+    rdfs:range bwb:Citeerbaar ;
+    rdfs:subPropertyOf eli:cites .
+
+bwb:verwijzingDoor a owl:ObjectProperty ;
+    rdfs:label "verwijzing door"@nl ;
+    rdfs:comment "Regeling die naar dit tekstdeel verwijst (WTI-regelingelement)."@nl ;
+    rdfs:range bwb:Regeling .
+
+bwb:verwijzingId a owl:DatatypeProperty ;
+    rdfs:label "verwijzing-id"@nl ;
+    rdfs:comment "Bron-id van de verwijzing."@nl ;
+    rdfs:range xsd:string .
+
+bwb:vindplaats a owl:DatatypeProperty ;
+    rdfs:label "vindplaats"@nl ;
+    rdfs:comment "Leesbare plek van een bepaling binnen haar regeling (\"Artikel 9, lid 1\", \"Artikel 9.2, onderdeel d\"), uit de echte boom."@nl ;
+    rdfs:range xsd:string .
+
+bwb:voetnoot a owl:DatatypeProperty ;
+    rdfs:label "voetnoot"@nl ;
+    rdfs:comment "Voetnoot bij het tekstdeel."@nl .
+
+bwb:volgnummer a owl:DatatypeProperty ;
+    rdfs:label "volgnummer"@nl ;
+    rdfs:comment "Plek van een onderdeel in de documentvolgorde van zijn regeling, om op te sorteren."@nl ;
+    rdfs:range xsd:integer .
+
+bwb:volgtOp a owl:ObjectProperty ;
+    rdfs:label "volgt op"@nl ;
+    rdfs:comment "Documentvolgorde binnen dezelfde ouder."@nl .
+
+bwb:voornaam a owl:DatatypeProperty ;
+    rdfs:label "voornaam"@nl ;
+    rdfs:comment "Voornaam van de ondertekenaar."@nl .
+
+bwb:wijzigingsbronnen a owl:DatatypeProperty ;
+    rdfs:label "wijzigingsbron"@nl ;
+    rdfs:comment "Stb-bron van een wijziging (<juncto>)."@nl .
+
+bwb:Afdeling a owl:Class ;
+    rdfs:label "Afdeling"@nl ;
+    rdfs:comment "Afdeling van een wettekst."@nl ;
+    rdfs:subClassOf bwb:Structuurdeel .
+
+bwb:Artikel a owl:Class ;
+    rdfs:label "Artikel"@nl ;
+    rdfs:comment "Wetsartikel; citeerbaar op JuriConnect-sleutel."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision,
+        bwb:Citeerbaar .
+
+bwb:Bijlage a owl:Class ;
+    rdfs:label "Bijlage"@nl ;
+    rdfs:comment "Bijlage van een regeling; container (eigen artikelen/onderdelen) én tekstdrager, citeerbaar op JuriConnect-sleutel."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision,
+        bwb:Citeerbaar .
+
+bwb:Divisie a owl:Class ;
+    rdfs:label "Divisie"@nl ;
+    rdfs:comment "Divisie van een circulaire/beleidsregel; container én tekstdrager."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision,
+        bwb:Citeerbaar .
+
+bwb:Hoofdstuk a owl:Class ;
+    rdfs:label "Hoofdstuk"@nl ;
+    rdfs:comment "Hoofdstuk van een wettekst."@nl ;
+    rdfs:subClassOf bwb:Structuurdeel .
+
+bwb:Illustratie a owl:Class ;
+    rdfs:label "Illustratie"@nl ;
+    rdfs:comment "Afbeelding (uit <plaatje>/<illustratie>) binnen een tekstdrager."@nl .
+
+bwb:Lid a owl:Class ;
+    rdfs:label "Lid"@nl ;
+    rdfs:comment "Genummerd lid binnen een artikel."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision .
+
+bwb:Onderdeel a owl:Class ;
+    rdfs:label "Onderdeel"@nl ;
+    rdfs:comment "Opsommings- of definitieonderdeel (<li>) binnen een lijst, of de tekst die ná een opsomming doorloopt: een ongenummerd onderdeel met bwb:label \"Slottekst\"."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision .
+
+bwb:Ondertekenaar a owl:Class ;
+    rdfs:label "Ondertekenaar"@nl ;
+    rdfs:comment "Persoon die de regeling heeft ondertekend (functie + naam)."@nl ;
+    rdfs:subClassOf foaf:Agent .
+
+bwb:Organisatie a owl:Class ;
+    rdfs:label "Organisatie"@nl ;
+    rdfs:comment "Verantwoordelijke organisatie/ministerie van een regeling (uit de WTI)."@nl ;
+    rdfs:subClassOf foaf:Agent .
+
+bwb:Paragraaf a owl:Class ;
+    rdfs:label "Paragraaf"@nl ;
+    rdfs:comment "Paragraaf van een wettekst."@nl ;
+    rdfs:subClassOf bwb:Structuurdeel .
+
+bwb:Titeldeel a owl:Class ;
+    rdfs:label "Titeldeel"@nl ;
+    rdfs:comment "Titeldeel van een wettekst."@nl ;
+    rdfs:subClassOf bwb:Structuurdeel .
+
+bwb:Verwijzing a owl:Class ;
+    rdfs:label "Verwijzing"@nl ;
+    rdfs:comment "Gereïficeerde verwijzing met soort/doel-metadata."@nl .
+
+bwb:Structuurdeel a owl:Class ;
+    rdfs:label "Structuurdeel"@nl ;
+    rdfs:comment "Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …)."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision .
+
+bwb:Citeerbaar a owl:Class ;
+    rdfs:label "Citeerbaar"@nl ;
+    rdfs:comment "Tekstdeel met een eigen JuriConnect-identiteit; doel van verwijzingen."@nl ;
+    rdfs:subClassOf eli:LegalResource .
+
+bwb:Regeling a owl:Class ;
+    rdfs:label "Regeling"@nl ;
+    rdfs:comment "Een regeling uit het Basiswettenbestand (wet, AMvB, ministeriële regeling, beleidsregel, circulaire, …)."@nl ;
+    rdfs:subClassOf eli:LegalResource .
+
