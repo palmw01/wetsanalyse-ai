@@ -230,6 +230,12 @@ de centrale agent), het profiel `.claude/lex-agents/contenttoets.md`, de route (
 `contenttoets`, alleen acceptatie, met een guard in `poort.yml`). Na de merge vraagt de vlag een `azure-infra` deploy op
 acceptatie.
 
+**C5 is gemeten** (26 nov 2026): één run per eval van de gouden set, live op acceptatie, zonder de bron mee te geven.
+15 van de 20 graders gehaald, en geen enkel vals *mogelijk onjuist*. Open voor het bijsturen: een bevinding die de
+citaatcontrole laat vallen, staat nog in *Voor de redacteur*; Lex mist binnen een gelezen bepaling soms een voorwaarde of
+uitzondering; de modaliteit (J4) werd gemist bij een verwante bepaling; de eval van de standaardregeling geeft niet de
+hele bron mee. Zie [`metingen/contenttoets-c5-2026-11-26/`](metingen/contenttoets-c5-2026-11-26/README.md).
+
 **C3 staat er** (26 nov 2026): `/contenttoets` in het menu van de werkplek (een plugincommando, `lib/plugins.ts` en
 `PLUGIN_COMMANDOS` in `lib/commandos.ts`). Enter vult aan; met tekst erachter gaat de hele tekst als vraag naar Lex. Het
 rapport staat als blok in het gesprek. Schermafbeeldingen in `docs/architectuur/media/contenttoets/`, browserregressie
