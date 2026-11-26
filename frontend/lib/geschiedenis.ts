@@ -62,6 +62,7 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
             hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined,
             meting: metingUitDekking(b.dekking) }
         : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen,
+            ...(b.run_id ? { runId: b.run_id } : {}),
             // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
             overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
             antwoord: parseAntwoord(b.antwoord),

@@ -34,6 +34,8 @@ BESLISSINGEN = {
     ("POST", "/v1/werkgebieden/{}/open-punten/{}/omhangen"),
     ("POST", "/v1/werkgebieden/{}/regels/{}/voorbeelden/{}/oordeel"),
     ("POST", "/v1/werkgebieden/{}/regels/{}/dragers/{}/verversen"),
+    # Het oordeel over een bevinding van een contenttoets (plan contenttoets, C7): Lex stelt voor, de mens beslist.
+    ("PUT", "/v1/gesprekken/{}/runs/{}/toetsbesluiten/{}"),
 }
 
 

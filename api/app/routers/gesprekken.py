@@ -14,6 +14,10 @@ GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
 GET    /v1/gesprekken/{id}/contextopbouw    – de contextopbouw van de deelgesprekken (de boom, alleen lezen)
 POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
 PATCH  /v1/gesprekken/{id}                  – titel, werkgebied (koppelen/loskoppelen), archief
+GET    /v1/gesprekken/{id}/runs/{run_id}/toetsbesluiten
+                                            – de besluiten over een contenttoets in het bericht van die run (C7)
+PUT    /v1/gesprekken/{id}/runs/{run_id}/toetsbesluiten/{nr}
+                                            – het besluit over één bevinding; leeg wist het
 DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
 
 Opruimen per groep (instellingen → Gesprekken; `recent` of `archief`, zie `GesprekGroep`):
@@ -34,7 +38,7 @@ from ..auth import huidige_client, require_client
 from ..deps import get_gesprek_store
 from ..gesprek_contracts import (
     Bericht, BerichtInvoer, ContextopbouwBoom, Gesprek, GesprekCreate, GesprekGroep, GesprekIds, GesprekkenBulk,
-    GesprekkenBulkUitkomst, GesprekPatch, GesprekSamenvatting, GesprekTelling, Rol,
+    GesprekkenBulkUitkomst, GesprekPatch, GesprekSamenvatting, GesprekTelling, Rol, Toetsbesluit, ToetsbesluitInvoer,
 )
 from ..gesprek_store import GesprekStore
 from .. import artefact_versies, werkgebied_store
@@ -230,6 +234,36 @@ async def voeg_bericht_toe(
         if versie:
             req.artefact.ref = {**req.artefact.ref, "versie": versie}
     return await store.voeg_bericht_toe(gesprek_id, req)
+
+
+@router.get("/{gesprek_id}/runs/{run_id}/toetsbesluiten", response_model=list[Toetsbesluit])
+async def lees_toetsbesluiten(
+    gesprek_id: str,
+    run_id: str,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    """De besluiten over de bevindingen van de contenttoets in het bericht van deze run (plan contenttoets, C7)."""
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
+    return await store.toetsbesluiten(gesprek_id, run_id)
+
+
+@router.put("/{gesprek_id}/runs/{run_id}/toetsbesluiten/{nr}", response_model=list[Toetsbesluit])
+async def zet_toetsbesluit(
+    gesprek_id: str,
+    run_id: str,
+    nr: int,
+    req: ToetsbesluitInvoer,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    """Het oordeel over één bevinding: eens of oneens met Lex, en het voorstel overgenomen, aangepast of afgewezen.
+    Lex stelt voor, de mens beslist: graph-qa zet hier niets (403)."""
+    if huidige_client.get() == AGENT_CLIENT:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, {"fout": "besluit_van_de_mens",
+                                                        "melding": "Een besluit over een contenttoets neemt de gebruiker."})
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
+    return await store.zet_toetsbesluit(gesprek_id, run_id, nr, req, user_id)
 
 
 @router.patch("/{gesprek_id}", response_model=Gesprek)
