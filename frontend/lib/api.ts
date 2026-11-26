@@ -378,7 +378,7 @@ export async function getVerbruik(): Promise<Verbruiksstand> {
   return json<Verbruiksstand>(res);
 }
 
-/** Wat de beheerder aanzette, voor het menu *Bronnen en tools* (ADR-013). */
+/** Wat de beheerder aanzette, voor het menu *Bronnen en plugins* (ADR-013). */
 export async function haalConnectors(): Promise<{ aan: string[]; connectors: BeschikbareConnector[] }> {
   const res = await fetch("/api/connectors", { cache: "no-store" });
   return json<{ aan: string[]; connectors: BeschikbareConnector[] }>(res);
@@ -948,7 +948,7 @@ export type AgentHandlers = {
   /** De vraag ging over een bron naast de wet die uit stond (ADR-013): de werkplek biedt *Zet aan* aan. */
   onBronUit?: (bronnen: import("./connectorsMenu").BronUit[]) => void;
   /** De bronstand van de beurt (ADR-013, graph-qa `agent/bronstand.py`): per connector of hij aanstaat, en zo niet,
-   *  waarom. De werkplek legt hem over het menu *Bronnen en tools*. */
+   *  waarom. De werkplek legt hem over het menu *Bronnen en plugins*. */
   onBronstand?: (regels: import("./connectorsMenu").BronstandRegel[]) => void;
   /** Een regie (ADR-012) startte of sloot een deelgesprek: de sidebar haalt de lijst opnieuw, zodat het deelgesprek
    *  onder het regiegesprek verschijnt en zijn stand toont. */
@@ -1010,7 +1010,7 @@ export async function startRun(
     actie?: import("./vraagLex").VraagLexActie;
     /** Het bevestigde plan van een regie (ADR-012); hoort bij `regie_bronnen`/`regie_annoteren`. */
     plan_id?: string;
-    /** De bronconnectors die in dit gesprek aanstaan (ADR-013, *Bronnen en tools*); weggelaten = graph-qa beslist. */
+    /** De bronconnectors die in dit gesprek aanstaan (ADR-013, *Bronnen en plugins*); weggelaten = graph-qa beslist. */
     bronnen?: string[];
     /** Waar die stand vandaan komt (`connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron aanzet. */
     bronnen_herkomst?: "gesprek" | "werkgebied" | "standaard";

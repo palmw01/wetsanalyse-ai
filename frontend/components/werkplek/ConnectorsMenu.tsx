@@ -10,7 +10,7 @@ import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
 import { MENU_RIJ } from "@/components/ui/Menu";
 import { actievePlugins, type PluginStand } from "@/lib/plugins";
-import { herkomstVan, menuKort, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
+import { herkomstVan, menuKop, menuKort, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
 
 const HERKOMST = {
   gesprek: "Je koos dit voor dit gesprek.",
@@ -24,7 +24,7 @@ const REDEN = {
   niet_aangeboden: "hier niet beschikbaar",
 } as const;
 
-/** *Bronnen en tools* boven het invoerveld (ADR-013): welke bronnen buiten de wettekst Lex in dit gesprek mag
+/** *Bronnen* (met plugins: *Bronnen en plugins*) boven het invoerveld (ADR-013): welke bronnen buiten de wettekst Lex in dit gesprek mag
  *  raadplegen. Zonder connector die de beheerder aanzette, is er geen menu: dan is er alleen wetgeving. Het menu
  *  verdwijnt nooit stil: lukt het ophalen niet, of biedt de omgeving een aangezette bron niet aan, dan zegt het dat. */
 export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarStandaard, onOpen, onOpnieuw, plugins,
@@ -54,7 +54,7 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
   const herkomst = herkomstVan(stand);
   const melding = menuMelding(stand);
   return (
-    <Popover ariaLabel="Bronnen en tools" positie="left-0 bottom-full mb-1" className={`w-72 ${MENU_PANEEL}`}
+    <Popover ariaLabel={menuKop(tools)} positie="left-0 bottom-full mb-1" className={`w-72 ${MENU_PANEEL}`}
       trigger={(open, toggle) => (
         <button type="button" onClick={() => { if (!open) onOpen?.(); toggle(); }} aria-expanded={open} aria-haspopup="menu" aria-label={menuNaam(stand, tools)}
           data-connectors-menu data-kort={kort ? "" : undefined} data-laden={stand.controleert ? "controleert" : stand.laden === "mislukt" ? "mislukt" : undefined}
@@ -101,6 +101,7 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
               <p data-connectors-melding>{melding}</p>
             </Melding>
           )}
+          {aangeboden.length > 0 && <MenuKop>Bronnen</MenuKop>}
           <p className="px-2 pb-1 pt-1.5 text-xs text-muted">
             Wetgeving staat altijd aan. Andere bronnen zijn geen wettekst. Lex citeert eruit met hun eigen vindplaats.
           </p>
@@ -130,6 +131,7 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
           {metBronnen && <p className="px-2 pb-1.5 pt-1 text-xs text-muted" data-connectors-herkomst={herkomst}>{HERKOMST[herkomst]}</p>}
           {aangeboden.length > 0 && (
             <div className="border-t border-line" data-plugins-menu>
+              <MenuKop>Plugins</MenuKop>
               <p className="px-2 pb-1 pt-1.5 text-xs text-muted">
                 Plugins staan naast de wetsanalyse. Je start er een met zijn commando, zoals /contenttoets met de tekst erachter.
               </p>
@@ -146,6 +148,11 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
       )}
     </Popover>
   );
+}
+
+/** Het kopje boven een deel van het menu: *Bronnen* (de connectors) en *Plugins*, zodra er beide zijn. */
+function MenuKop({ children }: { children: React.ReactNode }) {
+  return <p className="px-2 pt-2 text-xs font-medium text-ink" data-menu-kop>{children}</p>;
 }
 
 /** Wat de knop naast de regel nodig heeft: de opvulling, de chevron en de tussenruimte. */

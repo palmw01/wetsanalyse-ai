@@ -86,7 +86,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
   **De tabkolom heeft groepen met een kop** (`INSTELLINGEN_GROEPEN` in `lib/instellingen.ts`, naar het voorbeeld van Claude;
   plan `docs/architectuur/plan-instellingen-aanpassingen.md`): *Persoonlijk*, *Aanpassingen* (wat Lex gebruikt: Methodes,
-  Agents, Connectors en, voor een beheerder, Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
+  Agents, Connectors, Plugins en, voor een beheerder, Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
   boven de kolom filtert op label en trefwoord (`tabsBijZoekterm`), en Escape wist eerst het veld. Een oude sleutel of
   pad staat in `vroeger` (`modelprofielen` → `modellen`). Een tab alleen voor beheerders houdt zijn pad onder `beheer/`:
   daar zit de rolgate van `auth.config.ts`. Op een telefoon is de kolom een lijst (`Tabs` verticaal): een gekozen tab
@@ -111,7 +111,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
   - `instellingen/` – de lijsten van Aanpassingen (`AanpassingLijst`, `MethodesPanel`, `AgentsPanel`, `ConnectorsPanel`: de
     bronconnectors van ADR-013 voor iedereen in één lijst, aan of uit per beheerder mét 2FA, de audit in het tweede
-    niveau; welke er bestaan staat in de code; browserregressie `scripts/test-connectors.mjs`), en
+    niveau; welke er bestaan staat in de code; browserregressie `scripts/test-connectors.mjs`; `PluginsPanel`: de plugins,
+    aangeboden per beheerder mét 2FA), en
     `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
     `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
     bewust **zonder** `"use client"`, zodat de doorverwijzing ze mag importeren.
@@ -703,7 +704,7 @@ component (`components/werkplek/Contextweergave.tsx`) met twee ingangen, rekenke
   `agent/contextdelen.py`; `contextdelen.test.ts` leest die bron, ook voor de namen van de rollen (`rolLabel`). Een id dat
   de werkplek niet kent, telt als *Overig*. Blauw in stappen is het vaste deel, de rest wat per beurt verandert; kleur
   draagt nooit alleen, de legenda noemt elk deel met zijn omvang.
-- **De contextmeter** (`ContextMeter`, rechts in de rij boven het invoerveld, naast *Bronnen en tools*): `31k · 3,1%` met
+- **De contextmeter** (`ContextMeter`, rechts in de rij boven het invoerveld, naast *Bronnen en plugins*): `31k · 3,1%` met
   `components/ui/Meter`. Een stip (met de tekst in de toegankelijke naam) bij een signaal: de historie is ingekort, er
   vielen beurten weg, of de beurt begon koud. De tooltip noemt de drie grootste delen en het verbruik. Een klik opent het
   paneel. Zonder meting: "nog niet gemeten".
@@ -725,7 +726,7 @@ component (`components/werkplek/Contextweergave.tsx`) met twee ingangen, rekenke
 - Tests: `lib/contextweergave.test.ts`, `lib/contextdelen.test.ts` en `scripts/test-contextweergave.mjs` (met
   `CONTEXT_SCREENSHOT=<map>` een beeld van het paneel).
 
-### Bronnen en tools boven het invoerveld (ADR-013)
+### Bronnen en plugins boven het invoerveld (ADR-013)
 
 `ConnectorsMenu` (rekenkern `lib/connectorsMenu.ts`) staat boven het invoerveld zodra de beheerder een bronconnector
 aanzette (`GET /api/connectors` → api `/v1/connectors`). De knop noemt *Wetgeving · Kamerstukken …* met een vinkje, *uit*,
@@ -772,12 +773,15 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   over de lijst. Uitgezet in gesprek,
   werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
-- **Past de regel niet, dan de korte vorm** (melding gebruiker 10 nov 2026: op een telefoon liep de knop uit beeld): "Bronnen: alle 4 aan" of "3 van 4 aan" (`menuKort`; met een aangeboden plugin "Bronnen en tools: …", en de plugins tellen mee), met één geel label als een bron niet beschikbaar of onbekend is, en zonder aantal zolang er gecontroleerd wordt. De knop meet het zelf tegen `[data-connectors-ruimte]` (`useTePast`), niet op een breakpoint, dus ook naast een open zijpaneel. Het menu en de toegankelijke naam blijven volledig.
+- **Past de regel niet, dan de korte vorm** (melding gebruiker 10 nov 2026: op een telefoon liep de knop uit beeld): "Bronnen: alle 4 aan" of "3 van 4 aan" (`menuKort`; met een aangeboden plugin "Bronnen en plugins: alle 7 aan", en de plugins tellen mee), met één geel label als een bron niet beschikbaar of onbekend is, en zonder aantal zolang er gecontroleerd wordt. De knop meet het zelf tegen `[data-connectors-ruimte]` (`useTePast`), niet op een breakpoint, dus ook naast een open zijpaneel. Het menu en de toegankelijke naam blijven volledig.
 - **Plugins in hetzelfde menu** (plan contenttoets, C4; `lib/plugins.ts`, `usePlugins`): wat de beheerder aanbiedt
-  (`GET /api/plugins` → api `/v1/plugins`) staat onder de bronnen met een eigen uitleg (`[data-plugins-menu]`). De stand
+  (`GET /api/plugins` → api `/v1/plugins`) staat onder de bronnen met een eigen uitleg (`[data-plugins-menu]`). Met een
+  plugin erbij heet het menu *Bronnen en plugins* (`menuKop`) en hebben beide delen een kopje (*Bronnen*, *Plugins*). De
+  termen zijn die van Claude Code: een **connector** is een bron, een **plugin** een werkwijze met een eigen commando;
+  schrijf nooit "connectoren" of "tools" voor een van beide. De stand
   staat op het gesprek (`Gesprek.plugins`, PATCH via `wijzigGesprek`; `null` = alles wat aangeboden is), gaat mee met de
   beurt (`beurtPlugins` → `plugins`) en bepaalt welke plugincommando's het menu toont (`Stand.plugins`). De beheerder biedt
-  een plugin aan in *Aanpassingen › Connectors*, groep *Plugins* (`listPlugins`, `zetPlugin`, met audit). Een storing
+  een plugin aan in de eigen tab *Aanpassingen › Plugins* (`PluginsPanel`, `listPlugins`, `zetPlugin`, met audit). Een storing
   geeft een lege lijst: dan staat er geen plugin.
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
 
@@ -1702,7 +1706,8 @@ geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest,
 
 Wat Lex gebruikt staat in de groep *Aanpassingen* van het instellingenvenster, naar het voorbeeld van Claude (Skills,
 Connectors): **Methodes** (de skills in `.claude/skills/`, `MethodesPanel`), **Agents** (de agentprofielen in
-`.claude/lex-agents/`, `AgentsPanel`), Connectors en Modellen. De werkwijze van Lex als eigen pagina en sidebaritem is
+`.claude/lex-agents/`, `AgentsPanel`), Connectors (de bronnen, `ConnectorsPanel`), Plugins (de werkwijzen met een eigen
+commando, `PluginsPanel`) en Modellen. De werkwijze van Lex als eigen pagina en sidebaritem is
 weg (besluit gebruiker 15 nov 2026): de uitleg van routes, ketens en supervisor staat in de repo (ADR's, `CLAUDE.md`'s),
 niet in de app. `/werkwijze` en de oude paden eronder zijn doorverwijzingen (`app/werkwijze/**`,
 `werkwijzeDoorverwijzing` in `lib/aanpassingen.ts`): een methode of rol naar Methodes, een agentprofiel naar Agents, een

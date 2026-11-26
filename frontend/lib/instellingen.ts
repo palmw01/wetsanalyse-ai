@@ -52,6 +52,9 @@ export const INSTELLINGEN_TABS = [
   // Voor iedereen te lezen; aan- en uitzetten blijft beheer (de BFF houdt `/api/admin/connectors` dicht).
   { key: "connectors", pad: "aanpassingen/connectors", label: "Connectors", groep: "aanpassingen", alleenBeheerder: false,
     trefwoorden: ["bronnen", "kamerstukken", "rechtspraak", "bekendmakingen", "mcp"], vroeger: ["beheer/connectors"] },
+  // Een werkwijze naast de wetsanalyse met een eigen commando (plan contenttoets, C4); apart van de bronnen, zoals in Claude Code.
+  { key: "plugins", pad: "aanpassingen/plugins", label: "Plugins", groep: "aanpassingen", alleenBeheerder: false,
+    trefwoorden: ["plugin", "contenttoets", "commando", "toetsen", "webtekst"] },
   { key: "modellen", pad: "beheer/modelprofielen", label: "Modellen", groep: "aanpassingen", alleenBeheerder: true,
     trefwoorden: ["modelprofielen", "model", "api-sleutel", "endpoint", "llm"], vroeger: ["modelprofielen"] },
   { key: "gebruikers", pad: "beheer/gebruikers", label: "Gebruikers", groep: "beheer", alleenBeheerder: true,

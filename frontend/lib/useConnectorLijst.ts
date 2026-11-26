@@ -10,7 +10,7 @@ const LEEG: ConnectorLijst = { beschikbaar: [], laden: null, controleert: false 
 /** Hoe vaak terugkomen in het venster (focus, zichtbaar) hoogstens een nieuwe poging start. */
 const TERUGKOMST_MS = 15_000;
 
-/** De lijst van het menu *Bronnen en tools* voor dit venster (`lib/connectorLijst.ts`): bij elke mount de laatst bekende
+/** De lijst van het menu *Bronnen en plugins* voor dit venster (`lib/connectorLijst.ts`): bij elke mount de laatst bekende
  *  stand, en meteen een verse poging op de achtergrond. `actief` false (de demo) haalt niets op. */
 export function useConnectorLijst(actief: boolean) {
   const stand = useSyncExternalStore(connectorLijst.abonneer, connectorLijst.lees, () => LEEG);

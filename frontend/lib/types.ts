@@ -906,7 +906,7 @@ export interface WerkgebiedSamenvatting {
   /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
   thema?: string;
   thema_label?: string;
-  /** ADR-013: de standaard van het menu *Bronnen en tools* voor gesprekken in dit werkgebied; `null` = de beheerder. */
+  /** ADR-013: de standaard van het menu *Bronnen en plugins* voor gesprekken in dit werkgebied; `null` = de beheerder. */
   standaard_connectors?: string[] | null;
   /** Standaard de dag van aanmaken (api, 3 nov 2026); `peildatum_standaard` zegt of hij dat nog is. */
   peildatum: string | null;
@@ -975,7 +975,7 @@ export interface WerkgebiedWijziging {
   thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
-  /** ADR-013: de standaard van het menu *Bronnen en tools*; `null` = wat de beheerder aanzette. */
+  /** ADR-013: de standaard van het menu *Bronnen en plugins*; `null` = wat de beheerder aanzette. */
   standaard_connectors?: string[] | null;
 }
 

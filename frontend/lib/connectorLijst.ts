@@ -1,4 +1,4 @@
-/** De lijst van het menu *Bronnen en tools* (ADR-013) voor dit venster: wat de beheerder aanzette en of de omgeving het
+/** De lijst van het menu *Bronnen en plugins* (ADR-013) voor dit venster: wat de beheerder aanzette en of de omgeving het
  *  aanbiedt (`GET /api/connectors`), met hoe het laatste ophalen afliep.
  *
  *  Eén lijst per venster, niet per gesprek: `WorkbenchShell` mount de werkplek opnieuw bij elk gesprek (`mountKey`), en

@@ -1,4 +1,4 @@
-/** Het menu *Bronnen en tools* boven het invoerveld (ADR-013, fase 1b): welke bronconnectors in dit gesprek aanstaan.
+/** Het menu *Bronnen en plugins* boven het invoerveld (ADR-013, fase 1b): welke bronconnectors in dit gesprek aanstaan.
  *
  *  Wetgeving (de graaf) staat altijd aan en is geen connector. De stand komt, in deze volgorde, van het gesprek
  *  (`Gesprek.connectors`), van het werkgebied (`standaard_connectors`) of is alles wat de beheerder aanzette. Wat de
@@ -182,16 +182,17 @@ export function menuRegel(stand: ConnectorStand): { label: string; stand: BronWe
   return [{ label: "Wetgeving", stand: "aan" }, ...stand.beschikbaar.map((c) => ({ label: c.label, stand: standVan(c) }))];
 }
 
-/** Een tool in het menu naast de bronnen: een plugin die de beheerder aanbiedt (plan contenttoets, C4), aan of uit. */
+/** Een plugin in het menu naast de bronnen: een plugin die de beheerder aanbiedt (plan contenttoets, C4), aan of uit. */
 export interface ToolWeergave { label: string; aan: boolean }
 
-/** Het woord vóór de dubbele punt: "Bronnen", of "Bronnen en tools" zodra er ook een tool in het menu staat. */
-function menuKop(tools: readonly ToolWeergave[]): string {
-  return tools.length ? "Bronnen en tools" : "Bronnen";
+/** Het woord vóór de dubbele punt, en de naam van het menu: "Bronnen", of "Bronnen en plugins" zodra er ook een plugin in
+ *  het menu staat. Connectors zijn de bronnen, plugins de werkwijzen ernaast (zoals in Claude Code). */
+export function menuKop(tools: readonly ToolWeergave[]): string {
+  return tools.length ? "Bronnen en plugins" : "Bronnen";
 }
 
 /** De korte vorm van de knop, als de regel niet past (een telefoon, of een smalle kolom naast het paneel): het aantal
- *  bronnen en tools dat aan staat, en één geel label als een bron niet beschikbaar of onbekend is. Zolang er een bron wordt
+ *  bronnen en plugins dat aan staat, en één geel label als een bron niet beschikbaar of onbekend is. Zolang er een bron wordt
  *  gecontroleerd, zegt hij niets over aantallen: laden is geen oordeel. Het menu zelf is hetzelfde. */
 export function menuKort(stand: ConnectorStand, tools: readonly ToolWeergave[] = []):
   { tekst: string; aandacht: "onbekend" | "niet_aangeboden" | null } {

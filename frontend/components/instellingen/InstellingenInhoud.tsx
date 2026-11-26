@@ -16,6 +16,7 @@ import { RegistratiesPanel } from "@/components/admin/RegistratiesPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { AgentsPanel } from "@/components/instellingen/AgentsPanel";
 import { MethodesPanel } from "@/components/instellingen/MethodesPanel";
+import { PluginsPanel } from "@/components/instellingen/PluginsPanel";
 import { Button } from "@/components/ui/Button";
 import { Melding } from "@/components/ui/Melding";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
@@ -36,6 +37,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   registraties: <RegistratiesPanel />,
   "api-tokens": <ApiTokensPanel />,
   connectors: <ConnectorsPanel />,
+  plugins: <PluginsPanel />,
   berichten: <BerichtenArchiefClient />,
   berichtenbeheer: <BerichtenBeheerPanel />,
   feedback: <FeedbackLijstClient />,
