@@ -1,9 +1,12 @@
 # bwb-import
 
 ETL-pijplijn die Nederlandse wetgeving uit het **Basiswettenbestand (BWB)**
-importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om acht regelingen (param `bwbIds` in
+importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om veertien regelingen (param `bwbIds` in
 `deploy/azure/main.bicep`): `BWBR0002320`, `BWBR0004766`, `BWBR0004770` (Invorderingswet 1990, de
-standaardregeling), `BWBR0005537`, `BWBR0014168` (Mijnbouwwet), `BWBR0018472`, `BWBR0019237` en `BWBR0024096`. Een andere regeling
+standaardregeling), `BWBR0005537`, `BWBR0014168` (Mijnbouwwet), `BWBR0018472`, `BWBR0019237` en `BWBR0024096`, plus
+de fiscale en invorderingskern: `BWBR0011353` (Wet IB 2001), `BWBR0002471` (Wet LB 1964), `BWBR0002672` (Wet Vpb
+1969), `BWBR0002629` (Wet OB 1968), `BWBR0002645` (Kostenwet invordering rijksbelastingen) en `BWBR0002226`
+(Successiewet 1956). Een andere regeling
 importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hieronder behoort.
 
 ## Pijplijn
