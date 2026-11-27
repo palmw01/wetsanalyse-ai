@@ -139,15 +139,17 @@ app = FastAPI(
 settings = get_settings()
 # Request-id-correlatie + access-logging (pure ASGI, veilig voor de SSE-streams).
 app.add_middleware(observability.RequestContextMiddleware)
+# Grote JSON-antwoorden comprimeren: de complete graaf (`/v1/annotatie/graaf`) is ~2 MB. Starlette
+# slaat `text/event-stream` zelf over, dus een stream wordt nooit gebufferd.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+# CORS als laatste, dus als buitenste laag: elk antwoord – ook een fout uit een andere middleware – krijgt de
+# CORS-headers, en een preflight komt nergens anders langs (SonarQube S8414).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Grote JSON-antwoorden comprimeren: de complete graaf (`/v1/annotatie/graaf`) is ~2 MB. Starlette
-# slaat `text/event-stream` zelf over, dus een stream wordt nooit gebufferd.
-app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Inkomende requests → spans (no-op zonder de otel-extra/endpoint).
 observability.instrument_fastapi(app)
 

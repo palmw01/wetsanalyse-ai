@@ -17,12 +17,12 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
 from agent.jas_pipeline.fusie import fuseer
 from agent.jas_pipeline.kandidaten import CandidateStatus
 from eval import casusbron, manifest
+from eval.padcontrole import veilig_pad
 from eval.metrieken import Ref, controleer_status, kandidaat_metrieken, kern, laagste_status
 
 
@@ -136,9 +136,9 @@ def main() -> int:
     m = meet(args.taal, args.casussen)
     print(markdown(m))
     if args.md:
-        Path(args.md).write_text(markdown(m), encoding="utf-8")
+        veilig_pad(args.md).write_text(markdown(m), encoding="utf-8")
     if args.json:
-        Path(args.json).write_text(json.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.json).write_text(json.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store as store, bestandsnaam, werkgebied_store
 from .auth import require_client
@@ -102,8 +102,7 @@ async def get_export(werkgebied_id: str, formaat: Literal["json", "csv", "ttl"] 
     else:
         data = await store.export(werkgebied_id, actor)
         body = store.json_export(data) if formaat == "json" else store.csv_export(data)
-    return Response(body, media_type=_MIME[formaat],
-                    headers={"Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("begrippen", formaat)}"'})
+    return bestandsnaam.download(body, _MIME[formaat], bestandsnaam.met_tijd("begrippen", formaat))
 
 
 @router.get("/conformiteit")

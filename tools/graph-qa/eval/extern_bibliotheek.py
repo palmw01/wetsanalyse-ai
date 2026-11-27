@@ -50,6 +50,7 @@ from urllib.parse import unquote
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from eval.padcontrole import veilig_pad  # noqa: E402
 from eval.extern_dossier import (  # noqa: E402
     Knoop,
     _cellen,
@@ -587,7 +588,7 @@ def _print(r: dict[str, Any]) -> None:
         print(f"Regels: {g['telling']}; alleen in het werkgebied: {len(g['alleen_in_lex'])}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Een begrippen- en regelbibliotheek inlezen en vergelijken met Lex")
     sub = ap.add_subparsers(dest="actie", required=True)
     lees = sub.add_parser("lees")
@@ -610,25 +611,24 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     def laad(p: Path) -> Any:
-        return json.loads(p.read_text(encoding="utf-8"))
+        return json.loads(veilig_pad(p).read_text(encoding="utf-8"))
 
     if args.actie == "lees":
         ref = lees_bibliotheek(sorted(args.begrippen.glob("*.html")), sorted(args.regels.glob("*.html")),
                                args.werkbestand, args.traject)
-        args.uit.write_text(json.dumps(ref, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.uit).write_text(json.dumps(ref, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"{len(ref['begrippen'])} begrippen, {len(ref['regels'])} regels, "
               f"{len(ref['formuleringen'])} formuleringen")
-        return 0
+        return
     if args.actie == "manifest":
-        args.uit.write_text(json.dumps(manifest(args.naam, args.mappen), indent=2) + "\n", encoding="utf-8")
-        return 0
+        veilig_pad(args.uit).write_text(json.dumps(manifest(args.naam, args.mappen), indent=2) + "\n", encoding="utf-8")
+        return
     regels = [laad(p) for p in sorted(args.regels.glob("*.json"))] if args.regels else None
     rapport = vergelijk(laad(args.referentie), laad(args.werkgebied), laad(args.begrippen), regels,
                         laad(args.afkortingen))
     if args.uit:
-        args.uit.write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.uit).write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(rapport)
-    return 0
 
 
 if __name__ == "__main__":

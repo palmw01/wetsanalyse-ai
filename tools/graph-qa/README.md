@@ -236,7 +236,7 @@ anders denkt de dienst dat hij zelf vastlegt.
 cd tools/graph-qa
 cp .env.example .env                              # vul GRAPHDB_* + AZURE_FOUNDRY_* in
 uv sync --extra nlp && uv pip install "$(uv run python scripts/taalmodel.py)"   # spaCy + het NL-model (niet in uv.lock)
-uv run graph-qa                                    # uvicorn op poort 8080
+uv run graph-qa                                    # uvicorn op 127.0.0.1:8080 (HOST/PORT)
 
 uv run --extra dev --extra mcp pytest -q          # tests; zonder mcp slaat test_mcp_server zichzelf over
 .venv/bin/python eval/run_eval.py --offline       # eval-harnas (fakes, geen netwerk/kosten)

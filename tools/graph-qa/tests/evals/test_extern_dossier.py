@@ -220,10 +220,10 @@ def test_cli_lees_en_vergelijk(tmp_path, capsys):
     (tmp_path / "a2.html").write_text(ACTIVITEIT_2, encoding="utf-8")
     (tmp_path / "a1.html").write_text(ACTIVITEIT_1, encoding="utf-8")
     ref = tmp_path / "ref.json"
-    assert ed.main(["lees", "--export", str(tmp_path), "--uit", str(ref)]) == 0
+    assert ed.main(["lees", "--export", str(tmp_path), "--uit", str(ref)]) is None
     (tmp_path / "els.json").write_text(json.dumps({"elementen": [_el("Rechtsobject", "de toeslag")]}))
     assert ed.main(["vergelijk", "--referentie", str(ref), "--platform", str(tmp_path / "els.json"),
-                    "--uit", str(tmp_path / "rapport.json")]) == 0
+                    "--uit", str(tmp_path / "rapport.json")]) is None
     assert "Recall per klasse" in capsys.readouterr().out
     assert json.loads((tmp_path / "rapport.json").read_text())["schema"] == "extern-vergelijking-v1"
 
@@ -482,7 +482,7 @@ def test_vergelijk_met_relaties_van_het_platform(referentie, tmp_path, capsys):
     basis = ["vergelijk", "--referentie", str(tmp_path / "ref.json"), "--platform", str(tmp_path / "els.json"),
              "--relaties", str(tmp_path / "rel.json")]
     assert ed.main(basis + ["--weergaven", str(tmp_path / "w"), "--relatie-mapping", str(tmp_path / "map.json"),
-                            "--uit", str(tmp_path / "r.json")]) == 0
+                            "--uit", str(tmp_path / "r.json")]) is None
     uit = capsys.readouterr().out
     assert "recall per catalogustype" in uit and "Regelskelet: volledig=1" in uit
     rapport = json.loads((tmp_path / "r.json").read_text())
@@ -497,7 +497,7 @@ def test_de_cli_zonder_de_nieuwe_opties_is_ongewijzigd(referentie, tmp_path, cap
     (tmp_path / "els.json").write_text(json.dumps({"elementen": [_el("Rechtsobject", "de toeslag")]}))
     (tmp_path / "rel.json").write_text(json.dumps(REFERENTIE_RELATIES))
     assert ed.main(["vergelijk", "--referentie", str(tmp_path / "ref.json"), "--platform", str(tmp_path / "els.json"),
-                    "--relaties", str(tmp_path / "rel.json"), "--uit", str(tmp_path / "r.json")]) == 0
+                    "--relaties", str(tmp_path / "rel.json"), "--uit", str(tmp_path / "r.json")]) is None
     uit = capsys.readouterr().out
     rapport = json.loads((tmp_path / "r.json").read_text())
     assert set(rapport) == {"schema", "platform_elementen", "annotaties", "relaties"}

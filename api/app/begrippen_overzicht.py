@@ -23,7 +23,7 @@ import unicodedata
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store, begrip_voorstel_store, bestandsnaam, db
@@ -187,8 +187,7 @@ async def post_verifieer(req: BegripVerificatie, actor: str = Depends(actieve_us
 async def get_export(inclusief: Literal["geaccordeerd", "alle"] = "geaccordeerd", actor: str = Depends(actieve_userid)):
     """Het generieke begrippenkader als Turtle (NL-SBB)."""
     body = await begrip_projectie.export_turtle(begrip_projectie.GENERIEK, alles=inclusief == "alle")
-    return Response(body, media_type="text/turtle; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("generieke-begrippen", "ttl")}"'})
+    return bestandsnaam.download(body, "text/turtle; charset=utf-8", bestandsnaam.met_tijd("generieke-begrippen", "ttl"))
 
 
 @router.get("/conformiteit")

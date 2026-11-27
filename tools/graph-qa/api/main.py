@@ -735,12 +735,14 @@ async def actieve_run(
 
 
 def run() -> None:
+    """`uv run graph-qa`: lokaal starten. Standaard alleen op deze machine (SonarQube S8392); wie hem van buiten wil
+    bereiken zet `HOST` zelf. De container start niet hier maar met de CMD van de Dockerfile, achter de ingress."""
     import os
 
     import uvicorn
     uvicorn.run(
         "api.main:app",
-        host="0.0.0.0",  # noqa: S104 – in de container luistert de dienst op alle interfaces; de ingress begrenst
+        host=os.environ.get("HOST", "127.0.0.1"),
         port=int(os.environ.get("PORT", "8080")),
         reload=False,
     )

@@ -19,6 +19,7 @@ from typing import Any
 
 from eval import manifest
 from eval.compare_pipelines import analyseer
+from eval.padcontrole import veilig_pad
 
 ROUTE = "hybrid_v1"
 METRICS = ("micro_f1", "micro_precision", "micro_ankerdekking", "macro_f1", "onbetwist_precision",
@@ -108,16 +109,16 @@ def main() -> int:
     ap.add_argument("--json", type=Path)
     args = ap.parse_args()
     try:
-        v = vergelijk(json.loads(args.voor.read_text()), json.loads(args.na.read_text()))
+        v = vergelijk(json.loads(veilig_pad(args.voor).read_text()), json.loads(veilig_pad(args.na).read_text()))
     except Onvergelijkbaar as exc:
         print(f"niet vergelijkbaar: {exc}")
         return 2
     tekst = markdown(v)
     print(tekst)
     if args.md:
-        args.md.write_text(tekst, encoding="utf-8")
+        veilig_pad(args.md).write_text(tekst, encoding="utf-8")
     if args.json:
-        args.json.write_text(json.dumps(v, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        veilig_pad(args.json).write_text(json.dumps(v, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

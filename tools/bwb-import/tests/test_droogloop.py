@@ -45,3 +45,17 @@ def test_droogloop_schrijft_turtle_en_raakt_graphdb_niet(
     g = Graph().parse(ttl, format="turtle")
     assert len(g) > 0
     assert "Import-overzicht" in capsys.readouterr().out
+
+
+def test_droogloop_schrijft_niet_buiten_de_toegestane_mappen(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+    """`--droog /etc/…` haalt niets op en schrijft niets: de padcontrole weigert het pad (Sonar S8707)."""
+
+    def verboden(*_a, **_k):
+        raise AssertionError("bij een geweigerd pad hoort er niets te gebeuren")
+
+    monkeypatch.setattr(main_module, "_haal_en_parse", verboden)
+    monkeypatch.setattr(main_module, "run_imports", verboden)
+    with pytest.raises(SystemExit) as exc:
+        main_module.main(["BWBR0004770", "--droog", "/etc/wa-droog"])
+    assert exc.value.code == 2
+    assert "valt buiten de toegestane mappen" in capsys.readouterr().err

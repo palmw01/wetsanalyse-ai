@@ -27,13 +27,28 @@ import argparse
 import base64
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
 from pathlib import Path
 
+# De eigen map op het pad: als script staat hij er vanzelf, maar niet als een test hem met importlib laadt.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from padcontrole import OnveiligPad, veilig_argument, veilig_pad  # noqa: E402
+
 TEMPLATE = Path(__file__).parent / "main.bicep"
 DEFAULT_PARAMS = Path(__file__).parent / "params.json"
+
+#: Een Azure-naam (resource group, app, regio): begint met een letter of cijfer, dus nooit als optie van `az` te lezen.
+_AZURE_NAAM = re.compile(r"[A-Za-z0-9][A-Za-z0-9._()-]{0,89}")
+
+
+def azure_naam(waarde: str) -> str:
+    """Argparse-type: alleen een geldige Azure-naam gaat het `az`-commando in (SonarQube S8705)."""
+    if not _AZURE_NAAM.fullmatch(waarde):
+        raise argparse.ArgumentTypeError(f"geen geldige Azure-naam: {waarde!r}")
+    return waarde
 
 
 def _secret(env: str, maak):
@@ -65,9 +80,9 @@ def main() -> None:
     p.add_argument("--license-file", default=os.environ.get("GRAPHDB_LICENSE_FILE"),
                    help="Pad naar graphdb.license. Zonder licentie komt de graaf read-only op en "
                         "faalt de import-job – GraphDB 11 staat schrijven alleen met licentie toe.")
-    p.add_argument("--resource-group", default="rg-wetsanalyse")
-    p.add_argument("--location", default="westeurope")
-    p.add_argument("--app-name", default="wetsanalyse")
+    p.add_argument("--resource-group", default="rg-wetsanalyse", type=azure_naam)
+    p.add_argument("--location", default="westeurope", type=azure_naam)
+    p.add_argument("--app-name", default="wetsanalyse", type=azure_naam)
     p.add_argument("--db-server-name", default=None)
     # Image-refs. Meegeven houdt een infra-deploy IMAGE-NEUTRAAL: zonder deze vlaggen vallen de
     # bicep-defaults (`:latest`) terug op hun plek en zet een infra-deploy de digest-pins van de
@@ -118,7 +133,10 @@ def main() -> None:
 
     licentie_b64 = ""
     if args.license_file:
-        lic = Path(args.license_file)
+        try:
+            lic = veilig_pad(args.license_file)
+        except OnveiligPad as exc:
+            p.error(str(exc))
         if not lic.is_file():
             p.error(f"licentiebestand niet gevonden: {lic}")
         licentie_b64 = base64.b64encode(lic.read_bytes()).decode()
@@ -200,7 +218,12 @@ def main() -> None:
         if vlag is not None:
             params["parameters"][param] = {"value": vlag}
 
-    params_path = Path(args.params_file)
+    try:
+        params_path = veilig_pad(args.params_file)
+        resource_group = veilig_argument(args.resource_group)
+        app_name = veilig_argument(args.app_name)
+    except OnveiligPad as exc:
+        p.error(str(exc))
     params_path.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding="utf-8")
     params_path.chmod(0o600)
     print(f"✓ Parameterbestand: {params_path}", file=sys.stderr)
@@ -209,10 +232,10 @@ def main() -> None:
     verb = "what-if" if args.what_if else "create"
     cmd = [
         "az", "deployment", "group", verb,
-        "--resource-group", args.resource_group,
+        "--resource-group", resource_group,
         "--template-file", str(TEMPLATE),
         "--parameters", f"@{params_path}",
-        "--name", f"{args.app_name}-infra",
+        "--name", f"{app_name}-infra",
     ]
     if not args.what_if:
         cmd += ["--output", "json"]

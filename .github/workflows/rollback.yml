@@ -123,14 +123,17 @@ jobs:
 
       - name: Samenvatting
         if: always()
+        # Invoer via env, nooit als `${{ }}` in het script: een revisie is vrije tekst (SonarQube S7630).
         env:
           APP: ${{ inputs.app }}
+          OMGEVING: ${{ inputs.omgeving }}
+          REVISIE: ${{ inputs.revisie }}
         run: |
           {
-            echo "## Rollback – ${{ inputs.omgeving }} / $APP_NAME-$APP"
+            echo "## Rollback – $OMGEVING / $APP_NAME-$APP"
             echo ""
-            if [ -n "${{ inputs.revisie }}" ]; then
-              echo "Teruggezet op de image van revisie \`${{ inputs.revisie }}\`."
+            if [ -n "$REVISIE" ]; then
+              echo "Teruggezet op de image van revisie \`$REVISIE\`."
               echo ""
               echo "Let op: de code op \`master\` en de tag \`release/prd\` wijzen hier níét mee terug."
               echo "Een volgende uitrol brengt de nieuwere versie gewoon weer binnen – repareer dus"

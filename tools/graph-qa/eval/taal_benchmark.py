@@ -36,6 +36,7 @@ from typing import Any
 from agent.jas_pipeline.taal import LinguisticAnalysis, maak_provider, spanopties
 
 from agent.jas_pipeline.profielen import referentieset_pad
+from eval.padcontrole import veilig_pad
 _VOORWAARDE_VOEGWOORDEN = {"indien", "tenzij", "mits", "als", "zover", "wanneer"}
 
 
@@ -155,9 +156,9 @@ def main() -> int:
     tekst = markdown(resultaten)
     print(tekst)
     if args.md:
-        Path(args.md).write_text(tekst, encoding="utf-8")
+        veilig_pad(args.md).write_text(tekst, encoding="utf-8")
     if args.json:
-        Path(args.json).write_text(json.dumps(resultaten, ensure_ascii=False, indent=2), encoding="utf-8")
+        veilig_pad(args.json).write_text(json.dumps(resultaten, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0
 
 

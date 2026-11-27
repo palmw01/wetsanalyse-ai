@@ -556,8 +556,8 @@ async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
         body = await asyncio.to_thread(export.pdf_export, view, verklaringen())
     else:
         body = await asyncio.to_thread(export.trig_export, await _laaggrafen(view))
-    return Response(body, media_type=_EXPORT_MIME[req.formaat], headers={
-        "Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("annotaties", req.formaat, view["export"]["op"])}"'})
+    return bestandsnaam.download(body, _EXPORT_MIME[req.formaat],
+                                 bestandsnaam.met_tijd("annotaties", req.formaat, view["export"]["op"]))
 
 
 async def _laaggrafen(view: dict) -> list:

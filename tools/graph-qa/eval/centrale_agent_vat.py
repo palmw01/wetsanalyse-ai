@@ -18,6 +18,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+try:
+    from eval.padcontrole import veilig_pad
+except ImportError:  # als script: `python3 eval/centrale_agent_vat.py`
+    from padcontrole import veilig_pad  # type: ignore[no-redef]
+
 SET = Path(__file__).resolve().parent / "golden_centrale_agent.jsonl"
 #: Een route in code vraagt het model hoogstens één keer: de toelichting van de bepalingsroute.
 MAX_RONDES_CODE = 1
@@ -216,10 +221,10 @@ def main() -> None:
     p.add_argument("--id", action="append", default=[])
     a = p.parse_args()
     opdrachten = lees_set()
-    oordelen = json.loads(a.oordelen.read_text(encoding="utf-8")) if a.oordelen else {}
+    oordelen = json.loads(veilig_pad(a.oordelen).read_text(encoding="utf-8")) if a.oordelen else {}
     regels = []
     for pad in a.ruw:
-        for rec in (json.loads(r) for r in pad.read_text(encoding="utf-8").splitlines() if r.strip()):
+        for rec in (json.loads(r) for r in veilig_pad(pad).read_text(encoding="utf-8").splitlines() if r.strip()):
             if a.id and rec["id"] not in a.id:
                 continue
             s = vat(rec, opdrachten[rec["id"]])
@@ -232,7 +237,7 @@ def main() -> None:
                 print(f"   [{b['label']}] {b.get('vraag', '')[:100]}")
                 print("     " + (b.get("tekst") or "").replace("\n", "\n     ")[:a.tekst])
     if a.uit:
-        a.uit.write_text("".join(json.dumps(s, ensure_ascii=False) + "\n" for s in regels), encoding="utf-8")
+        veilig_pad(a.uit).write_text("".join(json.dumps(s, ensure_ascii=False) + "\n" for s in regels), encoding="utf-8")
         print(f"{len(regels)} regels naar {a.uit}")
 
 

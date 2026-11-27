@@ -21,10 +21,10 @@ import json
 import sys
 from collections import Counter
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Any
 
 from agent.jas_klassen import GELDIGE_JAS_KLASSEN
+from eval.padcontrole import veilig_pad
 from eval.referentieset import (
     BESLUITEN, SOURCE_STATUS, ReferentieFout, _keuze, _span, _velden, casussen,
 )
@@ -237,7 +237,7 @@ def besluitsjabloon(a: dict[str, Any], b: dict[str, Any], verschillen: list[Vers
 
 
 def _laad(pad: str) -> dict[str, Any]:
-    return json.loads(Path(pad).read_text(encoding="utf-8"))
+    return json.loads(veilig_pad(pad).read_text(encoding="utf-8"))
 
 
 def _casus(ann: dict[str, Any]) -> dict[str, Any]:
@@ -247,7 +247,7 @@ def _casus(ann: dict[str, Any]) -> dict[str, Any]:
     return alle[ann["casus_id"]]
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="actie", required=True)
     v = sub.add_parser("vergelijk")
@@ -271,17 +271,16 @@ def main(argv: list[str] | None = None) -> int:
         verschillen = vergelijk(a, b, casus["tekst"])
         md = als_markdown(casus, a, b, verschillen)
         if args.md:
-            Path(args.md).write_text(md, encoding="utf-8")
+            veilig_pad(args.md).write_text(md, encoding="utf-8")
         if args.json:
-            Path(args.json).write_text(json.dumps(
+            veilig_pad(args.json).write_text(json.dumps(
                 {"casus": casus["id"], "overeenstemming": overeenstemming(verschillen),
                  "verschillen": [asdict(x) for x in verschillen], "besluiten": besluitsjabloon(a, b, verschillen)},
                 ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         sys.stdout.write(md)
-        return 0
+        return
     uit = adjudiceer(casus, a, b, _laad(args.besluiten), args.adjudicator, args.datum)
     sys.stdout.write(json.dumps(uit, ensure_ascii=False, indent=2) + "\n")
-    return 0
 
 
 if __name__ == "__main__":
