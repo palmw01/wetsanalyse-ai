@@ -3,6 +3,24 @@ name = "bwb-import"
 version = "0.1.0"
 description = "ETL voor het Basiswettenbestand (BWB) naar GraphDB (RDF/SPARQL)"
 requires-python = ">=3.13"
+# De lock (uv.lock) legt de versies vast; de image en CI installeren met `uv sync --frozen/--locked --no-build`
+# (supply chain, SonarQube S8541/S8544). De BWB-lezer staat in packages/bronmodel (`bronmodel.bwb`), gedeeld met graph-qa.
+dependencies = [
+    "wetsanalyse-bronmodel[bwb]",
+    "lxml>=6.1.3",
+    "requests~=2.34",
+    "rdflib~=7.6",
+    "python-dotenv~=1.2",
+    "pyshacl>=0.30",
+]
+
+[project.optional-dependencies]
+# Alleen voor tests en lint; niet in de image.
+dev = [
+    "pytest~=9.2",
+    "ruff~=0.17",
+    "black~=26.10",
+]
 
 [tool.black]
 line-length = 100
@@ -17,3 +35,14 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.uv]
+# Een applicatie, geen bibliotheek: uv installeert de map zelf niet (zoals api).
+package = false
+# Supply chain (SonarQube S8541): uv bouwt niets vanaf de bron, behalve onze eigen pakketten hieronder. Die hebben geen
+# wheel; de rest komt als wheel uit de lock. CI en de image zeggen het ook op de opdrachtregel (`--no-build`).
+no-build = true
+no-binary-package = ["wetsanalyse-bronmodel"]
+
+[tool.uv.sources]
+wetsanalyse-bronmodel = { path = "../../packages/bronmodel" }

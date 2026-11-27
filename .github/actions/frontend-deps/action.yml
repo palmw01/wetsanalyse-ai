@@ -31,4 +31,4 @@ runs:
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       working-directory: frontend
-      run: npm ci
+      run: npm ci --ignore-scripts

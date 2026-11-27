@@ -1,5 +1,30 @@
 # Self-contained image voor de BWB-importer: de jobs op Azure starten `python -m app.main`.
-FROM python:3.15-slim
+# ── Builder ───────────────────────────────────────────────────────────────────
+# Zoals api/Dockerfile: uv leeft alleen in deze stage en bouwt de .venv uit de lock; de runtime krijgt alleen die venv.
+# Supply chain (SonarQube S8541/S8544): `--frozen` installeert precies de versies uit uv.lock, die de poort en pip-audit
+# al toetsten, en `--no-build` bouwt niets vanaf de bron behalve onze eigen pakketten (`[tool.uv] no-binary-package`).
+# De buildcontext is de projectroot (zoals bij api en graph-qa): de BWB-lezer en de officiële XSD's staan in
+# packages/bronmodel (`bronmodel.bwb`), gedeeld met graph-qa.
+FROM python:3.15-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:0.11@sha256:ff07b86af50d4d9391d9daf4ff89ce427bc544f9aae87057e69a1cc0aa369946 /uv /bin/uv
+
+# De systeem-Python van de base: dan wijst de .venv naar /usr/local/bin/python3.15, dat ook in de runtime bestaat.
+# Het project staat hier zoals in de repo (`../../packages/bronmodel` moet binnen het bestandssysteem blijven); de venv
+# komt meteen op zijn plek in de runtime, /app/.venv. Alles gaat er niet-editable in, dus niets wijst terug naar /src.
+ENV UV_PYTHON_PREFERENCE=only-system \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+
+WORKDIR /src/tools/bwb-import
+
+# Alleen de runtime-dependencies (de extra `dev` – pytest, ruff, black – blijft buiten de image). lxml-wheels bundelen
+# libxml2/libxslt.
+COPY tools/bwb-import/pyproject.toml tools/bwb-import/uv.lock ./
+COPY packages/bronmodel /src/packages/bronmodel
+RUN uv sync --frozen --no-build --no-editable
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+FROM python:3.15-slim AS runtime
 
 WORKDIR /app
 
@@ -10,20 +35,14 @@ RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Pip eerst upgraden en zijn vendored SBOM weghalen — zelfde fix als in api/Dockerfile en
-# tools/graph-qa/Dockerfile, dit was de derde plek die hem nodig had. pip 26.x bakt een
-# CycloneDX-SBOM van zijn eigen vendored deps mee (`pip/_vendor/bom.cdx.json`) die Trivy als
-# pakketinventaris leest: die meldde hier setuptools 70.3.0 (CVE-2025-47273, CVE-2026-59890) en
-# msgpack 1.1.2 (GHSA-6v7p-g79w-8964) terwijl geen van beide als pakket geïnstalleerd is.
-RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
- && rm -f /usr/local/lib/python3*/site-packages/pip/_vendor/bom.cdx.json
+# De runtime installeert niets: pip eruit, zoals de frontend npm weghaalt. Een achterlopende pip uit de base (en de
+# CycloneDX-SBOM van zijn vendored deps, `pip/_vendor/bom.cdx.json`, die hier ooit setuptools 70.3.0 en msgpack 1.1.2
+# als kwetsbaar liet melden) leverde anders Trivy-alerts op zonder ooit te draaien.
+RUN rm -rf /usr/local/lib/python3*/site-packages/pip /usr/local/lib/python3*/site-packages/pip-*.dist-info \
+    /usr/local/bin/pip /usr/local/bin/pip3*
 
-# Dependencies (betere layer-caching). lxml-wheels bundelen libxml2/libxslt. De buildcontext is de projectroot (zoals
-# bij api en graph-qa): de BWB-lezer en de officiële XSD's staan in packages/bronmodel (`bronmodel.bwb`), gedeeld met
-# graph-qa. requirements.txt noemt hem als `../../packages/bronmodel[bwb]`; vanuit /app is dat /packages/bronmodel.
-COPY packages/bronmodel /packages/bronmodel
-COPY tools/bwb-import/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Applicatiecode.
 COPY tools/bwb-import/app ./app

@@ -1,0 +1,8 @@
+# Het spaCy-model van de taalanalyse (de extra `nlp`, ADR-002): niet op PyPI, dus een wheel van de release van
+# explosion, met zijn hash. Bewust buiten uv.lock: een directe URL in de lock liet Dependabot voor graph-qa sinds okt 2026
+# elke update weigeren (private_source_authentication_failure). De poort en de image installeren het met
+#   uv pip install --no-deps --no-build --require-hashes -r taalmodel.txt
+# `tests/runs/test_deploy_drift.py` bewaakt dat beide dit bestand gebruiken. Een nieuwe versie: URL én hash vervangen
+# (`curl -sL <url> | sha256sum`).
+nl-core-news-md @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl \
+    --hash=sha256:8969da865bb746189783c40197a7e2c082adda73b7fc0d9a364a5e644ff54e68
