@@ -13,8 +13,8 @@
 <urn:bwb-ns> a owl:Ontology ;
     rdfs:label "BWB-ontologie"@nl ;
     rdfs:comment "Vocabulaire voor het Basiswettenbestand, gealigneerd op ELI."@nl ;
-    owl:versionIRI <urn:bwb-ns:versie:1.0.0> ;
-    owl:versionInfo "1.0.0" .
+    owl:versionIRI <urn:bwb-ns:versie:1.1.0> ;
+    owl:versionInfo "1.1.0" .
 
 bwb:AMvB a owl:Class ;
     rdfs:label "AMvB"@nl ;
@@ -192,6 +192,12 @@ bwb:heeftBijlage a owl:ObjectProperty ;
     rdfs:label "heeft bijlage"@nl ;
     rdfs:comment "Regeling bevat bijlage."@nl ;
     rdfs:range bwb:Bijlage ;
+    rdfs:subPropertyOf eli:has_part .
+
+bwb:heeftBoek a owl:ObjectProperty ;
+    rdfs:label "heeft boek"@nl ;
+    rdfs:comment "Regeling bevat boek."@nl ;
+    rdfs:range bwb:Boek ;
     rdfs:subPropertyOf eli:has_part .
 
 bwb:heeftDivisie a owl:ObjectProperty ;
@@ -430,6 +436,11 @@ bwb:Bijlage a owl:Class ;
     rdfs:subClassOf eli:LegalResourceSubdivision,
         bwb:Citeerbaar .
 
+bwb:Boek a owl:Class ;
+    rdfs:label "Boek"@nl ;
+    rdfs:comment "Boek van een wettekst met meer boeken (Rv, Sv). Het ene boek van een BW-boek is de regeling zelf."@nl ;
+    rdfs:subClassOf bwb:Structuurdeel .
+
 bwb:Divisie a owl:Class ;
     rdfs:label "Divisie"@nl ;
     rdfs:comment "Divisie van een circulaire/beleidsregel; container én tekstdrager."@nl ;
@@ -479,15 +490,15 @@ bwb:Verwijzing a owl:Class ;
     rdfs:label "Verwijzing"@nl ;
     rdfs:comment "Gereïficeerde verwijzing met soort/doel-metadata."@nl .
 
-bwb:Structuurdeel a owl:Class ;
-    rdfs:label "Structuurdeel"@nl ;
-    rdfs:comment "Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …)."@nl ;
-    rdfs:subClassOf eli:LegalResourceSubdivision .
-
 bwb:Citeerbaar a owl:Class ;
     rdfs:label "Citeerbaar"@nl ;
     rdfs:comment "Tekstdeel met een eigen JuriConnect-identiteit; doel van verwijzingen."@nl ;
     rdfs:subClassOf eli:LegalResource .
+
+bwb:Structuurdeel a owl:Class ;
+    rdfs:label "Structuurdeel"@nl ;
+    rdfs:comment "Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …)."@nl ;
+    rdfs:subClassOf eli:LegalResourceSubdivision .
 
 bwb:Regeling a owl:Class ;
     rdfs:label "Regeling"@nl ;
