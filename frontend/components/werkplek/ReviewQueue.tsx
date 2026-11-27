@@ -22,6 +22,7 @@ import { KlasseLabel, PassageCitaat, StatusLabel } from "@/components/ui/Lijst";
 import { RIJ_KADER } from "@/components/ui/Pagina";
 import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { knopKlasse } from "@/components/ui/Button";
+import { focusBijOpenen } from "@/lib/focusBijOpenen";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
   { waarde: "verkeerde_klasse", label: "verkeerde klasse" },
@@ -117,7 +118,7 @@ function InlineVeld({
     return (
       <button
         type="button"
-        autoFocus
+        ref={focusBijOpenen}
         onClick={async () => {
           setWisBevestiging(false);
           await onBewaar("");
@@ -145,7 +146,7 @@ function InlineVeld({
   return (
     <div data-bewerken>
       <input
-        autoFocus
+        ref={focusBijOpenen}
         value={bw.concept}
         onChange={(e) => bw.zet(e.target.value)}
         onKeyDown={bw.toetsen(true)}
@@ -286,6 +287,8 @@ function DecisionCard({
       ref={kaartRef}
       data-tour={tourAnker ? "review-kaart" : undefined}
       data-review-kaart={el.id}
+      // Kiezen met de muis is gemak: alles op de kaart is ook met een echte knop te bereiken.
+      role="presentation"
       onClick={onKies}
       // Hetzelfde kader als een rij bij een begrip of regel (`RIJ_KADER`); de linkerrand draagt de aandacht (🟢🟡🔴).
       className={`${RIJ_KADER} border-l-4 transition ${
@@ -352,7 +355,7 @@ function DecisionCard({
             op `sm:` doet de flex-verdeling dat al. */}
         <span
           className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:order-3 sm:ml-0"
-          onClick={(e) => e.stopPropagation()}
+          role="presentation" onClick={(e) => e.stopPropagation()}
         >
           {/* Het oordeel als `StatusLabel`, zoals bij een passage van een begrip of een drager van een regel. */}
           {beslist && (
@@ -413,7 +416,7 @@ function DecisionCard({
         <p className="mt-1 text-3xs text-muted">Subtype: <span className="text-ink">{el.jas_subtype}</span></p>
       )}
       {palet && !slot && (JAS_SUBTYPEN[el.klasse] ?? []).length > 0 && (
-        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2" role="presentation" onClick={(e) => e.stopPropagation()}>
           <KeuzeRij label="Subtype">
             <span className="self-center text-3xs text-muted">Subtype</span>
             {JAS_SUBTYPEN[el.klasse].map((st) => (
@@ -426,7 +429,7 @@ function DecisionCard({
         </div>
       )}
       {palet && !slot && (
-        <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2 flex flex-wrap gap-1" role="presentation" onClick={(e) => e.stopPropagation()}>
           {JAS_KLASSEN.filter((k) => k !== el.klasse).map((k) => (
             <button
               key={k}
@@ -445,7 +448,7 @@ function DecisionCard({
           Wissen is onomkeerbaar – vandaar de tweede klik in plaats van een dialoog. Bij verwerpen is
           de reden echte informatie die alleen de mens heeft; die is niet af te leiden. */}
       {verwerpOpen && !slot && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5" role="presentation" onClick={(e) => e.stopPropagation()}>
           {eigen ? (
             <button
               type="button"
@@ -496,7 +499,7 @@ function DecisionCard({
       )}
 
       {uitgeklapt && (
-        <div className="mt-1.5 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-1.5 text-xs text-muted" role="presentation" onClick={(e) => e.stopPropagation()}>
           {slot ? (
             el.toelichting && <p className="px-1 py-0.5">{el.toelichting}</p>
           ) : (
@@ -522,7 +525,7 @@ function DecisionCard({
       )}
 
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" role="presentation" onClick={(e) => e.stopPropagation()}>
           <span>Twijfel – klik om te wisselen:</span>
           {el.alternatieven.map((a) => (
             <button
@@ -539,7 +542,7 @@ function DecisionCard({
       )}
 
       {uitgeklapt && !slot && (el.grensopties?.length ?? 0) > 0 && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" role="presentation" onClick={(e) => e.stopPropagation()}>
           <span>Andere grens:</span>
           {el.grensopties!.map((o) => (
             <button key={o.index} type="button" disabled={bezig} title={`Voorgesteld door de keten (${o.soort})`}
@@ -551,16 +554,16 @@ function DecisionCard({
         </div>
       )}
 
-      {uitgeklapt && extra && <div onClick={(e) => e.stopPropagation()}>{extra}</div>}
+      {uitgeklapt && extra && <div role="presentation" onClick={(e) => e.stopPropagation()}>{extra}</div>}
 
       {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier: de ene knop (`VraagLexKnop`) zet de
           markering daar als onderwerp, met de suggesties erbij; het antwoord komt in de thread – inclusief bronnen en
           grounding. Buiten de werkplek heeft een markering geen weg, en dan geen knop. */}
-      {uitgeklapt && vraag && <div className="mt-2" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
+      {uitgeklapt && vraag && <div className="mt-2" role="presentation" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
 
       {/* De metaregel zoals onder een rij bij een begrip of regel (`LijstRij`): klein, gedempt, zonder lijn erboven. */}
       <div data-kaart-meta className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted">
-        <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
+        <span className="min-w-0 flex-1" role="presentation" onClick={(e) => e.stopPropagation()}>
           {!uitgeklapt || notitieDicht ? null : notitie ? (
             <InlineVeld
               waarde=""

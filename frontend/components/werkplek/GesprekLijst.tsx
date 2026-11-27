@@ -16,6 +16,7 @@ import { bewaarDicht, deelgesprekProfiel, deelIn, leesDicht } from "@/lib/gespre
 import { STAND_TEKST, type TaakStand } from "@/lib/delegatie";
 import type { GesprekRunStand } from "@/lib/runStanden";
 import type { GesprekSamenvatting } from "@/lib/types";
+import { focusBijOpenen } from "@/lib/focusBijOpenen";
 
 function korteDatum(iso?: string): string {
   return tijdOfDag(iso);
@@ -259,7 +260,7 @@ function Rij({ gesprek, actief, acties, toonPlek = false, status, delegatie }: {
     return (
       <li className="px-1 py-0.5" data-bewerken>
         <input
-          autoFocus
+          ref={focusBijOpenen}
           aria-label="Naam van het gesprek"
           value={bw.concept}
           onChange={(e) => bw.zet(e.target.value)}

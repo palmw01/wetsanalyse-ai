@@ -1468,8 +1468,9 @@ export function WerkplekClient({
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-paper px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
               ref={taRef}
-              // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat.
-              autoFocus={Boolean(beginInvoer)}
+              // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat. Bewust autoFocus: de
+              // gebruiker opende de vraag zelf (*Samenstellen met Lex*), en de focus moet er al vóór de hydratie staan.
+              autoFocus={Boolean(beginInvoer)} /* NOSONAR: focus na een handeling van de gebruiker, al in de server-HTML */
               value={invoer}
               onChange={(e) => { setInvoer(e.target.value); setMenuCursor(0); setMenuDicht(false); }}
               onKeyDown={opToets}

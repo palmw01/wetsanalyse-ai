@@ -46,7 +46,8 @@ export function Scheiding({ label, waarde, min, max, onSleep, onLos, onToets, on
   }
 
   return (
-    <div role="separator" aria-orientation="vertical" aria-label={label} tabIndex={0}
+    // Een focusbare separator met aria-valuenow is een ARIA-splitter (WAI-ARIA window splitter): interactief, dus tabIndex.
+    <div role="separator" aria-orientation="vertical" aria-label={label} tabIndex={0} /* NOSONAR: ARIA-splitter */
       aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(waarde)} {...data}
       onPointerDown={begin} onDoubleClick={onStandaard}
       onKeyDown={(e) => { if (onToets(e.key)) e.preventDefault(); }}

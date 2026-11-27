@@ -172,7 +172,7 @@ function MarkeerStuk({ tekst, vlak, banen, aantal, gekozen, kies, kiesbaar = () 
   if (!banen.length) return <>{inhoud}</>;
   const kiesBaan = !vlak && kies && kiesbaar(banen[0].id) ? () => kies(banen[0].id) : undefined;
   return (
-    <span data-banen={banen.map((b) => b.id).join(" ")} title={uitleg} onClick={kiesBaan}
+    <span role="presentation" data-banen={banen.map((b) => b.id).join(" ")} title={uitleg} onClick={kiesBaan}
       ref={vlak ? undefined : markRef as Ref<HTMLSpanElement>}
       className={`box-decoration-clone ${kiesBaan ? "cursor-pointer" : ""}`}
       style={baanStijl(banen.map((b) => ({ kleur: jasRandKleur(b.klasse), baan: b.baan, gedimd: Boolean(gekozen && gekozen !== b.id) })), aantal)}>
@@ -300,7 +300,7 @@ function MarkeerTekst({ laag, maat, basisEm }: { laag: MarkeerLaag; maat: string
   }, [actiefId]);
 
   return (
-    <div ref={houderRef} onMouseUp={() => verwerkRef.current()} data-testid="wettekst-markeerlaag"
+    <div role="presentation" ref={houderRef} onMouseUp={() => verwerkRef.current()} data-testid="wettekst-markeerlaag"
       className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${maat} text-ink`}>
       {plekken.map((p) => {
         const s = p.segment;

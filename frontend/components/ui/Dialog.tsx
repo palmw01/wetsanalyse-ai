@@ -193,7 +193,7 @@ export function Dialog({ label, variant = "center", wrapperClassName = "", onSlu
 
   return (
     <div className={`fixed inset-0 z-40 ${wrapperClassName}`} role="dialog" aria-modal="true" aria-label={label}>
-      <div className="absolute inset-0 bg-ink/30" onClick={onSluit} />
+      <div role="presentation" className="absolute inset-0 bg-ink/30" onClick={onSluit} />
       <div ref={paneelRef} tabIndex={-1} className={PANEEL_CLASS[variant]}>
         {kop && <DialoogKop {...kop} onSluit={onSluit} />}
         {children}
