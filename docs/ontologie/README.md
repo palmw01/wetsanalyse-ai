@@ -396,6 +396,12 @@ Gereïficeerde verwijzing met soort/doel-metadata.
 | `bwb:betrouwbaarheid` | 0..1 | "laag" | Betrouwbaarheid van een gedetecteerde (tekstuele) verwijzing. |
 | `bwb:doc` | 0..1 | xsd:string | Ruwe jci-doc van de verwijzing. |
 
+### Kwaliteitstoets
+
+| ernst | bevinding |
+|---|---|
+| waarschuwing | 37 eigenschappen zonder eis in de shapes (alleen in het vocabulaire): `bwb:aanhef`, `bwb:achternaam`, `bwb:afkorting`, `bwb:alt`, `bwb:alternatieveTitel`, `bwb:bevatIllustratie`, `bwb:bevoegdheidVoor`, `bwb:breedte`, `bwb:bron`, `bwb:considerans`, `bwb:definieertBegrip`, `bwb:doelLabel`, `bwb:doelLid`, `bwb:doelPad`, `bwb:dossier`, `bwb:eerstverantwoordelijke`, `bwb:effect`, `bwb:grondslagVoor`, `bwb:heeftGrondslag`, `bwb:hoogte`, `bwb:inFamilie`, `bwb:inwerking`, `bwb:inwerkingtredingsbron`, `bwb:labelId`, `bwb:ondertekeningsdatum`, `bwb:opmerking`, `bwb:plaats`, `bwb:publicatiejaar`, `bwb:publicatienr`, `bwb:status`, `bwb:terugwerkendTot`, `bwb:uitgiftedatum`, `bwb:verwijzingDoor`, `bwb:verwijzingId`, `bwb:voetnoot`, `bwb:voornaam`, `bwb:wijzigingsbronnen` |
+
 ### Alle eigenschappen van de T-Box
 
 | eigenschap | soort | bereik | ELI | uitleg |
@@ -697,6 +703,10 @@ Precies één van: (oa:motivatedBy = oa:classifying en jas:klasse aanwezig en ja
 |---|---|---|---|
 | `oa:exact` | 1 | xsd:string; lengte ≥ 1 |  |
 
+### Kwaliteitstoets
+
+Geen bevindingen.
+
 ## Begrippen en afleidingsregels
 
 Per werkgebied staat er één named graph met het begrippenkader (`skos:ConceptScheme`, volgens NL-SBB) en de afleidingsregels. Een begrip rust op de passages die het dragen: elke koppeling wijst naar een markering met haar bewijsstand, en via die markering naar de bepaling. Een regel loopt naar de wettekst via zijn dragers. Begrippen zijn analyse-uitkomsten, geen wettelijke definities. Het NL-SBB-profiel (`api/app/shapes/nl-sbb-1.0.0.ttl`, Geonovum, CC-BY 4.0; herkomst in `api/app/shapes/BRON.md`) staat hier niet in: de tabellen geven alleen de eigen eisen. Het vocabulaire `wa-vocabulaire.ttl` is **alleen documentatie** en wordt niet in GraphDB geladen.
@@ -822,18 +832,18 @@ Een regel die één begrip afleidt uit invoerbegrippen, in één of meer gevalle
 | `wa:revisie` | 1 | xsd:integer; ≥ 1 | Een regel heeft precies één revisie (≥ 1). |
 | `wa:status` | 1 | "concept" · "geaccordeerd" · "geaccordeerd_als_beleidsregel" · "afgewezen" · "vervangen" | Een regel heeft precies één status. |
 | `wa:uitvoer` | 1 | – | Een regel leidt precies één begrip af. |
-| `wa:drager` | 0..n | → wa:Regeldrager |  |
+| `wa:drager` | 0..n | → wa:Regeldrager | Een drager van de regel: de koppeling met een markering. |
 | `wa:brontype` |  | – | Waar de regel op rust, standaard wet. |
 | `wa:geaccordeerdOp` |  | xsd:dateTime | Moment van accorderen. |
 | `wa:geaccordeerdRevisie` |  | – | De revisie die geaccordeerd is. |
 | `wa:herkomst` |  | – | Wie de relatie of regel voorstelde: lex, analist of systeem. |
 | `wa:inKader` |  | → skos:ConceptScheme | Het begrippenkader van het werkgebied waarin de regel staat. |
-| `wa:invoer` |  | → wa:Invoer |  |
+| `wa:invoer` |  | → wa:Invoer | Een invoerbegrip van de regel. |
 | `wa:onderwerp` |  | → skos:Concept | Het begrip waarover de regel iets afleidt. |
 | `wa:regeltekst` |  | rdf:langString | De afgeleide regeltekst van de regel of het geval. |
 | `wa:rustOp` |  | → jas:Markering | De markeringen waarop een voorwaarde of regel rust. |
 | `wa:soort` |  | – | Soort afleidingsregel. |
-| `wa:voorbeeld` |  | → wa:Voorbeeld |  |
+| `wa:voorbeeld` |  | → wa:Voorbeeld | Een uitgewerkt voorbeeld bij de regel. |
 
 #### `wa:Begripsrelatie`
 
@@ -856,9 +866,9 @@ Eén geval van een afleidingsregel, met zijn voorwaarden en voorrang.
 | `wa:gebruiktBegrip` |  | → skos:Concept | Een begrip dat het kader of een geval gebruikt zonder het te bevatten (een generiek begrip, ADR-006). |
 | `wa:label` |  | – | Label van een geval. |
 | `wa:regeltekst` |  | rdf:langString | De afgeleide regeltekst van de regel of het geval. |
-| `wa:volgorde` |  | xsd:integer |  |
+| `wa:volgorde` |  | xsd:integer | Volgnummer binnen de ouder, om op te sorteren. |
 | `wa:voorrang` |  | xsd:integer | Voorrang van een geval boven andere gevallen. |
-| `wa:voorwaarden` |  | → wa:Voorwaarde, → wa:Voorwaardengroep |  |
+| `wa:voorwaarden` |  | → wa:Voorwaarde, → wa:Voorwaardengroep | De voorwaarde of voorwaardengroep van een geval. |
 
 #### `wa:Invoer`
 
@@ -868,7 +878,7 @@ Een invoerbegrip van een afleidingsregel, met rol en volgorde.
 |---|---|---|---|
 | `wa:begrip` |  | → skos:Concept | Het begrip van een invoer of van een waarde in een voorbeeld. |
 | `wa:rol` |  | – | Rol van een koppeling (duiding, afgeleid, definitie, context), een drager (grondslag, voorwaarde, invoer, uitvoer, tijd, context), een invoer, of een brondocument (definitieonderbouwing). |
-| `wa:volgorde` |  | xsd:integer |  |
+| `wa:volgorde` |  | xsd:integer | Volgnummer binnen de ouder, om op te sorteren. |
 
 #### `wa:Koppeling`
 
@@ -905,10 +915,10 @@ Een uitgewerkt voorbeeld bij een regel: invoer, verwachte uitkomst en oordeel.
 |---|---|---|---|
 | `wa:gevalVan` |  | → wa:Geval | Het geval van een andere regel waarnaar een voorwaarde of voorbeeld verwijst. |
 | `wa:inGeval` |  | → wa:Geval | Het geval van deze regel waar een voorbeeld of drager bij hoort. |
-| `wa:oordeel` |  | – |  |
-| `wa:verwachteUitkomst` |  | rdf:langString |  |
-| `wa:volgorde` |  | xsd:integer |  |
-| `wa:voorbeeldInvoer` |  | rdf:langString |  |
+| `wa:oordeel` |  | – | Oordeel over het voorbeeld (bijvoorbeeld open of akkoord). |
+| `wa:verwachteUitkomst` |  | rdf:langString | Wat de regel bij deze invoer moet opleveren. |
+| `wa:volgorde` |  | xsd:integer | Volgnummer binnen de ouder, om op te sorteren. |
+| `wa:voorbeeldInvoer` |  | rdf:langString | De invoer van het voorbeeld als tekst. |
 | `wa:waarde` |  | – | Op een voorbeeld: een knoop met wa:begrip en wa:waarde; op die knoop: de waarde zelf als literal. |
 
 #### `wa:Voorwaarde`
@@ -917,7 +927,7 @@ Een enkelvoudige voorwaarde: tekst, rustend op markeringen of verwijzend naar he
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `wa:tekst` | 1 | – |  |
+| `wa:tekst` | 1 | – | De tekst van een voorwaarde. |
 | `wa:gevalVan` |  | → wa:Geval | Het geval van een andere regel waarnaar een voorwaarde of voorbeeld verwijst. |
 | `wa:niet` |  | xsd:boolean | De voorwaarde is ontkend. |
 | `wa:rustOp` |  | → jas:Markering | De markeringen waarop een voorwaarde of regel rust. |
@@ -928,7 +938,7 @@ Een groep voorwaarden die alle of één van alle moeten gelden.
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `wa:deel` |  | → wa:Voorwaarde, → wa:Voorwaardengroep |  |
+| `wa:deel` |  | → wa:Voorwaarde, → wa:Voorwaardengroep | Een voorwaarde of groep binnen een voorwaardengroep. |
 | `wa:verband` |  | – | alle of een_van. |
 
 #### `foaf:Document`
@@ -972,6 +982,12 @@ Fout (SPARQL-regel) als: “Een subject onder urn:bwb: in een begrippengraph –
 | `wa:nlSbbVersie` |  | – | Alleen in de Turtle-export: de versie van het NL-SBB-profiel. |
 | `wa:projectieHash` |  | xsd:string | Hash van de Postgres-stand waaruit de graph is gebouwd. |
 | `wa:schemaVersie` |  | xsd:integer | Versie van de projectie; een andere waarde laat de reconcile-lus alles opnieuw projecteren. |
+
+### Kwaliteitstoets
+
+| ernst | bevinding |
+|---|---|
+| waarschuwing | 40 eigenschappen zonder eis in de shapes (alleen in het vocabulaire): `wa:begrip`, `wa:brontype`, `wa:deel`, `wa:exportOmvang`, `wa:geaccordeerdOp`, `wa:geaccordeerdRevisie`, `wa:gebruiktBegrip`, `wa:gevalVan`, `wa:grensgeval`, `wa:heeftSoort`, `wa:inGeval`, `wa:inGraaf`, `wa:inKader`, `wa:invoer`, `wa:kwalificeert`, `wa:label`, `wa:niet`, `wa:nlSbbConform`, `wa:nlSbbVersie`, `wa:omvat`, `wa:omvatNiet`, `wa:onderwerp`, `wa:oordeel`, `wa:passage`, `wa:projectieHash`, `wa:regeltekst`, `wa:rustOp`, `wa:schemaVersie`, `wa:soort`, `wa:tegenvoorbeeld`, `wa:toelichting`, `wa:verband`, `wa:verwachteUitkomst`, `wa:verwantMet`, `wa:volgorde`, `wa:voorbeeld`, `wa:voorbeeldInvoer`, `wa:voorrang`, `wa:voorwaarden`, `wa:waarde` |
 
 ## Kennisgroepstandpunten
 
@@ -1054,10 +1070,10 @@ Een nieuwsbericht dat de publicatie noemt (…/gebeurtenis/<id>). Niet getypeerd
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `kgo:datum` |  | xsd:date |  |
-| `kgo:gebeurtenissoort` |  | – |  |
+| `kgo:datum` |  | xsd:date | Datum van de publicatie of het nieuwsbericht. |
+| `kgo:gebeurtenissoort` |  | – | Soort gebeurtenis, uit het nieuwsbericht afgeleid. |
 | `kgo:link` |  | – | Vindplaats bij de bron. |
-| `kgo:titel` |  | – |  |
+| `kgo:titel` |  | – | Titel van de publicatie of het nieuwsbericht. |
 
 #### `kgo:Publicatie`
 
@@ -1065,38 +1081,38 @@ Een publicatie op de kennisgroepenpagina's; IRI urn:wa:kennisgroepen:wp:<id>.
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `kgo:belastingsoort` |  | – |  |
-| `kgo:berichtsoort` |  | – |  |
-| `kgo:bijlage` |  | – |  |
+| `kgo:belastingsoort` |  | – | Belastingsoort waarover de publicatie gaat. |
+| `kgo:berichtsoort` |  | – | Soort bericht volgens de bron. |
+| `kgo:bijlage` |  | – | Naam of link van een bijlage bij de publicatie. |
 | `kgo:bronHash` |  | – | Hash over de inhoud bij de bron. |
-| `kgo:datum` |  | xsd:date |  |
-| `kgo:gebeurtenis` |  | → kgo:Gebeurtenis |  |
-| `kgo:gepubliceerd` |  | xsd:date |  |
-| `kgo:gewijzigd` |  | xsd:date |  |
+| `kgo:datum` |  | xsd:date | Datum van de publicatie of het nieuwsbericht. |
+| `kgo:gebeurtenis` |  | → kgo:Gebeurtenis | Een nieuwsbericht dat de publicatie noemt. |
+| `kgo:gepubliceerd` |  | xsd:date | Datum van publicatie. |
+| `kgo:gewijzigd` |  | xsd:date | Datum van de laatste wijziging. |
 | `kgo:gewijzigdBron` |  | – | Wijzigingsmoment zoals de bron het levert. |
 | `kgo:id` |  | – | Kenmerk-id van het standpunt (bv. KG:…). |
-| `kgo:jaar` |  | – |  |
-| `kgo:kenmerk` |  | – |  |
-| `kgo:kennisgroep` |  | – |  |
-| `kgo:kennisgroepId` |  | xsd:integer |  |
+| `kgo:jaar` |  | – | Jaar van het standpunt. |
+| `kgo:kenmerk` |  | – | Kenmerk van het standpunt zoals de bron het noemt. |
+| `kgo:kennisgroep` |  | – | Naam van de kennisgroep. |
+| `kgo:kennisgroepId` |  | xsd:integer | Id van de kennisgroep bij de bron. |
 | `kgo:klasse` |  | – | CSS-klassen van de bron, als ruwe metadata. |
 | `kgo:link` |  | – | Vindplaats bij de bron. |
-| `kgo:middel` |  | – |  |
-| `kgo:middelId` |  | xsd:integer |  |
-| `kgo:noemt` |  | → kgo:Verwijzing |  |
-| `kgo:nummer` |  | – |  |
-| `kgo:rij` |  | → kgo:Rij |  |
-| `kgo:rubriek` |  | – |  |
-| `kgo:slug` |  | – |  |
-| `kgo:soort` |  | – |  |
+| `kgo:middel` |  | – | Belastingmiddel waarover de publicatie gaat. |
+| `kgo:middelId` |  | xsd:integer | Id van het belastingmiddel bij de bron. |
+| `kgo:noemt` |  | → kgo:Verwijzing | Iets wat de publicatie noemt: een bepaling of een andere publicatie. |
+| `kgo:nummer` |  | – | Volgnummer van het standpunt binnen het jaar. |
+| `kgo:rij` |  | → kgo:Rij | Een rij tekst van de publicatie. |
+| `kgo:rubriek` |  | – | Rubriek bij de bron. |
+| `kgo:slug` |  | – | Laatste deel van de link bij de bron. |
+| `kgo:soort` |  | – | Soort publicatie. |
 | `kgo:status` |  | – | Status van de publicatie bij de bron (bv. ingetrokken). |
-| `kgo:subrubriek` |  | – |  |
-| `kgo:titel` |  | – |  |
+| `kgo:subrubriek` |  | – | Subrubriek bij de bron. |
+| `kgo:titel` |  | – | Titel van de publicatie of het nieuwsbericht. |
 | `kgo:titelBron` |  | – | De titel zoals de bron hem levert, vóór opschonen. |
-| `kgo:vastgesteld` |  | xsd:date |  |
-| `kgo:vervangenDoorId` |  | – |  |
+| `kgo:vastgesteld` |  | xsd:date | Datum waarop het standpunt is vastgesteld. |
+| `kgo:vervangenDoorId` |  | – | Id van een latere publicatie die deze vervangt. |
 | `kgo:vervangt` |  | → kgo:Publicatie | Een eerdere publicatie die deze vervangt, als die in de index staat. |
-| `kgo:vervangtId` |  | – |  |
+| `kgo:vervangtId` |  | – | Id van een eerdere publicatie die deze vervangt. |
 | `kgo:wpId` |  | xsd:integer | Stabiel id bij de bron; ook de sleutel in de IRI. |
 
 #### `kgo:Rij`
@@ -1105,10 +1121,10 @@ Een rij tekst van een publicatie (…/rij/<nr>). Niet getypeerd in de graaf: dez
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `kgo:kop` |  | – |  |
-| `kgo:nr` |  | xsd:integer |  |
-| `kgo:rijsoort` |  | – |  |
-| `kgo:tekst` |  | – |  |
+| `kgo:kop` |  | – | Kop boven de rij, als die er is. |
+| `kgo:nr` |  | xsd:integer | Volgnummer van de rij. |
+| `kgo:rijsoort` |  | – | Soort rij (bijvoorbeeld kop, alinea of lijst). |
+| `kgo:tekst` |  | – | De tekst van de rij. |
 
 #### `kgo:Verwijzing`
 
@@ -1121,9 +1137,13 @@ Iets wat een publicatie noemt: een bepaling of een andere publicatie (…/noemt/
 | `kgo:doel` |  | – | Het genoemde doel als tekst. |
 | `kgo:doelsoort` |  | – | bepaling of publicatie. |
 | `kgo:herkomst` |  | – | Waar de lezer de verwijzing vond. |
-| `kgo:inRij` |  | xsd:integer |  |
+| `kgo:inRij` |  | xsd:integer | Nummer van de rij waarin de verwijzing staat. |
 | `kgo:lid` |  | – | Genoemd lidnummer, als tekst. |
 | `kgo:publicatie` |  | → kgo:Publicatie | De genoemde publicatie, als die in de index staat. |
+
+### Kwaliteitstoets
+
+Geen bevindingen.
 
 ## Wat formeel is vastgelegd
 

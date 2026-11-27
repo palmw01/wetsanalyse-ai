@@ -124,7 +124,8 @@ Toelichting bij enkele documenten:
   `tools/graph-qa/scripts/genereer_ontologie_docs.py` (`--check` is de drift-test `tests/methode/test_ontologie_docs.py`,
   een kruistest). Uit de T-Box (`tools/bwb-import/app/ontology.py`), de SHACL-shapes en de vocabulaires komen
   `bwb-ontologie.ttl`, `README.md` (met Mermaid-diagrammen) en `ontologie.html`: per ontologie de klassen, de
-  eigenschappen met verplicht/optioneel en de named graphs. Met de hand: `wa-vocabulaire.ttl` en
+  eigenschappen met verplicht/optioneel, de named graphs en een kwaliteitstoets van de ontologie zelf (label en uitleg
+  per term, shapes tegen het vocabulaire, kloppende kardinaliteit; een fout maakt `--check` rood). Met de hand: `wa-vocabulaire.ttl` en
   `kg-vocabulaire.ttl` (de eigen termen van begrippen, regels en kennisgroepen; **alleen documentatie**, nooit in
   GraphDB laden, want een `rdfs:range` daar laat `rdfsplus` triples afleiden), `versies.json` (de versie per
   ontologie) en `CHANGELOG.md`. Verandert een bron, dan verhoog je de versie, noteer je hem en draai je de generator.

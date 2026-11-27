@@ -19,7 +19,9 @@ dat de versie omhoog gaat, dan weigert de generator; elke versie moet in `CHANGE
 `--check` (de drift-test, `tests/methode/test_ontologie_docs.py`) vergelijkt de gegenereerde bestanden met wat er
 staat, en eist daarnaast dat elke term die de code schrijft (`WA.<term>`, `KGO.<term>`, `kgo:<term>`) in het
 vocabulaire staat, dat de documentatievocabulaires geen `rdfs:domain`/`rdfs:range` dragen, en dat elke named graph
-nog in de code voorkomt.
+nog in de code voorkomt. De kwaliteitstoets (`toets`) toetst de ontologie zelf: label en uitleg per eigen term, verwijzingen
+naar gedeclareerde of bekende termen, shapes tegen het vocabulaire en de shapes onderling; een fout laat `--check` falen,
+een waarschuwing staat in de documentatie.
 
     uv run --extra dev python scripts/genereer_ontologie_docs.py           # schrijven
     uv run --extra dev python scripts/genereer_ontologie_docs.py --check   # alleen vergelijken
@@ -479,6 +481,91 @@ def bouw_model(o: Ontologie) -> tuple[dict[str, Klasse], Graph, Graph]:
     return m.klassen, m.vocab, m.shapes
 
 
+# ---------------------------------------------------------------------------------------------------- de toets
+
+#: Namespaces van buiten waarnaar een vocabulaire mag verwijzen zonder ze zelf te declareren.
+BEKEND_EXTERN = ("http://data.europa.eu/eli/ontology#", "http://xmlns.com/foaf/0.1/", "http://www.w3.org/ns/oa#",
+                 "http://www.w3.org/2004/02/skos/core#", "http://purl.org/dc/terms/", "http://www.w3.org/ns/prov#",
+                 str(XSD), str(RDF), str(RDFS), str(OWL), "urn:bwb-ns:", "urn:jas-ns:")
+LETTERLIJK = (str(XSD), str(RDF.langString), str(RDF.HTML))
+FOUT, WAARSCHUWING = "fout", "waarschuwing"
+
+
+def _bereik(vocab: Graph, p) -> set[str]:
+    return {str(r) for r in vocab.objects(p, RDFS.range)} | {str(r) for r in vocab.objects(p, SCHEMA.rangeIncludes)}
+
+
+def _toets_termen(o: Ontologie, vocab: Graph, gedeclareerd: set) -> list[tuple[str, str]]:
+    """Elke eigen term een label en uitleg; elke verwijzing naar een gedeclareerde of bekende term."""
+    uit = []
+    for t in sorted((t for t in gedeclareerd if str(t).startswith(o.namespace)), key=str):
+        if not any(isinstance(lab, Literal) and lab.language == "nl" for lab in vocab.objects(t, RDFS.label)):
+            uit.append((FOUT, f"`{kort(t)}` heeft geen `rdfs:label` in het Nederlands"))
+        if not list(vocab.objects(t, RDFS.comment)):
+            uit.append((WAARSCHUWING, f"`{kort(t)}` heeft geen uitleg (`rdfs:comment`)"))
+        if (t, RDF.type, OWL.ObjectProperty) in vocab and (t, RDF.type, OWL.DatatypeProperty) in vocab:
+            uit.append((FOUT, f"`{kort(t)}` is zowel object- als datatype-eigenschap"))
+    for p in (RDFS.subClassOf, RDFS.subPropertyOf, RDFS.range, RDFS.domain, SCHEMA.domainIncludes, SCHEMA.rangeIncludes):
+        for s, doel in sorted(vocab.subject_objects(p), key=str):
+            d = str(doel)
+            if d.startswith(o.namespace) and doel not in gedeclareerd:
+                uit.append((FOUT, f"`{kort(s)}` {kort(p)} `{kort(doel)}`: die term is niet gedeclareerd"))
+            elif not d.startswith(o.namespace) and not d.startswith(BEKEND_EXTERN):
+                uit.append((WAARSCHUWING, f"`{kort(s)}` {kort(p)} `{d}`: onbekende externe term"))
+    return uit
+
+
+def _toets_eigenschap(o: Ontologie, vocab: Graph, shapes: Graph, ps, gedeclareerd: set) -> list[tuple[str, str]]:
+    uit, pad = [], shapes.value(ps, SH.path)
+    naam = kort(pad) if isinstance(pad, URIRef) else "(pad)"
+    mn, mx = shapes.value(ps, SH.minCount), shapes.value(ps, SH.maxCount)
+    if mn is not None and mx is not None and int(mn) > int(mx):
+        uit.append((FOUT, f"`{naam}`: minCount {mn} is groter dan maxCount {mx}"))
+    dt, klasse = shapes.value(ps, SH.datatype), shapes.value(ps, SH["class"])
+    if dt is not None and not str(dt).startswith(LETTERLIJK):
+        uit.append((FOUT, f"`{naam}`: datatype `{kort(dt)}` is geen XSD- of RDF-datatype"))
+    if (inn := shapes.value(ps, SH["in"])) is not None and (inn, RDF.first, None) not in shapes and inn != RDF.nil:
+        uit.append((FOUT, f"`{naam}`: `sh:in` is geen lijst"))
+    if klasse is not None and str(klasse).startswith(o.namespace) and len(vocab) and klasse not in gedeclareerd:
+        uit.append((FOUT, f"`{naam}`: `sh:class {kort(klasse)}` is niet gedeclareerd"))
+    if not isinstance(pad, URIRef) or not str(pad).startswith(o.namespace) or not len(vocab):
+        return uit
+    if pad not in gedeclareerd:
+        return uit + [(FOUT, f"`{naam}` staat in de shapes maar niet in het vocabulaire")]
+    bereik = _bereik(vocab, pad)
+    if dt is not None and (pad, RDF.type, OWL.ObjectProperty) in vocab:
+        uit.append((FOUT, f"`{naam}`: de shape eist een datatype, het vocabulaire zegt objecteigenschap"))
+    if klasse is not None and (pad, RDF.type, OWL.DatatypeProperty) in vocab:
+        uit.append((FOUT, f"`{naam}`: de shape eist een klasse, het vocabulaire zegt datatype-eigenschap"))
+    if dt is not None and bereik and str(dt) not in bereik:
+        uit.append((WAARSCHUWING, f"`{naam}`: datatype `{kort(dt)}` in de shape, bereik "
+                                  + ", ".join(f"`{kort(b)}`" for b in sorted(bereik)) + " in het vocabulaire"))
+    return uit
+
+
+def toets(o: Ontologie) -> list[tuple[str, str]]:
+    """De kwaliteitstoets van één ontologie: termen, shapes tegen het vocabulaire, en de shapes zelf."""
+    m = Model(o)
+    vocab, shapes = m.vocab, m.shapes
+    gedeclareerd = set(vocab.subjects(RDF.type, OWL.Class)) | set(vocab.subjects(RDF.type, OWL.ObjectProperty)) | \
+        set(vocab.subjects(RDF.type, OWL.DatatypeProperty)) | \
+        {s for s in vocab.subjects(RDFS.label, None) if isinstance(s, URIRef) and str(s).startswith(o.namespace)}
+    uit = _toets_termen(o, vocab, gedeclareerd) if len(vocab) else []
+    for ps in sorted(set(shapes.subjects(SH.path, None)), key=str):
+        uit += _toets_eigenschap(o, vocab, shapes, ps, gedeclareerd)
+    for c in sorted(set(shapes.objects(None, SH.targetClass)), key=str):
+        if str(c).startswith(o.namespace) and len(vocab) and c not in gedeclareerd:
+            uit.append((FOUT, f"doelklasse `{kort(c)}` is niet gedeclareerd"))
+    if len(vocab) and len(shapes):
+        in_shapes = {p for p in shapes.objects(None, SH.path) if isinstance(p, URIRef)}
+        zonder = sorted(kort(p) for p in gedeclareerd if str(p).startswith(o.namespace)
+                        and (p, RDF.type, OWL.Class) not in vocab and p not in in_shapes)
+        if zonder:
+            uit.append((WAARSCHUWING, f"{len(zonder)} eigenschappen zonder eis in de shapes (alleen in het vocabulaire): "
+                                      + ", ".join(f"`{z}`" for z in zonder)))
+    return sorted(set(uit), key=lambda x: (x[0] != FOUT, x[1]))
+
+
 # ---------------------------------------------------------------------------------------------------- het diagram
 
 def toon(o: Ontologie, pad: str) -> str:
@@ -591,6 +678,10 @@ def blokken(versies: dict) -> list[tuple]:
             label = k.label if k.label.lower() != lokaal(k.iri).lower() else ""
             kaarten.append((kort(k.iri), label, noot, kop, rijen))
         b.append(("kaarten", kaarten, o.kleur))
+        bevindingen = toets(o)
+        b.append(("h3", "Kwaliteitstoets"))
+        b.append(("table", ["ernst", "bevinding"], [[e, t] for e, t in bevindingen]) if bevindingen else
+                 ("p", "Geen bevindingen."))
         if o.sleutel == "bwb":
             rijen = []
             for p in sorted(set(vocab.subjects(RDF.type, OWL.ObjectProperty)) | set(vocab.subjects(RDF.type, OWL.DatatypeProperty))):
@@ -836,7 +927,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--check", action="store_true", help="alleen vergelijken; niets schrijven")
     args = p.parse_args(argv)
     versies = json.loads(VERSIES.read_text(encoding="utf-8")) if VERSIES.exists() else {}
-    fouten = controleer_versies(versies, schrijven=not args.check) + controleer_termen()
+    fouten = controleer_versies(versies, schrijven=not args.check) + controleer_termen() + [
+        f"{o.sleutel}: {tekst}" for o in ONTOLOGIEEN for ernst, tekst in toets(o) if ernst == FOUT]
     if fouten:
         print("\n".join(fouten), file=sys.stderr)
         return 1

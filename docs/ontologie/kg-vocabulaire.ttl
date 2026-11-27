@@ -47,52 +47,52 @@ kgo:Gebeurtenis a owl:Class ;
 kgo:wpId a owl:DatatypeProperty ; rdfs:label "WordPress-id"@nl ; rdfs:comment "Stabiel id bij de bron; ook de sleutel in de IRI."@nl ;
     schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:integer .
 kgo:id a owl:DatatypeProperty ; rdfs:label "id"@nl ; rdfs:comment "Kenmerk-id van het standpunt (bv. KG:…)."@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:kenmerk a owl:DatatypeProperty ; rdfs:label "kenmerk"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:titel a owl:DatatypeProperty ; rdfs:label "titel"@nl ; schema:domainIncludes kgo:Publicatie, kgo:Gebeurtenis .
+kgo:kenmerk a owl:DatatypeProperty ; rdfs:label "kenmerk"@nl ; rdfs:comment "Kenmerk van het standpunt zoals de bron het noemt."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:titel a owl:DatatypeProperty ; rdfs:label "titel"@nl ; rdfs:comment "Titel van de publicatie of het nieuwsbericht."@nl ; schema:domainIncludes kgo:Publicatie, kgo:Gebeurtenis .
 kgo:titelBron a owl:DatatypeProperty ; rdfs:label "titel bij de bron"@nl ; rdfs:comment "De titel zoals de bron hem levert, vóór opschonen."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:status a owl:DatatypeProperty ; rdfs:label "status"@nl ; rdfs:comment "Status van de publicatie bij de bron (bv. ingetrokken)."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:link a owl:DatatypeProperty ; rdfs:label "link"@nl ; rdfs:comment "Vindplaats bij de bron."@nl ; schema:domainIncludes kgo:Publicatie, kgo:Gebeurtenis .
-kgo:slug a owl:DatatypeProperty ; rdfs:label "slug"@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:slug a owl:DatatypeProperty ; rdfs:label "slug"@nl ; rdfs:comment "Laatste deel van de link bij de bron."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:gewijzigdBron a owl:DatatypeProperty ; rdfs:label "gewijzigd bij de bron"@nl ; rdfs:comment "Wijzigingsmoment zoals de bron het levert."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:bronHash a owl:DatatypeProperty ; rdfs:label "bronhash"@nl ; rdfs:comment "Hash over de inhoud bij de bron."@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:soort a owl:DatatypeProperty ; rdfs:label "soort"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:nummer a owl:DatatypeProperty ; rdfs:label "nummer"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:jaar a owl:DatatypeProperty ; rdfs:label "jaar"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:datum a owl:DatatypeProperty ; rdfs:label "datum"@nl ; schema:domainIncludes kgo:Publicatie, kgo:Gebeurtenis ; schema:rangeIncludes xsd:date .
-kgo:gepubliceerd a owl:DatatypeProperty ; rdfs:label "gepubliceerd"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
-kgo:gewijzigd a owl:DatatypeProperty ; rdfs:label "gewijzigd"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
-kgo:vastgesteld a owl:DatatypeProperty ; rdfs:label "vastgesteld"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
-kgo:kennisgroep a owl:DatatypeProperty ; rdfs:label "kennisgroep"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:kennisgroepId a owl:DatatypeProperty ; rdfs:label "kennisgroep-id"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:integer .
-kgo:middel a owl:DatatypeProperty ; rdfs:label "middel"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:middelId a owl:DatatypeProperty ; rdfs:label "middel-id"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:integer .
-kgo:belastingsoort a owl:DatatypeProperty ; rdfs:label "belastingsoort"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:rubriek a owl:DatatypeProperty ; rdfs:label "rubriek"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:subrubriek a owl:DatatypeProperty ; rdfs:label "subrubriek"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:berichtsoort a owl:DatatypeProperty ; rdfs:label "berichtsoort"@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:soort a owl:DatatypeProperty ; rdfs:label "soort"@nl ; rdfs:comment "Soort publicatie."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:nummer a owl:DatatypeProperty ; rdfs:label "nummer"@nl ; rdfs:comment "Volgnummer van het standpunt binnen het jaar."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:jaar a owl:DatatypeProperty ; rdfs:label "jaar"@nl ; rdfs:comment "Jaar van het standpunt."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:datum a owl:DatatypeProperty ; rdfs:label "datum"@nl ; rdfs:comment "Datum van de publicatie of het nieuwsbericht."@nl ; schema:domainIncludes kgo:Publicatie, kgo:Gebeurtenis ; schema:rangeIncludes xsd:date .
+kgo:gepubliceerd a owl:DatatypeProperty ; rdfs:label "gepubliceerd"@nl ; rdfs:comment "Datum van publicatie."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
+kgo:gewijzigd a owl:DatatypeProperty ; rdfs:label "gewijzigd"@nl ; rdfs:comment "Datum van de laatste wijziging."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
+kgo:vastgesteld a owl:DatatypeProperty ; rdfs:label "vastgesteld"@nl ; rdfs:comment "Datum waarop het standpunt is vastgesteld."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:date .
+kgo:kennisgroep a owl:DatatypeProperty ; rdfs:label "kennisgroep"@nl ; rdfs:comment "Naam van de kennisgroep."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:kennisgroepId a owl:DatatypeProperty ; rdfs:label "kennisgroep-id"@nl ; rdfs:comment "Id van de kennisgroep bij de bron."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:integer .
+kgo:middel a owl:DatatypeProperty ; rdfs:label "middel"@nl ; rdfs:comment "Belastingmiddel waarover de publicatie gaat."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:middelId a owl:DatatypeProperty ; rdfs:label "middel-id"@nl ; rdfs:comment "Id van het belastingmiddel bij de bron."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes xsd:integer .
+kgo:belastingsoort a owl:DatatypeProperty ; rdfs:label "belastingsoort"@nl ; rdfs:comment "Belastingsoort waarover de publicatie gaat."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:rubriek a owl:DatatypeProperty ; rdfs:label "rubriek"@nl ; rdfs:comment "Rubriek bij de bron."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:subrubriek a owl:DatatypeProperty ; rdfs:label "subrubriek"@nl ; rdfs:comment "Subrubriek bij de bron."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:berichtsoort a owl:DatatypeProperty ; rdfs:label "berichtsoort"@nl ; rdfs:comment "Soort bericht volgens de bron."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:klasse a owl:DatatypeProperty ; rdfs:label "klasse"@nl ; rdfs:comment "CSS-klassen van de bron, als ruwe metadata."@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:bijlage a owl:DatatypeProperty ; rdfs:label "bijlage"@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:bijlage a owl:DatatypeProperty ; rdfs:label "bijlage"@nl ; rdfs:comment "Naam of link van een bijlage bij de publicatie."@nl ; schema:domainIncludes kgo:Publicatie .
 kgo:vervangt a owl:ObjectProperty ; rdfs:label "vervangt"@nl ; rdfs:comment "Een eerdere publicatie die deze vervangt, als die in de index staat."@nl ;
     schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Publicatie .
-kgo:vervangtId a owl:DatatypeProperty ; rdfs:label "vervangt-id"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:vervangenDoorId a owl:DatatypeProperty ; rdfs:label "vervangen-door-id"@nl ; schema:domainIncludes kgo:Publicatie .
-kgo:rij a owl:ObjectProperty ; rdfs:label "rij"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Rij .
-kgo:noemt a owl:ObjectProperty ; rdfs:label "noemt"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Verwijzing .
-kgo:gebeurtenis a owl:ObjectProperty ; rdfs:label "gebeurtenis"@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Gebeurtenis .
+kgo:vervangtId a owl:DatatypeProperty ; rdfs:label "vervangt-id"@nl ; rdfs:comment "Id van een eerdere publicatie die deze vervangt."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:vervangenDoorId a owl:DatatypeProperty ; rdfs:label "vervangen-door-id"@nl ; rdfs:comment "Id van een latere publicatie die deze vervangt."@nl ; schema:domainIncludes kgo:Publicatie .
+kgo:rij a owl:ObjectProperty ; rdfs:label "rij"@nl ; rdfs:comment "Een rij tekst van de publicatie."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Rij .
+kgo:noemt a owl:ObjectProperty ; rdfs:label "noemt"@nl ; rdfs:comment "Iets wat de publicatie noemt: een bepaling of een andere publicatie."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Verwijzing .
+kgo:gebeurtenis a owl:ObjectProperty ; rdfs:label "gebeurtenis"@nl ; rdfs:comment "Een nieuwsbericht dat de publicatie noemt."@nl ; schema:domainIncludes kgo:Publicatie ; schema:rangeIncludes kgo:Gebeurtenis .
 
 # ---------------------------------------------------------------- rij
 
-kgo:nr a owl:DatatypeProperty ; rdfs:label "nr"@nl ; schema:domainIncludes kgo:Rij ; schema:rangeIncludes xsd:integer .
-kgo:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl ; schema:domainIncludes kgo:Rij .
-kgo:kop a owl:DatatypeProperty ; rdfs:label "kop"@nl ; schema:domainIncludes kgo:Rij .
-kgo:rijsoort a owl:DatatypeProperty ; rdfs:label "rijsoort"@nl ; schema:domainIncludes kgo:Rij .
+kgo:nr a owl:DatatypeProperty ; rdfs:label "nr"@nl ; rdfs:comment "Volgnummer van de rij."@nl ; schema:domainIncludes kgo:Rij ; schema:rangeIncludes xsd:integer .
+kgo:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl ; rdfs:comment "De tekst van de rij."@nl ; schema:domainIncludes kgo:Rij .
+kgo:kop a owl:DatatypeProperty ; rdfs:label "kop"@nl ; rdfs:comment "Kop boven de rij, als die er is."@nl ; schema:domainIncludes kgo:Rij .
+kgo:rijsoort a owl:DatatypeProperty ; rdfs:label "rijsoort"@nl ; rdfs:comment "Soort rij (bijvoorbeeld kop, alinea of lijst)."@nl ; schema:domainIncludes kgo:Rij .
 
 # ---------------------------------------------------------------- verwijzing
 
 kgo:doelsoort a owl:DatatypeProperty ; rdfs:label "doelsoort"@nl ; rdfs:comment "bepaling of publicatie."@nl ; schema:domainIncludes kgo:Verwijzing .
 kgo:doel a owl:DatatypeProperty ; rdfs:label "doel"@nl ; rdfs:comment "Het genoemde doel als tekst."@nl ; schema:domainIncludes kgo:Verwijzing .
 kgo:herkomst a owl:DatatypeProperty ; rdfs:label "herkomst"@nl ; rdfs:comment "Waar de lezer de verwijzing vond."@nl ; schema:domainIncludes kgo:Verwijzing .
-kgo:inRij a owl:DatatypeProperty ; rdfs:label "in rij"@nl ; schema:domainIncludes kgo:Verwijzing ; schema:rangeIncludes xsd:integer .
+kgo:inRij a owl:DatatypeProperty ; rdfs:label "in rij"@nl ; rdfs:comment "Nummer van de rij waarin de verwijzing staat."@nl ; schema:domainIncludes kgo:Verwijzing ; schema:rangeIncludes xsd:integer .
 kgo:bwbId a owl:DatatypeProperty ; rdfs:label "BWB-id"@nl ; rdfs:comment "BWB-id van de genoemde regeling, als tekst."@nl ; schema:domainIncludes kgo:Verwijzing .
 kgo:artikel a owl:DatatypeProperty ; rdfs:label "artikel"@nl ; rdfs:comment "Genoemd artikelnummer, als tekst."@nl ; schema:domainIncludes kgo:Verwijzing .
 kgo:lid a owl:DatatypeProperty ; rdfs:label "lid"@nl ; rdfs:comment "Genoemd lidnummer, als tekst."@nl ; schema:domainIncludes kgo:Verwijzing .
@@ -101,4 +101,4 @@ kgo:publicatie a owl:ObjectProperty ; rdfs:label "publicatie"@nl ; rdfs:comment 
 
 # ---------------------------------------------------------------- gebeurtenis
 
-kgo:gebeurtenissoort a owl:DatatypeProperty ; rdfs:label "gebeurtenissoort"@nl ; schema:domainIncludes kgo:Gebeurtenis .
+kgo:gebeurtenissoort a owl:DatatypeProperty ; rdfs:label "gebeurtenissoort"@nl ; rdfs:comment "Soort gebeurtenis, uit het nieuwsbericht afgeleid."@nl ; schema:domainIncludes kgo:Gebeurtenis .

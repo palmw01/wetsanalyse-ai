@@ -195,14 +195,14 @@ wa:onderwerp a owl:ObjectProperty ; rdfs:label "onderwerp"@nl ;
 wa:regeltekst a owl:DatatypeProperty ; rdfs:label "regeltekst"@nl ;
     rdfs:comment "De afgeleide regeltekst van de regel of het geval."@nl ;
     schema:domainIncludes wa:Afleidingsregel, wa:Geval ; schema:rangeIncludes rdf:langString .
-wa:invoer a owl:ObjectProperty ; rdfs:label "invoer"@nl ;
+wa:invoer a owl:ObjectProperty ; rdfs:label "invoer"@nl ; rdfs:comment "Een invoerbegrip van de regel."@nl ;
     schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Invoer .
 wa:begrip a owl:ObjectProperty ; rdfs:label "begrip"@nl ;
     rdfs:comment "Het begrip van een invoer of van een waarde in een voorbeeld."@nl ;
     schema:domainIncludes wa:Invoer ; schema:rangeIncludes skos:Concept .
-wa:volgorde a owl:DatatypeProperty ; rdfs:label "volgorde"@nl ;
+wa:volgorde a owl:DatatypeProperty ; rdfs:label "volgorde"@nl ; rdfs:comment "Volgnummer binnen de ouder, om op te sorteren."@nl ;
     schema:domainIncludes wa:Invoer, wa:Geval, wa:Voorbeeld ; schema:rangeIncludes xsd:integer .
-wa:geval a owl:ObjectProperty ; rdfs:label "geval"@nl ;
+wa:geval a owl:ObjectProperty ; rdfs:label "geval"@nl ; rdfs:comment "Een geval van de regel; een regel heeft er minstens één."@nl ;
     schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Geval .
 wa:voorrang a owl:DatatypeProperty ; rdfs:label "voorrang"@nl ;
     rdfs:comment "Voorrang van een geval boven andere gevallen."@nl ;
@@ -210,14 +210,14 @@ wa:voorrang a owl:DatatypeProperty ; rdfs:label "voorrang"@nl ;
 wa:label a owl:DatatypeProperty ; rdfs:label "label"@nl ;
     rdfs:comment "Label van een geval."@nl ;
     schema:domainIncludes wa:Geval .
-wa:voorwaarden a owl:ObjectProperty ; rdfs:label "voorwaarden"@nl ;
+wa:voorwaarden a owl:ObjectProperty ; rdfs:label "voorwaarden"@nl ; rdfs:comment "De voorwaarde of voorwaardengroep van een geval."@nl ;
     schema:domainIncludes wa:Geval ; schema:rangeIncludes wa:Voorwaarde, wa:Voorwaardengroep .
 wa:verband a owl:DatatypeProperty ; rdfs:label "verband"@nl ;
     rdfs:comment "alle of een_van."@nl ;
     schema:domainIncludes wa:Voorwaardengroep .
-wa:deel a owl:ObjectProperty ; rdfs:label "deel"@nl ;
+wa:deel a owl:ObjectProperty ; rdfs:label "deel"@nl ; rdfs:comment "Een voorwaarde of groep binnen een voorwaardengroep."@nl ;
     schema:domainIncludes wa:Voorwaardengroep ; schema:rangeIncludes wa:Voorwaarde, wa:Voorwaardengroep .
-wa:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl ;
+wa:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl ; rdfs:comment "De tekst van een voorwaarde."@nl ;
     schema:domainIncludes wa:Voorwaarde ; schema:rangeIncludes rdf:langString .
 wa:niet a owl:DatatypeProperty ; rdfs:label "niet"@nl ;
     rdfs:comment "De voorwaarde is ontkend."@nl ;
@@ -228,13 +228,13 @@ wa:rustOp a owl:ObjectProperty ; rdfs:label "rust op"@nl ;
 wa:gevalVan a owl:ObjectProperty ; rdfs:label "geval van"@nl ;
     rdfs:comment "Het geval van een andere regel waarnaar een voorwaarde of voorbeeld verwijst."@nl ;
     schema:domainIncludes wa:Voorwaarde, wa:Voorbeeld ; schema:rangeIncludes wa:Geval .
-wa:voorbeeld a owl:ObjectProperty ; rdfs:label "voorbeeld"@nl ;
+wa:voorbeeld a owl:ObjectProperty ; rdfs:label "voorbeeld"@nl ; rdfs:comment "Een uitgewerkt voorbeeld bij de regel."@nl ;
     schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Voorbeeld .
-wa:voorbeeldInvoer a owl:DatatypeProperty ; rdfs:label "voorbeeldinvoer"@nl ;
+wa:voorbeeldInvoer a owl:DatatypeProperty ; rdfs:label "voorbeeldinvoer"@nl ; rdfs:comment "De invoer van het voorbeeld als tekst."@nl ;
     schema:domainIncludes wa:Voorbeeld ; schema:rangeIncludes rdf:langString .
-wa:verwachteUitkomst a owl:DatatypeProperty ; rdfs:label "verwachte uitkomst"@nl ;
+wa:verwachteUitkomst a owl:DatatypeProperty ; rdfs:label "verwachte uitkomst"@nl ; rdfs:comment "Wat de regel bij deze invoer moet opleveren."@nl ;
     schema:domainIncludes wa:Voorbeeld ; schema:rangeIncludes rdf:langString .
-wa:oordeel a owl:DatatypeProperty ; rdfs:label "oordeel"@nl ;
+wa:oordeel a owl:DatatypeProperty ; rdfs:label "oordeel"@nl ; rdfs:comment "Oordeel over het voorbeeld (bijvoorbeeld open of akkoord)."@nl ;
     schema:domainIncludes wa:Voorbeeld .
 wa:inGeval a owl:ObjectProperty ; rdfs:label "in geval"@nl ;
     rdfs:comment "Het geval van deze regel waar een voorbeeld of drager bij hoort."@nl ;
@@ -242,5 +242,5 @@ wa:inGeval a owl:ObjectProperty ; rdfs:label "in geval"@nl ;
 wa:waarde rdfs:label "waarde"@nl ;
     rdfs:comment "Op een voorbeeld: een knoop met wa:begrip en wa:waarde; op die knoop: de waarde zelf als literal."@nl ;
     schema:domainIncludes wa:Voorbeeld .
-wa:drager a owl:ObjectProperty ; rdfs:label "drager"@nl ;
+wa:drager a owl:ObjectProperty ; rdfs:label "drager"@nl ; rdfs:comment "Een drager van de regel: de koppeling met een markering."@nl ;
     schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Regeldrager .
