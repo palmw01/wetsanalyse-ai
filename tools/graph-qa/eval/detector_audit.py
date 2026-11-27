@@ -14,7 +14,7 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from agent.jas_pipeline.besluit import STERK_BEWIJS, deterministisch
 from agent.jas_pipeline.bewijssterkte import generiek_bewijs
 from agent.jas_pipeline.classificatie import batches, systeemprompt, toolschema, userprompt

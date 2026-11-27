@@ -8,9 +8,9 @@ pad komt er ongewijzigd uit (als absoluut pad); `/etc/passwd` of `../../..` naar
 `veilig_argument` doet hetzelfde voor een waarde die als argument naar een extern commando gaat: alleen een
 onschuldige vorm, en nooit iets dat met `-` begint (dan zou het als optie gelezen worden).
 
-Dit bestand staat in vier onderdelen in identieke vorm (`tools/graph-qa/eval/`, `tools/bwb-import/app/`,
-`deploy/azure/`, `scripts/`), omdat die geen gedeeld pakket hebben. `tests/poort/test_padcontrole.py` bewaakt dat
-de kopieën gelijk blijven en toetst het gedrag.
+Eén bestand voor de hele repo. graph-qa en bwb-import importeren het als `bronmodel.padcontrole`; de losse scripts in
+`scripts/` en `deploy/azure/` laden het via zijn pad (`laad_padcontrole` daar), want die draaien zonder geïnstalleerd
+pakket. Daarom alleen de standaardbibliotheek hier. Het gedrag toetst `tests/poort/test_padcontrole.py`.
 """
 from __future__ import annotations
 

@@ -22,7 +22,7 @@ from typing import Any
 
 from eval.centrale_agent_vat import gewogen, per_ronde, per_soort
 from eval.gesprek import beurt_uit_opname
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.opname import neem_op, nieuwe_opname
 from eval.scoring import score_opname
 

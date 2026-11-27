@@ -19,8 +19,13 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from eval.padcontrole import veilig_pad
-except ImportError:  # als script: `python3 eval/centrale_agent_vat.py`
+    from bronmodel.padcontrole import veilig_pad
+except ImportError:  # als script met een kale `python3`: het bestand uit de repo, zonder het pakket
+    import sys
+
+    from wortel import WORTEL  # type: ignore[import-not-found]
+
+    sys.path.append(str(WORTEL / "packages" / "bronmodel" / "bronmodel"))
     from padcontrole import veilig_pad  # type: ignore[no-redef]
 
 SET = Path(__file__).resolve().parent / "golden_centrale_agent.jsonl"

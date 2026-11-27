@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.invordering_proef import MEETMAP, ROOT, controleer_cases, schrijf, codehash
 
 

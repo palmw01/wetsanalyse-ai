@@ -39,7 +39,9 @@ import tomllib
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from padcontrole import veilig_pad
+# De padcontrole is één bestand voor de hele repo; dit script draait zonder geïnstalleerd pakket en laadt het uit de checkout.
+sys.path.append(str(Path(__file__).resolve().parents[1] / "packages" / "bronmodel" / "bronmodel"))
+from padcontrole import veilig_pad  # noqa: E402
 
 WORTEL = Path(__file__).resolve().parents[1]
 CONFIG = WORTEL / "ruff.toml"

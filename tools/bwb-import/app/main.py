@@ -23,7 +23,7 @@ from app.config import Settings
 from app.dekking import Dekking, Stand, bron_tekens, poortbesluit
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
-from app.padcontrole import OnveiligPad, veilig_pad
+from bronmodel.padcontrole import OnveiligPad, veilig_pad
 from app.rdf_vocab import Vocab
 from app.shacl import toets
 from app.wti_parser import WtiInfo, WtiParser

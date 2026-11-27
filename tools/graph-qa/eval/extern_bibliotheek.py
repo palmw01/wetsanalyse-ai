@@ -50,7 +50,7 @@ from urllib.parse import unquote
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from eval.padcontrole import veilig_pad  # noqa: E402
+from bronmodel.padcontrole import veilig_pad  # noqa: E402
 from eval.extern_dossier import (  # noqa: E402
     Knoop,
     _cellen,

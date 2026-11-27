@@ -1,4 +1,4 @@
-"""De eval-scripts openen een pad van de CLI alleen via `eval.padcontrole.veilig_pad` (Sonar S8707/S8705).
+"""De eval-scripts openen een pad van de CLI alleen via `bronmodel.padcontrole.veilig_pad` (Sonar S8707/S8705).
 
 Het gedrag van de helper toetst `tests/poort/test_padcontrole.py`; hier dat de scripts hem gebruiken, dat een geldig pad
 werkt zoals altijd, en dat een pad naar buiten geweigerd wordt.
@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from eval import adjudicatie, centrale_agent_sets, extern_dossier, vergelijk_rapporten
-from eval.padcontrole import OnveiligPad
+from bronmodel.padcontrole import OnveiligPad
 
 GRAPHQA = Path(__file__).resolve().parents[2]
 #: De scripts met een melding van Sonar; elk opent zijn CLI-paden via de helper.

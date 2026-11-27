@@ -1,9 +1,9 @@
-"""De padcontrole (`padcontrole.py`, Sonar `pythonsecurity:S8707` en `S8705`): één helper, vier gelijke kopieën.
+"""De padcontrole (`packages/bronmodel/bronmodel/padcontrole.py`, Sonar `pythonsecurity:S8707` en `S8705`): één helper.
 
 Een script dat een pad uit `argv` opent, kan voor wie het aanroept – ook een agent – overal lezen en schrijven.
 `veilig_pad` laat alleen een pad binnen de werkmap, de thuismap of de tijdelijke map toe; `veilig_argument` alleen een
-onschuldige waarde voor een extern commando. De kopieën staan in onderdelen zonder gedeeld pakket en moeten gelijk
-blijven; daarna het gedrag, en per onderdeel dat het misbruik echt geweigerd wordt.
+onschuldige waarde voor een extern commando. Eén bestand: vier kopieën telden als duplicatie en konden uit elkaar lopen.
+Eerst dat er geen kopie terugkomt, dan het gedrag, en per gebruiker dat het misbruik echt geweigerd wordt.
 """
 from __future__ import annotations
 
@@ -17,16 +17,11 @@ import pytest
 
 from routeboek import WORTEL
 
-KOPIEEN = [
-    WORTEL / "tools" / "graph-qa" / "eval" / "padcontrole.py",
-    WORTEL / "tools" / "bwb-import" / "app" / "padcontrole.py",
-    WORTEL / "deploy" / "azure" / "padcontrole.py",
-    WORTEL / "scripts" / "padcontrole.py",
-]
+PADCONTROLE = WORTEL / "packages" / "bronmodel" / "bronmodel" / "padcontrole.py"
 
 
 def _laad():
-    spec = importlib.util.spec_from_file_location("padcontrole_poort", KOPIEEN[0])
+    spec = importlib.util.spec_from_file_location("padcontrole_poort", PADCONTROLE)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -35,10 +30,16 @@ def _laad():
 pc = _laad()
 
 
-def test_de_kopieen_zijn_gelijk():
-    eerste = KOPIEEN[0].read_bytes()
-    for kopie in KOPIEEN[1:]:
-        assert kopie.read_bytes() == eerste, f"{kopie.relative_to(WORTEL)} wijkt af van {KOPIEEN[0].relative_to(WORTEL)}"
+def test_er_is_een_padcontrole_en_geen_kopie():
+    kopieen = [p for p in WORTEL.rglob("padcontrole.py")
+               if p != PADCONTROLE and not {".venv", "node_modules", ".git"} & set(p.parts)]
+    assert not kopieen, f"kopie van de padcontrole: {[str(p.relative_to(WORTEL)) for p in kopieen]}"
+    # Alleen de standaardbibliotheek: de losse scripts laden dit bestand zonder geïnstalleerd pakket.
+    import ast
+    modules = {(n.module or "") if isinstance(n, ast.ImportFrom) else a.name
+               for n in ast.walk(ast.parse(PADCONTROLE.read_text(encoding="utf-8")))
+               if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names}
+    assert all(m.split(".")[0] in sys.stdlib_module_names or m == "__future__" for m in modules), modules
 
 
 def test_een_pad_binnen_de_basis_komt_er_canoniek_uit(tmp_path):

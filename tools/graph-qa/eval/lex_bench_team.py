@@ -29,7 +29,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.wortel import WORTEL as WORTEL_REPO
 
 WORTEL = WORTEL_REPO

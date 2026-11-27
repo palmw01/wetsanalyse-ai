@@ -33,7 +33,7 @@ from eval.metrieken import (
     Ref, classificatie_metrieken, contract_metrieken, controleer_status, kandidaat_metrieken, kern,
     laagste_status, recall_naam,
 )
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.referentieset import sethash
 
 GENERIEK = frozenset({"SUBJECT_NP", "OBJECT_NP", "ENUMERATED_NP"})

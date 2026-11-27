@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent.jas_klassen import JAS_KLASSEN  # noqa: E402
 from agent.jas_pipeline.subtype import REGELS as SUBTYPES  # noqa: E402
 from eval.adjudicatie import PROTOCOLVERSIE  # noqa: E402
-from eval.padcontrole import veilig_pad  # noqa: E402
+from bronmodel.padcontrole import veilig_pad  # noqa: E402
 from eval.referentieset import ACTUELE_VERSIE, casussen  # noqa: E402
 
 SJABLOON = Path(__file__).with_suffix(".html")

@@ -15,7 +15,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.wortel import WORTEL as WORTEL_REPO
 
 ROOT = WORTEL_REPO

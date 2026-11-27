@@ -24,7 +24,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from agent.jas_klassen import GELDIGE_JAS_KLASSEN
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.referentieset import (
     BESLUITEN, SOURCE_STATUS, ReferentieFout, _keuze, _span, _velden, casussen,
 )

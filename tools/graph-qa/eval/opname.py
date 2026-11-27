@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 
 
 def nieuwe_opname(vraag: str, vraagtype: str) -> dict[str, Any]:

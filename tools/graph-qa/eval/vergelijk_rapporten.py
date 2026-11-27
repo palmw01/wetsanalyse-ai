@@ -19,7 +19,7 @@ from typing import Any
 
 from eval import manifest
 from eval.compare_pipelines import analyseer
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 
 ROUTE = "hybrid_v1"
 METRICS = ("micro_f1", "micro_precision", "micro_ankerdekking", "macro_f1", "onbetwist_precision",

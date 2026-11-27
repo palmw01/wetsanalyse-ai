@@ -22,7 +22,7 @@ from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
 from agent.jas_pipeline.fusie import fuseer
 from agent.jas_pipeline.kandidaten import CandidateStatus
 from eval import casusbron, manifest
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.metrieken import Ref, controleer_status, kandidaat_metrieken, kern, laagste_status
 
 
