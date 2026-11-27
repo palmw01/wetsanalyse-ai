@@ -1,0 +1,246 @@
+# Het vocabulaire `urn:wa-ns:`: de eigen termen van de begrippen- en regelprojectie (ADR-003, ADR-018).
+#
+# ALLEEN DOCUMENTATIE. Dit bestand wordt NIET in GraphDB geladen, en dat moet zo blijven. De repository draait met
+# `rdfsplus-optimized`: een `rdfs:domain` of `rdfs:range` in de graaf laat GraphDB triples afleiden, en een range op een
+# property die naar een wetsnode wijst zou een triple met de wet als subject opleveren. Daarom staan domein en bereik
+# hier als `schema:domainIncludes` en `schema:rangeIncludes`: beschrijvend, zonder inferentie.
+#
+# Wie de termen schrijft: `api/app/begrip_projectie.py` (begrippenkader, koppelingen, relaties, register) en
+# `api/app/regel_projectie.py` (afleidingsregels). Wat verplicht is, staat in de shapes `api/app/shapes/begrippen-wa.ttl`
+# en `api/app/shapes/regels-wa.ttl`. `tools/graph-qa/scripts/genereer_ontologie_docs.py --check` eist dat elke
+# `WA.<term>` in die twee bestanden hier is gedeclareerd.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@prefix schema: <https://schema.org/> .
+@prefix wa:     <urn:wa-ns:> .
+
+<urn:wa-ns> a owl:Ontology ;
+    rdfs:label "Wetsanalyse-vocabulaire voor begrippen en afleidingsregels"@nl ;
+    rdfs:comment "Eigen termen naast SKOS en NL-SBB: status, herkomst, koppelingen naar annotaties en de afleidingsregels van een werkgebied. Alleen documentatie: niet in GraphDB laden."@nl ;
+    owl:versionInfo "zie docs/ontologie/versies.json" .
+
+# ---------------------------------------------------------------- klassen
+
+wa:Koppeling a owl:Class ;
+    rdfs:label "koppeling"@nl ;
+    rdfs:comment "Verbindt een begrip met een annotatie-element (markering) dat het begrip draagt, met rol, beoordeling en bewijsstand."@nl .
+
+wa:Begripsrelatie a owl:Class ;
+    rdfs:label "begripsrelatie"@nl ;
+    rdfs:comment "Een getypeerde relatie tussen twee begrippen, met herkomst. Naast deze knoop staat de relatie ook als directe triple (wa:kwalificeert, wa:omvat, …)."@nl .
+
+wa:Afleidingsregel a owl:Class ;
+    rdfs:label "afleidingsregel"@nl ;
+    rdfs:comment "Een regel die één begrip afleidt uit invoerbegrippen, in één of meer gevallen (activiteit 3b)."@nl .
+
+wa:Geval a owl:Class ;
+    rdfs:label "geval"@nl ;
+    rdfs:comment "Eén geval van een afleidingsregel, met zijn voorwaarden en voorrang."@nl .
+
+wa:Voorwaarde a owl:Class ;
+    rdfs:label "voorwaarde"@nl ;
+    rdfs:comment "Een enkelvoudige voorwaarde: tekst, rustend op markeringen of verwijzend naar het geval van een andere regel."@nl .
+
+wa:Voorwaardengroep a owl:Class ;
+    rdfs:label "voorwaardengroep"@nl ;
+    rdfs:comment "Een groep voorwaarden die alle of één van alle moeten gelden."@nl .
+
+wa:Invoer a owl:Class ;
+    rdfs:label "invoer"@nl ;
+    rdfs:comment "Een invoerbegrip van een afleidingsregel, met rol en volgorde."@nl .
+
+wa:Voorbeeld a owl:Class ;
+    rdfs:label "voorbeeld"@nl ;
+    rdfs:comment "Een uitgewerkt voorbeeld bij een regel: invoer, verwachte uitkomst en oordeel."@nl .
+
+wa:Regeldrager a owl:Class ;
+    rdfs:label "regeldrager"@nl ;
+    rdfs:comment "Verbindt een afleidingsregel met de markering waarop een deel ervan rust (grondslag, voorwaarde, invoer, uitvoer, tijd, context)."@nl .
+
+# ---------------------------------------------------------------- het kader en het register
+
+wa:werkgebiedId a owl:DatatypeProperty ; rdfs:label "werkgebied-id"@nl ;
+    rdfs:comment "Id van het werkgebied, op het kader en op de registerregel."@nl ;
+    schema:domainIncludes skos:ConceptScheme ; schema:rangeIncludes xsd:string .
+wa:schemaVersie a owl:DatatypeProperty ; rdfs:label "schemaversie"@nl ;
+    rdfs:comment "Versie van de projectie; een andere waarde laat de reconcile-lus alles opnieuw projecteren."@nl ;
+    schema:domainIncludes skos:ConceptScheme ; schema:rangeIncludes xsd:integer .
+wa:projectieHash a owl:DatatypeProperty ; rdfs:label "projectiehash"@nl ;
+    rdfs:comment "Hash van de Postgres-stand waaruit de graph is gebouwd."@nl ;
+    schema:domainIncludes skos:ConceptScheme ; schema:rangeIncludes xsd:string .
+wa:inGraaf a owl:ObjectProperty ; rdfs:label "in graaf"@nl ;
+    rdfs:comment "Op een registerregel: de named graph van het werkgebied."@nl .
+wa:gebruiktBegrip a owl:ObjectProperty ; rdfs:label "gebruikt begrip"@nl ;
+    rdfs:comment "Een begrip dat het kader of een geval gebruikt zonder het te bevatten (een generiek begrip, ADR-006)."@nl ;
+    schema:domainIncludes skos:ConceptScheme, wa:Geval ; schema:rangeIncludes skos:Concept .
+wa:nlSbbVersie a owl:DatatypeProperty ; rdfs:label "NL-SBB-versie"@nl ;
+    rdfs:comment "Alleen in de Turtle-export: de versie van het NL-SBB-profiel."@nl ;
+    schema:domainIncludes skos:ConceptScheme .
+wa:exportOmvang a owl:DatatypeProperty ; rdfs:label "exportomvang"@nl ;
+    rdfs:comment "Alleen in de Turtle-export: alle begrippen of alleen geaccordeerde."@nl ;
+    schema:domainIncludes skos:ConceptScheme .
+wa:nlSbbConform a owl:DatatypeProperty ; rdfs:label "NL-SBB-conform"@nl ;
+    rdfs:comment "Alleen in de Turtle-export: of het begrip aan het NL-SBB-profiel voldoet."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes xsd:boolean .
+
+# ---------------------------------------------------------------- begrippen
+
+wa:status a owl:DatatypeProperty ; rdfs:label "status"@nl ;
+    rdfs:comment "Status van een begrip (concept, geaccordeerd, vervangen) of een regel (ook afgewezen, geaccordeerd_als_beleidsregel)."@nl ;
+    schema:domainIncludes skos:Concept, wa:Afleidingsregel .
+wa:revisie a owl:DatatypeProperty ; rdfs:label "revisie"@nl ;
+    rdfs:comment "Revisienummer, vanaf 1."@nl ;
+    schema:domainIncludes skos:Concept, wa:Afleidingsregel ; schema:rangeIncludes xsd:integer .
+wa:geaccordeerdOp a owl:DatatypeProperty ; rdfs:label "geaccordeerd op"@nl ;
+    rdfs:comment "Moment van accorderen."@nl ;
+    schema:domainIncludes skos:Concept, wa:Afleidingsregel ; schema:rangeIncludes xsd:dateTime .
+wa:geaccordeerdRevisie a owl:DatatypeProperty ; rdfs:label "geaccordeerde revisie"@nl ;
+    rdfs:comment "De revisie die geaccordeerd is."@nl ;
+    schema:domainIncludes skos:Concept, wa:Afleidingsregel .
+wa:definitieHerkomst a owl:DatatypeProperty ; rdfs:label "herkomst van de definitie"@nl ;
+    rdfs:comment "letterlijk, samengesteld of geformuleerd."@nl ;
+    schema:domainIncludes skos:Concept .
+wa:definitieDoor a owl:DatatypeProperty ; rdfs:label "definitie door"@nl ;
+    rdfs:comment "Wie de definitie schreef: analist of lex."@nl ;
+    schema:domainIncludes skos:Concept .
+wa:tegenvoorbeeld a owl:DatatypeProperty ; rdfs:label "tegenvoorbeeld"@nl ;
+    rdfs:comment "Een voorbeeld dat buiten het begrip valt (skos:example is alleen voor wat erbinnen valt)."@nl ;
+    schema:domainIncludes skos:Concept .
+wa:grensgeval a owl:DatatypeProperty ; rdfs:label "grensgeval"@nl ;
+    rdfs:comment "Een voorbeeld waarvan onzeker is of het onder het begrip valt."@nl ;
+    schema:domainIncludes skos:Concept .
+wa:koppeling a owl:ObjectProperty ; rdfs:label "koppeling"@nl ;
+    rdfs:comment "Een passage die het begrip draagt of in context plaatst."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes wa:Koppeling .
+
+# ---------------------------------------------------------------- koppelingen en dragers (gedeeld)
+
+wa:rol a owl:DatatypeProperty ; rdfs:label "rol"@nl ;
+    rdfs:comment "Rol van een koppeling (duiding, afgeleid, definitie, context), een drager (grondslag, voorwaarde, invoer, uitvoer, tijd, context), een invoer, of een brondocument (definitieonderbouwing)."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager, wa:Invoer, foaf:Document .
+wa:beoordeling a owl:DatatypeProperty ; rdfs:label "beoordeling"@nl ;
+    rdfs:comment "open, akkoord of afgewezen."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager .
+wa:element a owl:ObjectProperty ; rdfs:label "element"@nl ;
+    rdfs:comment "De markering in een JAS-annotatielaag (urn:jas:element:…)."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager ; schema:rangeIncludes <urn:jas-ns:Markering> .
+wa:elementHash a owl:DatatypeProperty ; rdfs:label "element-hash"@nl ;
+    rdfs:comment "De bewijsstand: hash van de markering op het moment van koppelen of laatste bevestiging."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager ; schema:rangeIncludes xsd:string .
+wa:passage a owl:DatatypeProperty ; rdfs:label "passage"@nl ;
+    rdfs:comment "Het letterlijke fragment van de markering."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager .
+wa:bron a owl:ObjectProperty ; rdfs:label "bron"@nl ;
+    rdfs:comment "De bronnode in de wettekst (urn:bwb:…), altijd als object."@nl ;
+    schema:domainIncludes wa:Koppeling, wa:Regeldrager, foaf:Document ; schema:rangeIncludes <urn:bwb-ns:Citeerbaar> .
+
+# ---------------------------------------------------------------- relaties tussen begrippen
+
+wa:van a owl:ObjectProperty ; rdfs:label "van"@nl ;
+    rdfs:comment "Beginpunt van een begripsrelatie."@nl ;
+    schema:domainIncludes wa:Begripsrelatie ; schema:rangeIncludes skos:Concept .
+wa:naar a owl:ObjectProperty ; rdfs:label "naar"@nl ;
+    rdfs:comment "Eindpunt van een begripsrelatie."@nl ;
+    schema:domainIncludes wa:Begripsrelatie ; schema:rangeIncludes skos:Concept .
+wa:type a owl:DatatypeProperty ; rdfs:label "type"@nl ;
+    rdfs:comment "kwalificatie, inclusie, uitsluiting, hierarchie, verwant of opvolging."@nl ;
+    schema:domainIncludes wa:Begripsrelatie .
+wa:herkomst a owl:DatatypeProperty ; rdfs:label "herkomst"@nl ;
+    rdfs:comment "Wie de relatie of regel voorstelde: lex, analist of systeem."@nl ;
+    schema:domainIncludes wa:Begripsrelatie, wa:Afleidingsregel .
+wa:toelichting a owl:DatatypeProperty ; rdfs:label "toelichting"@nl ;
+    rdfs:comment "Toelichting bij een begripsrelatie."@nl ;
+    schema:domainIncludes wa:Begripsrelatie .
+wa:kwalificeert a owl:ObjectProperty ; rdfs:label "kwalificeert"@nl ;
+    rdfs:comment "Directe triple van een akkoord bevonden kwalificatie."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes skos:Concept .
+wa:omvat a owl:ObjectProperty ; rdfs:label "omvat"@nl ;
+    rdfs:comment "Directe triple van een akkoord bevonden inclusie."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes skos:Concept .
+wa:omvatNiet a owl:ObjectProperty ; rdfs:label "omvat niet"@nl ;
+    rdfs:comment "Directe triple van een akkoord bevonden uitsluiting."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes skos:Concept .
+wa:heeftSoort a owl:ObjectProperty ; rdfs:label "heeft soort"@nl ;
+    rdfs:comment "Directe triple van een hiërarchie: van de bredere term naar de soort. Daarnaast skos:broader en isothes:broaderGeneric in omgekeerde richting."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes skos:Concept .
+wa:verwantMet a owl:ObjectProperty ; rdfs:label "verwant met"@nl ;
+    rdfs:comment "Directe triple van een verwantschap; daarnaast skos:related in beide richtingen."@nl ;
+    schema:domainIncludes skos:Concept ; schema:rangeIncludes skos:Concept .
+
+# ---------------------------------------------------------------- afleidingsregels
+
+wa:inKader a owl:ObjectProperty ; rdfs:label "in kader"@nl ;
+    rdfs:comment "Het begrippenkader van het werkgebied waarin de regel staat."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes skos:ConceptScheme .
+wa:soort a owl:DatatypeProperty ; rdfs:label "soort"@nl ;
+    rdfs:comment "Soort afleidingsregel."@nl ;
+    schema:domainIncludes wa:Afleidingsregel .
+wa:brontype a owl:DatatypeProperty ; rdfs:label "brontype"@nl ;
+    rdfs:comment "Waar de regel op rust, standaard wet."@nl ;
+    schema:domainIncludes wa:Afleidingsregel .
+wa:regelbegrip a owl:ObjectProperty ; rdfs:label "regelbegrip"@nl ;
+    rdfs:comment "Het begrip dat de regel als geheel benoemt."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes skos:Concept .
+wa:uitvoer a owl:ObjectProperty ; rdfs:label "uitvoer"@nl ;
+    rdfs:comment "Het begrip dat de regel afleidt; precies één."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes skos:Concept .
+wa:onderwerp a owl:ObjectProperty ; rdfs:label "onderwerp"@nl ;
+    rdfs:comment "Het begrip waarover de regel iets afleidt."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes skos:Concept .
+wa:regeltekst a owl:DatatypeProperty ; rdfs:label "regeltekst"@nl ;
+    rdfs:comment "De afgeleide regeltekst van de regel of het geval."@nl ;
+    schema:domainIncludes wa:Afleidingsregel, wa:Geval ; schema:rangeIncludes rdf:langString .
+wa:invoer a owl:ObjectProperty ; rdfs:label "invoer"@nl ; rdfs:comment "Een invoerbegrip van de regel."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Invoer .
+wa:begrip a owl:ObjectProperty ; rdfs:label "begrip"@nl ;
+    rdfs:comment "Het begrip van een invoer of van een waarde in een voorbeeld."@nl ;
+    schema:domainIncludes wa:Invoer ; schema:rangeIncludes skos:Concept .
+wa:volgorde a owl:DatatypeProperty ; rdfs:label "volgorde"@nl ; rdfs:comment "Volgnummer binnen de ouder, om op te sorteren."@nl ;
+    schema:domainIncludes wa:Invoer, wa:Geval, wa:Voorbeeld ; schema:rangeIncludes xsd:integer .
+wa:geval a owl:ObjectProperty ; rdfs:label "geval"@nl ; rdfs:comment "Een geval van de regel; een regel heeft er minstens één."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Geval .
+wa:voorrang a owl:DatatypeProperty ; rdfs:label "voorrang"@nl ;
+    rdfs:comment "Voorrang van een geval boven andere gevallen."@nl ;
+    schema:domainIncludes wa:Geval ; schema:rangeIncludes xsd:integer .
+wa:label a owl:DatatypeProperty ; rdfs:label "label"@nl ;
+    rdfs:comment "Label van een geval."@nl ;
+    schema:domainIncludes wa:Geval .
+wa:voorwaarden a owl:ObjectProperty ; rdfs:label "voorwaarden"@nl ; rdfs:comment "De voorwaarde of voorwaardengroep van een geval."@nl ;
+    schema:domainIncludes wa:Geval ; schema:rangeIncludes wa:Voorwaarde, wa:Voorwaardengroep .
+wa:verband a owl:DatatypeProperty ; rdfs:label "verband"@nl ;
+    rdfs:comment "alle of een_van."@nl ;
+    schema:domainIncludes wa:Voorwaardengroep .
+wa:deel a owl:ObjectProperty ; rdfs:label "deel"@nl ; rdfs:comment "Een voorwaarde of groep binnen een voorwaardengroep."@nl ;
+    schema:domainIncludes wa:Voorwaardengroep ; schema:rangeIncludes wa:Voorwaarde, wa:Voorwaardengroep .
+wa:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl ; rdfs:comment "De tekst van een voorwaarde."@nl ;
+    schema:domainIncludes wa:Voorwaarde ; schema:rangeIncludes rdf:langString .
+wa:niet a owl:DatatypeProperty ; rdfs:label "niet"@nl ;
+    rdfs:comment "De voorwaarde is ontkend."@nl ;
+    schema:domainIncludes wa:Voorwaarde ; schema:rangeIncludes xsd:boolean .
+wa:rustOp a owl:ObjectProperty ; rdfs:label "rust op"@nl ;
+    rdfs:comment "De markeringen waarop een voorwaarde of regel rust."@nl ;
+    schema:domainIncludes wa:Voorwaarde, wa:Afleidingsregel ; schema:rangeIncludes <urn:jas-ns:Markering> .
+wa:gevalVan a owl:ObjectProperty ; rdfs:label "geval van"@nl ;
+    rdfs:comment "Het geval van een andere regel waarnaar een voorwaarde of voorbeeld verwijst."@nl ;
+    schema:domainIncludes wa:Voorwaarde, wa:Voorbeeld ; schema:rangeIncludes wa:Geval .
+wa:voorbeeld a owl:ObjectProperty ; rdfs:label "voorbeeld"@nl ; rdfs:comment "Een uitgewerkt voorbeeld bij de regel."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Voorbeeld .
+wa:voorbeeldInvoer a owl:DatatypeProperty ; rdfs:label "voorbeeldinvoer"@nl ; rdfs:comment "De invoer van het voorbeeld als tekst."@nl ;
+    schema:domainIncludes wa:Voorbeeld ; schema:rangeIncludes rdf:langString .
+wa:verwachteUitkomst a owl:DatatypeProperty ; rdfs:label "verwachte uitkomst"@nl ; rdfs:comment "Wat de regel bij deze invoer moet opleveren."@nl ;
+    schema:domainIncludes wa:Voorbeeld ; schema:rangeIncludes rdf:langString .
+wa:oordeel a owl:DatatypeProperty ; rdfs:label "oordeel"@nl ; rdfs:comment "Oordeel over het voorbeeld (bijvoorbeeld open of akkoord)."@nl ;
+    schema:domainIncludes wa:Voorbeeld .
+wa:inGeval a owl:ObjectProperty ; rdfs:label "in geval"@nl ;
+    rdfs:comment "Het geval van deze regel waar een voorbeeld of drager bij hoort."@nl ;
+    schema:domainIncludes wa:Voorbeeld, wa:Regeldrager ; schema:rangeIncludes wa:Geval .
+wa:waarde rdfs:label "waarde"@nl ;
+    rdfs:comment "Op een voorbeeld: een knoop met wa:begrip en wa:waarde; op die knoop: de waarde zelf als literal."@nl ;
+    schema:domainIncludes wa:Voorbeeld .
+wa:drager a owl:ObjectProperty ; rdfs:label "drager"@nl ; rdfs:comment "Een drager van de regel: de koppeling met een markering."@nl ;
+    schema:domainIncludes wa:Afleidingsregel ; schema:rangeIncludes wa:Regeldrager .

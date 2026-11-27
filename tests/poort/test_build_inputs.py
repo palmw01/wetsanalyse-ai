@@ -40,3 +40,12 @@ def test_de_hook_en_de_publish_kennen_dezelfde_mappen():
     for map_ in INPUTS:
         assert f'raakt "{map_}"' in hook, f"de pre-push-hook draait graph-qa niet bij {map_}"
         assert f'- "{map_}**"' in publish, f"de publish-workflow bouwt graph-qa niet bij {map_}"
+
+
+def test_de_ontologiedocumentatie_draait_de_kruistests_ook_als_alleen_markdown_wijzigt():
+    """`docs/ontologie/` is gegenereerd (`tools/graph-qa/scripts/genereer_ontologie_docs.py`); de drift-test erop
+    (`tests/methode/test_ontologie_docs.py`) is een kruistest. Een PR die alleen die Markdown raakt, moet hem draaien."""
+    poort = _lees(".github/workflows/poort.yml")
+    assert "grep '^docs/ontologie/'" in poort
+    assert re.search(r'if \[ -n "\$code" \] \|\| \[ -n "\$skill" \] \|\| \[ -n "\$ontologie" \]; then kruis=true', poort)
+    assert "grep -q '^docs/ontologie/'" in _lees(".githooks/pre-push")

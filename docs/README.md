@@ -63,6 +63,7 @@ HTML-bestanden zelf zijn lokaal.
 |---|---|---|
 | Wat moeten we nog doen? | [`PLAN.md`](PLAN.md) | plan |
 | Hoe werkt de annotatieketen nu? | [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) | specificatie |
+| Welke klassen, eigenschappen en named graphs heeft de kennisgraaf? | [`ontologie/README.md`](ontologie/README.md) (gegenereerd) + de vocabulaires en [`CHANGELOG.md`](ontologie/CHANGELOG.md) in [`ontologie/`](ontologie/) | specificatie |
 | Hoe werken het annotatiedomein en de graaf? | [`architectuur/annotatie-bronnodes.md`](architectuur/annotatie-bronnodes.md) + [`wetsanalyse-workbench/jas-annotatie-ontologie.md`](wetsanalyse-workbench/jas-annotatie-ontologie.md) | specificatie |
 | Hoe werkt de bronselectie per deelvraag? | [`architectuur/bronselectie-per-deelvraag.md`](architectuur/bronselectie-per-deelvraag.md) | specificatie |
 | Hoe verhouden artefacten zich tot het artefactmodel van Claude? | [`architectuur/artefacten-langs-claude.md`](architectuur/artefacten-langs-claude.md) | onderzoek |
@@ -119,6 +120,15 @@ Toelichting bij enkele documenten:
   acceptatiecriteria. Het start na V7.
 - **`architectuur/annotatieketen.md`** beschrijft de stappen, de configuratie, het beslisbeleid,
   de detectoren en de bekende beperkingen van `hybrid_v1`, de enige annotatieketen.
+- **`ontologie/`** is *specificatie*, en grotendeels **gegenereerd** door
+  `tools/graph-qa/scripts/genereer_ontologie_docs.py` (`--check` is de drift-test `tests/methode/test_ontologie_docs.py`,
+  een kruistest). Uit de T-Box (`tools/bwb-import/app/ontology.py`), de SHACL-shapes en de vocabulaires komen
+  `bwb-ontologie.ttl`, `README.md` (met Mermaid-diagrammen) en `ontologie.html`: per ontologie de klassen, de
+  eigenschappen met verplicht/optioneel, de named graphs en een kwaliteitstoets van de ontologie zelf (label en uitleg
+  per term, shapes tegen het vocabulaire, kloppende kardinaliteit; een fout maakt `--check` rood). Met de hand: `wa-vocabulaire.ttl` en
+  `kg-vocabulaire.ttl` (de eigen termen van begrippen, regels en kennisgroepen; **alleen documentatie**, nooit in
+  GraphDB laden, want een `rdfs:range` daar laat `rdfsplus` triples afleiden), `versies.json` (de versie per
+  ontologie) en `CHANGELOG.md`. Verandert een bron, dan verhoog je de versie, noteer je hem en draai je de generator.
 - **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** beschrijft de RDF-projectie van de
   annotatielagen (`api/app/graaf_projectie_v2.py`): één laag per bronnode, in
   `urn:jas:graph:v2:<laag-id>`. De api is de waarheid over lifecycle, beslissingen en dekking; de

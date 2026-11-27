@@ -79,7 +79,8 @@ raakt "frontend/" && {
 { raakt "api/" || raakt "packages/bronmodel/"; } && draai "api"        api              uv run pytest -q -x
 
 # De kruistests (`scripts/kruistests.sh`): ook als alleen de ándere kant wijzigt. Documentatie telt niet mee.
-if echo "$paden" | grep -v '\.md$' | grep -q .; then
+# Behalve de gegenereerde ontologiedocumentatie (`docs/ontologie/`): de drift-test erop is een kruistest.
+if echo "$paden" | grep -v '\.md$' | grep -q . || echo "$paden" | grep -q '^docs/ontologie/'; then
   [ -d frontend/node_modules ] || export ZONDER_FRONTEND=1
   draai "kruistests" . scripts/kruistests.sh
 fi
