@@ -11,10 +11,11 @@ nieuwe patchversie.
 
 ## bwb 1.1.0
 
-27 nov 2026. Civiel en insolventie (Rv, Faillissementswet, BW-boeken). Nieuw: de klasse `bwb:Boek` met
-`bwb:heeftBoek` (⊑ `eli:has_part`), voor een regeling met meer boeken (Rv); een BW-boek blijft de regeling zelf. In de
-shapes heeft een structuurdeel nu een nummer óf een titel (paragrafen zonder nummer in de Faillissementswet en Boek 1 en
-7 BW); `refKey` en `bronUrl` horen alleen bij citeerbare delen. Geen bestaande IRI veranderde.
+27 nov 2026. Civiel en insolventie (Rv, Faillissementswet, BW-boeken). In de shapes heeft een structuurdeel nu een
+nummer óf een titel (paragrafen zonder nummer in de Faillissementswet en Boek 1 en 7 BW); `refKey` en `bronUrl` horen
+alleen bij citeerbare delen. Geen nieuwe klasse: in een regeling met meer boeken (Rv) draagt de sleutel van elk deel het
+boek (`…#boek=Eerste#titeldeel=Eerste`), zonder eigen boeknode, zodat de padqueries en het toolschema van Lex gelijk
+blijven. Geen bestaande IRI veranderde.
 
 ## bwb 1.0.0
 

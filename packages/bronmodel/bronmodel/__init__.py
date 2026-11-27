@@ -15,9 +15,9 @@ from typing import Any, Callable
 from .corpus import CorpusMap as CorpusMap, CorpusSegment as CorpusSegment, Span as Span, SpanFout as SpanFout
 from .taal import BRON_IRI
 
-RELATIES = ("heeftBoek", "heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
+RELATIES = ("heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
             "heeftArtikel", "heeftLid", "heeftOnderdeel", "heeftDivisie", "heeftBijlage")
-TYPEN = ("Regeling", "Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel",
+TYPEN = ("Regeling", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel",
          "Lid", "Onderdeel", "Divisie", "Bijlage")
 PAD = "(" + "|".join("bwb:" + r for r in RELATIES) + ")"
 _BWB = re.compile(r"^BWB[RV]\d+$")

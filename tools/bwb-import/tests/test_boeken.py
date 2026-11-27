@@ -1,9 +1,9 @@
-"""Boeken: een structuurdeel in een regeling met meer boeken, de regeling zelf bij één boek.
+"""Boeken: in een regeling met meer boeken draagt elke sleutel het boek; bij één boek is het boek de regeling zelf.
 
 Rv (BWBR0001827) heeft vier boeken, en elk boek een "Titeldeel Eerste" waarvan de jci het boek niet noemt
-(`&titeldeel=Eerste`). Zonder boekniveau landen die titeldelen op één IRI en weigert de importpoort de regeling. Een
-BW-boek (Boek 7 is BWBR0005290) heeft precies één `<boek>`: dat blijft de regeling zelf, zodat geen bestaande IRI
-verschuift.
+(`&titeldeel=Eerste`). Zonder het boek in de sleutel landen die titeldelen op één IRI en weigert de importpoort de
+regeling. Er komt bewust geen boeknode: die zou de padqueries en het toolschema van Lex veranderen. Een BW-boek (Boek 7 is
+BWBR0005290) heeft precies één `<boek>`: dat blijft de regeling zelf, zodat geen bestaande IRI verschuift.
 """
 from __future__ import annotations
 
@@ -42,13 +42,12 @@ def _toestand(tmp_path: Path, boeken: str) -> Path:
     return pad
 
 
-def test_meer_boeken_zijn_structuurdelen_met_een_eigen_sleutel(tmp_path: Path) -> None:
+def test_meer_boeken_geven_elk_deel_een_sleutel_met_het_boek(tmp_path: Path) -> None:
     wet = ToestandParser().parse(_toestand(tmp_path, _boek("Eerste", "1") + _boek("Tweede", "2")))
-    assert [d.soort for d in wet.structuurdelen] == ["boek", "boek"]
+    assert [(d.soort, d.boek) for d in wet.structuurdelen] == [("titeldeel", "Eerste"), ("titeldeel", "Tweede")]
     assert wet.overgeslagen == []
 
     batch, summary = collect(wet)
-    assert summary.boeken == 2
     titeldelen = sorted(r["ref_key"] for r in batch.nodes["Titeldeel"])
     assert titeldelen == [
         "BWBR0000001#boek=Eerste#titeldeel=Eerste",
@@ -58,16 +57,14 @@ def test_meer_boeken_zijn_structuurdelen_met_een_eigen_sleutel(tmp_path: Path) -
     assert sorted(r["ref_key"] for r in batch.nodes["Artikel"]) == ["BWBR0000001#artikel=1", "BWBR0000001#artikel=2"]
 
     g, _ = GraphDbWriter(url="offline", repository="offline", vocab=V).build_graph(wet, verzameld=(batch, summary))
-    assert len(set(g.subjects(RDF.type, V.klasse("Boek")))) == 2
     assert len(set(g.subjects(RDF.type, V.klasse("Titeldeel")))) == 2
-    assert len(set(g.objects(V.wet("BWBR0000001"), V.ns.heeftBoek))) == 2
+    assert len(set(g.objects(V.wet("BWBR0000001"), V.ns.heeftTiteldeel))) == 2
 
 
 def test_een_enkel_boek_is_de_regeling_zelf(tmp_path: Path) -> None:
     wet = ToestandParser().parse(_toestand(tmp_path, _boek("7", "1")))
-    assert [d.soort for d in wet.structuurdelen] == ["titeldeel"]
+    assert [(d.soort, d.boek) for d in wet.structuurdelen] == [("titeldeel", None)]
     batch, summary = collect(wet)
-    assert summary.boeken == 0
     assert [r["ref_key"] for r in batch.nodes["Titeldeel"]] == ["BWBR0000001#titeldeel=Eerste"]
 
 

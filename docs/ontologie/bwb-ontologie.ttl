@@ -194,12 +194,6 @@ bwb:heeftBijlage a owl:ObjectProperty ;
     rdfs:range bwb:Bijlage ;
     rdfs:subPropertyOf eli:has_part .
 
-bwb:heeftBoek a owl:ObjectProperty ;
-    rdfs:label "heeft boek"@nl ;
-    rdfs:comment "Regeling bevat boek."@nl ;
-    rdfs:range bwb:Boek ;
-    rdfs:subPropertyOf eli:has_part .
-
 bwb:heeftDivisie a owl:ObjectProperty ;
     rdfs:label "heeft divisie"@nl ;
     rdfs:comment "Bevat circulaire-divisie."@nl ;
@@ -436,11 +430,6 @@ bwb:Bijlage a owl:Class ;
     rdfs:subClassOf eli:LegalResourceSubdivision,
         bwb:Citeerbaar .
 
-bwb:Boek a owl:Class ;
-    rdfs:label "Boek"@nl ;
-    rdfs:comment "Boek van een wettekst met meer boeken (Rv, Sv). Het ene boek van een BW-boek is de regeling zelf."@nl ;
-    rdfs:subClassOf bwb:Structuurdeel .
-
 bwb:Divisie a owl:Class ;
     rdfs:label "Divisie"@nl ;
     rdfs:comment "Divisie van een circulaire/beleidsregel; container én tekstdrager."@nl ;
@@ -490,15 +479,15 @@ bwb:Verwijzing a owl:Class ;
     rdfs:label "Verwijzing"@nl ;
     rdfs:comment "Gereïficeerde verwijzing met soort/doel-metadata."@nl .
 
-bwb:Citeerbaar a owl:Class ;
-    rdfs:label "Citeerbaar"@nl ;
-    rdfs:comment "Tekstdeel met een eigen JuriConnect-identiteit; doel van verwijzingen."@nl ;
-    rdfs:subClassOf eli:LegalResource .
-
 bwb:Structuurdeel a owl:Class ;
     rdfs:label "Structuurdeel"@nl ;
     rdfs:comment "Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …)."@nl ;
     rdfs:subClassOf eli:LegalResourceSubdivision .
+
+bwb:Citeerbaar a owl:Class ;
+    rdfs:label "Citeerbaar"@nl ;
+    rdfs:comment "Tekstdeel met een eigen JuriConnect-identiteit; doel van verwijzingen."@nl ;
+    rdfs:subClassOf eli:LegalResource .
 
 bwb:Regeling a owl:Class ;
     rdfs:label "Regeling"@nl ;

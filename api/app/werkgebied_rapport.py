@@ -1003,7 +1003,7 @@ def wettekst_regels(w: Wettekst) -> list[Regel]:
     return uit
 
 
-_SOORT = {"Boek": "Boek", "Hoofdstuk": "Hoofdstuk", "Titeldeel": "Titel", "Afdeling": "Afdeling", "Paragraaf": "§", "Divisie": "", "Bijlage": "Bijlage",
+_SOORT = {"Hoofdstuk": "Hoofdstuk", "Titeldeel": "Titel", "Afdeling": "Afdeling", "Paragraaf": "§", "Divisie": "", "Bijlage": "Bijlage",
           "Artikel": "Artikel"}
 
 

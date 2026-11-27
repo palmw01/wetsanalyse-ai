@@ -48,11 +48,6 @@ _KLASSEN: dict[str, tuple[str, str, tuple[str | URIRef, ...]]] = {
         "Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …).",
         (ELI.LegalResourceSubdivision,),
     ),
-    "Boek": (
-        "Boek",
-        "Boek van een wettekst met meer boeken (Rv, Sv). Het ene boek van een BW-boek is de regeling zelf.",
-        ("Structuurdeel",),
-    ),
     "Hoofdstuk": ("Hoofdstuk", "Hoofdstuk van een wettekst.", ("Structuurdeel",)),
     "Titeldeel": ("Titeldeel", "Titeldeel van een wettekst.", ("Structuurdeel",)),
     "Afdeling": ("Afdeling", "Afdeling van een wettekst.", ("Structuurdeel",)),
@@ -104,7 +99,6 @@ _KLASSEN: dict[str, tuple[str, str, tuple[str | URIRef, ...]]] = {
 
 # Objectproperty -> (label, toelichting, superproperties, rdfs:range of None).
 _OBJECT_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], str | None]] = {
-    "heeftBoek": ("heeft boek", "Regeling bevat boek.", (ELI.has_part,), "Boek"),
     "heeftHoofdstuk": ("heeft hoofdstuk", "Wet bevat hoofdstuk.", (ELI.has_part,), "Hoofdstuk"),
     "heeftTiteldeel": ("heeft titeldeel", "Bevat titeldeel.", (ELI.has_part,), "Titeldeel"),
     "heeftAfdeling": ("heeft afdeling", "Bevat afdeling.", (ELI.has_part,), "Afdeling"),

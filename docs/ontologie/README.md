@@ -77,7 +77,6 @@ classDiagram
   class bwb_Artikel["bwb:Artikel"]
   class bwb_Beleidsregel["bwb:Beleidsregel"]
   class bwb_Bijlage["bwb:Bijlage"]
-  class bwb_Boek["bwb:Boek"]
   class bwb_Circulaire["bwb:Circulaire"]
   class bwb_Citeerbaar["bwb:Citeerbaar"]
   class bwb_Divisie["bwb:Divisie"]
@@ -100,7 +99,6 @@ classDiagram
   bwb_Regeling <|-- bwb_Beleidsregel
   eli_LegalResourceSubdivision <|-- bwb_Bijlage
   bwb_Citeerbaar <|-- bwb_Bijlage
-  bwb_Structuurdeel <|-- bwb_Boek
   bwb_Regeling <|-- bwb_Circulaire
   eli_LegalResource <|-- bwb_Citeerbaar
   eli_LegalResourceSubdivision <|-- bwb_Divisie
@@ -132,7 +130,6 @@ classDiagram
   class bwb_Bijlage["bwb:Bijlage"]
   bwb_Bijlage : label 1
   bwb_Bijlage : vindplaats 1
-  class bwb_Boek["bwb:Boek"]
   class bwb_Citeerbaar["bwb:Citeerbaar"]
   bwb_Citeerbaar : bronUrl 1
   bwb_Citeerbaar : refKey 1
@@ -207,7 +204,6 @@ classDiagram
   bwb_Bijlage --> bwb_Artikel : heeftArtikel 0..n
   bwb_Bijlage --> bwb_Hoofdstuk : heeftHoofdstuk 0..n
   bwb_Bijlage --> bwb_Onderdeel : heeftOnderdeel 0..n
-  bwb_Structuurdeel <|-- bwb_Boek
   bwb_Citeerbaar --> bwb_Verwijzing : heeftVerwijzing 0..n
   bwb_Citeerbaar <|-- bwb_Divisie
   bwb_Divisie --> bwb_Artikel : heeftArtikel 0..n
@@ -221,7 +217,6 @@ classDiagram
   bwb_Structuurdeel <|-- bwb_Paragraaf
   bwb_Regeling --> bwb_Artikel : heeftArtikel 0..n
   bwb_Regeling --> bwb_Bijlage : heeftBijlage 0..n
-  bwb_Regeling --> bwb_Boek : heeftBoek 0..n
   bwb_Regeling --> bwb_Divisie : heeftDivisie 0..n
   bwb_Regeling --> bwb_Hoofdstuk : heeftHoofdstuk 0..n
   bwb_Regeling --> bwb_Ondertekenaar : ondertekendDoor 0..n
@@ -363,7 +358,6 @@ Een regeling uit het Basiswettenbestand (wet, AMvB, ministeriële regeling, bele
 | `bwb:geldigVanaf` | 0..1 | xsd:date | Begin van het geldigheidsvenster van de toestand. |
 | `bwb:heeftArtikel` | 0..n | → bwb:Artikel | Bevat artikel. |
 | `bwb:heeftBijlage` | 0..n | → bwb:Bijlage | Regeling bevat bijlage. |
-| `bwb:heeftBoek` | 0..n | → bwb:Boek | Regeling bevat boek. |
 | `bwb:heeftDivisie` | 0..n | → bwb:Divisie | Bevat circulaire-divisie. |
 | `bwb:heeftHoofdstuk` | 0..n | → bwb:Hoofdstuk | Wet bevat hoofdstuk. |
 | `bwb:ondertekendDoor` | 0..n | → bwb:Ondertekenaar | Regeling is ondertekend door deze persoon. |
@@ -373,7 +367,7 @@ Een regeling uit het Basiswettenbestand (wet, AMvB, ministeriële regeling, bele
 
 #### `bwb:Structuurdeel`
 
-Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …). Subklasse van `eli:LegalResourceSubdivision`. Geldt voor `bwb:Afdeling`, `bwb:Boek`, `bwb:Hoofdstuk`, `bwb:Paragraaf`, `bwb:Titeldeel`. Minstens één van: (bwb:nummer aanwezig) | (bwb:titel aanwezig).
+Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …). Subklasse van `eli:LegalResourceSubdivision`. Geldt voor `bwb:Afdeling`, `bwb:Hoofdstuk`, `bwb:Paragraaf`, `bwb:Titeldeel`. Minstens één van: (bwb:nummer aanwezig) | (bwb:titel aanwezig).
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
@@ -447,7 +441,6 @@ Gereïficeerde verwijzing met soort/doel-metadata.
 | `bwb:heeftAfdeling` | object | `bwb:Afdeling` | `eli:has_part` | Bevat afdeling. |
 | `bwb:heeftArtikel` | object | `bwb:Artikel` | `eli:has_part` | Bevat artikel. |
 | `bwb:heeftBijlage` | object | `bwb:Bijlage` | `eli:has_part` | Regeling bevat bijlage. |
-| `bwb:heeftBoek` | object | `bwb:Boek` | `eli:has_part` | Regeling bevat boek. |
 | `bwb:heeftDivisie` | object | `bwb:Divisie` | `eli:has_part` | Bevat circulaire-divisie. |
 | `bwb:heeftGrondslag` | object | `bwb:Regeling` | `eli:based_on` | Regeling waarop deze regeling (mede) is gebaseerd (uit de WTI). |
 | `bwb:heeftHoofdstuk` | object | `bwb:Hoofdstuk` | `eli:has_part` | Wet bevat hoofdstuk. |

@@ -31,17 +31,17 @@ NS = BASIS
 # `bwb:bevat` matcht stil niets: in `context()` zou de tak "4-bevat-door" de structurele inbedding
 # van een bepaling dan nóóit laten zien, en in `get_lid` zouden de onderdelen ontbreken.
 #
-# Ze zijn alle tien `rdfs:subPropertyOf eli:has_part`, maar daarop bevragen zou afhangen van een
+# Ze zijn alle negen `rdfs:subPropertyOf eli:has_part`, maar daarop bevragen zou afhangen van een
 # ruleset die subPropertyOf materialiseert; de alternatie hangt nergens van af.
 # `tests/test_predicaat_dekking.py` bewaakt dat elke naam hier echt bestaat.
 BEVAT = (
-    "bwb:heeftBoek|bwb:heeftHoofdstuk|bwb:heeftTiteldeel|bwb:heeftAfdeling|bwb:heeftParagraaf"
+    "bwb:heeftHoofdstuk|bwb:heeftTiteldeel|bwb:heeftAfdeling|bwb:heeftParagraaf"
     "|bwb:heeftArtikel|bwb:heeftLid|bwb:heeftOnderdeel|bwb:heeftDivisie|bwb:heeftBijlage"
 )
 
 # Alleen de containerniveaus – voor een inhoudsopgave wil je geen leden en onderdelen meenemen.
 STRUCTUUR = (
-    "bwb:heeftBoek|bwb:heeftHoofdstuk|bwb:heeftTiteldeel|bwb:heeftAfdeling|bwb:heeftParagraaf"
+    "bwb:heeftHoofdstuk|bwb:heeftTiteldeel|bwb:heeftAfdeling|bwb:heeftParagraaf"
     "|bwb:heeftArtikel|bwb:heeftDivisie"
 )
 
@@ -54,7 +54,7 @@ STRUCTUUR = (
 # is correcter in theorie maar hangt af van hoe de ruleset de hiërarchie materialiseert, en hij kost
 # een geneste scan per rij. `tests/test_predicaat_dekking.py` bewaakt dat deze namen bestaan.
 CONCRETE_TYPES = (
-    "bwb:Regeling", "bwb:Boek", "bwb:Hoofdstuk", "bwb:Titeldeel", "bwb:Afdeling", "bwb:Paragraaf",
+    "bwb:Regeling", "bwb:Hoofdstuk", "bwb:Titeldeel", "bwb:Afdeling", "bwb:Paragraaf",
     "bwb:Artikel", "bwb:Lid", "bwb:Onderdeel", "bwb:Divisie", "bwb:Bijlage",
 )
 
@@ -224,7 +224,7 @@ def node_patroon(bwb_id: str, aanduiding: str, lid: str | None = None) -> str:
 
 # De knooptypes waarop de FTS-connector indexeert; tevens de toegestane waarden van `soort`.
 FTS_TYPES = (
-    "Regeling", "Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf",
+    "Regeling", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf",
     "Artikel", "Lid", "Onderdeel", "Divisie", "Bijlage",
 )
 
@@ -291,7 +291,7 @@ def fts(
 # De structuurniveaus waarvan het opschrift een onderwerp draagt. Een Divisie telt alleen mee als ze
 # zelf divisies bevat: de Leidraad heeft ~800 divisies met een titel, en de bladeren daarvan zijn
 # bepalingen, geen opbouw – zonder die eis overspoelen ze elk overzicht.
-OPBOUW_TYPES = ("Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Divisie")
+OPBOUW_TYPES = ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Divisie")
 
 # Woorden die in een onderwerp geen onderwerp zijn.
 _STOPWOORDEN = {"van", "het", "een", "der", "den", "voor", "over", "bij", "met", "aan", "door", "en", "of",
@@ -347,7 +347,7 @@ def plaats_in_opbouw(iris: list[str]) -> str:
     return PREFIXES + f"""SELECT ?bepaling ?deel ?soort ?label WHERE {{
   VALUES ?bepaling {{ {waarden} }}
   ?deel ({STRUCTUUR})+ ?bepaling .
-  ?deel a ?t . FILTER(?t IN (bwb:Boek, bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf, bwb:Divisie))
+  ?deel a ?t . FILTER(?t IN (bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf, bwb:Divisie))
   FILTER(STRSTARTS(STR(?deel), "{NS}"))
   BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
   OPTIONAL {{ ?deel rdfs:label ?label }}

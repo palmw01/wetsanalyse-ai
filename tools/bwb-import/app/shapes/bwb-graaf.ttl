@@ -42,7 +42,6 @@ bwbs:Regeling a sh:NodeShape ;
     sh:property [ sh:path bwb:geldigTot ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
     sh:property [ sh:path bwb:citeertitel ; sh:maxCount 1 ; sh:node bwbs:tekstNl ] ;
     sh:property [ sh:path bwb:opschrift ; sh:maxCount 1 ] ;
-    sh:property [ sh:path bwb:heeftBoek ; sh:class bwb:Boek ] ;
     sh:property [ sh:path bwb:heeftHoofdstuk ; sh:class bwb:Hoofdstuk ] ;
     sh:property [ sh:path bwb:heeftArtikel ; sh:class bwb:Artikel ] ;
     sh:property [ sh:path bwb:heeftDivisie ; sh:class bwb:Divisie ] ;
@@ -120,7 +119,7 @@ bwbs:Bijlage a sh:NodeShape ;
 # citeerbaar, en dan heeft het geen refKey of bronUrl: een jci verzinnen mag nooit. Wie wél citeerbaar is, valt
 # daarvoor onder bwbs:Citeerbaar.
 bwbs:Structuurdeel a sh:NodeShape ;
-    sh:targetClass bwb:Boek, bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf ;
+    sh:targetClass bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf ;
     sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
     sh:property [ sh:path bwb:refKey ; sh:maxCount 1 ] ;
     sh:property [ sh:path bwb:bronUrl ; sh:maxCount 1 ] ;

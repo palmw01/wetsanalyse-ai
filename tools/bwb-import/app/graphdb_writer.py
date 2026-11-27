@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
-_STRUCTUUR = {"Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf"}
+_STRUCTUUR = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf"}
 
 # bwb:soort (letterlijke bronwaarde, incl. casing) -> subklasse van bwb:Regeling.
 # Onbekende soorten krijgen alleen het generieke type bwb:Regeling.
@@ -117,7 +117,6 @@ _LUC_INST = "http://www.ontotext.com/connectors/lucene/instance#"
 # Entiteiten en tekstprops die full-text doorzoekbaar moeten zijn.
 _FTS_TYPES = (
     "Regeling",
-    "Boek",
     "Hoofdstuk",
     "Titeldeel",
     "Afdeling",

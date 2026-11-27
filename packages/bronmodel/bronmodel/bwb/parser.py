@@ -37,9 +37,6 @@ logger = logging.getLogger(__name__)
 
 # Tags die als structuurdeel worden behandeld (label = structuur-soort).
 _STRUCTUUR_TAGS = {
-    # Een boek is alleen een structuurdeel in een regeling met meer boeken (Rv, Sv). Het ene boek van een BW-boek is de
-    # regeling zelf (`_lees_kinderen`).
-    "boek": "boek",
     "hoofdstuk": "hoofdstuk",
     "titeldeel": "titeldeel",
     "afdeling": "afdeling",
@@ -263,15 +260,21 @@ class ToestandParser:
                 continue
             if tag == "artikel":
                 artikelen.append(self._parse_artikel(child, bwb_id))
-            elif tag == "boek" and element.tag == "wettekst" and len(element.findall("boek")) == 1:
+            elif tag == "boek" and element.tag == "wettekst":
                 # Een boek van het Burgerlijk Wetboek is een eigen regeling (Boek 7 is BWBR0005290), en zijn wettekst is
                 # precies één `<boek>`. Het is dus geen deel binnen de regeling maar de regeling zelf: zijn titeldelen
                 # horen er direct onder. De jci noemt het boek, maar een vindplaats rekent het niet mee
                 # (`bronmodel.vindplaats`: alleen hoofdstuk, titeldeel, afdeling en paragraaf), dus de IRI verandert
                 # niet. Zonder deze tak viel de hele tekst als "onbekende structuur" weg.
+                begin = len(delen)
                 self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
-                # Met meer boeken (Rv heeft er vier, elk met een "Titeldeel Eerste") is een boek een gewoon structuurdeel:
-                # anders vallen gelijknamige titeldelen uit verschillende boeken op één IRI.
+                # Met meer boeken (Rv heeft er vier, elk met een "Titeldeel Eerste" waarvan de jci het boek niet noemt)
+                # onthoudt elk deel zijn boek, zodat de sleutel het boek kan dragen (`collect`). Geen eigen boeknode:
+                # dat zou de padqueries en het toolschema van Lex veranderen.
+                if len(element.findall("boek")) > 1:
+                    nummer = self._tekst(child.find("kop/nr"))
+                    for deel in delen[begin:]:
+                        deel.boek = nummer
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag == "structuurtekst" and divisies is not None:

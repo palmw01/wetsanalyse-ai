@@ -209,12 +209,14 @@ class Structuurdeel:
     """
 
     id: str
-    soort: str  # "boek" | "hoofdstuk" | "titeldeel" | "afdeling" | "paragraaf"
+    soort: str  # "hoofdstuk" | "titeldeel" | "afdeling" | "paragraaf"
     nummer: str
     label: str
     titel: str
     jci: str | None = None  # canonieke jci van het structuurdeel
     label_id: str | None = None  # WTI-join-sleutel (label-id-attribuut)
+    # Het boek ("Eerste") in een regeling met meer boeken (Rv); None in een regeling zonder of met één boek.
+    boek: str | None = None
     subdelen: list[Structuurdeel] = field(default_factory=list)
     artikelen: list[Artikel] = field(default_factory=list)
     # Een paragraaf van een beleidsregel zonder artikelen draagt haar tekst in een ``<structuurtekst>`` (het Besluit
@@ -315,7 +317,6 @@ class ImportSummary:
     onderdelen: int = 0
     illustraties: int = 0
     ondertekenaars: int = 0
-    boeken: int = 0
     relaties: int = 0
     # Dekking: tekstomvang in de bron-XML tegenover wat er in de graaf belandt. Nul = niet gemeten.
     # Zonder dit cijfer is "de graaf is volledig" een oordeel; elf Leidraad-artikelen (10.052
@@ -337,7 +338,6 @@ class ImportSummary:
         return {
             "bwb_id": self.bwb_id,
             "wetten": self.wetten,
-            "boeken": self.boeken,
             "hoofdstukken": self.hoofdstukken,
             "titeldelen": self.titeldelen,
             "afdelingen": self.afdelingen,
