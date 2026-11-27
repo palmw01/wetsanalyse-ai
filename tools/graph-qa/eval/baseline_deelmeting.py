@@ -13,7 +13,7 @@ import hashlib
 import json
 import sys
 
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 
 
 def _s0(x):

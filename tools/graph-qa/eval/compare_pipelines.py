@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from eval import casusbron, manifest
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.keten_fixture import (
     TOKENVELDEN, Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases, ontwikkelcases,
 )

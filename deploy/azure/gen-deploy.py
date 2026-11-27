@@ -33,8 +33,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-# De eigen map op het pad: als script staat hij er vanzelf, maar niet als een test hem met importlib laadt.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# De padcontrole is één bestand voor de hele repo (`packages/bronmodel/bronmodel/padcontrole.py`, alleen stdlib). Dit
+# script draait zonder geïnstalleerd pakket, dus het laadt dat bestand uit de checkout. Achteraan op het pad, zodat het
+# niets van de standaardbibliotheek overschaduwt.
+sys.path.append(str(Path(__file__).resolve().parents[2] / "packages" / "bronmodel" / "bronmodel"))
 from padcontrole import OnveiligPad, veilig_argument, veilig_pad  # noqa: E402
 
 TEMPLATE = Path(__file__).parent / "main.bicep"

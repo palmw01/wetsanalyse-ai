@@ -29,7 +29,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent.agent import answer_stream  # noqa: E402
-from eval.padcontrole import veilig_pad  # noqa: E402
+from bronmodel.padcontrole import veilig_pad  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import Verbruiksmeter  # noqa: E402
 from eval.opname import bewaar, lees, neem_op, nieuwe_opname  # noqa: E402

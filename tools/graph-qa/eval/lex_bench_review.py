@@ -33,7 +33,7 @@ from typing import Any
 
 from eval import lex_bench_team as team
 from eval.bronselectie_eval import ROUTES, OpnameGraaf, OpnemendeGraaf, _raakt, meet_intake, scoor_deelvraag
-from eval.padcontrole import veilig_pad
+from bronmodel.padcontrole import veilig_pad
 from eval.lex_bench import ROUTE_L1, _maat
 
 REVIEW = team.BENCH / "bronselectie" / "formulier-reviewer.json"

@@ -49,7 +49,7 @@ from urllib.parse import unquote
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent.jas_relaties import VERBIJZONDERINGEN as _VERBIJZONDERINGEN  # noqa: E402
-from eval.padcontrole import veilig_pad  # noqa: E402
+from bronmodel.padcontrole import veilig_pad  # noqa: E402
 from eval.scoring import _norm, _token_iou, _zelfde_plek, klasse_dekking  # noqa: E402
 from eval.wortel import WORTEL as WORTEL_REPO
 
