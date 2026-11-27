@@ -49,8 +49,8 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
           <span className="block text-3xs text-faint">{l.uitleg}</span>
         </span>
       </label>)}
-      {dekking && <label className={rij}>
-        <input type="checkbox" checked={lagen.dekking} onChange={() => onWissel("dekking")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+      {dekking && <label className={rij} aria-label="Dekking">
+        <input type="checkbox" aria-label="Dekking" checked={lagen.dekking} onChange={() => onWissel("dekking")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
         <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
           <circle cx="12" cy="6" r="4.4" fill={BRONKLEUR.lid} stroke={DEKKINGSKLEUR} strokeWidth="1.6" />
         </svg>
@@ -59,8 +59,8 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
           <span className="block text-3xs text-faint">okeromtrek: zinsdelen zonder detectortreffer (geopende bepaling)</span>
         </span>
       </label>}
-      {begrippen && <label className={rij}>
-        <input type="checkbox" checked={lagen.begrippen} onChange={() => onWissel("begrippen")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+      {begrippen && <label className={rij} aria-label="Begrippen">
+        <input type="checkbox" aria-label="Begrippen" checked={lagen.begrippen} onChange={() => onWissel("begrippen")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
         <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
           <circle cx="4" cy="6" r="3.4" fill={BEGRIPKLEUR.geaccordeerd} /><path d="M7.5 6h9" stroke={LIJNKLEUR.begripsrelatie} strokeWidth="1.4" />
           <circle cx="20" cy="6" r="3.4" fill={BEGRIPKLEUR.concept} />
@@ -70,8 +70,8 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
           <span className="block text-3xs text-faint">wettelijke begrippen en analyse-uitkomsten, met hun passages</span>
         </span>
       </label>}
-      {relaties && <label className={rij}>
-        <input type="checkbox" checked={lagen.relaties} onChange={() => onWissel("relaties")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+      {relaties && <label className={rij} aria-label="Relaties">
+        <input type="checkbox" aria-label="Relaties" checked={lagen.relaties} onChange={() => onWissel("relaties")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
         <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
           <circle cx="4" cy="6" r="2.6" fill={klasseKleur("Rechtssubject")} /><path d="M7 6h8" stroke={RELATIEKLEUR} strokeWidth="1.4" />
           <path d="m15 3.5 3 2.5-3 2.5Z" fill={RELATIEKLEUR} /><circle cx="21" cy="6" r="2.6" fill={klasseKleur("Rechtsbetrekking")} />

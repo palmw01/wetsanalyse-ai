@@ -10,6 +10,7 @@ import { Popover } from "@/components/ui/Popover";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
 import { haalWerkgebied } from "@/lib/api";
+import { focusBijOpenen } from "@/lib/focusBijOpenen";
 
 /** De kop van het gesprek (spoor G1, naar de mock-up): de titel, waar het gesprek bij hoort – een
  *  werkgebied of *Los gesprek* – en het menu met archiveren, verplaatsen en verwijderen. Eén
@@ -58,7 +59,7 @@ export function ChatKop({
         {/* Op een smal scherm staat de titel al in de mobiele topbar; hernoemen gebeurt ter plekke. */}
         {bw.open ? (
           <div data-bewerken className="py-1">
-            <input autoFocus aria-label="Naam van het gesprek" value={bw.concept} onChange={(e) => bw.zet(e.target.value)}
+            <input ref={focusBijOpenen} aria-label="Naam van het gesprek" value={bw.concept} onChange={(e) => bw.zet(e.target.value)}
               onKeyDown={bw.toetsen(true)}
               className="w-full rounded-field border border-lint bg-paper px-2 py-1 text-sm text-ink focus:outline-none" />
             <BewerkVoet onAnnuleer={bw.annuleer} onOpslaan={() => void bw.slaOp()} bezig={bw.bezig}

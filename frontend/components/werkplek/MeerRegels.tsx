@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Vinkje } from "@/components/ui/Icoon";
 import { regelNamen, type Regel } from "@/lib/vraagkaart";
+import { focusBijOpenen } from "@/lib/focusBijOpenen";
 
 /** Meer dan één eigen antwoord op een kaartje van Lex (4 nov 2026): één regel is één ding – een deelvraag, een
  *  bepaling –, Enter in een gevulde regel of *+ Nog een …* opent de volgende, Ctrl/⌘+Enter stuurt in. Wat één regel
@@ -37,7 +38,7 @@ export function MeerRegels({ teksten, onTeksten, regel, uitgeschakeld, onInsture
                 value={t}
                 disabled={uitgeschakeld}
                 maxLength={maxLengte}
-                autoFocus={nieuw === i}
+                ref={nieuw === i ? focusBijOpenen : undefined}
                 placeholder={i === 0 ? namen.eerste : namen.volgende}
                 onChange={(e) => onTeksten(regels.map((x, j) => (j === i ? e.target.value : x)))}
                 onKeyDown={(e) => {

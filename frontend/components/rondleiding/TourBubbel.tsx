@@ -209,6 +209,7 @@ export function TourBubbel({
           // mee; die vangt niets.
           <div
             key={i}
+            role="presentation"
             onClick={() => setPulse(true)}
             className="pointer-events-auto absolute bg-ink/40"
             style={{ top: v.top, left: v.left, width: v.breedte, height: v.hoogte }}
@@ -219,6 +220,7 @@ export function TourBubbel({
             dimlaag zelf. Bewust zonder achtergrond en zonder transitie (zie hierboven). */}
         {gat && !bedienbaar && (
           <div
+            role="presentation"
             onClick={() => setPulse(true)}
             className="pointer-events-auto absolute"
             style={{ top: gat.top, left: gat.left, width: gat.breedte, height: gat.hoogte }}

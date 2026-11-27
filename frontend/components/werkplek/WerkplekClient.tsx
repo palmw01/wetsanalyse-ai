@@ -10,7 +10,7 @@ import { afronding } from "@/lib/beurtStroom";
 import { weergaveUitStroom } from "@/lib/delegatie";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel } from "@/lib/annotatieNode";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -379,6 +379,13 @@ export function WerkplekClient({
   const vervolgGedaan = useRef("");
   const lijstRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  // Een klaargezette vraag (`beginInvoer`) krijgt bij het openen de focus, zodat één Enter volstaat: wat `autoFocus` deed,
+  // als vaste ref-callback (SonarQube S9379). Vast via useCallback zonder afhankelijkheden, dus alleen bij het verschijnen.
+  const focusBijStart = useRef(Boolean(beginInvoer));
+  const koppelInvoer = useCallback((el: HTMLTextAreaElement | null) => {
+    taRef.current = el;
+    if (el && focusBijStart.current) el.focus();
+  }, []);
   // "Stick-to-bottom": alleen automatisch meescrollen als de gebruiker al onderaan staat, zodat
   // omhoogscrollen tijdens het streamen niet telkens wordt teruggetrokken.
   const stickRef = useRef(true);
@@ -1467,9 +1474,7 @@ export function WerkplekClient({
           )}
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-paper px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
-              ref={taRef}
-              // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat.
-              autoFocus={Boolean(beginInvoer)}
+              ref={koppelInvoer}
               value={invoer}
               onChange={(e) => { setInvoer(e.target.value); setMenuCursor(0); setMenuDicht(false); }}
               onKeyDown={opToets}
