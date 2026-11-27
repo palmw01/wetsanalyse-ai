@@ -108,3 +108,16 @@ def test_tooi_ministerie_ook_bij_een_oude_naam_en_anders_niets() -> None:
     assert tooi.ministerie("  ministerie van  financiën ")[0].endswith("/mnre1090")
     assert tooi.ministerie("Ministerie van Verzinsels") is None
     assert tooi.ministerie("") is None
+
+
+def test_een_verlopen_citeertitel_telt_niet_mee(tmp_path) -> None:
+    """De WTI van Rv noemt ook een titel die tot 1 mei 2023 gold; alleen de geldende is de citeertitel."""
+    pad = tmp_path / "wti.xml"
+    pad.write_text(
+        "<wti><algemene-informatie><citeertitel>Wetboek X</citeertitel><citeertitels>"
+        '<citeertitel geldig-van="1838-10-01" geldig-tot="2023-05-01">Wetboek X (oud)</citeertitel>'
+        '<citeertitel geldig-van="2023-05-01" geldig-tot="9999-12-31">Wetboek X</citeertitel>'
+        "</citeertitels></algemene-informatie></wti>",
+        encoding="utf-8",
+    )
+    assert WtiParser().parse(pad).citeertitels == ["Wetboek X"]

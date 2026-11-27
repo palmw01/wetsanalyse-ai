@@ -42,6 +42,7 @@ from bronmodel.bwb.references import (
 
 # Relatie van ouder naar structuurdeel, per soort.
 STRUCT_REL = {
+    "boek": "HEEFT_BOEK",
     "hoofdstuk": "HEEFT_HOOFDSTUK",
     "titeldeel": "HEEFT_TITELDEEL",
     "afdeling": "HEEFT_AFDELING",
@@ -49,6 +50,7 @@ STRUCT_REL = {
 }
 # Structuursoort -> entiteitsnaam (voor label/klasse).
 STRUCT_LABEL = {
+    "boek": "Boek",
     "hoofdstuk": "Hoofdstuk",
     "titeldeel": "Titeldeel",
     "afdeling": "Afdeling",
@@ -56,6 +58,7 @@ STRUCT_LABEL = {
 }
 # Structuursoort -> teller in ImportSummary.
 _STRUCT_TELLER = {
+    "boek": "boeken",
     "hoofdstuk": "hoofdstukken",
     "titeldeel": "titeldelen",
     "afdeling": "afdelingen",
@@ -126,6 +129,8 @@ class _Collector:
         # De naam van de bijlage waar we nu in zitten ("Bijlage 2"). Daar geldt een andere identiteit,
         # zie `_id_sleutel`.
         self._in_bijlage: str | None = None
+        # De sleutel van het boek waar we nu in zitten, in een regeling met meer boeken (Rv). Zie `_structuur`.
+        self._boek: str | None = None
 
     def _id_sleutel(self, node_id: str) -> str:
         """De wet-lokale sleutel van een node in een bijlage.
@@ -186,6 +191,10 @@ class _Collector:
             # Een jci zonder eigen structuursegment (bv. alleen `&bijlage=1`) wijst de hele
             # regeling aan; als identiteit zou dit deel op de regeling-IRI landen.
             ref_key = None
+        if ref_key and deel.soort != "boek" and self._boek and "#boek=" not in ref_key:
+            # De jci van een deel in een boek noemt het boek niet (Rv: `&titeldeel=Eerste` in elk van de vier
+            # boeken). Het boek gaat daarom vooraan in de sleutel; alleen in een regeling met meer boeken.
+            ref_key = self._boek + ref_key[len(self._bwb):] if ref_key.startswith(self._bwb + "#") else ref_key
         if ref_key is None and deel.nummer:
             # Geen jci van de redactie. Bouw de sleutel dan op het pad van de ouder, om precies
             # dezelfde reden: zonder dat is "paragraaf 1" van elk hoofdstuk dezelfde node.
@@ -208,11 +217,15 @@ class _Collector:
         teller = _STRUCT_TELLER[deel.soort]
         setattr(self.summary, teller, getattr(self.summary, teller) + 1)
 
+        vorig_boek = self._boek
+        if deel.soort == "boek":
+            self._boek = ref_key
         for sub in deel.subdelen:
             self._structuur(sub, deel.id, entiteit, ref_key)
         self._artikelen(deel.artikelen, deel.id, entiteit)
         # De tekst van een paragraaf zonder artikelen (een ``<structuurtekst>``, het BBBB): een divisie onder het deel.
         self._divisies(deel.divisies, deel.id, entiteit)
+        self._boek = vorig_boek
 
     def _artikelen(self, artikelen: list[Artikel], ouder_id: str, ouder_ent: str) -> None:
         vorige_artikel: str | None = None
@@ -609,9 +622,9 @@ def _doel_nummer(to_key: str, doel_soort: str | None, to_art: str | None) -> str
 # Structuursoorten waarvan de NODE-sleutel het volledige pad draagt terwijl een verwijzing vaak
 # alleen het laatste segment schrijft. Artikel/lid/onderdeel staan er niet bij: die sleutels zijn
 # aan beide kanten gelijk.
-_STRUCTUURSOORTEN = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
+_STRUCTUURSOORTEN = ("boek", "hoofdstuk", "titeldeel", "afdeling", "paragraaf")
 
-_STRUCTUURENTITEITEN = ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
+_STRUCTUURENTITEITEN = ("Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
 
 
 def structuurindex(batches: Iterable[Batch]) -> dict[str, str]:

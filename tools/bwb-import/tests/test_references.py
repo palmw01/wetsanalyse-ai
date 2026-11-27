@@ -61,7 +61,7 @@ def test_detect_textual_references_resolutie() -> None:
     (awb,) = detect_textual_references("volgens artikel 3:2 Awb", eigen_bwb_id="BWBR0004770")
     assert awb.doel_bwb_id == "BWBR0005537"
     (bw6,) = detect_textual_references("artikel 6:162 BW", eigen_bwb_id="BWBR0004770")
-    assert bw6.doel_bwb_id == "BWBR0005289"
+    assert (bw6.doel_bwb_id, bw6.doel_artikel) == ("BWBR0005289", "162")
     # Onbekende afkorting: overslaan (te onzeker).
     assert detect_textual_references("artikel 3 Xyz", eigen_bwb_id="BWBR0004770") == []
 
@@ -107,7 +107,8 @@ def test_herkende_naam_achter_van_wijst_naar_die_regeling() -> None:
     (bw,) = detect_textual_references(
         "de artikelen 1:10 en volgende van het BW", eigen_bwb_id="BWBR0024096"
     )
-    assert (bw.doel_bwb_id, bw.doel_artikel) == ("BWBR0002656", "1:10")
+    # Boek 1 heet zijn artikel "10": het boeknummer koos de regeling al.
+    assert (bw.doel_bwb_id, bw.doel_artikel) == ("BWBR0002656", "10")
 
 
 def test_verwijzing_naar_de_eigen_regeling_blijft_intern() -> None:

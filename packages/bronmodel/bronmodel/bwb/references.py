@@ -373,6 +373,7 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
     for match in _TEXT_REF.finditer(tekst):
         nummer = match.group("nummer")
         wet = match.group("wet")
+        naam_match, naam = None, None
         if wet:
             doel_bwb = zoek_bwb_id(wet, nummer)
             if doel_bwb is None:
@@ -389,12 +390,16 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
         else:
             doel_bwb = eigen_bwb_id
             anker = f"artikel {nummer}"
+        # "artikel 6:30 BW": het boeknummer koos de regeling al (Boek 6 is BWBR0005289), en daarbinnen heet het
+        # artikel "30". Met "6:30" als artikelnummer landde de verwijzing op een node die niet bestaat.
+        bw = wet == "BW" or (not wet and naam_match is not None and (naam or "").upper() == "BW")
+        doel_artikel = nummer.partition(":")[2] if bw and ":" in nummer else nummer
         treffers.append(
             Verwijzing(
                 soort=VerwijzingSoort.TEKSTUEEL,
                 tekst=anker,
                 doel_bwb_id=doel_bwb,
-                doel_artikel=nummer,
+                doel_artikel=doel_artikel,
             )
         )
     return treffers

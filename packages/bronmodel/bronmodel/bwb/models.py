@@ -209,7 +209,7 @@ class Structuurdeel:
     """
 
     id: str
-    soort: str  # "hoofdstuk" | "titeldeel" | "afdeling" | "paragraaf"
+    soort: str  # "boek" | "hoofdstuk" | "titeldeel" | "afdeling" | "paragraaf"
     nummer: str
     label: str
     titel: str
@@ -315,6 +315,7 @@ class ImportSummary:
     onderdelen: int = 0
     illustraties: int = 0
     ondertekenaars: int = 0
+    boeken: int = 0
     relaties: int = 0
     # Dekking: tekstomvang in de bron-XML tegenover wat er in de graaf belandt. Nul = niet gemeten.
     # Zonder dit cijfer is "de graaf is volledig" een oordeel; elf Leidraad-artikelen (10.052
@@ -336,6 +337,7 @@ class ImportSummary:
         return {
             "bwb_id": self.bwb_id,
             "wetten": self.wetten,
+            "boeken": self.boeken,
             "hoofdstukken": self.hoofdstukken,
             "titeldelen": self.titeldelen,
             "afdelingen": self.afdelingen,

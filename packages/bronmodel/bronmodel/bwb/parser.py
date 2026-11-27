@@ -37,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 # Tags die als structuurdeel worden behandeld (label = structuur-soort).
 _STRUCTUUR_TAGS = {
+    # Een boek is alleen een structuurdeel in een regeling met meer boeken (Rv, Sv). Het ene boek van een BW-boek is de
+    # regeling zelf (`_lees_kinderen`).
+    "boek": "boek",
     "hoofdstuk": "hoofdstuk",
     "titeldeel": "titeldeel",
     "afdeling": "afdeling",
@@ -260,13 +263,15 @@ class ToestandParser:
                 continue
             if tag == "artikel":
                 artikelen.append(self._parse_artikel(child, bwb_id))
-            elif tag == "boek" and element.tag == "wettekst":
+            elif tag == "boek" and element.tag == "wettekst" and len(element.findall("boek")) == 1:
                 # Een boek van het Burgerlijk Wetboek is een eigen regeling (Boek 7 is BWBR0005290), en zijn wettekst is
                 # precies één `<boek>`. Het is dus geen deel binnen de regeling maar de regeling zelf: zijn titeldelen
                 # horen er direct onder. De jci noemt het boek, maar een vindplaats rekent het niet mee
                 # (`bronmodel.vindplaats`: alleen hoofdstuk, titeldeel, afdeling en paragraaf), dus de IRI verandert
                 # niet. Zonder deze tak viel de hele tekst als "onbekende structuur" weg.
                 self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
+                # Met meer boeken (Rv heeft er vier, elk met een "Titeldeel Eerste") is een boek een gewoon structuurdeel:
+                # anders vallen gelijknamige titeldelen uit verschillende boeken op één IRI.
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag == "structuurtekst" and divisies is not None:
@@ -422,7 +427,7 @@ class ToestandParser:
         excl = f" and not(ancestor::lid) and not(ancestor::li){_GEEN_SLOT}"
         artikel = Artikel(
             id=self._knoop_id(bwb_id, element),
-            nummer=self._tekst(kop.find("nr")) if kop is not None else "",
+            nummer=self._artikelnummer(element, kop),
             label=element.get("label", ""),
             titel=self._tekst(kop.find("titel")) if kop is not None else "",
             tekst=self._lichaamstekst(element, binnen_lid=False),
@@ -446,6 +451,16 @@ class ToestandParser:
         for lid in element.iterfind("lid"):
             artikel.leden.append(self._parse_lid(lid, bwb_id))
         return artikel
+
+    def _artikelnummer(self, element: etree._Element, kop: etree._Element | None) -> str:
+        """Het nummer uit `<nr>`; ontbreekt dat, dan uit het label. Een vervallen artikel van Rv heeft alleen
+        `<label>Artikel 320b</label>` in zijn kop (en `label="Artikel 320b"` als attribuut)."""
+        nummer = self._tekst(kop.find("nr")) if kop is not None else ""
+        if nummer:
+            return nummer
+        label = (self._tekst(kop.find("label")) if kop is not None else "") or element.get("label", "")
+        treffer = re.match(r"^\s*artikel\s+(\S.*?)\s*$", label, re.I)
+        return treffer.group(1) if treffer else ""
 
     def _parse_lid(self, element: etree._Element, bwb_id: str) -> Lid:
         excl = f" and not(ancestor::li){_GEEN_SLOT}"

@@ -42,7 +42,7 @@ MAX_VERWIJZINGEN = 200
 _IRI = BRON_IRI
 _KAAL_BWB = re.compile(r"BWB[RV]\d+")
 # Wat in het overzicht van een structuurdeel staat; leden en onderdelen horen bij het artikel.
-_OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}
+_OVERZICHT = {"Boek", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}
 _SOORT = {"Regeling": "regeling", "Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
 _PREFIXES = "PREFIX bwb: <urn:bwb-ns:>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
 
