@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
-_FENCE = re.compile(r"^\s*+```(?:json)?\s*+|(?<!\s)\s*+```\s*+$", re.IGNORECASE)
+_FENCE = re.compile(r"(?:^\s*+```(?:json)?\s*+)|(?:(?<!\s)\s*+```\s*+$)", re.IGNORECASE)
 
 
 @dataclass
