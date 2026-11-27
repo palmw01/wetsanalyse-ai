@@ -11,6 +11,9 @@ Regels die je niet mag breken:
 - **Nooit minder.** De index wordt alleen geschreven als alles binnen is (het aantal is `X-WP-Total`) en als hij niet
   meer dan `MAX_KRIMP` kleiner wordt dan wat er staat (`poortbesluit`). Anders blijft de oude staan en eindigt de run
   met exitcode 2, net als de importpoort van de wet.
+- **Vorm vóór de PUT.** De index wordt getoetst tegen `shapes/kennisgroepen.ttl` (`app/shacl.py`). Een afwijkende
+  index vervangt nooit een bestaande; tegen een lege graaf wordt hij wel geschreven, met de vormfouten als signaal en
+  exitcode 2 (zoals `dekking.poortbesluit` voor de wet: tegen niets wint alles).
 - **Gescheiden van de wet.** Geen subject onder `urn:bwb:`, geen `bwb:`-type of -predicaat: de FTS-connector, de
   similarity-index, de provenance en de graafwacht van de wet zien de index niet. De graafwacht peilt hem apart
   (`index_is_compleet`), zodat een lege index nooit als verlies van de wetgraaf telt en andersom.
@@ -27,6 +30,8 @@ import requests
 from bronmodel import kennisgroepen as kg
 from rdflib import XSD, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, RDFS
+
+from .shacl import KENNISGROEPEN_SHAPES, toets
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +63,8 @@ class Uitkomst:
     bepalingen: int = 0
     geschreven: bool = False
     reden: str = ""
+    #: De uitslag van de SHACL-toets: "conform", de vormfouten, of "niet getoetst" (zonder pyshacl).
+    vorm: str = ""
     duur_s: float = 0.0
     per_status: dict[str, int] = field(default_factory=dict)
 
@@ -201,10 +208,15 @@ def bouw_graph(publicaties: list[dict[str, Any]], berichten: list[dict[str, Any]
     return g, uit
 
 
-def poortbesluit(nieuw: int, bestaand: int) -> str:
-    """Leeg als de index geschreven mag worden; anders de reden waarom de oude blijft staan."""
+def poortbesluit(nieuw: int, bestaand: int, *, vormfouten: str | None = None) -> str:
+    """Leeg als de index geschreven mag worden; anders de reden waarom de oude blijft staan.
+
+    `vormfouten` (de regel van `shacl.Vormtoets`) houdt de index tegen zodra er al een staat, ook als hij groeit: wat in
+    de graaf staat, voldoet aan de shapes. Tegen een lege index blokkeert hij niet (`ververs` meldt hem dan wel)."""
     if nieuw <= 0:
         return "de bron leverde geen standpunten"
+    if vormfouten and bestaand:
+        return f"{vormfouten}; de bestaande index ({bestaand} standpunten) blijft staan"
     if bestaand and nieuw < bestaand * (1 - MAX_KRIMP):
         return f"de index zou krimpen van {bestaand} naar {nieuw} standpunten"
     return ""
@@ -252,19 +264,29 @@ def index_is_compleet(schrijver: IndexSchrijver) -> bool:
 
 def ververs(schrijver: IndexSchrijver, sessie: requests.Session | None = None, *,
             slaap: Callable[[float], None] = time.sleep) -> Uitkomst:
-    """Haal alles op, bouw de index en schrijf hem als de poort het toestaat. Een fout van de bron of een poort die
-    aanslaat laat de bestaande index staan."""
+    """Haal alles op, bouw de index, toets zijn vorm en schrijf hem als de poort het toestaat. Een fout van de bron of
+    een poort die aanslaat laat de bestaande index staan. Geschreven mét een `reden` = geschreven tegen een lege index
+    ondanks vormfouten (de aanroeper eindigt dan met exitcode 2)."""
     begin = time.monotonic()
     sessie = sessie or requests.Session()
     publicaties = haal_alles(sessie, "wt_publication", slaap=slaap)
     berichten = haal_alles(sessie, "posts", slaap=slaap)
     graph, uit = bouw_graph(publicaties.items, berichten.items)
-    uit.reden = poortbesluit(uit.standpunten, schrijver.aantal())
+    # Ruim een halve minuut voor de hele index (27 nov 2026); de bron ophalen duurt even lang.
+    vorm = toets(graph, KENNISGROEPEN_SHAPES)
+    vormfouten = vorm.regel() if vorm and not vorm.conform else None
+    uit.vorm = "niet getoetst" if vorm is None else (vormfouten or "conform")
+    if vorm is None:
+        logger.warning("kennisgroepen: SHACL-toets overgeslagen, pyshacl ontbreekt")
+    uit.reden = poortbesluit(uit.standpunten, schrijver.aantal(), vormfouten=vormfouten)
     if not uit.reden:
         schrijver.vervang(graph)
         uit.geschreven = True
+        if vormfouten:
+            uit.reden = f"{vormfouten}; geschreven, er stond geen index"
     uit.duur_s = round(time.monotonic() - begin, 1)
     logger.info("kennisgroepen_index", extra={"standpunten": uit.standpunten, "berichten": uit.berichten,
                                               "bepalingen": uit.bepalingen, "geschreven": uit.geschreven,
-                                              "reden": uit.reden, "duur_s": uit.duur_s, "triples": len(graph)})
+                                              "reden": uit.reden, "vorm": uit.vorm, "duur_s": uit.duur_s,
+                                              "triples": len(graph)})
     return uit
