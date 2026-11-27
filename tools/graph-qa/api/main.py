@@ -140,13 +140,15 @@ async def _lifespan(_app: FastAPI):
                                                "soort": type(runs).__name__})
     # Zeg de api wat er in dit image zit (ADR-016 §B1). Op de achtergrond: de dienst wacht er niet op.
     melding = asyncio.create_task(imagemelding.meld_met_herhaling(settings), name="imagemelding")
-    yield
-    melding.cancel()
-    afsluiten = getattr(runs, "sluit", None)
-    if afsluiten is not None:
-        await afsluiten()
-    # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
-    observability.shutdown()
+    try:
+        yield
+    finally:
+        melding.cancel()
+        afsluiten = getattr(runs, "sluit", None)
+        if afsluiten is not None:
+            await afsluiten()
+        # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
+        observability.shutdown()
 
 
 app = FastAPI(title="Graph QA Agent", version="0.2.0", lifespan=_lifespan)

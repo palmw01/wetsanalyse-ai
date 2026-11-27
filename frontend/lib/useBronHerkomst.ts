@@ -27,7 +27,7 @@ export function useBronHerkomst(doel: { bron_iri: string; jci?: string; werkgebi
   useEffect(() => {
     if (!wg) return;
     let levend = true;
-    haalToestanden(wg).then((t) => levend && setPeil({ wg, peildatum: t?.peildatum ?? null }));
+    void haalToestanden(wg).then((t) => levend && setPeil({ wg, peildatum: t?.peildatum ?? null }));
     return () => { levend = false; };
   }, [wg]);
   if (!doel || !iri) return { herkomst: undefined, meldingen: [], detail: undefined };

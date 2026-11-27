@@ -688,7 +688,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str | None, begrip_id: str, verwach
                                   "is alleen nog te lezen. Verwijder de opvolger om het terug te zetten."})
     toets_revisie(row.revisie, verwacht, "dit begrip")
     stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
-    yield conn, row, stand
+    yield conn, row, stand  # NOSONAR: na de yield staat het wegschrijven, dat alleen bij succes mag; bij een fout niets schrijven is bedoeld
     if stand["geen_wijziging"]:
         return
     status = stand["status"] or (row.status if generiek and passage

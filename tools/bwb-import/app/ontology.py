@@ -17,7 +17,7 @@ from rdflib import OWL, RDF, RDFS, XSD, Graph, Literal, Namespace, URIRef
 
 from app.rdf_vocab import Vocab
 
-ELI = Namespace("http://data.europa.eu/eli/ontology#")
+ELI = Namespace("http://data.europa.eu/eli/ontology#")  # NOSONAR: namespace-id, geen verbinding
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 
 # Klasse -> (label, toelichting, superklassen: bwb-naam (str) of externe URIRef).

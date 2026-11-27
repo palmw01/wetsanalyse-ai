@@ -42,7 +42,8 @@ async def test_aanmaken_vanuit_een_intake_is_idempotent(client):
     ander = await client.post("/v1/werkgebieden", json={**invoer, "intake_id": "ik-2"})
     assert ander.json()["id"] != eerste.json()["id"]
     # Zonder intake blijft elk verzoek een nieuw werkgebied.
-    assert (await _nieuw(client))["id"] != (await _nieuw(client))["id"]
+    los_een, los_twee = await _nieuw(client), await _nieuw(client)
+    assert los_een["id"] != los_twee["id"]
     assert (await client.post("/v1/werkgebieden", json={**invoer, "intake_id": "met spatie"})).status_code == 422
     audit = (await client.get(f"/v1/werkgebieden/{eerste.json()['id']}/audit")).json()
     regels = audit if isinstance(audit, list) else next(iter(audit.values()))

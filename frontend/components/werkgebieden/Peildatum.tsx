@@ -14,7 +14,7 @@ export function PeildatumRegel({ werkgebiedId, revisie = 0 }: { werkgebiedId: st
   const [t, setT] = useState<Toestanden | null>(null);
   useEffect(() => {
     let levend = true;
-    haalToestanden(werkgebiedId).then((x) => { if (levend) setT(x); });
+    void haalToestanden(werkgebiedId).then((x) => { if (levend) setT(x); });
     return () => { levend = false; };
   }, [werkgebiedId, revisie]);
   if (!t) return null;

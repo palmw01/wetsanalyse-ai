@@ -158,8 +158,9 @@ def bouw(g: Graph, kader: URIRef, regels: list[dict[str, Any]]) -> None:
                 g.add((vb, WA.waarde, wn))
                 g.add((wn, WA.begrip, begrip_iri(w["begrip_id"])))
                 g.add((wn, WA.waarde, Literal(w["waarde"])))
-            for x in v.get("van_geval") or []:
-                g.add((vb, WA.gevalVan, doel(x)))
+            for geval in v.get("van_geval") or []:
+                # Niet `x`: dat is de regel van de buitenste lus, en die is hieronder nog nodig voor de dragers.
+                g.add((vb, WA.gevalVan, doel(geval)))
         for d in x["dragers"]:
             dn = URIRef(f"urn:wa:regeldrager:{d['id']}")
             g.add((rg, WA.drager, dn))

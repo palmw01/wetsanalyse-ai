@@ -787,7 +787,8 @@ def test_deterministisch():
         z.markeer("het inkomen", VAR)
         z.markeer("de drempel", PAR)
         return z.voorstel()
-    assert een() == een()
+    eerste, tweede = een(), een()
+    assert eerste == tweede
 
 
 # --- de keten: zonder vlag bitgelijk, met vlag de voorstellen -------------------------------------------------------

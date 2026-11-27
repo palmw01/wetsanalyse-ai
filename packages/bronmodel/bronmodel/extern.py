@@ -160,7 +160,7 @@ def _celex(nummer: str) -> ExterneVindplaats:
 
 
 def _eli(uri: str) -> ExterneVindplaats:
-    uri = "http://" + uri.split("://", 1)[1]  # de ELI-URI is canoniek http
+    uri = "http://" + uri.split("://", 1)[1]  # NOSONAR (namespace-identifier, geen verbinding): de ELI-URI is canoniek http
     soort, jaar, nummer = uri.split("/eli/", 1)[1].split("/")[:3]
     label = f"{_EU_SOORT.get(soort, soort.capitalize())} {jaar}/{nummer}"
     # De id is de canonieke ELI (http); de link gaat over https.

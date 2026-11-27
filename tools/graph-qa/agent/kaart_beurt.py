@@ -324,7 +324,7 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
         # Dezelfde actie loopt al (de knop op de kaart): wacht op die uitkomst.
         ctx.melding("Deze actie loopt al; ik wacht op de uitkomst")
         wacht, stand = 0.0, kr
-        while stand.get("status") not in ("klaar", "mislukt") and wacht < WACHT_OP_ANDERE_RUN_S:
+        while stand.get("status") not in ("klaar", "mislukt") and wacht < WACHT_OP_ANDERE_RUN_S:  # NOSONAR: peilt de api (ander proces); een Event werkt niet over procesgrenzen
             if ctx.gestopt():
                 break
             await asyncio.sleep(PEIL_S)

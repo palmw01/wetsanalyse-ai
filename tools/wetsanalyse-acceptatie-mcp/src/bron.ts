@@ -110,7 +110,7 @@ export function tekstVan(xml: string): string {
     .replace(/<\/(?:label|lidnr|li\.nr)>/g, " ")
     .replace(/<\/(?:al|kop|lid|li|lijst|tussenkop)>/g, "\n"))
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(Number.parseInt(n, 16)))
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')

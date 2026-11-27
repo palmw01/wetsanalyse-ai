@@ -41,8 +41,8 @@ _HOSTS = {"repository.overheid.nl"}
 _NS = {
     "sru": "http://docs.oasis-open.org/ns/search-ws/sruResponse",
     "dcterms": "http://purl.org/dc/terms/",
-    "ow": "http://standaarden.overheid.nl/wetgeving/",
-    "gzd": "http://standaarden.overheid.nl/sru",
+    "ow": "http://standaarden.overheid.nl/wetgeving/",  # NOSONAR: namespace-id, geen verbinding
+    "gzd": "http://standaarden.overheid.nl/sru",  # NOSONAR: namespace-id, geen verbinding
     "diag": "http://docs.oasis-open.org/ns/search-ws/diagnostic",
 }
 MAX_CACHE = 64

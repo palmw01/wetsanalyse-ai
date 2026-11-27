@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from eval.padcontrole import veilig_pad
 
 
 def nieuwe_opname(vraag: str, vraagtype: str) -> dict[str, Any]:
@@ -48,8 +49,8 @@ def neem_op(opname: dict[str, Any], ev: dict[str, Any]) -> None:
 
 def bewaar(pad: Path, regels: list[dict[str, Any]]) -> None:
     pad.parent.mkdir(parents=True, exist_ok=True)
-    pad.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in regels), encoding="utf-8")
+    veilig_pad(pad).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in regels), encoding="utf-8")
 
 
 def lees(pad: Path) -> list[dict[str, Any]]:
-    return [json.loads(r) for r in pad.read_text(encoding="utf-8").splitlines() if r.strip()]
+    return [json.loads(r) for r in veilig_pad(pad).read_text(encoding="utf-8").splitlines() if r.strip()]

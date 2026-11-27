@@ -171,7 +171,7 @@ def main() -> None:
 
     params: dict = {
         "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-        "contentVersion": "1.0.0.0",
+        "contentVersion": "1.0.0.0",  # NOSONAR: ARM-veld contentVersion, geen IP-adres
         "parameters": {
             "location": {"value": args.location},
             "appName": {"value": args.app_name},
