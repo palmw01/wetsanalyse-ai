@@ -16,13 +16,13 @@ from ..kandidaten import BronSpan, Candidate, DetectorResult, Evidence, SpanOpti
 from ..taal.structuur import herken_onderdelen
 from . import BronTekst, resultaat
 
-_AANHEF = re.compile(r"\bwordt\s+(?:in\s+[^:]{0,80}\s+)?verstaan\s+onder\s*:", re.IGNORECASE)
+_AANHEF = re.compile(r"\bwordt\s++(?:in\s+[^:]{0,80}\s+)?verstaan\s++onder\s*+:", re.IGNORECASE)
 # Het opschrift van de ouder als aanhef: een hele regel, niets erbij ('Definities', 'Begripsbepalingen',
 # 'Begripsomschrijvingen', 'Begrippen'). Een kop als 'Definitieve aanslag' of 'Begrippen en afkortingen' telt niet.
 _KOP = re.compile(r"^[ \t]*(?:definities?|begripsbepaling(?:en)?|begripsomschrijving(?:en)?|begrippen)[ \t]*$",
                   re.IGNORECASE | re.MULTILINE)
 # Eén zin: 'Onder X wordt verstaan: Y.' / 'Onder X wordt verstaan Y.'
-_ZIN = re.compile(r"\b[Oo]nder\s+[^.;:]{1,120}?\s+wordt\s+verstaan\s*:?\s*[^.;]+[.;]?")
+_ZIN = re.compile(r"\b[Oo]nder\s++[^.;:]{1,120}?\s++wordt\s++verstaan\s*+:?\s*+[^.;]++[.;]?")
 # De benoemende formule ('Een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als voorlopige teruggaaf.',
 # AWR art. 13 lid 2; L-2-6): de hele zin, vanaf het begin, tot de term. Alleen 'wordt'/'worden' zonder modaal werkwoord ervoor: 'kan
 # worden aangeduid als gevaarlijk' kwalificeert, en benoemt geen begrip. Zwak bewijs: het model bevestigt.

@@ -18,7 +18,14 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 // ── Config ────────────────────────────────────────────────────────────────────
-const API_URL = (process.env.WETSANALYSE_ADMIN_API_URL ?? "").replace(/\/+$/, "");
+/** Als `s.replace(/\/+$/, "")`, zonder de kwadratische expressie (SonarQube S8786). */
+function zonderSlotslash(s) {
+    let eind = s.length;
+    while (eind > 0 && s[eind - 1] === "/")
+        eind--;
+    return s.slice(0, eind);
+}
+const API_URL = zonderSlotslash(process.env.WETSANALYSE_ADMIN_API_URL ?? "");
 const TOKEN = (process.env.WETSANALYSE_ADMIN_TOKEN ?? "").trim();
 // ── Logging (JSON naar stderr; nooit tokens) ───────────────────────────────────
 const GEHEIM = new Set(["authorization", "token", "bearer", "secret", "password", "api_key"]);

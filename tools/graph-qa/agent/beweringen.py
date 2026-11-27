@@ -300,7 +300,7 @@ def _regeling_bekend(naam: str, regelingen: set[str], tegen_klein: str) -> bool:
     """Kent de graaf deze regeling, of staat haar naam in het opgehaalde of in wat de jurist schreef? Ook zonder het
     jaartal: "de Invorderingswet" is de Invorderingswet 1990."""
     laag = naam.casefold()
-    kaal = re.sub(r"\s+(?:18|19|20)\d{2}$", "", laag)
+    kaal = re.sub(r"(?<!\s)\s++(?:18|19|20)\d{2}$", "", laag)
     return (laag in regelingen or kaal in regelingen or any(n.startswith(f"{kaal} ") for n in regelingen)
             or laag in tegen_klein or kaal in tegen_klein)
 

@@ -6,6 +6,7 @@
  * vooraf ontdaan van literals, IRI's en commentaar, zodat "delete" in een wettekst geen weigering geeft.
  * Zo'n controle op tekst houdt een vergissing tegen; hij is geen slot.
  */
+import { zonderVoorvoegselnamen } from "./tekst.js";
 const REPOSITORY = "inning";
 const VERZOEK_TIMEOUT_MS = 60_000;
 const STANDAARD_LIMIT = 200;
@@ -21,7 +22,7 @@ export function controleerSparql(query) {
     const vorm = VORM.exec(kaal)?.[1]?.toUpperCase();
     if (!vorm)
         throw new Error("Alleen SELECT, ASK, CONSTRUCT en DESCRIBE.");
-    const zonderNamen = kaal.replace(/[?$]\w+/g, " ").replace(/[\w.-]*:[\w.%-]*/g, " ");
+    const zonderNamen = zonderVoorvoegselnamen(kaal.replace(/[?$]\w+/g, " "), " ");
     const verboden = VERBODEN.exec(zonderNamen)?.[1];
     if (verboden)
         throw new Error(`Geweigerd: ${verboden.toUpperCase()} hoort niet bij alleen-lezen.`);

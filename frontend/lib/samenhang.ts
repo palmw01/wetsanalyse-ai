@@ -1,6 +1,7 @@
 import { veiligDecoderen } from "./url";
 import { aantal } from "./aantal";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
+import { zonderAchteraan } from "./rand";
 
 /** Het antwoord van `GET /v1/annotatie/samenhang` (api/app/samenhang.py). */
 export type KnoopSoort = "regeling" | "deel" | "artikel" | "lid" | "onderdeel" | "markering" | "klasse" | "extern"
@@ -149,7 +150,7 @@ const PADSLEUTELS = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf", 
 export interface Vindplaats { bron_iri: string; bwb_id: string; pad: [string, string][]; soort: string; label: string }
 
 export function vindplaatsVan(uri: string): Vindplaats | undefined {
-  const ref = uri.trim().replace(/[.,;\\]+$/, "");
+  const ref = zonderAchteraan(uri.trim(), ".,;\\");
   let bwb = "", paren: [string, string][] = [];
   if (BWB.test(ref)) return { bron_iri: `urn:bwb:${ref}`, bwb_id: ref, pad: [], soort: "regeling", label: "" };
   if (ref.startsWith("urn:bwb:")) {
@@ -164,7 +165,7 @@ export function vindplaatsVan(uri: string): Vindplaats | undefined {
     if (paren.some(([k]) => k === "id")) return { bron_iri: ref, bwb_id: bwb, pad: paren, soort: "node", label: "" };
     if (paren.some(([k]) => !PADSLEUTELS.has(k))) return undefined;
   } else if (/^jci/i.test(ref)) {
-    const m = ref.match(/^jci[\d.]+:c:(BWB[RV]\d+)(.*)$/i);
+    const m = ref.match(/^jci[\d.]+:c:(BWB[RV]\d+)(\D.*|)$/i);
     if (!m) return undefined;
     bwb = m[1].toUpperCase();
     const ruw = [...new URLSearchParams(m[2].replace(/^&?/, ""))]

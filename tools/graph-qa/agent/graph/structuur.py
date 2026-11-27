@@ -28,7 +28,7 @@ from ..resultaat import BUDGET, TeGroot, compact, passend, resultaat
 
 # Wat in een bereik samengaat: bepalingen, geen structuur.
 _BEPALING = {"Artikel", "Divisie"}
-_ROMEINS = re.compile(r"^([IVXLC]+)(.*)$")
+_ROMEINS = re.compile(r"^([IVXLC]++)(.*)$")
 _WAARDE = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100}
 
 
@@ -48,7 +48,7 @@ def natuurlijke_sleutel(nummer: str) -> tuple:
         return (0, _romeins(m.group(1)), m.group(2))
     delen = []
     for seg in re.split(r"[.:]", nummer):
-        g = re.match(r"^(\d+)(.*)$", seg)
+        g = re.match(r"^(\d++)(.*)$", seg)
         delen.append((int(g.group(1)), g.group(2)) if g else (10**9, seg))
     return (1, *delen)
 

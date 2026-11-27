@@ -32,7 +32,7 @@ _HET_BEGRIP = re.compile(r"\bhet begrip\s+([\w\-]+(?:\s+[\w\-]+){0,2}?)(?=\s+(?:
                          r"ook|staat|is|bestaat|vastgelegd|geaccordeerd)\b|\s*[?.!,;:]|\s*$)")
 _ALS_BEGRIP = re.compile(r"\b([\w\-]+(?:\s+[\w\-]+){0,2}?)\s+als begrip\b")
 # "welke begrippen gaan over een bankrekening?": het onderwerp na "over".
-_OVER = re.compile(r"\bbegrippen?\b.*?\bover\s+(?:de\s+|het\s+|een\s+)?(.+?)\s*[?.!]*$")
+_OVER = re.compile(r"\bbegrippen?\b.*?\bover\s++(?:de\s++|het\s++|een\s++)?(.+?)\s*+[?.!]*+$")
 _STOP = {"er", "het", "de", "een", "dit", "dat", "staat", "is", "we", "wij", "ons"}
 
 

@@ -114,7 +114,7 @@ TEKST_NU = ("\n\nRoep het sjabloon niet opnieuw aan. Geef je antwoord nu in teks
 
 
 #: De opdracht in een weigering om zelf iets op te halen ("haal de bepaling op met get_artikel, …", "haal het stuk eerst op").
-_HAAL_OP = re.compile(r"[,;]?\s*(?:en\s+)?[Hh]aal\s+(?:de\s+bepaling|het\s+stuk|het\s+vervolg)[^.;]*")
+_HAAL_OP = re.compile(r"(?:[,;]|(?<![\s,;]))\s*+(?:en\s++)?[Hh]aal\s++(?:de\s++bepaling|het\s++stuk|het\s++vervolg)[^.;]*+")
 
 NA_SUBAGENT_SJABLOON = ("\n\nEen subagent las de bronnen; zelf lezen kan nu niet. Wijs alleen passages aan uit de tekst die "
                         "zijn toolresultaten in je trace dragen (de iri van die rij), laat de rest weg, of antwoord in tekst: "

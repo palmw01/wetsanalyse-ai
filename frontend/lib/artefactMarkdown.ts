@@ -9,6 +9,7 @@ import { BEWIJS_LABEL, STAND_LABEL, VOORTGANG_LABEL, zoekvraagZin, type Bronsele
 import { jasVolgorde, klasseLabel } from "./jas";
 import type { AnnotatieDocument, Begrip, Werkgebied } from "./types";
 import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "./werkgebied";
+import { zonderRand } from "./rand";
 
 const regels = (...xs: (string | false | null | undefined)[]) => xs.filter((x): x is string => typeof x === "string").join("\n");
 const blok = (titel: string, tekst: string) => (tekst.trim() ? `**${titel}**\n\n${tekst.trim()}\n` : "");
@@ -94,12 +95,12 @@ export function begrippenAlsMarkdown(naam: string, begrippen: Pick<Begrip, "inho
 /** De eerste kop (`# …`) van een Markdown-tekst, of leeg. Een download heet naar zijn eigen kop: die noemt ook het
  *  werkgebied, terwijl de titel van een artefact dat bewust niet doet (`artefactKop` in `lib/artefact.ts`). */
 export function kopVan(tekst: string): string {
-  return /^# +(.+)$/m.exec(tekst)?.[1].trim() ?? "";
+  return /^# +([^ ].*|)$/m.exec(tekst)?.[1].trim() ?? "";
 }
 
 export function bestandsnaam(titel: string, extensie = "md", nu = new Date()): string {
-  const stam = titel.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "artefact";
+  const stam = zonderRand(titel.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-"), "-").slice(0, 80) || "artefact";
   const twee = (n: number) => String(n).padStart(2, "0");
   const dag = `${nu.getFullYear()}${twee(nu.getMonth() + 1)}${twee(nu.getDate())}`;
   return `${stam}-${dag}-${twee(nu.getHours())}${twee(nu.getMinutes())}${twee(nu.getSeconds())}.${extensie}`;

@@ -81,8 +81,8 @@ KLASSEN: dict[str, str] = {
 }
 
 _LEEG = {"", "nvt", "nvt.", "n.v.t.", "-", "–"}
-_HERHALING = re.compile(r"\s*\((\d+)\s*x\)\s*$", re.I)
-_ELLIPS = re.compile(r"\s*(?:…|\.{2,})\s*")
+_HERHALING = re.compile(r"(?<!\s)\s*+\((\d++)\s*+x\)\s*+$", re.I)
+_ELLIPS = re.compile(r"(?<!\s)\s*+(?:…|\.{2,}+)\s*+")
 
 
 def klasse_van(label: str) -> str | None:

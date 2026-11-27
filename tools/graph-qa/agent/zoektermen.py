@@ -141,7 +141,7 @@ _UITSLUITING_VOOR = re.compile(
     r"(?:buiten\s+(?:de\s+afbakening|beschouwing)(?:\s+(?:valt|vallen|blijft|blijven))?|(?:valt|vallen)\s+buiten\s*:|"
     r"uitgezonderd|behalve|met\s+uitzondering\s+van|(?:^|(?<=[,;:]))\s*niet)\s*:?\s+([^.;\n]+)", re.I | re.M)
 _UITSLUITING_NA = re.compile(
-    r"([^.;:\n]+?)\s+(?:valt|vallen|blijft|blijven)\s+(?:er)?buiten(?:\s+(?:de\s+afbakening|beschouwing))?\s*(?=[.,;\n]|$)",
+    r"([^.;:\n]{1,500}?)(?<!\s)\s++(?:valt|vallen|blijft|blijven)\s++(?:er)?buiten(?:\s++(?:de\s++afbakening|beschouwing))?[^\S\n]*+(?=[.,;\n]|$)",
     re.I | re.M)
 
 

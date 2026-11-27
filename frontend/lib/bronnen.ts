@@ -54,7 +54,7 @@ const nummers = new Intl.Collator("nl", { numeric: true, sensitivity: "base" });
 
 /** "VIIa" → [7, "a"]; geen Romeins getal → [Infinity, waarde]. Hoofdstukken heten I, II … X, VIIa, VIIbis. */
 function romeins(waarde: string): [number, string] {
-  const m = waarde.match(/^([IVXLC]+)(.*)$/);
+  const m = waarde.match(/^([IVXLC]+)([^IVXLC].*|)$/);
   if (!m) return [Infinity, waarde];
   const w: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100 };
   let som = 0;

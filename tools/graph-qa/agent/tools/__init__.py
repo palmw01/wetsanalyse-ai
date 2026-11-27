@@ -486,7 +486,7 @@ def _h_schema(g: GraphPort, a: dict[str, Any]) -> str:
 # streng: alleen SELECT, met een eigen LIMIT op het hoogste niveau, en het hele antwoord binnen de
 # begroting – of een foutresultaat dat zegt hoe de query aan te passen. Nooit een half antwoord.
 _RAW_MAX = 200
-_STAART_RE = re.compile(r"\}\s*((?:GROUP\s+BY|HAVING|ORDER\s+BY)[^{}]*?)?\s*LIMIT\s+(\d+)(\s+OFFSET\s+\d+)?\s*$",
+_STAART_RE = re.compile(r"\}\s*+((?:GROUP\s++BY|HAVING|ORDER\s++BY)[^{}]*?)?\s*+LIMIT\s++(\d++)(\s++OFFSET\s++\d++)?\s*+$",
                         re.IGNORECASE)
 
 
@@ -547,7 +547,7 @@ _INDEX_ONBRUIKBAAR = (
 # RDF-parser zou de rangorde van de index verliezen (een graaf is ongeordend), dus lezen we de blokken
 # in volgorde, met de literals volgens de Turtle-escapes.
 _BLOK_RE = re.compile(r"^<(urn:bwb:[^>\s]+)>", re.MULTILINE)
-_TYPEN_RE = re.compile(r"\A\s*a\s+([^;\"]+?)\s*[;.]\s*(?:\n|\Z)")
+_TYPEN_RE = re.compile(r"\A\s*+a\s++([^;\"]+?)\s*+[;.][^\S\n]*+(?:\n|\Z)")
 _LITERAL = r'("""[\s\S]*?"""|"(?:[^"\\]|\\.)*")'
 _VELD_RE = {veld: re.compile(rf"{pred}\s+{_LITERAL}") for veld, pred in
             (("label", "rdfs:label"), ("tekst", "bwb:tekst"), ("jci", "bwb:jci"))}

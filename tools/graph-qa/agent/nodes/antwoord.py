@@ -422,7 +422,7 @@ def sjabloon_gevraagd(tools: list[str], sjablonen: list[str], genoemd: list[str]
 
 
 #: Een regel van een opsomming of een tabel in markdown.
-_LIJSTREGEL = re.compile(r"^\s*(?:[-*•]\s+|\d+[.)]\s+|\|.*\|\s*$)", re.M)
+_LIJSTREGEL = re.compile(r"^[^\S\n]*+(?:[-*•]\s+|\d++[.)]\s+|\|.*\|\s*$)", re.M)
 
 
 def heeft_lijst(tekst: str) -> bool:

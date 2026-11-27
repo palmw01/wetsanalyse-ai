@@ -90,7 +90,7 @@ function nietHier(c: Commando, stand: Stand): string | undefined {
 
 /** `/naam rest`: alleen met `/` als eerste teken. `null` als de tekst geen commandovorm heeft. */
 export function ontleed(invoer: string): { naam: string; rest: string; metSpatie: boolean } | null {
-  const m = /^\/([a-z-]*)(\s+([\s\S]*))?$/.exec(invoer);
+  const m = /^\/([a-z-]*)(\s([\s\S]*))?$/.exec(invoer);
   if (!m) return null;
   return { naam: m[1], rest: (m[3] ?? "").trim(), metSpatie: m[2] != null };
 }

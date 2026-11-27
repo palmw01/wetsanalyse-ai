@@ -60,7 +60,7 @@ def geldt_voor(soort: str, waarde: str = "", regeling: str = "") -> str:
 def losse_termen(ruw: str) -> list[str]:
     """De termen in een opsomming, zoals de graaf ze als één begrip draagt: "directeur, inspecteur of ontvanger"
     → drie termen, met gewone spaties en hun eigen hoofdletters."""
-    delen = re.split(r",\s*|\s+(?:of|en)\s+", ruw.strip())
+    delen = re.split(r",\s*+|(?<!\s)\s++(?:of|en)\s++", ruw.strip())
     return [" ".join(d.split()) for d in delen if d.strip()]
 
 

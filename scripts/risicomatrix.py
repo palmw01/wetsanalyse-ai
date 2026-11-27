@@ -38,7 +38,7 @@ REGELS = [("frontend/scripts", 1, "test-*.mjs"), (".github/workflows", 3, "*.yml
 
 ID = re.compile(r"\bR\d{2}\b")
 VITEST_NAAM = re.compile(r"""\b(?:describe|it|test)(?:\.\w+)?\(\s*(["'`])((?:(?!\1).)*\[R\d{2}\](?:(?!\1).)*)\1""")
-REGEL = re.compile(r"(?mi)^\W*risico:\s*([R\d ,]+)$")
+REGEL = re.compile(r"(?mi)^[^\w\n]*+risico:\s*+([R\d ,]++)$")
 
 
 def register() -> dict:

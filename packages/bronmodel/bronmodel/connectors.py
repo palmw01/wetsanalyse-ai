@@ -223,7 +223,7 @@ class ConnectorBeschrijving:
             nodig = re.findall(r"\{(\w+)\}", vorm)
             if all(n in waarden for n in nodig):
                 return vorm.format(**{n: waarden[n][:60] for n in nodig})
-        return re.sub(r"\s*\{\w+\}", "", vormen[-1]).strip()
+        return re.sub(r"(?<!\s)\s*+\{\w++\}", "", vormen[-1]).strip()
 
     def veld(self, sleutel: str) -> MetadataVeld | None:
         """Het metadataveld met deze sleutel, of None als de connector het niet levert."""

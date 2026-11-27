@@ -34,7 +34,7 @@ from .model import Bron, Formulering, Manifest, Taalanalyse
 
 VERSIE = "3"
 
-_DEF_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s+(?:(mede|niet)\s+)?(?:verstaan\s+)?onder\s*:?\s*$",
+_DEF_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s++(?:(mede|niet)\s++)?(?:verstaan\s++)?onder\s*+:?\s*+$",
                          re.IGNORECASE)
 _DEF_INLINE = re.compile(r"\bwordt\s+(?:(mede|niet)\s+)?verstaan\s+onder\s+([^:]{1,80}?)\s*:\s*",
                          re.IGNORECASE)
@@ -179,7 +179,7 @@ def definiens(bron: Bron) -> str | None:
 
 
 # "de ontvanger, bedoeld in artikel 2, eerste lid, onderdeel i, van de Invorderingswet 1990": de definitie staat elders.
-_DOORVERWIJZING = re.compile(r"^(?:(?:de|het|een)\s+)?(?P<term>[^,]{0,80}?),?\s+(?:(?:als|zoals)\s+)?bedoeld\s+in\b",
+_DOORVERWIJZING = re.compile(r"^(?:(?:de|het|een)\s+)?(?P<term>[^,]{0,80}?),?\s++(?:(?:als|zoals)\s++)?bedoeld\s++in\b",
                              re.IGNORECASE)
 
 

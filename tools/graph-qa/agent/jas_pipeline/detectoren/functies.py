@@ -26,7 +26,7 @@ AR, T, VW, VAR = "Afleidingsregel", "Tijdsaanduiding", "Voorwaarde", "Variabele 
 # 'zoveel <telbare uitkomst> als (er) <telbare invoer> <werkwoord>': de uitkomst tot 'als'; de invoer is de bijzin die
 # 'als' inleidt, tot het eind van zijn werkwoord (de parse beslist, `_aantal`). 'overblijven' of 'resteren' is geen eis:
 # 'als er maanden van het jaar zijn' telt net zo goed (art. 9 lid 7 IW, Termijnen 19 nov 2026).
-_AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>[^.;:]+?)\s+als\s+", re.I)
+_AANTAL = re.compile(r"\bzoveel\s++(?P<uitkomst>[^.;:]+?)\s++als\s+", re.I)
 # Voegwoorden van een voorwaardelijke bijzin; gedeeld met de nominalisatiedetector.
 VOORWAARDE_VOEGWOORDEN = frozenset({"indien", "als", "wanneer", "zodra"})
 _ONTKENNING = {"geen", "niet"}

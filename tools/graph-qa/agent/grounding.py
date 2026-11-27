@@ -401,7 +401,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
 # zeggen iets over de versie, niet over de plek.
 _OMHULSEL = frozenset({"hoofdstuk", "afdeling", "paragraaf", "subparagraaf", "titeldeel", "titel",
                        "boek", "deel", "g", "z"})
-_JCI_DELEN = re.compile(r"jci[\d.]+:c:(BWB[RV]\d+)(.*)$", re.I)
+_JCI_DELEN = re.compile(r"jci[\d.]++:c:(BWB[RV]\d++)(.*)$", re.I)
 
 
 def _locatie(uri: str) -> tuple[str, tuple[tuple[str, str], ...]] | None:

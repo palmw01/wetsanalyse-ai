@@ -11,6 +11,7 @@ import type { HastKnoop } from "./markering";
 import type { NodeDoel } from "./annotatieNode";
 import { bronDoel, iriSegment, vindplaatsVan } from "./samenhang";
 import type { Bron } from "./types";
+import { zonderRand } from "./rand";
 
 const RANG = ["eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende", "achtste", "negende", "tiende",
   "elfde", "twaalfde", "dertiende", "veertiende", "vijftiende", "zestiende", "zeventiende", "achttiende",
@@ -47,7 +48,7 @@ export interface Vermelding {
 /** Een naam als vergelijkbare woorden: kleine letters, zonder leestekens en zonder jaartal. Dezelfde regel
  *  voor citeertitel en afkorting, zodat "Iw", "IW" en "Iw 1990" hetzelfde zijn. */
 function woorden(naam: string): string[] {
-  return naam.toLowerCase().split(/\s+/).map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+  return naam.toLowerCase().split(/\s+/).map((w) => zonderRand(w, (c) => !/[\p{L}\p{N}]/u.test(c)))
     .filter((w) => w && !/^\d{4}$/.test(w));
 }
 

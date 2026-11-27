@@ -156,7 +156,7 @@ def volledige_tekst(iri: str, trace: Trace) -> str:
     return bron_rijen(trace).get(iri, {}).get("tekst", "")
 
 
-_TOESTAND = re.compile(r"jci[\d.]+:c:(BWB[RV]\d+)[^\s\"]*?(&z=[^&\s\"]+&g=[^&\s\"]+)")
+_TOESTAND = re.compile(r"jci[\d.]++:c:(BWB[RV]\d++)[^\s\"]*?(&z=[^&\s\"]++&g=[^&\s\"]++)")
 
 
 def toestanden(trace: Trace) -> dict[str, str]:

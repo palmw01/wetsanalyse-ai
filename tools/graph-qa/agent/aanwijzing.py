@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from bronmodel.taal import RANGTELWOORDEN
 
 _NUM = r"\d+[a-z]{0,3}(?:[:.]\d+[a-z]{0,3})*"
-_SCHEIDER = r"\s*(?:,|en|of|t/m|tot en met|-|–)\s*"
+_SCHEIDER = r"(?:(?<!\s)\s*+|(?=\S))(?:,|en|of|t/m|tot en met|-|–)\s*+"
 _LIJST = rf"{_NUM}(?:{_SCHEIDER}(?:art(?:ikel(?:en)?)?\.?\s*)?{_NUM})*"
 # "artikel 9", "artikelen 8 en 9", "art. 9", "artt. 8-10". Niet na een woord (b.v. "startartikel").
 _ARTIKEL = re.compile(rf"(?<![\w])(?:artikelen|artikel|artt\.|art\.?)\s*({_LIJST})", re.IGNORECASE)
