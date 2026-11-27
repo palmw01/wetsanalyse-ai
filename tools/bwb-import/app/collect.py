@@ -536,6 +536,7 @@ class _Collector:
             # terecht weigerde. De informatie was er; ze werd alleen weggegooid.
             to_key, doel_soort = jci_node_ref_key(verwijzing.doc)
             to_bwb, to_art, to_lid = jci_doel(verwijzing.doc)
+            to_key = _met_boek(to_key, doel_soort, verwijzing.doc)
             if to_key is None:
                 # Zonder jci: val terug op het doel-pad (bwb-ng-variabel-deel);
                 # dat mint dezelfde IRI als de doel-node zelf (by_id-schema).
@@ -625,7 +626,7 @@ _STRUCTUURSOORTEN = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
 _STRUCTUURENTITEITEN = ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
 
 
-def structuurindex(batches: Iterable[Batch]) -> dict[str, str]:
+def structuurindex(batches: Iterable[Batch]) -> Structuurindex:
     """Padloze sleutel -> volledige ref_key, over ALLE wetten van deze import heen.
 
     Waarom dit over de hele batch gaat en niet per wet. Een verwijzing duidt haar doel vaak
@@ -643,18 +644,24 @@ def structuurindex(batches: Iterable[Batch]) -> dict[str, str]:
     onopgelost te blijven: een open stub is een zichtbaar gat, een gok is schijnzekerheid.
     """
     kandidaten: dict[str, set[str]] = {}
+    bekend: set[str] = set()
     for batch in batches:
         for entiteit in _STRUCTUURENTITEITEN:
             for props in batch.nodes.get(entiteit, []):
                 ref_key, nummer, soort = props.get("ref_key"), props.get("nummer"), props.get("soort")
                 if not ref_key or not nummer or not soort:
                     continue
+                bekend.add(ref_key)
                 bwb, _, _rest = ref_key.partition("#")
                 padloos = f"{bwb}#{soort}={nummer}"
                 if padloos == ref_key:
                     continue  # sleutel draagt al geen pad; er valt niets op te lossen
                 kandidaten.setdefault(padloos, set()).add(ref_key)
-    return {k: next(iter(v)) for k, v in kandidaten.items() if len(v) == 1}
+    return Structuurindex(
+        {k: next(iter(v)) for k, v in kandidaten.items() if len(v) == 1},
+        kandidaten={k: v for k, v in kandidaten.items() if len(v) > 1},
+        bekend=bekend,
+    )
 
 
 def koppel_structuurverwijzingen(batch: Batch, index: dict[str, str]) -> int:
@@ -666,16 +673,108 @@ def koppel_structuurverwijzingen(batch: Batch, index: dict[str, str]) -> int:
 
     Geeft terug hoeveel verwijzingen zijn gekoppeld (voor de logregel).
     """
+    bekend = getattr(index, "bekend", set())
+    dubbel = getattr(index, "kandidaten", {})
     gekoppeld = 0
     for rij in batch.verwijzingen:
         to_key = rij.get("to")
-        if rij.get("doel_soort") not in _STRUCTUURSOORTEN or not to_key:
+        if rij.get("doel_soort") not in _STRUCTUURSOORTEN or not to_key or to_key in bekend:
             continue
-        volledig = index.get(to_key)
+        # De jci noemde het boek (`&boek=Vierde`), maar de doelregeling kent geen boekniveau in haar sleutels.
+        zonder_boek = _BOEK_SEGMENT.sub("", to_key)
+        if zonder_boek != to_key and zonder_boek in bekend:
+            rij["to"] = zonder_boek
+            gekoppeld += 1
+            continue
+        volledig = index.get(zonder_boek) or _kies_op_ankertekst(dubbel.get(zonder_boek), rij.get("anker_tekst"))
         if volledig and volledig != to_key:
             rij["to"] = volledig
             gekoppeld += 1
     return gekoppeld
+
+
+class Structuurindex(dict):
+    """Padloze sleutel -> volledige ref_key (alleen ondubbelzinnig), met wat de koppeling verder nodig heeft.
+
+    ``kandidaten`` houdt per dubbelzinnige padloze sleutel alle volledige sleutels bij, zodat de ankertekst
+    ("afdeling 2 van titel 1 van Boek 3") er één kan aanwijzen; ``bekend`` zijn alle structuursleutels van de run.
+    """
+
+    def __init__(self, uniek: dict[str, str], *, kandidaten: dict[str, set[str]], bekend: set[str]) -> None:
+        super().__init__(uniek)
+        self.kandidaten = kandidaten
+        self.bekend = bekend
+
+
+_BOEK_SEGMENT = re.compile(r"#boek=[^#]+")
+_JCI_BOEK = re.compile(r"[&?]boek=([^&]+)")
+
+
+def _met_boek(to_key: str | None, doel_soort: str | None, doc: str | None) -> str | None:
+    """Zet het boek uit de jci in een structuursleutel, zoals de node van een regeling met boeken (Rv) heet."""
+    if not to_key or doel_soort not in _STRUCTUURSOORTEN or "#boek=" in to_key:
+        return to_key
+    boek = _JCI_BOEK.search(doc or "")
+    if not boek:
+        return to_key
+    bwb, scheiding, rest = to_key.partition("#")
+    return f"{bwb}#boek={boek.group(1)}{scheiding}{rest}" if scheiding else to_key
+
+
+_RANGTELWOORDEN = {
+    w: str(i) for i, w in enumerate(
+        "eerste tweede derde vierde vijfde zesde zevende achtste negende tiende elfde twaalfde dertiende veertiende "
+        "vijftiende zestiende zeventiende achttiende negentiende twintigste".split(), start=1
+    )
+}
+_SOORT_IN_TEKST = {"boek": "boek", "titel": "titeldeel", "afdeling": "afdeling", "paragraaf": "paragraaf",
+                   "hoofdstuk": "hoofdstuk"}
+_NA_NAAM = re.compile(r"\b(boek|titel|afdeling|paragraaf|hoofdstuk)\s++([0-9]++[a-z]*+(?:\.[0-9]++[a-z]*+)*+|[IVXLC]++[A-Z]?+)\b",
+                      re.IGNORECASE)
+_VOOR_NAAM = re.compile(r"\b([a-z]++)\s++(boek|titel|afdeling|paragraaf|hoofdstuk)\b", re.IGNORECASE)
+_SEGMENT = re.compile(r"#([a-z-]++)=([^#]++)")
+
+
+def _norm(waarde: str) -> str:
+    """Eén vorm voor een structuurnummer: `Tweede` en `2` zijn gelijk, `Eerste_B` wordt `1_b`."""
+    kop, scheiding, rest = waarde.lower().partition("_")
+    return _RANGTELWOORDEN.get(kop, kop) + scheiding + rest
+
+
+def _genoemd(tekst: str) -> list[tuple[str, str]]:
+    """De structuursegmenten die een ankertekst noemt: "afdeling 2 van titel 1" -> afdeling 2, titeldeel 1."""
+    genoemd: list[tuple[str, str]] = []
+    for naam, waarde in _NA_NAAM.findall(tekst):
+        soort = _SOORT_IN_TEKST[naam.lower()]
+        if soort == "titeldeel" and waarde.count(".") == 1:
+            # "titel 5.3" van het BW is afdeling 3 van titel 5.
+            titel, _, afdeling = waarde.partition(".")
+            genoemd += [("titeldeel", _norm(titel)), ("afdeling", _norm(afdeling))]
+        else:
+            genoemd.append((soort, _norm(waarde)))
+    for woord, naam in _VOOR_NAAM.findall(tekst):
+        if woord.lower() in _RANGTELWOORDEN:
+            genoemd.append((_SOORT_IN_TEKST[naam.lower()], _RANGTELWOORDEN[woord.lower()]))
+    return genoemd
+
+
+def _kies_op_ankertekst(kandidaten: set[str] | None, tekst: str | None) -> str | None:
+    """De ene kandidaat waarvan het pad klopt met wat de ankertekst noemt; anders niets.
+
+    Een segment dat de kandidaat niet kent telt niet mee ("Boek 3" bij een BW-boek dat zelf een regeling is). Blijft er
+    meer of minder dan één over, dan blijft de verwijzing open: een gok is schijnzekerheid.
+    """
+    if not kandidaten or not tekst:
+        return None
+    genoemd = _genoemd(tekst)
+    if not genoemd:
+        return None
+    passend = []
+    for kandidaat in kandidaten:
+        pad = {soort: _norm(waarde) for soort, waarde in _SEGMENT.findall(kandidaat)}
+        if all(pad.get(soort, waarde) == waarde for soort, waarde in genoemd) and any(s in pad for s, _ in genoemd):
+            passend.append(kandidaat)
+    return passend[0] if len(passend) == 1 else None
 
 
 def bepalingsindex(batches: Iterable[Batch]) -> set[str]:

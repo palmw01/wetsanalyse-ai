@@ -199,6 +199,12 @@ waarde niet als segmentgrens leest.
   is — waarmee `koppel_structuurverwijzingen` (`app/collect.py`) de doelen met een exacte lookup
   rechtzet.
 
+  Is het nummer dubbelzinnig, dan beslist de **ankertekst** als die het pad noemt: "afdeling 2 van titel 1 van
+  Boek 3" wijst in Boek 3 BW precies één afdeling 2 aan (ook met rangtelwoorden, "titel 5.3" en "hoofdstuk VIIIA").
+  Blijft er niet precies één kandidaat over, dan blijft de verwijzing open. En noemt de jci het boek
+  (`&boek=Vierde`, Rv), dan staat dat in de sleutel, zoals bij de nodes van een regeling met boeken; kent de
+  doelregeling geen boeken, dan valt het weer weg.
+
   Die volgorde is het hele punt. Los je een verwijzing op tijdens de import van de *citerende* wet,
   dan kan dat per definitie niet voor een doel in een ándere wet: die is dan nog niet gezien, en de
   verwijzing landt op een lege node. Een run met één wet heeft precies die grens.
