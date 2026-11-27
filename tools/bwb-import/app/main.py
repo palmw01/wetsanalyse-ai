@@ -423,8 +423,10 @@ def _kennisgroepen(settings: Settings, alleen_bij_verlies: bool) -> int:
         return 1
     print(f"\n=== Kennisgroepen-index ===\n  Standpunten : {uitkomst.standpunten} {uitkomst.per_status}\n"
           f"  Berichten   : {uitkomst.berichten}\n  Bepalingen  : {uitkomst.bepalingen}\n"
-          f"  Geschreven  : {'ja' if uitkomst.geschreven else 'NEE – ' + uitkomst.reden}\n")
-    return 0 if uitkomst.geschreven else 2
+          f"  Vorm (SHACL): {uitkomst.vorm}\n"
+          f"  Geschreven  : {'ja' if uitkomst.geschreven else 'NEE'}"
+          f"{' – ' + uitkomst.reden if uitkomst.reden else ''}\n")
+    return 0 if uitkomst.geschreven and not uitkomst.reden else 2
 
 
 def _wetten(bwb_ids: list[str], settings: Settings, droog: Path | None = None) -> int:

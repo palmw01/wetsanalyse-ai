@@ -1,0 +1,151 @@
+# SHACL-shapes voor de index van de kennisgroepstandpunten: wat de named graph `urn:wa:graph:kennisgroepen` moet
+# bevatten (vocabulaire `urn:wa-kg-ns:`, geschreven door `app/kennisgroepen.py`, gelezen door de connector
+# `kennisgroepen` van graph-qa).
+#
+# Afgeleid van de hele index zoals de importer hem op 27 nov 2026 bouwde (1189 publicaties, waarvan 1186
+# standpunten, 1275 nieuwsberichten, 228.102 triples). Elke regel hieronder geldt voor die index zonder
+# uitzondering; het omgekeerde niet. Wat vandaag overal staat maar alleen een etiket van de bron is (kennisgroep,
+# middel, belastingsoort, rubriek, klasse), is niet verplicht: een publicatie zonder etiket maakt de index niet
+# fout, en een verplichting zou dan elke verversing tegenhouden. Verplicht is wat de identiteit en de leestool
+# dragen: het kenmerk, de titel, de status, de link, de data en de tekst per rij.
+#
+# Vier soorten nodes, alle onder `urn:wa:kennisgroepen:wp:<wp-id>`:
+#   - de publicatie (`kgo:Publicatie`, en `kgo:Standpunt` als ze een kenmerk en de soort "Standpunt" heeft);
+#   - een rij tekst (`…/rij/<nr>`, object van `kgo:rij`);
+#   - wat ze noemt (`…/noemt/<n>`, object van `kgo:noemt`);
+#   - een nieuwsbericht erover (`…/gebeurtenis/<id>`, object van `kgo:gebeurtenis`).
+# Die laatste drie hebben geen type; ze worden geraakt via het predicaat dat naar hen wijst.
+#
+# Alle shapes zijn gesloten (`sh:closed`). Dat legt de scheiding met de wet vast: geen `bwb:`-predicaat en geen
+# `bwb:`-type in deze graph, dus de FTS-connector, de similarity-index en de graafwacht van de wet zien de index
+# niet (`app/kennisgroepen.py`, "Gescheiden van de wet").
+#
+# De waardenlijsten (`sh:in`) zijn die van de code, niet van de bron: status uit `kenmerk_uit_titel`, rijsoort uit
+# `Rij`, herkomst en doelsoort uit `Verwijzing` (met `extern.BRONTYPEN`), gebeurtenissoort uit `lees_bericht`
+# (alle in `bronmodel.kennisgroepen`). Een nieuwe waarde daar vraagt een regel hier.
+#
+# Getoetst per verversing, vóór de PUT, zonder inferentie (`app/shacl.py`, `kennisgroepen.ververs`). Een afwijkende
+# index vervangt nooit een bestaande.
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix kgo:  <urn:wa-kg-ns:> .
+@prefix kgs:  <urn:wa-kg-ns:shapes:> .
+
+# ---------------------------------------------------------------- de publicatie
+
+kgs:Publicatie a sh:NodeShape ;
+    sh:targetClass kgo:Publicatie ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^urn:wa:kennisgroepen:wp:[0-9]+$" ;
+    sh:closed true ;
+    sh:property [ sh:path rdf:type ; sh:in ( kgo:Publicatie kgo:Standpunt ) ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:wpId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ;
+                  sh:minInclusive 1 ] ;
+    # Het canonieke id (`kg:013:2026:4`) en het kenmerk zoals de bron het schrijft (`KG:013:2026:4`).
+    sh:property [ sh:path kgo:id ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^kg:[0-9]{3}:[0-9]{4}:[0-9]+$" ] ;
+    sh:property [ sh:path kgo:kenmerk ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^KG:[0-9]{3}:[0-9]{4}:[0-9]+$" ] ;
+    sh:property [ sh:path kgo:jaar ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9]{4}$" ] ;
+    sh:property [ sh:path kgo:nummer ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9]+$" ] ;
+    sh:property [ sh:path kgo:titel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:titelBron ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:status ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( "geldend" "ingetrokken" "vervallen" ) ] ;
+    sh:property [ sh:path kgo:link ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^https://kennisgroepen\\.belastingdienst\\.nl/" ] ;
+    # De slug is vrije tekst van WordPress (er staat er één als `__trashed-2`); alleen dat hij er is.
+    sh:property [ sh:path kgo:slug ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:gewijzigdBron ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$" ] ;
+    # SHA-256 over de rijen (`bronmodel.kennisgroepen.bron_hash`).
+    sh:property [ sh:path kgo:bronHash ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^[0-9a-f]{64}$" ] ;
+    sh:property [ sh:path kgo:soort ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:datum ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path kgo:gepubliceerd ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path kgo:gewijzigd ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path kgo:vastgesteld ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    # Etiketten van de bron: vandaag (bijna) overal, maar niet verplicht (zie boven).
+    sh:property [ sh:path kgo:kennisgroep ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:kennisgroepId ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path kgo:middel ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:middelId ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path kgo:belastingsoort ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:rubriek ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:subrubriek ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:berichtsoort ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:klasse ; sh:datatype xsd:string ] ;
+    # Een bijlage is wat de bron als href geeft; dat is niet altijd een URL (er staan twee lokale bestandspaden).
+    sh:property [ sh:path kgo:bijlage ; sh:datatype xsd:string ] ;
+    # Intrekkingen: het id altijd, de IRI alleen als het andere standpunt in de index staat.
+    sh:property [ sh:path kgo:vervangtId ; sh:datatype xsd:string ; sh:pattern "^kg:[0-9]{3}:[0-9]{4}:[0-9]+$" ] ;
+    sh:property [ sh:path kgo:vervangenDoorId ; sh:datatype xsd:string ;
+                  sh:pattern "^kg:[0-9]{3}:[0-9]{4}:[0-9]+$" ] ;
+    sh:property [ sh:path kgo:vervangt ; sh:class kgo:Publicatie ] ;
+    # Elke publicatie heeft tekst: de leestool leest per rij.
+    sh:property [ sh:path kgo:rij ; sh:minCount 1 ; sh:node kgs:Rij ] ;
+    sh:property [ sh:path kgo:noemt ; sh:node kgs:Noemt ] ;
+    sh:property [ sh:path kgo:gebeurtenis ; sh:node kgs:Gebeurtenis ] .
+
+# Een standpunt is een publicatie met een kenmerk en de soort "Standpunt" (`Standpunt.is_standpunt`); het is wat de
+# poort telt (`IndexSchrijver.aantal`).
+kgs:Standpunt a sh:NodeShape ;
+    sh:targetClass kgo:Standpunt ;
+    sh:class kgo:Publicatie ;
+    sh:property [ sh:path kgo:soort ; sh:minCount 1 ; sh:hasValue "Standpunt" ] .
+
+# ---------------------------------------------------------------- een rij tekst
+
+kgs:Rij a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^urn:wa:kennisgroepen:wp:[0-9]+/rij/[0-9]+$" ;
+    sh:closed true ;
+    sh:property [ sh:path kgo:nr ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+    sh:property [ sh:path kgo:tekst ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    # De kop ontbreekt bij tekst vóór de eerste kop (6 van de 25.498 rijen).
+    sh:property [ sh:path kgo:kop ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:rijsoort ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( "alinea" "voetnoot" "tabel" "tabelrij" ) ] .
+
+# ---------------------------------------------------------------- wat een publicatie noemt
+
+kgs:Noemt a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^urn:wa:kennisgroepen:wp:[0-9]+/noemt/[0-9]+$" ;
+    sh:closed true ;
+    # Bijlagen staan als `kgo:bijlage` op de publicatie, niet hier; `wettekst` en `wettekst_live` zijn bij de lezer
+    # altijd `bepaling` of `regeling`.
+    sh:property [ sh:path kgo:doelsoort ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( "bepaling" "regeling" "publicatie" "uitspraak" "kamerstuk" "bekendmaking" "standpunt"
+                          "eu" ) ] ;
+    sh:property [ sh:path kgo:doel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:herkomst ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "link" "tekst" ) ] ;
+    sh:property [ sh:path kgo:inRij ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ;
+                  sh:minInclusive 1 ] ;
+    sh:property [ sh:path kgo:bwbId ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^BWB[RV][0-9]+$" ] ;
+    sh:property [ sh:path kgo:artikel ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:lid ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path kgo:publicatie ; sh:maxCount 1 ; sh:class kgo:Publicatie ] ;
+    # Een bepaling noemt altijd haar regeling en artikel: daarop zoekt de connector per wetsartikel.
+    sh:or (
+        [ sh:not [ sh:property [ sh:path kgo:doelsoort ; sh:hasValue "bepaling" ] ] ]
+        [ sh:property [ sh:path kgo:bwbId ; sh:minCount 1 ] ; sh:property [ sh:path kgo:artikel ; sh:minCount 1 ] ]
+    ) .
+
+# ---------------------------------------------------------------- een nieuwsbericht over een publicatie
+
+kgs:Gebeurtenis a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^urn:wa:kennisgroepen:wp:[0-9]+/gebeurtenis/[0-9]+$" ;
+    sh:closed true ;
+    sh:property [ sh:path kgo:gebeurtenissoort ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( "gepubliceerd" "geactualiseerd" "ingetrokken" "vervallen" "bericht" ) ] ;
+    # De code schrijft de datum alleen als de bron er een geeft; vandaag heeft elk bericht er een.
+    sh:property [ sh:path kgo:datum ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path kgo:link ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path kgo:titel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
