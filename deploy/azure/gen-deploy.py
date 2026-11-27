@@ -33,7 +33,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from padcontrole import OnveiligPad, veilig_argument, veilig_pad
+# De eigen map op het pad: als script staat hij er vanzelf, maar niet als een test hem met importlib laadt.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from padcontrole import OnveiligPad, veilig_argument, veilig_pad  # noqa: E402
 
 TEMPLATE = Path(__file__).parent / "main.bicep"
 DEFAULT_PARAMS = Path(__file__).parent / "params.json"

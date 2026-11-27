@@ -141,7 +141,8 @@ def test_gen_deploy_weigert_een_licentiebestand_buiten_de_basis(tmp_path):
 def test_gen_deploy_weigert_een_resource_group_die_een_optie_is(tmp_path):
     r = _gen_deploy(tmp_path, "--resource-group=--subscription=x", "--params-file", "params.json")
     assert r.returncode == 2
-    assert "geen toegestane vorm" in r.stderr
+    # Wie weigert maakt niet uit (de Azure-naamcontrole of de padcontrole), wel dat het argument genoemd wordt.
+    assert "--subscription=x" in r.stderr
     assert not (tmp_path / "params.json").exists()
 
 
