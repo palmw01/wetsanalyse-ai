@@ -86,7 +86,9 @@ def test_de_index_staat_los_van_de_wet():
 
 
 def test_idempotent():
-    assert inhoud_hash(kgi.bouw_graph(PUBLICATIES, BERICHTEN)[0]) == inhoud_hash(kgi.bouw_graph(PUBLICATIES, BERICHTEN)[0])
+    eerste = inhoud_hash(kgi.bouw_graph(PUBLICATIES, BERICHTEN)[0])
+    tweede = inhoud_hash(kgi.bouw_graph(PUBLICATIES, BERICHTEN)[0])
+    assert eerste == tweede
 
 
 def _waarden(g, s, p) -> set[str]:

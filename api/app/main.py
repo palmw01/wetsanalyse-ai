@@ -113,19 +113,20 @@ async def lifespan(app: FastAPI):
         activeer(True)
         begrip_projectie.activeer(True)
         projectie_taak = asyncio.create_task(lus(settings.jas_projectie_interval_s))
-    yield
-    if projectie_taak is not None:
-        from . import begrip_projectie
-        from .graaf_projectie_v2 import stop
+    try:
+        yield
+    finally:
+        # Ook bij een fout tijdens het draaien: de projectie stoppen en de engine sluiten.
+        if projectie_taak is not None:
+            from . import begrip_projectie
+            from .graaf_projectie_v2 import stop
 
-        await stop()
-        await begrip_projectie.stop()
-        projectie_taak.cancel()
-        try:
-            await projectie_taak
-        except asyncio.CancelledError:
-            pass
-    await db.dispose_engine()
+            await stop()
+            await begrip_projectie.stop()
+            projectie_taak.cancel()
+            # De eigen annulering wordt een resultaat; een annulering van buiten gaat gewoon door.
+            await asyncio.gather(projectie_taak, return_exceptions=True)
+        await db.dispose_engine()
 
 
 app = FastAPI(

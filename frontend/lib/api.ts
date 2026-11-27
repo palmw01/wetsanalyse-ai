@@ -1157,7 +1157,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
   const stilte = () =>
     new Promise<never>((_, mis) => {
       stilteTimer = setTimeout(
-        () => mis({ status: 0, detail: "De verbinding viel stil." } as ApiError),
+        () => mis(Object.assign(new Error("De verbinding viel stil."), { status: 0, detail: "De verbinding viel stil." }) as ApiError),
         STROOM_STILTE_MS,
       );
     });

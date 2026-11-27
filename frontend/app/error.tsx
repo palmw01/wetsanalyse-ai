@@ -9,7 +9,7 @@ import { AuthFrame } from "@/components/auth/AuthFrame";
 import { Button } from "@/components/ui/Button";
 import { meldBrowserfout } from "@/lib/uiSpoor";
 
-export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function FoutPagina({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error);
     meldBrowserfout("route", error);

@@ -8,6 +8,7 @@
 import Graph from "graphology";
 import { bepalingLabel, stapLabel } from "@/lib/bepalingLabel";
 import { vindplaatsLabel, type SamenhangKnoop, type SamenhangRelatie } from "@/lib/samenhang";
+import { opCodepunt } from "../rand";
 
 export type { KnoopSoort, RelatieGroep, SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
 
@@ -82,11 +83,11 @@ export function bouwModel(bronnen: readonly GraafBron[]): GraafModel {
     for (const r of bron.relaties) relaties.set(relatieSleutel(r), r);
   }
   const g: GraafModel = new Graph({ type: "directed", multi: true, allowSelfLoops: true });
-  for (const id of [...knopen.keys()].sort()) {
+  for (const id of [...knopen.keys()].sort(opCodepunt)) {
     const k = knopen.get(id)!;
     g.addNode(id, { ...k, ...namen(k) });
   }
-  for (const sleutel of [...relaties.keys()].sort()) {
+  for (const sleutel of [...relaties.keys()].sort(opCodepunt)) {
     const r = relaties.get(sleutel)!;
     if (!g.hasNode(r.bron) || !g.hasNode(r.doel)) continue;
     g.addDirectedEdgeWithKey(sleutel, r.bron, r.doel, {

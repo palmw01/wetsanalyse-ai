@@ -196,7 +196,7 @@ export async function getAccountStatus(userid: string): Promise<AccountStatus> {
       tfa_nodig?: boolean;
       sessions_valid_from?: string | null;
     };
-    const svf = me.sessions_valid_from ? Date.parse(me.sessions_valid_from) : NaN;
+    const svf = me.sessions_valid_from ? Date.parse(me.sessions_valid_from) : Number.NaN;
     return {
       status: "actief",
       role: me.role,

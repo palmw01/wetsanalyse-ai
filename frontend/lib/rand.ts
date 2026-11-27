@@ -35,3 +35,9 @@ export function zonderLaatsteWoord(s: string): string {
   if (i === 0) return s;
   return zonderAchteraan(s.slice(0, i), SPATIE);
 }
+
+/** De volgorde van `sort()` zonder argument: op UTF-16-codepunt, niet `localeCompare`. Sleutels, hashes en cachesleutels
+ *  blijven zo gelijk aan wat ze waren, en de vergelijking staat er expliciet (SonarQube S2871). */
+export function opCodepunt(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}

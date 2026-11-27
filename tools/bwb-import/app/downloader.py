@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 # Namespaces in het SRU-antwoord (geverifieerd).
 _SRU_NS = {
     "sru": "http://docs.oasis-open.org/ns/search-ws/sruResponse",
-    "gzd": "http://standaarden.overheid.nl/sru",
+    "gzd": "http://standaarden.overheid.nl/sru",  # NOSONAR: namespace-id, geen verbinding
     "dcterms": "http://purl.org/dc/terms/",
-    "bwb": "http://standaarden.overheid.nl/bwb/terms/",
+    "bwb": "http://standaarden.overheid.nl/bwb/terms/",  # NOSONAR: namespace-id, geen verbinding
 }
 
 # XSD-schema-namespace voor het volgen van imports/includes/redefines.

@@ -8,6 +8,7 @@
  * wat er verder staat: dat moet gelijk blijven.
  */
 import { inRunruimte, leesRuimte, opruimplan, toetsVerwijderen, VOORVOEGSELS, voerUit } from "./runruimte.js";
+import { opCodepunt } from "./tekst.js";
 export const KETEN = VOORVOEGSELS[0];
 class KetenFout extends Error {
 }
@@ -60,8 +61,8 @@ export async function ketenScenario(c, run) {
         const bulk = await toetsVerwijderen(c, "POST", "/api/gesprekken/verwijderen", ik);
         eis(stappen, "vangrail weigert bulkverwijderen", !bulk.mag);
         const plan = opruimplan(voorvoegsel, ik, midden.werkgebieden, midden.gesprekken);
-        const gevonden = [...plan.werkgebieden.map((x) => x.id), ...plan.gesprekken.map((x) => x.id)].sort();
-        eis(stappen, "opruimplan bevat precies wat de run maakte", JSON.stringify(gevonden) === JSON.stringify([wid, gid].sort()), gevonden.join(", "));
+        const gevonden = [...plan.werkgebieden.map((x) => x.id), ...plan.gesprekken.map((x) => x.id)].sort(opCodepunt);
+        eis(stappen, "opruimplan bevat precies wat de run maakte", JSON.stringify(gevonden) === JSON.stringify([wid, gid].sort(opCodepunt)), gevonden.join(", "));
         const uit = await voerUit(c, plan, ik);
         eis(stappen, "opruimen", uit.verwijderd.length === 2 && uit.geweigerd.length === 0, uit.geweigerd.join("; "));
         const na = await leesRuimte(c);

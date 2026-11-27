@@ -148,7 +148,7 @@ async def _reken(api: WetsanalyseApi, werkgebied_id: str, api_run: dict[str, Any
         # Iemand anders (de tab Begrippen) rekent al op deze stand: wacht op die uitkomst.
         yield {"type": "stap", "bericht": "Er loopt al een berekening op deze stand; ik wacht op de uitkomst"}
         wacht = 0.0
-        while wacht < WACHT_OP_ANDERE_RUN_S:
+        while wacht < WACHT_OP_ANDERE_RUN_S:  # NOSONAR: peilt de api (ander proces); een Event werkt niet over procesgrenzen
             await asyncio.sleep(PEIL_S)
             wacht += PEIL_S
             stand = await api.haal_begrippen_run(werkgebied_id, rid)

@@ -37,7 +37,8 @@ def test_sleutel_identiteit(a, b, zelfde):
 
 def test_sleutel_negeert_klasse_by_design():
     """Regressie op de bug: mét klasse in de sleutel werd een herclassificatie een tweede element."""
-    assert sleutel_van("de ontvanger", "1") == sleutel_van("de ontvanger", "1")
+    eerste, tweede = sleutel_van("de ontvanger", "1"), sleutel_van("de ontvanger", "1")
+    assert eerste == tweede
 
 
 # --- implementatie 2: de beurt-driver ----------------------------------------------------------

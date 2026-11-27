@@ -16,7 +16,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, NamedTuple
 
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
@@ -288,17 +288,17 @@ def lees(vraag: str, aan: frozenset[str],
             rest = rest.replace(s.group(0), " ")
             break
     if (wv := _wetsverwijzing(c, rest, regelingen)) is not None:
-        if not wv:
+        if wv is _NIET_EENDUIDIG:
             return None
         args.update(wv[0])
         rest = wv[1]
     kanttekening = ""
     if wv is None and (rg := _bij_regeling(c, rest, regelingen)) is not None:
-        if not rg:
+        if rg is _NIET_EENDUIDIG:
             return None
         args.update(rg[0])
         rest, kanttekening = rg[1], rg[2]
-    elif wv is None and (bn := _bij_naam(c, rest)) is not None:
+    elif wv is None and (bn := _bij_naam(c, rest)) is not None and bn is not _NIET_EENDUIDIG:
         args.update(bn[0])
         rest, kanttekening = bn[1], bn[2]
     for orgaan in c.organen:
@@ -380,6 +380,18 @@ def lees(vraag: str, aan: frozenset[str],
     return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0, tellen, verdeling, kanttekening)
 
 
+class _Filter(NamedTuple):
+    """Wat een vraag aan filters oplevert: de argumenten, de rest van de tekst en een kanttekening voor de lezer."""
+
+    args: dict[str, Any]
+    rest: str
+    kanttekening: str = ""
+
+
+#: De vraag noemt wel iets (een artikel, een regeling), maar de code kan het niet eenduidig plaatsen: de agent leest hem.
+_NIET_EENDUIDIG = _Filter({}, "")
+
+
 def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
                     regelingen: Callable[[str], list[tuple[str, set[str]]]] | None):
     """Een genoemde bepaling als filter, voor een connector met het metadataveld `wetsverwijzing` (Rechtspraak: de
@@ -391,15 +403,15 @@ def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
     if veld is None or len(veld.filters) < 2 or not aw.artikelen:
         return None
     if len(aw.artikelen) != 1 or aw.leden or regelingen is None:
-        return ()
+        return _NIET_EENDUIDIG
     genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
     if len(genoemd) != 1:
-        return ()
+        return _NIET_EENDUIDIG
     bwb_id, namen = genoemd[0]
     rest = _ARTIKEL.sub(" ", tekst)
     for naam in sorted(namen, key=len, reverse=True):
         rest = re.sub(rf"(?<![\w.]){re.escape(naam)}(?![\w])", " ", rest, flags=re.IGNORECASE)
-    return {veld.filters[0]: bwb_id, veld.filters[1]: aw.artikelen[0]}, rest
+    return _Filter({veld.filters[0]: bwb_id, veld.filters[1]: aw.artikelen[0]}, rest)
 
 
 def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
@@ -415,7 +427,7 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     if not (h := _HOREN_BIJ_RE.search(tekst)) or lees_aanwijzing(tekst).artikelen:
         return None
     if regelingen is None:
-        return ()
+        return _NIET_EENDUIDIG
     genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
     if not genoemd:
         # Geen regeling bij naam: dan is het dit patroon niet ("Welke publicaties horen bij Kamerdossier 36602?" leest het
@@ -423,13 +435,13 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
         # gaat naar het model (meting Staatsblad ronde 5, B18: de lege tuple brak de hele lijstvraag af, 0 -> 184k).
         return None
     if len(genoemd) != 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
-        return ()
+        return _NIET_EENDUIDIG
     bwb_id, _ = genoemd[0]
     a, b = max(plekken, key=lambda p: p[1] - p[0])
     naam = tekst[a:b]
     rest = (tekst[:a] + " " + tekst[b:]).replace(h.group(0), " ")
     if (veld := c.veld("wetsverwijzing")) is not None and veld.filters:
-        return {veld.filters[0]: bwb_id}, rest, ""
+        return _Filter({veld.filters[0]: bwb_id}, rest)
     return _op_naam(c, naam, rest)
 
 
@@ -438,12 +450,12 @@ def _op_naam(c: ConnectorBeschrijving, naam: str, rest: str):
     heten (`MetadataVeld("reekstitel")`, als woordgroep), anders de titel van het stuk. De kanttekening zegt wat dat
     betekent; de zoekvraag zegt al waar gezocht is (Kamerstukken ronde 5, K17: de zin stond er twee keer)."""
     if (arg := _arg(c, "reekstitel")):
-        return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling of wetsvoorstel, dus een dossier "
-                                   "met een andere titel staat er niet bij.")
+        return _Filter({arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling of wetsvoorstel, dus een dossier "
+                                   "met een andere titel staat er niet bij."))
     if not (arg := _arg(c, "titel")):
-        return ()
-    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling, dus een stuk over de regeling met een "
-                               "andere titel staat er niet bij.")
+        return _NIET_EENDUIDIG
+    return _Filter({arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling, dus een stuk over de regeling met een "
+                               "andere titel staat er niet bij."))
 
 
 #: "de amendementen bij het Belastingplan 2025": een naam met een hoofdletter aan het eind van de vraag, na "bij het/de".

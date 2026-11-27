@@ -78,7 +78,8 @@ export async function inleveren(map, run, formulier, controle) {
 /** De controle van Lex Bench zelf: `uv run python -m eval.lex_bench_inleveren controleer`, in `tools/graph-qa`. */
 export function pythonControle(graphQa, timeoutMs = 180_000) {
     return (run, bestand) => new Promise((resolve, reject) => {
-        execFile("uv", ["run", "--quiet", "python", "-m", "eval.lex_bench_inleveren", "controleer", "--run", run, "--bestand", bestand], { cwd: graphQa, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (fout, stdout, stderr) => {
+        execFile("uv", // NOSONAR: ontwikkeltool; de uv van de eigen machine via PATH is bedoeld
+        ["run", "--quiet", "python", "-m", "eval.lex_bench_inleveren", "controleer", "--run", run, "--bestand", bestand], { cwd: graphQa, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (fout, stdout, stderr) => {
             if (fout) {
                 reject(new Error(`De controle draaide niet: ${String(stderr || fout.message).trim().slice(-500)}`));
                 return;

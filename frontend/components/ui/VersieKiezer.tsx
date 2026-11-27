@@ -38,7 +38,7 @@ export function VersieKiezer({ versie, gekozen, onKies }: {
 
   useEffect(() => {
     let levend = true;
-    (async () => {
+    void (async () => {
       try {
         const v = await haalArtefactVersie(versie);
         cache.current.set(v.id, v);

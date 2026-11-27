@@ -48,7 +48,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
           return <div key={f.eigenschap} className="min-w-0 text-xs">
             <dt className={zelfdeNaam ? "sr-only" : "text-2xs text-faint [overflow-wrap:anywhere]"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
             <dd className="min-w-0 text-ink [overflow-wrap:anywhere]">
-              <span className="flex min-w-0 flex-col items-start">{toon.map(waarde)}</span>
+              <span className="flex min-w-0 flex-col items-start">{toon.map((w, i) => waarde(w, i))}</span>
               {f.waarden.length > ZICHTBAAR && !allesOpen[sleutel] && <button type="button" className={TEKSTKNOP}
                 onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {f.waarden.length} tonen</button>}
             </dd>

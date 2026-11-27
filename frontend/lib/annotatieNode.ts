@@ -3,7 +3,7 @@ import { RELATIETYPEN } from "./jasRelaties";
 import { OPSOMMINGSTEKENS, stapLabel } from "./bepalingLabel";
 import { pathSegment } from "./url";
 import { haalDiagrammen, type DiagramSet } from "@/lib/diagram2c";
-import { zonderLaatsteWoord } from "./rand";
+import { opCodepunt, zonderLaatsteWoord } from "./rand";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -198,7 +198,7 @@ export interface ElementDetail {
 }
 /** Een versie van wat in beeld is: verandert zodra een laag een nieuwe revisie krijgt. */
 export function weergaveVersie(view: NodeWeergave): string {
-  return view.lagen.map((l) => `${l.id}:${l.revisie}`).sort().join(",");
+  return view.lagen.map((l) => `${l.id}:${l.revisie}`).sort(opCodepunt).join(",");
 }
 export function haalElementDetail(id: string): Promise<ElementDetail> {
   return nodeRequest(`elementen/${pathSegment(id)}`);

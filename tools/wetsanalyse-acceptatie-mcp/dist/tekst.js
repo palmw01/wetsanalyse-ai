@@ -53,3 +53,8 @@ export function zonderVoorvoegselnamen(s, vervanging) {
     }
     return uit;
 }
+/** De volgorde van `sort()` zonder argument: op UTF-16-codepunt, niet `localeCompare`. Sleutels, hashes en cachesleutels
+ *  blijven zo gelijk aan wat ze waren, en de vergelijking staat er expliciet (SonarQube S2871). */
+export function opCodepunt(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+}

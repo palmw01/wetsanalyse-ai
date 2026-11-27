@@ -32,7 +32,7 @@ def sha(v):
 
 
 def schrijf(pad, value):
-    with pad.open("x", encoding="utf-8") as f:
+    with veilig_pad(pad).open("x", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
@@ -234,7 +234,7 @@ def main():
             p.error("--baseline en --output (map) vereist")
         cases = json.loads(args.cases.read_text())
         controleer_cases(cases)
-        args.output.mkdir(parents=True, exist_ok=True)
+        veilig_pad(args.output).mkdir(parents=True, exist_ok=True)
         hashes = {"baseline": codehash(args.baseline), "variant": codehash(args.code_root)}
         manifest = {"code": hashes, "casussen_sha256": cases["casussen_sha256"], "herhalingen": 3,
                     "varianten": list(VARIANTEN), "primaire_pogingen": len(cases["casussen"]) * 9,

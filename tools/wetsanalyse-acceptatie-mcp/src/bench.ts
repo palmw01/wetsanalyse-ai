@@ -94,7 +94,7 @@ export function pythonControle(graphQa: string, timeoutMs = 180_000): Controle {
   return (run, bestand) =>
     new Promise((resolve, reject) => {
       execFile(
-        "uv",
+        "uv", // NOSONAR: ontwikkeltool; de uv van de eigen machine via PATH is bedoeld
         ["run", "--quiet", "python", "-m", "eval.lex_bench_inleveren", "controleer", "--run", run, "--bestand", bestand],
         { cwd: graphQa, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 },
         (fout, stdout, stderr) => {

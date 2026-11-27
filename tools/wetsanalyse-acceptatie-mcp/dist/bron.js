@@ -77,7 +77,7 @@ export function tekstVan(xml) {
         .replace(/<\/(?:label|lidnr|li\.nr)>/g, " ")
         .replace(/<\/(?:al|kop|lid|li|lijst|tussenkop)>/g, "\n"))
         .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-        .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+        .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(Number.parseInt(n, 16)))
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')

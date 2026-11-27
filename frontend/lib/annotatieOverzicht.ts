@@ -80,7 +80,7 @@ function aandacht(d: DocumentSamenvatting, niveau: string): number {
 }
 
 function tijd(d: DocumentSamenvatting): number {
-  const t = d.updated ? Date.parse(d.updated) : NaN;
+  const t = d.updated ? Date.parse(d.updated) : Number.NaN;
   return Number.isNaN(t) ? 0 : t;
 }
 

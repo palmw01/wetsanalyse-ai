@@ -230,7 +230,7 @@ async def schrijftransactie():
                 pass
             await conn.execute(select(db.annotatie_v2_state).where(
                 db.annotatie_v2_state.c.id == 1).with_for_update())
-            yield conn
+            yield conn  # NOSONAR: na de yield staat het wegschrijven, dat alleen bij succes mag; bij een fout niets schrijven is bedoeld
             await _revisieregels(conn)
         finally:
             for sleutel in ("te_projecteren", "geraakt", "acties", "actor"):

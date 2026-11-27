@@ -137,7 +137,8 @@ def test_de_aanhef_zelf_is_geen_betekenisterm():
 
 def test_detectie_met_parse_is_deterministisch(parser):
     tekst = "Indien de verzekerde niet binnen zes weken betaalt, is hij een boete van € 23 verschuldigd."
-    assert detecteer_alles(_bron(tekst, parser)) == detecteer_alles(_bron(tekst, parser))
+    eerste, tweede = detecteer_alles(_bron(tekst, parser)), detecteer_alles(_bron(tekst, parser))
+    assert eerste == tweede
 
 
 def test_ankerdekking_zakt_niet_onder_de_gemeten_vloer(parser):

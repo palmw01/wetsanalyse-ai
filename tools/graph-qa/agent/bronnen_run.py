@@ -227,7 +227,7 @@ async def zoek_run(ctx: Context, werkgebied_id: str) -> str:
 async def _wacht(api: WetsanalyseApi, werkgebied_id: str, rid: str, run: Any) -> str:
     """Wacht op een run die een ander draait. Leeg = klaar, anders waarom niet."""
     gewacht = 0.0
-    while gewacht < WACHT_OP_ANDERE_RUN_S:
+    while gewacht < WACHT_OP_ANDERE_RUN_S:  # NOSONAR: peilt de api (ander proces); een Event werkt niet over procesgrenzen
         await asyncio.sleep(PEIL_S)
         gewacht += PEIL_S
         stand = await api.haal_bronnen_run(werkgebied_id, rid)
