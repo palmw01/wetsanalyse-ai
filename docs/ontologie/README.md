@@ -6,7 +6,7 @@ Gegenereerd door `tools/graph-qa/scripts/genereer_ontologie_docs.py` uit de T-Bo
 
 | Ontologie | Namespace | Versie |
 |---|---|---|
-| Wettekst (BWB) | `urn:bwb-ns:` | 1.0.0 |
+| Wettekst (BWB) | `urn:bwb-ns:` | 1.1.0 |
 | JAS-annotatielagen | `urn:jas-ns:` | 4.0.0 |
 | Begrippen en afleidingsregels | `urn:wa-ns:` | 3.0.0 |
 | Kennisgroepstandpunten | `urn:wa-kg-ns:` | 1.0.0 |
@@ -181,12 +181,12 @@ classDiagram
   bwb_Regeling : opschrift 0..1
   bwb_Regeling : toestandUrl 0..1
   class bwb_Structuurdeel["bwb:Structuurdeel"]
-  bwb_Structuurdeel : bronUrl 1
-  bwb_Structuurdeel : label 1
-  bwb_Structuurdeel : nummer 1
-  bwb_Structuurdeel : refKey 1
   bwb_Structuurdeel : soort 1
   bwb_Structuurdeel : rdfs∶label 1
+  bwb_Structuurdeel : bronUrl 0..1
+  bwb_Structuurdeel : label 0..1
+  bwb_Structuurdeel : nummer 0..1
+  bwb_Structuurdeel : refKey 0..1
   bwb_Structuurdeel : titel 0..1
   class bwb_Titeldeel["bwb:Titeldeel"]
   class bwb_Verwijzing["bwb:Verwijzing"]
@@ -223,6 +223,7 @@ classDiagram
   bwb_Regeling --> bwb_Organisatie : uitgegevenDoor 0..n
   bwb_Structuurdeel --> bwb_Afdeling : heeftAfdeling 0..n
   bwb_Structuurdeel --> bwb_Artikel : heeftArtikel 0..n
+  bwb_Structuurdeel --> bwb_Hoofdstuk : heeftHoofdstuk 0..n
   bwb_Structuurdeel --> bwb_Paragraaf : heeftParagraaf 0..n
   bwb_Structuurdeel --> bwb_Titeldeel : heeftTiteldeel 0..n
   bwb_Structuurdeel <|-- bwb_Titeldeel
@@ -366,20 +367,21 @@ Een regeling uit het Basiswettenbestand (wet, AMvB, ministeriële regeling, bele
 
 #### `bwb:Structuurdeel`
 
-Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …). Subklasse van `eli:LegalResourceSubdivision`. Geldt voor `bwb:Afdeling`, `bwb:Hoofdstuk`, `bwb:Paragraaf`, `bwb:Titeldeel`.
+Abstract structuurniveau van een wettekst (hoofdstuk, afdeling, …). Subklasse van `eli:LegalResourceSubdivision`. Geldt voor `bwb:Afdeling`, `bwb:Hoofdstuk`, `bwb:Paragraaf`, `bwb:Titeldeel`. Minstens één van: (bwb:nummer aanwezig) | (bwb:titel aanwezig).
 
 | eigenschap | aantal | soort | uitleg |
 |---|---|---|---|
-| `bwb:bronUrl` | 1 | – | Vindplaats van dit tekstdeel in de gepubliceerde toestand op wetten.overheid.nl (anker-URL, afgeleid uit het documentpad). GEEN JuriConnect-identiteit: de meeste circulaire-divisies krijgen van de BWB-redactie geen eigen jci, en er zelf een verzinnen landt stil op de hele regeling. Gebruik owl:sameAs of bwb:jci als je een citeerbare, versie-onafhankelijke sleutel nodig hebt. |
-| `bwb:label` | 1 | – | Structuurlabel uit de bron-XML. |
-| `bwb:nummer` | 1 | – | Nummer binnen de ouder (artikel-/lid-/onderdeelnummer). |
-| `bwb:refKey` | 1 | – | JuriConnect-afgeleide identiteitssleutel. |
 | `bwb:soort` | 1 | – | Soort regeling of verwijzing. |
 | `rdfs:label` | 1 | – |  |
+| `bwb:bronUrl` | 0..1 | – | Vindplaats van dit tekstdeel in de gepubliceerde toestand op wetten.overheid.nl (anker-URL, afgeleid uit het documentpad). GEEN JuriConnect-identiteit: de meeste circulaire-divisies krijgen van de BWB-redactie geen eigen jci, en er zelf een verzinnen landt stil op de hele regeling. Gebruik owl:sameAs of bwb:jci als je een citeerbare, versie-onafhankelijke sleutel nodig hebt. |
 | `bwb:heeftAfdeling` | 0..n | → bwb:Afdeling | Bevat afdeling. |
 | `bwb:heeftArtikel` | 0..n | → bwb:Artikel | Bevat artikel. |
+| `bwb:heeftHoofdstuk` | 0..n | → bwb:Hoofdstuk | Wet bevat hoofdstuk. |
 | `bwb:heeftParagraaf` | 0..n | → bwb:Paragraaf | Bevat paragraaf. |
 | `bwb:heeftTiteldeel` | 0..n | → bwb:Titeldeel | Bevat titeldeel. |
+| `bwb:label` | 0..1 | – | Structuurlabel uit de bron-XML. |
+| `bwb:nummer` | 0..1 | – | Nummer binnen de ouder (artikel-/lid-/onderdeelnummer). |
+| `bwb:refKey` | 0..1 | – | JuriConnect-afgeleide identiteitssleutel. |
 | `bwb:titel` | 0..1 | – | Titel van het structuurdeel of de divisie. |
 
 #### `bwb:Verwijzing`

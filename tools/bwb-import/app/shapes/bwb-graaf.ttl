@@ -114,15 +114,21 @@ bwbs:Bijlage a sh:NodeShape ;
 
 # ---------------------------------------------------------------- de structuur
 
+# Een structuurdeel heeft een nummer óf alleen een titel: de Faillissementswet en Boek 1 en 7 BW kennen paragrafen
+# zonder nummer ("Vereenvoudigde afwikkeling van faillissement"). Zonder nummer en zonder jci is het deel niet
+# citeerbaar, en dan heeft het geen refKey of bronUrl: een jci verzinnen mag nooit. Wie wél citeerbaar is, valt
+# daarvoor onder bwbs:Citeerbaar.
 bwbs:Structuurdeel a sh:NodeShape ;
     sh:targetClass bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf ;
     sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path bwb:refKey ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path bwb:bronUrl ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:refKey ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:bronUrl ; sh:maxCount 1 ] ;
     sh:property [ sh:path bwb:soort ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path bwb:nummer ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path bwb:label ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:nummer ; sh:maxCount 1 ] ;
+    sh:property [ sh:path bwb:label ; sh:maxCount 1 ] ;
     sh:property [ sh:path bwb:titel ; sh:maxCount 1 ] ;
+    sh:or ( [ sh:path bwb:nummer ; sh:minCount 1 ] [ sh:path bwb:titel ; sh:minCount 1 ] ) ;
+    sh:property [ sh:path bwb:heeftHoofdstuk ; sh:class bwb:Hoofdstuk ] ;
     sh:property [ sh:path bwb:heeftTiteldeel ; sh:class bwb:Titeldeel ] ;
     sh:property [ sh:path bwb:heeftAfdeling ; sh:class bwb:Afdeling ] ;
     sh:property [ sh:path bwb:heeftParagraaf ; sh:class bwb:Paragraaf ] ;

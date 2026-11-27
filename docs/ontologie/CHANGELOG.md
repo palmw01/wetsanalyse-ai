@@ -9,6 +9,14 @@ begrippenprojectie (`wa:schemaVersie 3`). Een nieuwe verplichte eigenschap of ee
 hoofdversie; een nieuwe optionele term of een strengere waardelijst een nieuwe tussenversie; uitleg alleen een
 nieuwe patchversie.
 
+## bwb 1.1.0
+
+27 nov 2026. Civiel en insolventie (Rv, Faillissementswet, BW-boeken). In de shapes heeft een structuurdeel nu een
+nummer óf een titel (paragrafen zonder nummer in de Faillissementswet en Boek 1 en 7 BW); `refKey` en `bronUrl` horen
+alleen bij citeerbare delen. Geen nieuwe klasse: in een regeling met meer boeken (Rv) draagt de sleutel van elk deel het
+boek (`…#boek=Eerste#titeldeel=Eerste`), zonder eigen boeknode, zodat de padqueries en het toolschema van Lex gelijk
+blijven. Geen bestaande IRI veranderde.
+
 ## bwb 1.0.0
 
 27 nov 2026. Eerste vastgelegde versie: de T-Box uit `ontology.py` met ELI-aansluiting en de shapes `bwb-graaf.ttl`

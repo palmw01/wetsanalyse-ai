@@ -126,6 +126,8 @@ class _Collector:
         # De naam van de bijlage waar we nu in zitten ("Bijlage 2"). Daar geldt een andere identiteit,
         # zie `_id_sleutel`.
         self._in_bijlage: str | None = None
+        # De sleutel van het boek waar we nu in zitten, in een regeling met meer boeken (Rv). Zie `_structuur`.
+        self._boek: str | None = None
 
     def _id_sleutel(self, node_id: str) -> str:
         """De wet-lokale sleutel van een node in een bijlage.
@@ -186,10 +188,18 @@ class _Collector:
             # Een jci zonder eigen structuursegment (bv. alleen `&bijlage=1`) wijst de hele
             # regeling aan; als identiteit zou dit deel op de regeling-IRI landen.
             ref_key = None
+        vorig_boek = self._boek
+        if deel.boek:
+            # Een deel in een boek van een regeling met meer boeken (Rv): vanaf hier draagt elke sleutel het boek.
+            self._boek = f"{self._bwb}#boek={deel.boek}"
+        if ref_key and self._boek and "#boek=" not in ref_key:
+            # De jci van een deel in een boek noemt het boek niet (Rv: `&titeldeel=Eerste` in elk van de vier
+            # boeken). Het boek gaat daarom vooraan in de sleutel; alleen in een regeling met meer boeken.
+            ref_key = self._boek + ref_key[len(self._bwb):] if ref_key.startswith(self._bwb + "#") else ref_key
         if ref_key is None and deel.nummer:
             # Geen jci van de redactie. Bouw de sleutel dan op het pad van de ouder, om precies
             # dezelfde reden: zonder dat is "paragraaf 1" van elk hoofdstuk dezelfde node.
-            basis = ouder_ref_key if ouder_ref_key else self._bwb
+            basis = ouder_ref_key or self._boek or self._bwb
             ref_key = f"{basis}#{deel.soort}={deel.nummer}"
         self.batch.node(
             entiteit,
@@ -213,6 +223,7 @@ class _Collector:
         self._artikelen(deel.artikelen, deel.id, entiteit)
         # De tekst van een paragraaf zonder artikelen (een ``<structuurtekst>``, het BBBB): een divisie onder het deel.
         self._divisies(deel.divisies, deel.id, entiteit)
+        self._boek = vorig_boek
 
     def _artikelen(self, artikelen: list[Artikel], ouder_id: str, ouder_ent: str) -> None:
         vorige_artikel: str | None = None

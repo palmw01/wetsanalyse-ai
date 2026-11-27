@@ -13,8 +13,8 @@
 <urn:bwb-ns> a owl:Ontology ;
     rdfs:label "BWB-ontologie"@nl ;
     rdfs:comment "Vocabulaire voor het Basiswettenbestand, gealigneerd op ELI."@nl ;
-    owl:versionIRI <urn:bwb-ns:versie:1.0.0> ;
-    owl:versionInfo "1.0.0" .
+    owl:versionIRI <urn:bwb-ns:versie:1.1.0> ;
+    owl:versionInfo "1.1.0" .
 
 bwb:AMvB a owl:Class ;
     rdfs:label "AMvB"@nl ;

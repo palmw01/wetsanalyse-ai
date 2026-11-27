@@ -1,12 +1,19 @@
 # bwb-import
 
 ETL-pijplijn die Nederlandse wetgeving uit het **Basiswettenbestand (BWB)**
-importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om veertien regelingen (param `bwbIds` in
+importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om tweeëntwintig regelingen (param `bwbIds` in
 `deploy/azure/main.bicep`): `BWBR0002320`, `BWBR0004766`, `BWBR0004770` (Invorderingswet 1990, de
 standaardregeling), `BWBR0005537`, `BWBR0014168` (Mijnbouwwet), `BWBR0018472`, `BWBR0019237` en `BWBR0024096`, plus
 de fiscale en invorderingskern: `BWBR0011353` (Wet IB 2001), `BWBR0002471` (Wet LB 1964), `BWBR0002672` (Wet Vpb
 1969), `BWBR0002629` (Wet OB 1968), `BWBR0002645` (Kostenwet invordering rijksbelastingen) en `BWBR0002226`
-(Successiewet 1956). Een andere regeling
+(Successiewet 1956), en civiel en insolventie: `BWBR0001827` (Rv), `BWBR0001860` (Faillissementswet) en de BW-boeken 1,
+2, 3, 4, 6 en 7 (`BWBR0002656`, `BWBR0003045`, `BWBR0005291`, `BWBR0002761`, `BWBR0005289`, `BWBR0005290`).
+
+**Boeken.** Een regeling met meer boeken (Rv) krijgt een `bwb:Boek` als structuurniveau, en de sleutel van wat erin staat
+begint met het boek (`…#boek=Eerste#titeldeel=Eerste`): de redactie schrijft het boek niet in de jci, en anders vallen
+gelijknamige titeldelen uit verschillende boeken op één IRI. Een BW-boek heeft één `<boek>`; dat is de regeling zelf.
+**Geheugen.** De batch-import laat elke regeling na het schrijven los; met 22 regelingen is het piekgeheugen ~600 MB
+(was ~860 MB), ruim onder de 1 GiB van de graafwacht. Het overzicht logt de piek na verzamelen en na schrijven. Een andere regeling
 importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hieronder behoort.
 
 ## Pijplijn
@@ -303,6 +310,14 @@ met een eigen vocabulaire (`urn:wa-kg-ns:`): per standpunt alle metadata, de tek
 - **Idempotent**: één PUT vervangt de hele index.
 - **Nooit minder**: alleen als alles binnen is (`X-WP-Total`) en de index niet meer dan 5% krimpt; anders blijft de oude
   staan en is de exitcode 2.
+- **Vorm in SHACL**: `app/shapes/kennisgroepen.ttl`, afgeleid van de hele index (27 nov 2026: 1189 publicaties,
+  228.102 triples), legt per soort node (publicatie, rij, wat ze noemt, nieuwsbericht) vast wat verplicht is, welk
+  datatype en patroon, en welke waarden de code kan schrijven. De shapes zijn gesloten, dus een `bwb:`-term in de index
+  is een vormfout. Elke verversing toetst vóór de PUT (`app/shacl.py`, ruim een halve minuut): een afwijkende index
+  vervangt nooit een bestaande (de oude blijft staan, exitcode 2, de vormfouten in de uitvoer); tegen een lege graaf
+  wordt hij wel geschreven, met hetzelfde signaal en exitcode 2. Het overzicht toont `Vorm (SHACL)`; zonder pyshacl
+  staat daar `niet getoetst`. `tests/test_shacl.py` bewaakt dat de fixtures conform zijn, dat de shapes bijten en dat de
+  poort blokkeert.
 - **Los van de wet**: geen `urn:bwb:`-subject en geen `bwb:`-term, dus buiten de FTS-connector, de similarity-index en de
   provenance. Met `--alleen-bij-verlies` peilt de graafwacht de index apart; een lege index telt nooit als verlies van de
   wetgraaf, en een fout bij de index houdt de wet niet tegen.

@@ -703,8 +703,9 @@ class GraphDbWriter:
     def _wti_verrijking(self, g: Graph, wet_iri: URIRef, wti: WtiInfo) -> None:
         """WTI-triples op de wet-node: titels, thesaurustermen, grondslagen."""
         v = self._vocab
-        for titel in wti.citeertitels:
-            g.add((wet_iri, v.ns.citeertitel, Literal(titel, lang="nl")))
+        # Eén citeertitel: lezers (api, Lex) gaan daarvan uit. Gelden er toch meer, dan zijn de andere alternatieve titels.
+        for i, titel in enumerate(wti.citeertitels):
+            g.add((wet_iri, v.ns.citeertitel if i == 0 else v.ns.alternatieveTitel, Literal(titel, lang="nl")))
         for titel in wti.niet_officiele_titels:
             g.add((wet_iri, v.ns.alternatieveTitel, Literal(titel, lang="nl")))
         for afkorting in wti.afkortingen:

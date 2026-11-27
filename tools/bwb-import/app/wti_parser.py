@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from lxml import etree
@@ -67,9 +68,15 @@ class WtiParser:
             info.niet_officiele_titels = _teksten(
                 algemeen, "niet-officiele-titels/niet-officiele-titel"
             )
-            info.citeertitels = _teksten(algemeen, "citeertitel") + _teksten(
-                algemeen, "citeertitels/citeertitel"
-            )
+            # Alleen titels die vandaag gelden: de WTI van Rv noemt ook "(geldt in geval van digitaal procederen)",
+            # geldig tot 1 mei 2023. Een verlopen titel als tweede citeertitel geeft elke lezer dubbele rijen.
+            info.citeertitels = [
+                t
+                for t in _teksten(algemeen, "citeertitel", geldig_op=date.today().isoformat())
+                + _teksten(algemeen, "citeertitels/citeertitel", geldig_op=date.today().isoformat())
+                if t
+            ]
+            info.citeertitels = list(dict.fromkeys(info.citeertitels))
             for gebied in algemeen.iterfind("rechtsgebieden/rechtsgebied"):
                 hoofd = _tekst(gebied.find("hoofdgebied"))
                 if hoofd:
@@ -133,9 +140,12 @@ def _tekst(element: etree._Element | None) -> str | None:
     return " ".join(element.text.split()) or None
 
 
-def _teksten(element: etree._Element, pad: str) -> list[str]:
+def _teksten(element: etree._Element, pad: str, geldig_op: str | None = None) -> list[str]:
+    """De teksten onder `pad`, zonder dubbele. Met `geldig_op` (ISO-datum) alleen wat dan geldt (`geldig-van`/`-tot`)."""
     resultaat: list[str] = []
     for node in element.iterfind(pad):
+        if geldig_op and not (node.get("geldig-van", "") <= geldig_op < (node.get("geldig-tot") or "9999-12-31")):
+            continue
         tekst = _tekst(node)
         if tekst and tekst not in resultaat:
             resultaat.append(tekst)

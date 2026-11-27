@@ -215,6 +215,8 @@ class Structuurdeel:
     titel: str
     jci: str | None = None  # canonieke jci van het structuurdeel
     label_id: str | None = None  # WTI-join-sleutel (label-id-attribuut)
+    # Het boek ("Eerste") in een regeling met meer boeken (Rv); None in een regeling zonder of met één boek.
+    boek: str | None = None
     subdelen: list[Structuurdeel] = field(default_factory=list)
     artikelen: list[Artikel] = field(default_factory=list)
     # Een paragraaf van een beleidsregel zonder artikelen draagt haar tekst in een ``<structuurtekst>`` (het Besluit

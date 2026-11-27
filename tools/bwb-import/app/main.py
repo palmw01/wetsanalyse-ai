@@ -8,7 +8,9 @@ van het aantal geïmporteerde elementen en relaties.
 from __future__ import annotations
 
 import argparse
+import gc
 import logging
+import resource
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +29,11 @@ from app.shacl import toets
 from app.wti_parser import WtiInfo, WtiParser
 
 logger = logging.getLogger(__name__)
+
+
+def _piek_mb() -> int:
+    """Het piekgeheugen van dit proces in MB (Linux: ru_maxrss in KiB)."""
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
 
 
 class LegeToestand(RuntimeError):
@@ -146,7 +153,11 @@ def run_imports(
 
     # Fase 2 – schrijven, met de index van álle wetten bij de hand.
     verwerkt: dict[str, ImportSummary] = {}
-    for item in verzameld:
+    logger.info("Na verzamelen: piekgeheugen %d MB", _piek_mb())
+    # Elke regeling na het schrijven loslaten: de graafwacht-job heeft 1 GiB, en met alle wetten, batches én de graph
+    # (en de SHACL-kopie) van de grootste wet tegelijk in het geheugen kwam een run van 22 regelingen op ~860 MB.
+    while verzameld:
+        item = verzameld.pop(0)
         try:
             verwerkt[item.wet.bwb_id] = _schrijf(
                 item, writer, index, bepalingen, stand, settings, droog=droog
@@ -154,6 +165,9 @@ def run_imports(
         except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
             logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
             mislukt[item.wet.bwb_id] = str(exc)
+        del item
+        gc.collect()
+    logger.info("Na schrijven: piekgeheugen %d MB", _piek_mb())
 
     # Fase 3 – de similarity-index, en pas hier. Anders dan de Lucene-connector (die live meeloopt
     # met wat er wordt geschreven) is een similarity-index een momentopname: hij wordt bij het
@@ -409,8 +423,10 @@ def _kennisgroepen(settings: Settings, alleen_bij_verlies: bool) -> int:
         return 1
     print(f"\n=== Kennisgroepen-index ===\n  Standpunten : {uitkomst.standpunten} {uitkomst.per_status}\n"
           f"  Berichten   : {uitkomst.berichten}\n  Bepalingen  : {uitkomst.bepalingen}\n"
-          f"  Geschreven  : {'ja' if uitkomst.geschreven else 'NEE – ' + uitkomst.reden}\n")
-    return 0 if uitkomst.geschreven else 2
+          f"  Vorm (SHACL): {uitkomst.vorm}\n"
+          f"  Geschreven  : {'ja' if uitkomst.geschreven else 'NEE'}"
+          f"{' – ' + uitkomst.reden if uitkomst.reden else ''}\n")
+    return 0 if uitkomst.geschreven and not uitkomst.reden else 2
 
 
 def _wetten(bwb_ids: list[str], settings: Settings, droog: Path | None = None) -> int:

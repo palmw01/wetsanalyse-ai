@@ -266,7 +266,15 @@ class ToestandParser:
                 # horen er direct onder. De jci noemt het boek, maar een vindplaats rekent het niet mee
                 # (`bronmodel.vindplaats`: alleen hoofdstuk, titeldeel, afdeling en paragraaf), dus de IRI verandert
                 # niet. Zonder deze tak viel de hele tekst als "onbekende structuur" weg.
+                begin = len(delen)
                 self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
+                # Met meer boeken (Rv heeft er vier, elk met een "Titeldeel Eerste" waarvan de jci het boek niet noemt)
+                # onthoudt elk deel zijn boek, zodat de sleutel het boek kan dragen (`collect`). Geen eigen boeknode:
+                # dat zou de padqueries en het toolschema van Lex veranderen.
+                if len(element.findall("boek")) > 1:
+                    nummer = self._tekst(child.find("kop/nr"))
+                    for deel in delen[begin:]:
+                        deel.boek = nummer
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag == "structuurtekst" and divisies is not None:
@@ -422,7 +430,7 @@ class ToestandParser:
         excl = f" and not(ancestor::lid) and not(ancestor::li){_GEEN_SLOT}"
         artikel = Artikel(
             id=self._knoop_id(bwb_id, element),
-            nummer=self._tekst(kop.find("nr")) if kop is not None else "",
+            nummer=self._artikelnummer(element, kop),
             label=element.get("label", ""),
             titel=self._tekst(kop.find("titel")) if kop is not None else "",
             tekst=self._lichaamstekst(element, binnen_lid=False),
@@ -446,6 +454,16 @@ class ToestandParser:
         for lid in element.iterfind("lid"):
             artikel.leden.append(self._parse_lid(lid, bwb_id))
         return artikel
+
+    def _artikelnummer(self, element: etree._Element, kop: etree._Element | None) -> str:
+        """Het nummer uit `<nr>`; ontbreekt dat, dan uit het label. Een vervallen artikel van Rv heeft alleen
+        `<label>Artikel 320b</label>` in zijn kop (en `label="Artikel 320b"` als attribuut)."""
+        nummer = self._tekst(kop.find("nr")) if kop is not None else ""
+        if nummer:
+            return nummer
+        label = (self._tekst(kop.find("label")) if kop is not None else "") or element.get("label", "")
+        treffer = re.match(r"^\s*artikel\s+(\S.*?)\s*$", label, re.I)
+        return treffer.group(1) if treffer else ""
 
     def _parse_lid(self, element: etree._Element, bwb_id: str) -> Lid:
         excl = f" and not(ancestor::li){_GEEN_SLOT}"

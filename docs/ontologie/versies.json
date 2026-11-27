@@ -1,9 +1,10 @@
 {
   "bwb": {
     "historie": {
-      "1.0.0": "9557083e753409f93bddc9bf9f54b596e6271c6ae22a449d01b232bfcdaecc20"
+      "1.0.0": "9557083e753409f93bddc9bf9f54b596e6271c6ae22a449d01b232bfcdaecc20",
+      "1.1.0": "a95d7d8e304a650a8c922e15aa6320329786721a95c81d115c7aa0430c6418a4"
     },
-    "versie": "1.0.0"
+    "versie": "1.1.0"
   },
   "jas": {
     "historie": {

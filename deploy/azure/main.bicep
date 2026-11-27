@@ -59,6 +59,16 @@ param bwbIds array = [
   'BWBR0002629' // Wet op de omzetbelasting 1968
   'BWBR0002645' // Kostenwet invordering rijksbelastingen
   'BWBR0002226' // Successiewet 1956
+  // Civiel en insolventie: waar de Leidraad en de Invorderingswet het vaakst naar verwijzen. BW Boek 5 en 8 bewust
+  // niet (samen vier verwijzingen, Boek 8 is groot).
+  'BWBR0001827' // Wetboek van Burgerlijke Rechtsvordering
+  'BWBR0001860' // Faillissementswet
+  'BWBR0002656' // Burgerlijk Wetboek Boek 1
+  'BWBR0003045' // Burgerlijk Wetboek Boek 2
+  'BWBR0005291' // Burgerlijk Wetboek Boek 3
+  'BWBR0002761' // Burgerlijk Wetboek Boek 4
+  'BWBR0005289' // Burgerlijk Wetboek Boek 6
+  'BWBR0005290' // Burgerlijk Wetboek Boek 7
 ]
 
 @description('Ondergrens voor de tekstdekking van de import (graaf/bron). Zakt een regeling eronder, dan eindigt de import-job met exitcode 2 en wordt hij rood — de poort beslist vóór de named-graph PUT en vervangt nooit door minder, dus de bestaande graph blijft staan. Zet op 0 om de dipregel uit te zetten; dat is de ontsnapping voor een regeling die legitiem lager meet. Let op: de job heeft replicaRetryLimit 1, dus een dip wordt eerst nog één keer volledig opnieuw geprobeerd.')
