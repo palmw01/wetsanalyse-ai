@@ -3,6 +3,7 @@
 
 import { vindplaatsVan } from "./samenhang";
 import type { BronKandidaat, BronMethode, KandidaatBewijs, KandidaatRol } from "./types";
+import { zonderAchteraan } from "./rand";
 
 export const KANDIDAAT_ROL_LABEL: Record<KandidaatRol, string> = {
   kern: "kern",
@@ -171,7 +172,8 @@ export function bewijsSamenvatting(bewijs: readonly KandidaatBewijs[], labels: M
 export function metLeesbareBronnen(tekst: string): string {
   return tekst.replace(/urn:bwb:BWB[A-Z]\d+(?::[^\s,;)]+)?/g, (gevonden) => {
     // Een punt aan het eind hoort bij de zin, niet bij de IRI.
-    const [, iri, punt] = gevonden.match(/^(.*?)(\.*)$/)!;
+    const iri = zonderAchteraan(gevonden, ".");
+    const punt = gevonden.slice(iri.length);
     return (plekNaam(iri) || iri) + punt;
   });
 }

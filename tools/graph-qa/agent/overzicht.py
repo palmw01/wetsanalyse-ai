@@ -58,7 +58,7 @@ _PATRONEN = (
     # "welke artikelen regelen X"
     re.compile(rf"^welke\s+{_BEPALINGWOORD}\s+(?:regelen|behandelen|betreffen)\s+(?P<o>.+)$"),
     # "waar is/wordt X geregeld (in de Awb)"
-    re.compile(r"^waar\s+(?:is|wordt|staat|zijn|worden|staan)\s+(?P<o>.+?)\s+(?:geregeld|beschreven|vastgelegd)\b(?P<tussen>.*)$"),
+    re.compile(r"^waar\s++(?:is|wordt|staat|zijn|worden|staan)\s++(?P<o>.+?)\s++(?:geregeld|beschreven|vastgelegd)\b(?P<tussen>.*)$"),
     # "(geef een) overzicht van (de artikelen over) X"
     re.compile(rf"^(?:geef\s+(?:me\s+|mij\s+)?)?(?:een\s+)?overzicht\s+van\s+(?:de\s+|alle\s+)?(?:{_BEPALINGWOORD}\s+)?(?:over\s+|rond\s+|voor\s+)?(?P<o>.+)$"),
 )
@@ -121,7 +121,7 @@ def _regelingen(graph: GraphPort) -> list[dict[str, Any]]:
             namen = {n.strip() for n in [r.get("citeertitel", ""), *(r.get("afkortingen", "") or "").split(" | ")]
                      if n and len(n.strip()) >= 2}
             # "Invorderingswet 1990" heet in een vraag vaak "de Invorderingswet".
-            namen |= {re.sub(r"\s+\d{4}$", "", n) for n in namen if re.search(r"\s\d{4}$", n)}
+            namen |= {re.sub(r"(?<!\s)\s++\d{4}$", "", n) for n in namen if re.search(r"\s\d{4}$", n)}
             if bwb:
                 _REGELINGEN_CACHE.append({"bwb_id": bwb, "soort": r.get("soort", ""),
                                           "citeertitel": r.get("citeertitel", ""), "namen": namen})

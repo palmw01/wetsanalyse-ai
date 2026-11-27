@@ -63,7 +63,7 @@ def kies_vorm(vormen: tuple[str, ...], invoer: dict[str, Any]) -> str:
         nodig = re.findall(r"\{(\w+)\}", vorm)
         if all(n in waarden for n in nodig):
             return vorm.format(**{n: waarden[n] for n in nodig})
-    return re.sub(r"\s*\{\w+\}", "", vormen[-1]).strip()
+    return re.sub(r"(?<!\s)\s*+\{\w++\}", "", vormen[-1]).strip()
 
 
 # De graaftools in de woorden van een jurist: "get_lid(BWBR0004770, 9, 1)" zei hem niets (acceptatie 7 nov 2026).

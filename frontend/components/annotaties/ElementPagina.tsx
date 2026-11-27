@@ -21,6 +21,7 @@ import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Lifecycle, ReviewReason } from "@/lib/types";
 import { metSpoor } from "@/lib/uiSpoor";
 import { bronPad } from "@/lib/werkgebiedPaden";
+import { zonderLaatsteWoord } from "@/lib/rand";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
   { waarde: "verkeerde_klasse", label: "verkeerde klasse" },
@@ -42,7 +43,7 @@ const BESLISSING: Record<string, string> = {
 
 function kort(tekst: string, max = 60): string {
   const t = tekst.trim();
-  return t.length <= max ? t : `${t.slice(0, max).replace(/\s+\S*$/, "")}…`;
+  return t.length <= max ? t : `${zonderLaatsteWoord(t.slice(0, max))}…`;
 }
 
 /** Eén JAS-element op een eigen pagina (spoor G3, mock-up v4 `annotationPage`): het bronvoorkomen in de

@@ -22,7 +22,7 @@ _TERUG = re.compile(rf"\b(?:lid|leden|onderdeel|onderdelen|daarvan|daarin|dat\s+
 #: Een regel van een opsomming: een streepje, ster, bolletje of nummer, en dan tekst.
 _LIJSTREGEL = re.compile(r"^\s*(?:[-*•–]|\d+[.)])\s+\S")
 #: Het kopje van zo'n opsomming, achter de vraag of op een eigen regel: "Bijvoorbeeld:", "Je kunt kiezen uit:".
-_AANLOOP = re.compile(r"(?<=[?\n])[ \t]*[^.!?\n]{0,60}:[ \t*_`]*\Z")
+_AANLOOP = re.compile(r"(?<=[?\n])[ \t]*+[^.!?\n]{0,60}:[ \t*_`]*+\Z")
 #: Een langere opsomming of een langere regel is inhoud, geen rijtje mogelijkheden.
 MAX_OPTIES = 12
 MAX_OPTIE_TEKENS = 160

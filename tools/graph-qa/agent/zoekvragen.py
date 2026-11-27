@@ -52,7 +52,7 @@ _KOP_VOORVOEGSEL = re.compile(
 _KOP_GENERIEK = {"", "begripsbepalingen", "begripsbepaling", "definities", "toepassingsbereik", "reikwijdte",
                  "inwerkingtreding", "citeertitel", "slotbepaling", "overgangsrecht", "diversen", "wijziging"}
 #: Een kop in delen: "Uitstel van betaling, kwijtschelding en verjaring". Niet op "of": "… 5 percent of meer".
-_KOP_DELEN = re.compile(r",\s*|\s+en\s+")
+_KOP_DELEN = re.compile(r",\s*+|(?<!\s)\s++en\s++")
 #: Een gebeurtenis is een term of een korte woordgroep; een lange kop ("Door de ontvanger aan te houden
 #: vrijwaringsrekening bij een bank …") beschrijft iets, maar noemt geen gebeurtenis.
 MAX_WOORDEN = 4

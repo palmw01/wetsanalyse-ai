@@ -214,7 +214,7 @@ _DIEPER = re.compile(rf"^,?\s*(?:onder|sub|subonderdeel)\s+(?P<nr>{_NR}){_EINDE}
 _GEEN_NUMMER = {"de", "en", "of", "in", "op", "te", "is", "na", "om", "al", "er", "ze"}
 _ARTIKELNUMMER = re.compile(r"\d+[a-z]*(?:[.:]\d+[a-z]*)*")
 # Waar het aanwijzen ophoudt en de naam van de regeling begint: "…, van de Awb".
-_REGELINGSNAAM = re.compile(r"\s+(?:van|in|bij)\s+(?:de|het|die|deze|dat|dit|Boek)\b")
+_REGELINGSNAAM = re.compile(r"(?<!\s)\s++(?:van|in|bij)\s++(?:de|het|die|deze|dat|dit|Boek)\b")
 
 
 # Wat tussen een artikelnummer en de naam van zijn regeling kan staan: leden, onderdelen, volzinnen

@@ -56,7 +56,7 @@ _PER_STUK = re.compile(rf"\b(?:per|elke|iedere)\s+{_STUK}\b", re.I)
 _SAMENVATTEN = re.compile(r"\b(?:vat\w*|samen\s*te\s*vatten|samenvat\w*|samenvatting\w*|de\s+kern|op\s+een\s+rij)\b", re.I)
 #: "Welke publicaties … hebben artikel 36 gewijzigd, en wat veranderde elk?" (S05): de reeks staat vooraan, "elk" achteraan.
 _STUKKEN = re.compile(r"\b(?:uitspraken|arresten|vonnissen|kamerstukken|stukken|publicaties|bekendmakingen)\b", re.I)
-_ELK = re.compile(r"\b(?:elk|ieder)\b\s*[?.!]?\s*$|\bvan\s+(?:elk|ieder)\b", re.I)
+_ELK = re.compile(r"\b(?:elk|ieder)\b\s*+[?.!]?\s*+$|\bvan\s++(?:elk|ieder)\b", re.I)
 _WAT_ELK = re.compile(r"\bwat\s+(?:veranderde|verandert|wijzigde|wijzigt|zegt|zei|regelde|regelt)\b", re.I)
 
 #: "Loop het hoofdstuk … door en geef per artikel …" (S03), "geef per onderdeel van de Leidraad de kern" (S04).

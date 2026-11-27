@@ -339,7 +339,7 @@ def lees_werkbestand(html: str) -> list[dict[str, Any]]:
             per_plek = _koppel(len(fragmenten), plekken) if plekken else [[]] * len(fragmenten)
             per_naam = _koppel(len(fragmenten), namen) if namen else [[]] * len(fragmenten)
             for frag, pl, nm in zip(fragmenten, per_plek, per_naam, strict=True):
-                tekst = re.sub(r"\s*\(\d+\s*x\)\s*$", "", frag)
+                tekst = re.sub(r"(?<!\s)\s*+\(\d++\s*+x\)\s*+$", "", frag)
                 uit.append({"klasse": klassen, "tekst": tekst, "vindplaatsen": pl, "begrippen": nm,
                             "dubbelzinnig": len(pl) > 1 or len(nm) > 1})
     return uit

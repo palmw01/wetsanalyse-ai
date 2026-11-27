@@ -80,7 +80,7 @@ _ONDER_TERM = re.compile(r"^Onder\s+(?:(?:de|het|een)\s+)?([^,:;.]{2,60}?)"
 # de inspecteur)". De naam is kort, zonder leesteken, en staat aan het eind van de zin of tussen haakjes.
 _AANGEDUID = re.compile(r"\b(?:wordt|worden)\s+(?:hierna\s+)?aangeduid\s+als\s+(?:(?:de|het|een)\s+)?"
                         r"([^,.;:()]{2,60}?)\s*[.;]")
-_HIERNA = re.compile(r"\(\s*hierna(?:\s+te\s+noemen)?\s*:?\s+(?:(?:de|het|een)\s+)?([^,.;:()]{2,60}?)\s*\)")
+_HIERNA = re.compile(r"\(\s*+hierna(?:\s++te\s++noemen)?\s*+:?\s++(?:(?:de|het|een)\s++)?([^,.;:()]{2,60}?)\s*+\)")
 
 # Een `<al>` ná een `<lijst>` in hetzelfde element is geen tekst van de aanhef: hij wordt een eigen
 # slottekst-node (zie `ToestandParser._parse_onderdelen`). De ouders zijn precies de elementen
@@ -462,7 +462,7 @@ class ToestandParser:
         if nummer:
             return nummer
         label = (self._tekst(kop.find("label")) if kop is not None else "") or element.get("label", "")
-        treffer = re.match(r"^\s*artikel\s+(\S.*?)\s*$", label, re.I)
+        treffer = re.match(r"^\s*+artikel\s++(\S(?:.*\S)?)\s*+$", label, re.I)
         return treffer.group(1) if treffer else ""
 
     def _parse_lid(self, element: etree._Element, bwb_id: str) -> Lid:

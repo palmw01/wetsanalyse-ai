@@ -46,15 +46,15 @@ _ACTIES = (
     ("voorbeelden", re.compile(r"\bvoorbeeld(en)?\b")),
 )
 _AANHALING = re.compile(r"[\"“”'‘’]([^\"“”'‘’]{2,80})[\"“”'‘’]")
-_TUSSEN = re.compile(r"\btussen\s+(.+?)\s+en\s+(.+?)\s*[?.!]*$")
-_VAN = re.compile(r"\b(?:van|bij|voor|op)\s+(.+?)\s*[?.!]*$")
+_TUSSEN = re.compile(r"\btussen\s++(.+?)\s++en\s++(.+?)\s*+[?.!]*+$")
+_VAN = re.compile(r"\b(?:van|bij|voor|op)\s++(.+?)\s*+[?.!]*+$")
 # "wat is het betekenisverschil met betalingstermijn?" – bij een aangewezen begrip één term: het andere.
-_MET = re.compile(r"\bmet\s+(.+?)\s*[?.!]*$")
+_MET = re.compile(r"\bmet\s++(.+?)\s*+[?.!]*+$")
 # "werk het begrip termijn volledig uit": één woord na "het begrip", als niets anders de term noemt.
 _HET_BEGRIP = re.compile(r"\bhet\s+begrip\s+(?!volledig\b|uit\b)([\w-]+)")
 _LIDWOORD = re.compile(r"^(?:het\s+begrip|de\s+term|het|de|een)\s+")
 # "maak de definitie van termijn scherper": de handeling hoort niet bij de term.
-_STAART = re.compile(r"\s+(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken|in b1|in eenvoudige taal)$")
+_STAART = re.compile(r"(?<!\s)\s++(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken|in b1|in eenvoudige taal)$")
 
 WEIGERING = {
     "geen_definitie": "Voorbeelden, een uitleg en een toelichting rusten op een definitie; geef het begrip eerst een definitie.",
@@ -128,7 +128,7 @@ def exacte(term: str, rijen: list[dict[str, Any]]) -> list[dict[str, Any]]:
             or t in {_normaal(x) for x in r.get("alternatieve_termen") or []}]
 
 
-_HAAKJE = re.compile(r"\s*\([^)]*\)\s*$")
+_HAAKJE = re.compile(r"(?<!\s)\s*+\([^)]*+\)\s*+$")
 _LEEG = {"de", "het", "een", "uit", "van", "in", "op", "bij", "voor", "met", "en", "of"}
 
 

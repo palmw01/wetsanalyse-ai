@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import re
 
-_LITERAL = re.compile(r'^"(.*)"(?:@[\w-]+|\^\^\S+)?$', re.DOTALL)
+_LITERAL = re.compile(r'^"(.*)"(?:@[\w-]++|\^\^\S++)?$', re.DOTALL)
 _ESCAPES = {"t": "\t", "n": "\n", "r": "\r", "\\": "\\", '"': '"', "'": "'"}
 
 

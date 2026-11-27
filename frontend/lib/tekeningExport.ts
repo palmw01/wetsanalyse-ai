@@ -2,14 +2,15 @@
  *  (`GET /v1/annotatie/diagram?vorm=svg`): dezelfde tekening als in het rapport, met echte kleuren in plaats van de
  *  CSS-variabelen van de werkplek. Een PNG maakt de browser zelf, uit die SVG of uit de lagen van de graaf. */
 import { downloadBlob } from "@/lib/api";
+import { zonderRand } from "./rand";
 
 /** Hoeveel scherper dan het scherm een PNG wordt: goed genoeg om in een document of dia te plakken. */
 export const PNG_SCHAAL = 2;
 
 /** Een bestandsnaam zonder vreemde tekens: "diagram-rechtsbetrekking-473c19a14797.svg". */
 export function tekeningNaam(delen: string[], formaat: "svg" | "png"): string {
-  const stam = delen.join("-").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "tekening";
+  const stam = zonderRand(delen.join("-").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-"), "-").slice(0, 80) || "tekening";
   return `${stam}.${formaat}`;
 }
 

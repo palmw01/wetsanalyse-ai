@@ -77,7 +77,7 @@ def item_url(wp_id: int) -> str:
 
 # ── Kenmerk en status ──────────────────────────────────────────────────────────────────────────────────────────────
 
-_KENMERK_RE = re.compile(r"\bKG\s*[:\s]\s*(\d{3,4})\s*:\s*(\d{3,4})\s*:\s*(\d{1,4})\b", re.I)
+_KENMERK_RE = re.compile(r"\bKG(?:\s*+:|\s)\s*+(\d{3,4})\s*+:\s*+(\d{3,4})\s*+:\s*+(\d{1,4})\b", re.I)
 _STATUS_RE = re.compile(r"^\W*(ingetrokken|vervallen)\W*", re.I)
 
 

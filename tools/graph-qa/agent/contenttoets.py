@@ -19,7 +19,7 @@ MAX_TEKENS = 15_000
 #: Korter is geen content om te toetsen.
 MIN_TEKENS = 20
 
-_PEILDATUM = re.compile(r"^\s*peildatum\s*[=:]?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}-\d{1,2}-\d{4})\s*", re.I)
+_PEILDATUM = re.compile(r"^\s*+peildatum\s*+[=:]?\s*+(\d{4}-\d{2}-\d{2}|\d{1,2}-\d{1,2}-\d{4})\s*+", re.I)
 
 UIT = ("De contenttoets staat in deze omgeving nog niet aan. Hij is in proef op acceptatie; zodra hij hier beschikbaar "
        "is, toets je een tekst met /contenttoets en de tekst erachter.")

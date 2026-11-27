@@ -647,7 +647,7 @@ def _opschrift(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
 
 def artikel_van(iri: str) -> str:
     """Het artikel van een bepaling in de IRI-vorm (`…:artikel:24:lid:3` → `…:artikel:24`); anders de iri zelf."""
-    m = re.match(r"^(.+?:artikel:[^:]+)(?::.*)?$", iri)
+    m = re.match(r"^((?:(?!:artikel:).)+:artikel:[^:]++)(?::.*)?$", iri)
     return m.group(1) if m and ":id:" not in iri else iri
 
 
@@ -725,9 +725,9 @@ _RANGWOORD = "|".join(sorted(_RANG, key=len, reverse=True))
 _LEDEN = re.compile(rf"\b((?:(?:{_RANGWOORD})(?:\s*,\s*|\s+en\s+|\s+of\s+|\s+tot\s+en\s+met\s+))*(?:{_RANGWOORD}))"
                     r"\s+(?:lid|leden)\b", re.I)
 #: Een lid van een ánder artikel: "artikel 25, derde lid", "het derde lid van artikel 7", "… lid, van de Algemene wet".
-_ANDER_ARTIKEL_VOOR = re.compile(r"\bartikel(?:en)?\s+[0-9][\w:.]*\s*,?\s*(?:\w+\s*,\s*)*$", re.I)
-_ANDER_ARTIKEL_NA = re.compile(r"^\s*,?\s*(?:\w+\s+)?(?:van|uit)\s+(?:artikel|de|het|die|deze)\b(?!\s+artikel\b)", re.I)
-_DIT_ARTIKEL_NA = re.compile(r"^\s*,?\s*(?:van|uit)\s+dit\s+artikel\b", re.I)
+_ANDER_ARTIKEL_VOOR = re.compile(r"\bartikel(?:en)?\s++[0-9][\w:.]*+\s*+,?\s*+(?:\w++\s*+,\s*+)*+$", re.I)
+_ANDER_ARTIKEL_NA = re.compile(r"^\s*+,?\s*+(?:\w+\s+)?(?:van|uit)\s++(?:artikel|de|het|die|deze)\b(?!\s+artikel\b)", re.I)
+_DIT_ARTIKEL_NA = re.compile(r"^\s*+,?\s*+(?:van|uit)\s++dit\s++artikel\b", re.I)
 
 
 def lid_verwijzingen(tekst: str) -> dict[int, str]:

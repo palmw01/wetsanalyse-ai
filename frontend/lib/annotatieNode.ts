@@ -3,6 +3,7 @@ import { RELATIETYPEN } from "./jasRelaties";
 import { OPSOMMINGSTEKENS, stapLabel } from "./bepalingLabel";
 import { pathSegment } from "./url";
 import { haalDiagrammen, type DiagramSet } from "@/lib/diagram2c";
+import { zonderLaatsteWoord } from "./rand";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -36,7 +37,7 @@ export function segmentLabel(s: Pick<NodeSegment, "label" | "nummer" | "tekst"> 
     : label.replace(new RegExp(`\\s*[${[...opsomming].map((t) => t.replace(/[-\]\\^]/g, "\\$&")).join("")}]\\s*$`), "") || "Onderdeel";
   const tekst = (s.tekst ?? "").replace(/\s+/g, " ").trim();
   if (!tekst) return plaats && plaats !== label ? plaats : label;
-  const begin = tekst.length <= BEGIN_TEKENS ? tekst : `${tekst.slice(0, BEGIN_TEKENS).replace(/\s+\S*$/, "")} …`;
+  const begin = tekst.length <= BEGIN_TEKENS ? tekst : `${zonderLaatsteWoord(tekst.slice(0, BEGIN_TEKENS))} …`;
   return `${naam} – ${begin}`;
 }
 

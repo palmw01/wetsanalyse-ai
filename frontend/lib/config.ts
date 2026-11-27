@@ -5,12 +5,13 @@
 
 import "server-only";
 import { readFileSync } from "node:fs";
+import { zonderAchteraan } from "./rand";
 
 let cachedToken: string | null = null;
 let cachedAdminToken: string | null = null;
 
 export function apiBaseUrl(): string {
-  return (process.env.API_BASE_URL || "http://wetsanalyse-api:3000").replace(/\/+$/, "");
+  return zonderAchteraan(process.env.API_BASE_URL || "http://wetsanalyse-api:3000", "/");
 }
 
 /** Bearer-token uit API_TOKEN_FILE (voorrang) of API_TOKEN. Gecached na eerste lees. */
@@ -62,7 +63,7 @@ export function adminAuthHeader(): Record<string, string> {
 let cachedGraphQaToken: string | null = null;
 
 export function graphQaBaseUrl(): string {
-  return (process.env.GRAPH_QA_URL || "http://graph-qa:8080").replace(/\/+$/, "");
+  return zonderAchteraan(process.env.GRAPH_QA_URL || "http://graph-qa:8080", "/");
 }
 
 /** graph-qa-token uit GRAPH_QA_TOKEN_FILE (voorrang) of GRAPH_QA_TOKEN. Gecached na eerste lees. */

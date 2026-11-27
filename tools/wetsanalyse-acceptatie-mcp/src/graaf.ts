@@ -7,6 +7,8 @@
  * Zo'n controle op tekst houdt een vergissing tegen; hij is geen slot.
  */
 
+import { zonderVoorvoegselnamen } from "./tekst.js";
+
 const REPOSITORY = "inning";
 const VERZOEK_TIMEOUT_MS = 60_000;
 const STANDAARD_LIMIT = 200;
@@ -23,7 +25,7 @@ export function controleerSparql(query: string): string {
   const kaal = query.replace(NIET_GELEZEN, " ");
   const vorm = VORM.exec(kaal)?.[1]?.toUpperCase();
   if (!vorm) throw new Error("Alleen SELECT, ASK, CONSTRUCT en DESCRIBE.");
-  const zonderNamen = kaal.replace(/[?$]\w+/g, " ").replace(/[\w.-]*:[\w.%-]*/g, " ");
+  const zonderNamen = zonderVoorvoegselnamen(kaal.replace(/[?$]\w+/g, " "), " ");
   const verboden = VERBODEN.exec(zonderNamen)?.[1];
   if (verboden) throw new Error(`Geweigerd: ${verboden.toUpperCase()} hoort niet bij alleen-lezen.`);
   return vorm === "ASK" || HEEFT_LIMIT.test(kaal) ? query : `${query}\nLIMIT ${STANDAARD_LIMIT}`;

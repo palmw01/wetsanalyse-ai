@@ -34,8 +34,8 @@ def lege_plekken(regel: str) -> list[str]:
 
 
 def _zonder_lege_plekken(regel: str) -> str:
-    regel = re.sub(r"\s*\(\s*(?:art\.?|artikel|lid|bepaling|onderdeel)?\s*[,;:]?\s*\)", "", regel)
-    regel = re.sub(r"\s+([,;:.])(?=\s|$)", r"\1", " ".join(regel.split()))
+    regel = re.sub(r"(?<!\s)\s*+\(\s*+(?:art\.?|artikel|lid|bepaling|onderdeel)?\s*+[,;:]?\s*+\)", "", regel)
+    regel = re.sub(r"(?<!\s)\s++([,;:.])(?=\s|$)", r"\1", " ".join(regel.split()))
     return re.sub(r"[,;:·–]\s*$", "", regel).strip()
 
 
@@ -241,7 +241,7 @@ def _grounding_melding(report: Any) -> str:
 #: Procestaal van het model vóór een scheidingslijn: "Nu heb ik de letterlijke tekst van alinea 148. Ik kan het antwoord nu
 #: opbouwen.\n\n---\n\n**Twee lagen …**" (nameting #1274, K07: na twee weigeringen van een sjabloon schreef het model zijn
 #: antwoord in tekst, met zijn eigen aanloop erboven). Alleen een korte aanloop in de eerste persoon over het werk zelf.
-_AANLOOP_RE = re.compile(r"\A\s*(?P<kop>[^\n]{1,300}?)\s*\n\s*(?:-{3,}|\*{3,}|_{3,})\s*\n(?P<rest>.+)\Z", re.S)
+_AANLOOP_RE = re.compile(r"\A\s*+(?P<kop>[^\n]{1,300}?)[^\S\n]*+\n\s*+(?:-{3,}+|\*{3,}+|_{3,}+)[^\S\n]*+\n(?P<rest>.+)\Z", re.S)
 _PROCES_RE = re.compile(r"\b(?:ik\s+(?:heb|kan|ga|zal|wil|moet)|nu\s+(?:heb|kan|ga)\s+ik|laat\s+me|eerst\s+(?:lees|zoek|haal))\b",
                         re.IGNORECASE)
 

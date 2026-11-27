@@ -9,6 +9,8 @@
  * we iets anders dan XML, dan is dat een uitkomst om te melden, geen hindernis om omheen te werken.
  */
 
+import { zonderTags } from "./tekst.js";
+
 const SRU = "https://zoekservice.overheid.nl/sru/Search";
 const REPOSITORY = "https://repository.officiele-overheidspublicaties.nl/";
 const USER_AGENT = "wetsanalyse-acceptatie-mcp/0.1";
@@ -95,19 +97,18 @@ function elementen(xml: string, naam: string): string[] {
 }
 
 const nummer = (s: string): string =>
-  s.replace(/<[^>]*>/g, "").trim().toLowerCase().replace(/^(artikel|lid)\s+/, "").replace(/\.$/, "");
+  zonderTags(s).trim().toLowerCase().replace(/^(artikel|lid)\s+/, "").replace(/\.$/, "");
 
 const eerste = (xml: string, naam: string): string =>
   nummer(new RegExp(`<${naam}(?:\\s[^>]*)?>([\\s\\S]*?)</${naam}>`).exec(xml)?.[1] ?? "");
 
 /** De leesbare tekst van een fragment, in de volgorde van de XML. Het bewijs blijft de `xml` ernaast. */
 export function tekstVan(xml: string): string {
-  return xml
+  return zonderTags(xml
     .replace(/<meta-data[\s\S]*?<\/meta-data>/g, "")
     .replace(/\s+/g, " ")
     .replace(/<\/(?:label|lidnr|li\.nr)>/g, " ")
-    .replace(/<\/(?:al|kop|lid|li|lijst|tussenkop)>/g, "\n")
-    .replace(/<[^>]*>/g, "")
+    .replace(/<\/(?:al|kop|lid|li|lijst|tussenkop)>/g, "\n"))
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&lt;/g, "<")

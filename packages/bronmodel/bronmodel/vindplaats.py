@@ -25,7 +25,7 @@ from typing import ClassVar
 from urllib.parse import parse_qsl, quote, unquote
 
 _BWB = re.compile(r"^BWB[RV]\d+$")
-_JCI = re.compile(r"^jci[\d.]+:c:(BWB[RV]\d+)(.*)$", re.I)
+_JCI = re.compile(r"^jci[\d.]++:c:(BWB[RV]\d++)(.*)$", re.I)
 _KAPOTTE_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
 STRUCTUUR = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
 _SOORT = {"o": "onderdeel", **{s: s for s in (*STRUCTUUR, "artikel", "lid")}}

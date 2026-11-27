@@ -29,7 +29,7 @@ ZICHTBAAR = ("id", "vindplaats", "versie", "bron_id", "tekstsoort", "tekst", "te
 
 def vragen(vraag: str) -> list[str]:
     """De losse herkenningsvragen van een klasse, letterlijk (de validator eist dat)."""
-    return [v.strip() for v in re.findall(r"[^?]+\?", vraag)] or [vraag.strip()]
+    return [v.strip() for v in re.findall(r"[^?]++\?", vraag)] or [vraag.strip()]
 
 
 def gegevens(versie: str = ACTUELE_VERSIE, ids: list[str] | None = None) -> dict:

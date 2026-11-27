@@ -246,7 +246,7 @@ class Extern(BaseModel):
 _AFKORTINGEN = (("n.a.v.", "naar aanleiding van"), ("t.b.v.", "ten behoeve van"), ("i.v.m.", "in verband met"),
                 ("m.b.t.", "met betrekking tot"))
 #: Een opsomming van varianten tussen haakjes: "(nader/tweede nader/enz.)".
-_VARIANTEN = re.compile(r"\s*\([^()]*/[^()]*\)")
+_VARIANTEN = re.compile(r"(?<!\s)\s*+\([^()/]*+/[^()]*+\)")
 
 
 def soort_netjes(soort: str) -> str:

@@ -87,7 +87,7 @@ _TEL_RE = re.compile(r"^\s*(?:hoeveel|hoe\s+vaak|(?:wat\s+is\s+)?(?:het\s+)?aant
 #: Een verdeling: "hoe verdelen de uitspraken zich over de instanties", "hoeveel uitspraken per instantie". Het woord na
 #: "over de" of "per" wijst een telling van de bron aan (`per_<woord>` in het resultaat, `Telling.per`).
 _VERDELING_RE = re.compile(r"\bhoe\s+(?:verdel\w*|verdeeld|is\s+de\s+verdeling\s+van)\b|\bverdeling\b", re.IGNORECASE)
-_PER_RE = re.compile(r"\b(?:zich\s+)?(?:over\s+(?:de|het)|per)\s+(?P<w>[A-Za-zÀ-ÿ]+)\s*[?.!]?\s*$|\bper\s+(?P<p>[A-Za-zÀ-ÿ]+)\b",
+_PER_RE = re.compile(r"\b(?:zich\s++)?(?:over\s++(?:de|het)|per)\s++(?P<w>[A-Za-zÀ-ÿ]++)\s*+[?.!]?\s*+$|\bper\s++(?P<p>[A-Za-zÀ-ÿ]++)\b",
                      re.IGNORECASE)
 #: Woorden in de titel: "hebben de Douanewet in de titel", "met 'invorderingsrente' in hun titel".
 _TITEL_RE = re.compile(r"\b(?:met|hebben|heeft|dragen|draagt|staat|staan)\s+(?:de\s+|het\s+|een\s+)?(?P<w>[^?.!,;]+?)\s+"
@@ -449,7 +449,7 @@ def _op_naam(c: ConnectorBeschrijving, naam: str, rest: str):
 #: "de amendementen bij het Belastingplan 2025": een naam met een hoofdletter aan het eind van de vraag, na "bij het/de".
 #: Een regeling uit de graaf gaat via `_bij_regeling`; dit is de naam van een wetsvoorstel of dossier (Kamerstukken ronde 6,
 #: K10: het model telde de amendementen zelf, 90 of 92 tegen 88).
-_BIJ_NAAM_RE = re.compile(r"(?:\b(?:horen|hoort|behoren|behoort)\s+)?\bbij\s+(?:het|de)\s+(?P<naam>[A-ZÀ-Ý][\wÀ-ÿ-]*(?:\s+[\wÀ-ÿ-]+){0,5})\s*[?.!]?\s*$")
+_BIJ_NAAM_RE = re.compile(r"(?:\b(?:horen|hoort|behoren|behoort)\s++)?\bbij\s++(?:het|de)\s++(?P<naam>[A-ZÀ-Ý][\wÀ-ÿ-]*+(?:\s++[\wÀ-ÿ-]++){0,5}+)\s*+[?.!]?\s*+$")
 
 
 def _bij_naam(c: ConnectorBeschrijving, tekst: str):

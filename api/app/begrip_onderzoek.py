@@ -73,7 +73,7 @@ _DEFINITIE = re.compile(r"\bverstaan\s+onder\b|\bverstaat\b[^.]{0,60}\bonder\b|\
 _ONDER = re.compile(r"\bonder\s+([^:,;.]{1,60}?)\s+(?:wordt|worden)\s+verstaan\b", re.IGNORECASE)
 _TERM = re.compile(r"^([^:]{1,80}?):\s")
 _LIDWOORD = re.compile(r"^(?:de|het|een)\s+")
-_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s+(?:(?:mede|niet)\s+)?(?:verstaan\s+)?onder\s*:?\s*$",
+_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s++(?:(?:mede|niet)\s++)?(?:verstaan\s++)?onder\s*+:?\s*+$",
                      re.IGNORECASE)
 _ARTIKEL = {"Artikel", "Divisie"}
 
@@ -105,7 +105,7 @@ def gedefinieerd(tekst: str, aanhef: str) -> set[str]:
         ruw = m.group(1)
     elif m := _ONDER.search(tekst or ""):
         ruw = m.group(1)
-    return {_kaal(d) for d in re.split(r",\s*|\s+(?:of|en)\s+", ruw) if d.strip()}
+    return {_kaal(d) for d in re.split(r",\s*+|(?<!\s)\s++(?:of|en)\s++", ruw) if d.strip()}
 
 
 def _kaal(term: str) -> str:
