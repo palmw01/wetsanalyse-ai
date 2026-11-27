@@ -115,7 +115,7 @@ def regeltekst(inhoud: dict[str, Any], namen: dict[str, str]) -> dict[str, Any]:
                 if lijst:
                     doel.append(f"- {kop}:{zin}" if md else f"{kop}:{zin}")
                     doel += ["  " + r for r in lijst]
-                    doel.append(f"  dan: {uitkomst}." if md else f"  dan: {uitkomst}.")
+                    doel.append(f"  dan: {uitkomst}.")
                 else:
                     regel = f"{kop}:{zin}, dan {uitkomst}." if zin else f"{kop}: {uitkomst}."
                     doel.append(f"- {regel}" if md else regel)

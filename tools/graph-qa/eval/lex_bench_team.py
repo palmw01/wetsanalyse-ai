@@ -65,7 +65,7 @@ def laad_casus(casus_id: str, manifest: Path = MANIFEST) -> dict[str, Any]:
 def dossier_uit(casus_id: str, pad: Path | None = None) -> dict[str, Any]:
     if pad is None:
         pad = WORTEL / laad_casus(casus_id)["pad"] / "set.json"
-    return dossier_van(json.loads(pad.read_text(encoding="utf-8")))
+    return dossier_van(json.loads(veilig_pad(pad).read_text(encoding="utf-8")))
 
 
 def opdracht(dossier: dict[str, Any], casus_id: str, analist: str, run: str) -> str:

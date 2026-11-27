@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nrecall {t['recall']:.2f} · plaats {t['plaats']:.2f} · volgorde {t['volgorde']:.2f} · letterlijk {t['letterlijk']:.2f}")
     if a.json:
         a.json.write_text(json.dumps(rapport, ensure_ascii=False, indent=2) + "\n")
-    return 0 if t["letterlijk"] == 1.0 else 1
+    return 0 if t["letterlijk"] >= 1.0 else 1  # een fractie: 1.0 is alles letterlijk
 
 
 if __name__ == "__main__":

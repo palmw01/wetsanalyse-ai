@@ -931,7 +931,7 @@ def advance_node(b: Bouw, state: State) -> dict[str, Any]:
     upd: dict[str, Any] = {"worker_idx": idx}
     if idx < len(plan):
         upd.update({
-            "specialist": plan[idx], "turns": 0, "corrected": False, "answer": "",
+            "specialist": plan[idx], "turns": 0, "corrected": False, "answer": "",  # NOSONAR: idx < len(plan) hierboven
             # Ook de annotatie-velden: een volgende worker begint schoon, anders zou een tweede
             # annotatie in dezelfde beurt de voorstellen van de eerste uitsturen.
             "voorstellen": [], "analyse": {},

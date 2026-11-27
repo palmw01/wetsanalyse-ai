@@ -220,7 +220,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str, punt_id: str, verwacht: int, a
         raise _niet_gevonden()
     toets_revisie(row.revisie, verwacht, "dit open punt")
     stand: dict[str, Any] = {"inhoud": row.inhoud, "keuze": row.keuze, "geen_wijziging": False}
-    yield row, stand
+    yield row, stand  # NOSONAR: na de yield staat het wegschrijven, dat alleen bij succes mag; bij een fout niets schrijven is bedoeld
     if stand["geen_wijziging"]:
         return
     status = status_van(stand["inhoud"], stand["keuze"])

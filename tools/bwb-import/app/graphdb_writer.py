@@ -111,8 +111,8 @@ def _doel_label(row: dict) -> str | None:
 
 # Naam van de Lucene-FTS-connector (GraphDB Connectors).
 _FTS_CONNECTOR_NAAM = "bwb_tekst"
-_LUC = "http://www.ontotext.com/connectors/lucene#"
-_LUC_INST = "http://www.ontotext.com/connectors/lucene/instance#"
+_LUC = "http://www.ontotext.com/connectors/lucene#"  # NOSONAR: namespace-id, geen verbinding
+_LUC_INST = "http://www.ontotext.com/connectors/lucene/instance#"  # NOSONAR: namespace-id, geen verbinding
 
 # Entiteiten en tekstprops die full-text doorzoekbaar moeten zijn.
 _FTS_TYPES = (

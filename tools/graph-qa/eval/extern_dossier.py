@@ -275,7 +275,7 @@ def _status(sectie: list[Knoop]) -> str:
 
 def status_soort(status: str) -> str:
     """`definitief` als alles wat er staat definitief is, anders `concept` (ook "to do")."""
-    regels = [r for r in re.split(r"\s{2,}|\n|(?<=definitief)\s", status) if r.strip()]
+    regels = [r for r in re.split(r"\s{2,}|\n|(?<=definitief)[^\S\n]", status) if r.strip()]
     return "definitief" if regels and all("definitief" in r for r in regels) else "concept"
 
 
@@ -1000,4 +1000,4 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

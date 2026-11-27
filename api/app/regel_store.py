@@ -1117,7 +1117,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str, regel_id: str, verwacht: int, 
         raise HTTPException(409, {"fout": "vervangen", "melding": "Deze regel is vervangen en alleen nog te lezen."})
     toets_revisie(row.revisie, verwacht, "deze regel")
     stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
-    yield row, stand
+    yield row, stand  # NOSONAR: na de yield staat het wegschrijven, dat alleen bij succes mag; bij een fout niets schrijven is bedoeld
     if stand["geen_wijziging"]:
         return
     status = stand["status"] or ("concept" if row.status in GEACCORDEERD else row.status)

@@ -224,7 +224,7 @@ def _set_en_opname(casus_id: str, dossier: Path | None, opname: Path | None) -> 
         dossier, opname = pad / "set.json", opname or pad / "graafantwoorden.json"
     if opname is None:
         raise SystemExit("Geef bij --dossier ook --opname (de graafantwoorden van de casus).")
-    return (json.loads(dossier.read_text(encoding="utf-8")), json.loads(opname.read_text(encoding="utf-8")))
+    return (json.loads(veilig_pad(dossier).read_text(encoding="utf-8")), json.loads(veilig_pad(opname).read_text(encoding="utf-8")))
 
 
 def neem_op(dossier: dict[str, Any], uit: Path, graaf: Any) -> int:

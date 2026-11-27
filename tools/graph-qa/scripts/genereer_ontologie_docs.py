@@ -50,7 +50,7 @@ SCRIPT = "tools/graph-qa/scripts/genereer_ontologie_docs.py"
 
 PREFIXEN = {
     "urn:bwb-ns:": "bwb", "urn:jas-ns:": "jas", "urn:wa-ns:": "wa", "urn:wa-kg-ns:": "kgo",
-    "http://data.europa.eu/eli/ontology#": "eli", "http://xmlns.com/foaf/0.1/": "foaf",
+    "http://data.europa.eu/eli/ontology#": "eli", "http://xmlns.com/foaf/0.1/": "foaf",  # NOSONAR: namespace-id, geen verbinding
     "http://www.w3.org/ns/oa#": "oa", "http://www.w3.org/2004/02/skos/core#": "skos",
     "http://purl.org/dc/terms/": "dct", "http://www.w3.org/ns/prov#": "prov",
     "http://www.w3.org/2001/XMLSchema#": "xsd", "http://www.w3.org/2000/01/rdf-schema#": "rdfs",
@@ -484,7 +484,7 @@ def bouw_model(o: Ontologie) -> tuple[dict[str, Klasse], Graph, Graph]:
 # ---------------------------------------------------------------------------------------------------- de toets
 
 #: Namespaces van buiten waarnaar een vocabulaire mag verwijzen zonder ze zelf te declareren.
-BEKEND_EXTERN = ("http://data.europa.eu/eli/ontology#", "http://xmlns.com/foaf/0.1/", "http://www.w3.org/ns/oa#",
+BEKEND_EXTERN = ("http://data.europa.eu/eli/ontology#", "http://xmlns.com/foaf/0.1/", "http://www.w3.org/ns/oa#",  # NOSONAR: namespace-id, geen verbinding
                  "http://www.w3.org/2004/02/skos/core#", "http://purl.org/dc/terms/", "http://www.w3.org/ns/prov#",
                  str(XSD), str(RDF), str(RDFS), str(OWL), "urn:bwb-ns:", "urn:jas-ns:")
 LETTERLIJK = (str(XSD), str(RDF.langString), str(RDF.HTML))

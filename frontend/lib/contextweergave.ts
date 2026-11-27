@@ -315,7 +315,7 @@ export function lijn(waarden: number[], breedte: number, hoogte: number): string
   const stap = waarden.length > 1 ? breedte / (waarden.length - 1) : 0;
   const punt = (w: number, i: number) => `${Math.round(i * stap * 10) / 10},${Math.round((hoogte - (w / max) * hoogte) * 10) / 10}`;
   return waarden.length === 1 ? `0,${punt(waarden[0], 0).split(",")[1]} ${breedte},${punt(waarden[0], 0).split(",")[1]}`
-    : waarden.map(punt).join(" ");
+    : waarden.map((w, i) => punt(w, i)).join(" ");
 }
 
 export interface KindRij {

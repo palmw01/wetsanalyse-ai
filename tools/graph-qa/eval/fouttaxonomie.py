@@ -250,7 +250,7 @@ def _fout(primair: str, secundair: Iterable[str] = (), **kw: Any) -> Fout:
     return Fout(primair=primair, soort=CODES[primair][1], secundair=sec, **kw)
 
 
-def _contract(k: Kandidaat | None) -> tuple[str, ...]:
+def _contract(k: Kandidaat | None) -> tuple[str, ...]:  # NOSONAR: een rij codes, variabele lengte is bedoeld
     """De technische codes van een beslissing: contractfout (met leakage/hypothese) of abstain."""
     if k is None:
         return ()

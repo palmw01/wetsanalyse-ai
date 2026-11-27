@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 
 import { haalPlaatsen } from "@/lib/annotatieNode";
 import type { Plaats } from "@/lib/bronPlaats";
+import { opCodepunt } from "./rand";
 
 /** De plek van deze bepalingen in hun regeling, één verzoek per (gewijzigde) set. Een hint: faalt het, of
  *  loopt het nog, dan is het `null` en groepeert de boom op wat de IRI zelf zegt. De vorige plekken blijven
  *  staan tot de nieuwe er zijn, zodat de boom niet verspringt. */
 export function usePlaatsen(iris: readonly string[]): ReadonlyMap<string, Plaats> | null {
-  const sleutel = [...new Set(iris)].sort().join("|");
+  const sleutel = [...new Set(iris)].sort(opCodepunt).join("|");
   const [plaatsen, setPlaatsen] = useState<ReadonlyMap<string, Plaats> | null>(null);
   useEffect(() => {
     if (!sleutel) return;

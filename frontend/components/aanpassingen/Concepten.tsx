@@ -26,7 +26,7 @@ export function useWerkplaats(): { stand: WerkplaatsStand; concepten: Werkplaats
 
   useEffect(() => {
     let weg = false;
-    haalWerkplaatsStand().then(async (s) => {
+    void haalWerkplaatsStand().then(async (s) => {
       if (weg || !s.aan) return;
       setStand(s);
       try {

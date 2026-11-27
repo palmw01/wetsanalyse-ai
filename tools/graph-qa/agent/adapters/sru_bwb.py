@@ -55,10 +55,10 @@ _HOSTS = {"zoekservice.overheid.nl", REPOSITORY_HOST}
 _NS = {
     "sru": "http://docs.oasis-open.org/ns/search-ws/sruResponse",
     "diag": "http://docs.oasis-open.org/ns/search-ws/diagnostic",
-    "gzd": "http://standaarden.overheid.nl/sru",
+    "gzd": "http://standaarden.overheid.nl/sru",  # NOSONAR: namespace-id, geen verbinding
     "dcterms": "http://purl.org/dc/terms/",
-    "overheid": "http://standaarden.overheid.nl/owms/terms/",
-    "srubwb": "http://standaarden.overheid.nl/bwb/terms/",
+    "overheid": "http://standaarden.overheid.nl/owms/terms/",  # NOSONAR: namespace-id, geen verbinding
+    "srubwb": "http://standaarden.overheid.nl/bwb/terms/",  # NOSONAR: namespace-id, geen verbinding
 }
 PER_SECONDE = 5
 HERHAAL_S = 1.0

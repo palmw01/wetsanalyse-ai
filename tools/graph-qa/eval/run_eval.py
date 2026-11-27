@@ -53,7 +53,7 @@ def annotatieset(args: argparse.Namespace) -> Path:
 
 def load_golden(path: Path = GOLDEN) -> list[dict[str, Any]]:
     cases = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in veilig_pad(path).read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
             cases.append(json.loads(line))

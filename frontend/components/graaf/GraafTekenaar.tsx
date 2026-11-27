@@ -18,6 +18,7 @@ import type { GraafModel, KnoopData, KnoopSoort, RelatieData } from "@/lib/graaf
 import { GEDIMD_LABEL, LABELKLEUR } from "@/lib/graaf/stijl";
 import { knoopBeeld, lijnBeeld, type WeergaveContext } from "@/lib/graaf/weergave";
 import { alsPng } from "@/lib/tekeningExport";
+import { opCodepunt } from "@/lib/rand";
 
 export interface GraafBediening {
   /** Alles in beeld. */
@@ -104,9 +105,9 @@ const stijlen = (font: string) => ({
       labelFont: `${LABELGEWICHT} ${font}`, labelSize: LABELGROOTTE,
       backdropVisibility: "hidden", backdropColor: "#ffffff", backdropShadowColor: "rgba(0, 0, 0, 0.3)", backdropShadowBlur: 8, backdropPadding: 4,
     },
-    { whenState: "label", then: { labelVisibility: "visible" } },
-    { whenState: "isHovered", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
-    { whenState: "isHighlighted", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes", size: 12 } },
+    { whenState: "label", then: { labelVisibility: "visible" } }, // NOSONAR: de toestandsvorm van de graaftekenaar, geen promise
+    { whenState: "isHovered", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } }, // NOSONAR: de toestandsvorm van de graaftekenaar, geen promise
+    { whenState: "isHighlighted", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes", size: 12 } }, // NOSONAR: de toestandsvorm van de graaftekenaar, geen promise
   ],
   edges: [{
     size: { attribute: "size", defaultValue: 1 }, color: { attribute: "color", defaultValue: "#cccccc" },
@@ -291,7 +292,7 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, r
         if (uit.length) s.setNodesState(uit, { label: false });
         el.dataset.labels = String(nieuw.size);
         // Welke soorten een label hebben (voor de browsertest: uitgezoomd geen artikelen, ingezoomd wel).
-        el.dataset.labelSoorten = [...new Set([...nieuw].map((id) => labelInfo.current.get(id)?.soort ?? ""))].sort().join(",");
+        el.dataset.labelSoorten = [...new Set([...nieuw].map((id) => labelInfo.current.get(id)?.soort ?? ""))].sort(opCodepunt).join(",");
       };
       // De knoopgroottes hangen aan de zoom (`detailFactor`): alleen opnieuw schrijven als een drempel
       // gepasseerd wordt, niet bij elk beeld.

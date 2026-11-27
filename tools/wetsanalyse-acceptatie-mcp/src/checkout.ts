@@ -17,7 +17,7 @@ export interface CheckoutStand {
 }
 
 export function gitIn(repo: string): Git {
-  return (args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", timeout: 5000 }).trim();
+  return (args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", timeout: 5000 }).trim(); // NOSONAR: ontwikkeltool; git via PATH is bedoeld
 }
 
 export function checkoutStand(git: Git): CheckoutStand {

@@ -82,7 +82,7 @@ export function ConceptPagina({ id }: { id: string }) {
 
   useEffect(() => {
     let weg = false;
-    (async () => {
+    void (async () => {
       const s = await haalWerkplaatsStand();
       if (weg) return;
       setStand(s);

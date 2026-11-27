@@ -14,6 +14,7 @@ import type { GraafBron } from "@/lib/graaf/model";
 import { isBron, type KnoopData } from "@/lib/graaf/model";
 import type { BronRol, Werkgebied } from "@/lib/types";
 import { ROL_LABEL, annotatieHref, scopeInModel } from "@/lib/werkgebied";
+import { opCodepunt } from "@/lib/rand";
 
 const WERKGEBIED: GraafContext = {
   naam: "Dit werkgebied", kort: "Werkgebied", terug: "het werkgebied", focus: "de bronnen van dit werkgebied",
@@ -33,7 +34,7 @@ export function SamenhangTab({ wg, muteer, onKiesBegrip }: {
   if (wg.bronnen.length === 0)
     return <Leeg kader>Nog geen bronnen, dus nog geen samenhang. Neem eerst een bepaling op.</Leeg>;
   // Opnieuw laden als de verzameling bronnen verandert; een andere rol of reden verandert de kaart niet.
-  const sleutel = wg.bronnen.map((b) => `${b.bron_iri}:${b.bereik}`).sort().join("|");
+  const sleutel = wg.bronnen.map((b) => `${b.bron_iri}:${b.bereik}`).sort(opCodepunt).join("|");
   return <SamenhangGraaf key={sleutel} wg={wg} muteer={muteer} onKiesBegrip={onKiesBegrip} />;
 }
 

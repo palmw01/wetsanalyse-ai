@@ -6,6 +6,7 @@
  *  Opslag is een gemak, geen voorwaarde: in een privévenster, met geblokkeerde sitedata of zonder
  *  IndexedDB (node) geeft lezen `undefined` en is bewaren een no-op. Dan wordt er gewoon gerekend. */
 import { LAYOUT_VERSIE, type Posities, type Structuur } from "./layout";
+import { opCodepunt } from "../rand";
 
 const DB = "wetsanalyse-graaf";
 const STORE = "layouts";
@@ -20,8 +21,8 @@ interface Opgeslagen {
 }
 
 export async function layoutSleutel(s: Structuur): Promise<string> {
-  const knopen = s.knopen.map((k) => `${k.id}|${k.soort}`).sort();
-  const relaties = s.relaties.map((r) => `${r.bron}|${r.soort}|${r.doel}`).sort();
+  const knopen = s.knopen.map((k) => `${k.id}|${k.soort}`).sort(opCodepunt);
+  const relaties = s.relaties.map((r) => `${r.bron}|${r.soort}|${r.doel}`).sort(opCodepunt);
   const tekst = JSON.stringify([LAYOUT_VERSIE, knopen, relaties]);
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(tekst));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -61,7 +62,7 @@ function open(): Promise<IDBDatabase | undefined> {
 function wacht<T>(verzoek: IDBRequest<T>): Promise<T> {
   return new Promise((klaar, faal) => {
     verzoek.onsuccess = () => klaar(verzoek.result);
-    verzoek.onerror = () => faal(verzoek.error);
+    verzoek.onerror = () => faal(verzoek.error ?? new Error("IndexedDB-verzoek mislukt"));
   });
 }
 

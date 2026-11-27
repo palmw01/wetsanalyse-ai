@@ -147,3 +147,24 @@ async def test_een_voorbeeld_staat_met_zijn_waarden_in_de_graaf(client):
     assert (v, WA.inGeval, rp.geval_iri(regel["id"], 1)) in g and (v, WA.oordeel, Literal("open")) in g
     [w] = list(g.objects(v, WA.waarde))
     assert (w, WA.waarde, Literal("12")) in g and (w, WA.begrip, bp.begrip_iri(b["in"]["id"])) in g
+
+
+def test_een_voorbeeld_met_van_geval_breekt_de_dragers_niet():
+    """SonarQube S8510: de lus over `van_geval` heette ook `x`, en overschreef zo de regel; daarna las `x["dragers"]` een
+    geval-verwijzing en liep de projectie vast op een KeyError."""
+    from rdflib import Graph, URIRef
+
+    from app.regel_projectie import WA, bouw
+
+    regel = {
+        "id": "r1", "status": "concept", "revisie": 1, "herkomst": "mens", "vervangen_door": None, "opvolger_van": None,
+        "regeltekst": {"tekst": "", "gevallen": []},
+        "inhoud": {"soort": "afleiding", "regelbegrip_id": "b1", "uitvoer_begrip_id": "b2", "gevallen": [{"label": "A"}],
+                   "voorbeelden": [{"invoer": "x", "uitkomst": "y", "van_geval": [{"regel_id": "r2", "geval": "B"}]}]},
+        "dragers": [{"id": "d1", "rol": "grondslag", "beoordeling": "akkoord", "element_id": "e1", "element_hash": "h",
+                     "tekst": "passage", "geval": None, "bron": ["urn:bwb:BWBR0004770:artikel:9"]}],
+    }
+    g = Graph()
+    bouw(g, URIRef("urn:wa:kader:test"), [regel])
+    assert (URIRef("urn:wa:regeldrager:d1"), WA.rol, None) in g
+    assert any(g.objects(None, WA.gevalVan))

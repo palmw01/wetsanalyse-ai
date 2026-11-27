@@ -5,6 +5,7 @@
 import { aantal } from "./aantal";
 import type { StatusToon } from "@/components/ui/Lijst";
 import type { Soort as CatalogusSoort } from "@/lib/catalogus";
+import { opCodepunt } from "./rand";
 
 export const WERKPLAATS_SOORTEN = ["skill", "agentprofiel", "mcp"] as const;
 export type WerkplaatsSoort = (typeof WERKPLAATS_SOORTEN)[number];
@@ -221,9 +222,9 @@ export interface Wijzigingen { gewijzigd: string[]; toegevoegd: string[]; verwij
 
 /** Het verschil tussen de bewaarde versie en wat er nu in het tekstvak staat, per bestand. */
 export function wijzigingen(bewaard: Bestanden, werk: Bestanden): Wijzigingen {
-  const gewijzigd = Object.keys(werk).filter((p) => p in bewaard && bewaard[p] !== werk[p]).sort();
-  const toegevoegd = Object.keys(werk).filter((p) => !(p in bewaard)).sort();
-  const verwijderd = Object.keys(bewaard).filter((p) => !(p in werk)).sort();
+  const gewijzigd = Object.keys(werk).filter((p) => p in bewaard && bewaard[p] !== werk[p]).sort(opCodepunt);
+  const toegevoegd = Object.keys(werk).filter((p) => !(p in bewaard)).sort(opCodepunt);
+  const verwijderd = Object.keys(bewaard).filter((p) => !(p in werk)).sort(opCodepunt);
   return { gewijzigd, toegevoegd, verwijderd, aantal: gewijzigd.length + toegevoegd.length + verwijderd.length };
 }
 

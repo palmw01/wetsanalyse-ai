@@ -68,7 +68,8 @@ def test_aanwijzende_formulering_wijst_terug_naar_dezelfde_kern(taal, manifest):
 
 
 def test_deterministisch(manifest, spacy_md):
-    assert analyseer(manifest, spacy_md) == analyseer(manifest, spacy_md)
+    eerste, tweede = analyseer(manifest, spacy_md), analyseer(manifest, spacy_md)
+    assert eerste == tweede
 
 
 def test_zonder_parser_gedegradeerd_maar_bruikbaar(manifest):

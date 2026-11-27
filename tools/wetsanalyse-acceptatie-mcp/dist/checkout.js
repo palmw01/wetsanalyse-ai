@@ -6,7 +6,7 @@
  */
 import { execFileSync } from "node:child_process";
 export function gitIn(repo) {
-    return (args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", timeout: 5000 }).trim();
+    return (args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", timeout: 5000 }).trim(); // NOSONAR: ontwikkeltool; git via PATH is bedoeld
 }
 export function checkoutStand(git) {
     const lees = (args) => {

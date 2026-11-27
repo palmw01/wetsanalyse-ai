@@ -19,7 +19,7 @@ from .graaf_client import sparql_select
 from .samenhang import _IRI, _PREFIXES, MAX_VERWIJZINGEN, plaats
 
 BWB = "urn:bwb-ns:"
-ELI = "http://data.europa.eu/eli/ontology#"
+ELI = "http://data.europa.eu/eli/ontology#"  # NOSONAR: namespace-id, geen verbinding
 RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 OWL_SAMEAS = "http://www.w3.org/2002/07/owl#sameAs"
 DCT_SUBJECT = "http://purl.org/dc/terms/subject"
