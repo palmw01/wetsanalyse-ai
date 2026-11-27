@@ -379,12 +379,6 @@ export function WerkplekClient({
   const vervolgGedaan = useRef("");
   const lijstRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  // Een klaargezette vraag (`beginInvoer`) krijgt bij het openen de focus, zodat één Enter volstaat: wat `autoFocus` deed,
-  // in een effect bij het openen (SonarQube S9379): na de layout-effecten, zodat niets de focus daarna terugpakt.
-  const focusBijStart = useRef(Boolean(beginInvoer));
-  useEffect(() => {
-    if (focusBijStart.current) taRef.current?.focus();
-  }, []);
   // "Stick-to-bottom": alleen automatisch meescrollen als de gebruiker al onderaan staat, zodat
   // omhoogscrollen tijdens het streamen niet telkens wordt teruggetrokken.
   const stickRef = useRef(true);
@@ -1474,6 +1468,9 @@ export function WerkplekClient({
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-paper px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
               ref={taRef}
+              // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat. Bewust autoFocus: de
+              // gebruiker opende de vraag zelf (*Samenstellen met Lex*), en de focus moet er al vóór de hydratie staan.
+              autoFocus={Boolean(beginInvoer)} /* NOSONAR: focus na een handeling van de gebruiker, al in de server-HTML */
               value={invoer}
               onChange={(e) => { setInvoer(e.target.value); setMenuCursor(0); setMenuDicht(false); }}
               onKeyDown={opToets}
