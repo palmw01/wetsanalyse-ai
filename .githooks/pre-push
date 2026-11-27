@@ -72,17 +72,15 @@ raakt "frontend/" && {
 }
 { raakt "tools/graph-qa/" || raakt "packages/bronmodel/" || raakt ".claude/skills/" || raakt ".claude/lex-agents/" \
   || raakt "docs/wetsanalyse/referentieset"; } && draai "graph-qa"   tools/graph-qa   uv run --frozen pytest -q -x
-# bwb-import draait op pip + requirements.txt, niet op een uv-project: zonder `python -m`
-# staat de map niet op sys.path en is `app` niet te importeren. `--with-requirements` bouwt
-# de omgeving die er lokaal niet is. `--no-project` is nodig omdat uv anders de map als project
-# behandelt en er een lege uv.lock achterlaat – een artefact dat telkens terugkomt en zelfs een
-# image-build kan triggeren.
+# bwb-import is een uv-project met lock (zoals api). Zonder `python -m` staat de map niet op sys.path en is `app` niet te
+# importeren.
 { raakt "tools/bwb-import/" || raakt "packages/bronmodel/"; } && draai "bwb-import" tools/bwb-import \
-  uv run --no-project --with-requirements requirements.txt python -m pytest -q -x
+  uv run --frozen --extra dev python -m pytest -q -x
 { raakt "api/" || raakt "packages/bronmodel/"; } && draai "api"        api              uv run pytest -q -x
 
 # De kruistests (`scripts/kruistests.sh`): ook als alleen de ándere kant wijzigt. Documentatie telt niet mee.
-if echo "$paden" | grep -v '\.md$' | grep -q .; then
+# Behalve de gegenereerde ontologiedocumentatie (`docs/ontologie/`): de drift-test erop is een kruistest.
+if echo "$paden" | grep -v '\.md$' | grep -q . || echo "$paden" | grep -q '^docs/ontologie/'; then
   [ -d frontend/node_modules ] || export ZONDER_FRONTEND=1
   draai "kruistests" . scripts/kruistests.sh
 fi

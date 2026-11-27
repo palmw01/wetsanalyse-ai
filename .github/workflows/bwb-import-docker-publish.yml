@@ -38,14 +38,15 @@ jobs:
         working-directory: tools/bwb-import
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - name: uv installeren
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
+          enable-cache: true
           python-version: "3.13"
-          cache: pip
-      - run: pip install -r requirements.txt
-      - run: python -m pytest -q
+      - run: uv sync --locked --no-build --extra dev
+      - run: uv run --locked --no-build python -m pytest -q
       - name: pip-audit (faalt bij bekende kwetsbaarheden)
-        run: pipx run pip-audit -r requirements.txt
+        run: uv run --locked --no-build --extra dev --with pip-audit pip-audit
 
   build-and-push:
     needs: test

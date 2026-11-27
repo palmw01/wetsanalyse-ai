@@ -78,26 +78,33 @@ def test_probes_blijven_binnen_de_azure_limiet() -> None:
     )
 
 
-def test_dockerfile_installeert_hetzelfde_taalmodel_als_pyproject() -> None:
-    """Het image installeert spaCy + het NL-model buiten '.[nlp]' om (pip kent tool.uv.sources niet).
-    Loopt die regel uit de pas met pyproject.toml, dan meet CI een ander model dan er draait."""
-    import tomllib
+#: Hoe de image en de poort het NL-model installeren: met zijn hash, zonder iets te bouwen (SonarQube S8541/S8544).
+TAALMODEL_INSTALL = "--no-deps --no-build --require-hashes -r taalmodel.txt"
 
-    pyproject = (WORTEL / "tools/graph-qa/pyproject.toml").read_text(encoding="utf-8")
+
+def test_dockerfile_installeert_hetzelfde_taalmodel_als_de_poort() -> None:
+    """Het NL-model staat niet in uv.lock; `taalmodel.txt` noemt URL en hash. De image en de poort installeren uit dat
+    ene bestand, en spaCy zelf komt in beide uit de lock (de extra `nlp`). Loopt dat uit de pas, dan meet CI een ander
+    model dan er draait."""
+    taalmodel = (WORTEL / "tools/graph-qa/taalmodel.txt").read_text(encoding="utf-8")
     dockerfile = (WORTEL / "tools/graph-qa/Dockerfile").read_text(encoding="utf-8")
-    url = tomllib.loads(pyproject)["tool"]["graph-qa"]["taalmodel"]
-    assert url.startswith("https://github.com/explosion/spacy-models/releases/download/")
-    assert url in dockerfile
-    assert '"spacy>=3.8,<3.9"' in pyproject and '"spacy>=3.8,<3.9"' in dockerfile
+    poort = (WORTEL / ".github/workflows/poort.yml").read_text(encoding="utf-8")
+    regels = [r for r in taalmodel.replace("\\\n", " ").splitlines() if r.strip() and not r.lstrip().startswith("#")]
+    assert len(regels) == 1, regels
+    assert regels[0].startswith("nl-core-news-md @ https://github.com/explosion/spacy-models/releases/download/")
+    assert re.search(r"--hash=sha256:[0-9a-f]{64}$", regels[0]), "het model zonder hash: --require-hashes faalt"
+    assert "COPY tools/graph-qa/pyproject.toml tools/graph-qa/uv.lock tools/graph-qa/taalmodel.txt" in dockerfile
+    assert TAALMODEL_INSTALL in dockerfile and TAALMODEL_INSTALL in poort
+    assert "--extra nlp" in dockerfile
 
 
 def test_het_taalmodel_staat_niet_in_de_lock() -> None:
     """Een directe URL in uv.lock liet Dependabot elke update van graph-qa weigeren
     (private_source_authentication_failure, okt–nov 2026). Het model staat in [tool.graph-qa] en de poort installeert
-    het met `scripts/taalmodel.py`."""
+    het uit `taalmodel.txt`."""
     lock = (WORTEL / "tools/graph-qa/uv.lock").read_text(encoding="utf-8")
     pyproject = (WORTEL / "tools/graph-qa/pyproject.toml").read_text(encoding="utf-8")
     assert "nl-core-news-md" not in lock
     assert "[tool.uv.sources]" not in pyproject or "spacy-models" not in pyproject.split("[tool.uv.sources]")[1].split("\n[")[0]
     poort = (WORTEL / ".github/workflows/poort.yml").read_text(encoding="utf-8")
-    assert "scripts/taalmodel.py" in poort, "de poort installeert het taalmodel niet meer: de parsertests slaan zich over"
+    assert "taalmodel.txt" in poort, "de poort installeert het taalmodel niet meer: de parsertests slaan zich over"

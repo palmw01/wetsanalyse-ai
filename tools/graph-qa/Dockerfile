@@ -1,4 +1,44 @@
-FROM python:3.14-slim
+# ── Builder ───────────────────────────────────────────────────────────────────
+# Zoals api/Dockerfile: uv leeft alleen in deze stage en bouwt de .venv uit de lock; de runtime krijgt alleen die venv.
+# Supply chain (SonarQube S8541/S8544): `--frozen` installeert precies de versies uit uv.lock, die de poort en pip-audit
+# al toetsten, en `--no-build` bouwt niets vanaf de bron behalve onze eigen pakketten (`[tool.uv] no-binary-package`).
+FROM python:3.14-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:0.11@sha256:ff07b86af50d4d9391d9daf4ff89ce427bc544f9aae87057e69a1cc0aa369946 /uv /bin/uv
+
+# De systeem-Python van de base: dan wijst de .venv naar /usr/local/bin/python3.14, dat ook in de runtime bestaat.
+# Het project staat hier zoals in de repo (`../../packages/bronmodel` moet binnen het bestandssysteem blijven); de venv
+# komt meteen op zijn plek in de runtime, /app/.venv. Alles gaat er niet-editable in, dus niets wijst terug naar /src.
+ENV UV_PYTHON_PREFERENCE=only-system \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+
+WORKDIR /src/tools/graph-qa
+
+# Eerst alleen de manifesten (betere layer-cache): de dependencies zonder het project zelf.
+#  - 'otel': OTel werkt zodra OTEL_EXPORTER_OTLP_ENDPOINT gezet is; zonder degradeert observability naar alleen
+#    JSON-logs zónder trace_id.
+#  - 'nlp': spaCy voor de taalanalyse van de hybride JAS-pijplijn (ADR-002). Zonder draait de annotatieketen
+#    gedegradeerd (alleen tokens), zichtbaar in de run-provenance.
+# Eén lijst, één bron van waarheid (pyproject.toml + uv.lock): een handmatig herhaalde lijst liep uit de pas, waardoor
+# langgraph-checkpoint-postgres en psycopg ontbraken en de agent bij een gezette CHECKPOINT_DB_URL omviel.
+COPY tools/graph-qa/pyproject.toml tools/graph-qa/uv.lock tools/graph-qa/taalmodel.txt ./
+COPY packages/bronmodel /src/packages/bronmodel
+RUN uv sync --frozen --no-build --extra otel --extra nlp --no-install-project --no-editable
+
+COPY tools/graph-qa/agent/ agent/
+COPY tools/graph-qa/api/ api/
+
+# Nu het project zelf, als gewone (niet-editable) installatie in de venv: `eval/run_eval.py` importeert `agent` uit de
+# venv, net als voorheen met `pip install .`.
+RUN uv sync --frozen --no-build --extra otel --extra nlp --no-editable
+
+# Het Nederlandse md-model van spaCy staat niet op PyPI en niet in uv.lock: taalmodel.txt noemt URL en hash.
+# `tests/runs/test_deploy_drift.py` bewaakt dat de image en de poort dit bestand gebruiken.
+# Ná de laatste sync: `uv sync` haalt weg wat niet in de lock staat.
+RUN uv pip install --python /app/.venv/bin/python --no-deps --no-build --require-hashes -r taalmodel.txt
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+FROM python:3.14-slim AS runtime
 
 WORKDIR /app
 
@@ -9,17 +49,15 @@ RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Pip eerst upgraden zodat de base-image-pip (met bekende CVE's) niet in de image achterblijft —
-# Trivy scant 'm anders als alert – en zijn vendored bom.cdx.json meteen weg: pip 26.x bakt een
-# CycloneDX-SBOM van zijn eigen vendored deps mee die Trivy als package-inventaris leest en los van
-# de echt geïnstalleerde versies als kwetsbaar rapporteert. Zelfde fix als in api/Dockerfile.
-RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
- && rm -f /usr/local/lib/python3*/site-packages/pip/_vendor/bom.cdx.json
+# De runtime installeert niets: pip eruit, zoals de frontend npm weghaalt. Een achterlopende pip uit de base (en de
+# CycloneDX-SBOM van zijn vendored deps, `pip/_vendor/bom.cdx.json`) leverde anders Trivy-alerts op zonder ooit te draaien.
+RUN rm -rf /usr/local/lib/python3*/site-packages/pip /usr/local/lib/python3*/site-packages/pip-*.dist-info \
+    /usr/local/bin/pip /usr/local/bin/pip3*
 
+COPY --from=builder /app/.venv /app/.venv
 COPY tools/graph-qa/pyproject.toml ./
 COPY tools/graph-qa/agent/ agent/
 COPY tools/graph-qa/api/ api/
-COPY packages/bronmodel /packages/bronmodel
 
 # De eval-harnas reist mee in het image, en dat is geen slordigheid. De graaf is `external: false`
 # — alleen bereikbaar bínnen de container-apps-omgeving — dus de enige plek waar de annotatieketen
@@ -31,22 +69,7 @@ COPY packages/bronmodel /packages/bronmodel
 # de `--offline`-tak, en die tak hoort thuis op een ontwikkelmachine, niet in productie.
 COPY tools/graph-qa/eval/ eval/
 
-# Installeren uit pyproject.toml, mét de 'otel'-extra (zodat OTel werkt zodra
-# OTEL_EXPORTER_OTLP_ENDPOINT gezet is; zonder die packages degradeert observability naar alleen
-# JSON-logs zónder trace_id).
-#
-# Bewust géén handmatig herhaalde pip-lijst hier: die liep uit de pas met pyproject.toml, waardoor
-# langgraph-checkpoint-postgres en psycopg ontbraken en de agent bij een gezette CHECKPOINT_DB_URL
-# omviel met "No module named 'langgraph.checkpoint.postgres'". Eén lijst, één bron van waarheid.
-RUN pip install --no-cache-dir /packages/bronmodel '.[otel]' "msgpack>=1.1.0"
-
-# De taalanalyse van de hybride JAS-pijplijn (ADR-002): spaCy + het Nederlandse md-model. Niet via
-# '.[nlp]', want het model staat niet op PyPI en niet in uv.lock. Deze regel en `[tool.graph-qa] taalmodel` in
-# pyproject.toml moeten dezelfde versie en URL noemen; `tests/runs/test_deploy_drift.py` bewaakt dat.
-# Zonder dit pakket draait de annotatieketen gedegradeerd (alleen tokens), zichtbaar in de
-# run-provenance.
-RUN pip install --no-cache-dir "spacy>=3.8,<3.9" \
-    "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl"
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Non-root + /data voor de durable checkpointer-db (named volume; CHECKPOINT_DB_PATH=/data/...).
 #

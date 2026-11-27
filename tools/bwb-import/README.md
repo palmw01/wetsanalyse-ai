@@ -13,7 +13,7 @@ importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hier
 
 > **De lezer is gedeeld.** Parser, modellen, verwijzingen, de bronmeting en de XSD's staan in `packages/bronmodel`
 > (`bronmodel.bwb`, extra `bwb`), zodat de connector *Wetgeving buiten de kennisgraaf* van graph-qa een regeling met
-> precies dezelfde code leest als de importer. `requirements.txt` noemt het pakket editable; de image bouwt vanaf de
+> precies dezelfde code leest als de importer. `pyproject.toml` noemt het als path-dependency (`[tool.uv.sources]`); de image bouwt vanaf de
 > projectroot. Een wijziging aan de lezer draait de suites van importer én graph-qa.
 
 ```
@@ -75,7 +75,9 @@ waarde niet als segmentgrens leest.
   comments `@nl`, domains/ranges) naar de named graph `BASE graph:ontologie`,
   met sub-axioma's naar **ELI** (`eli:LegalResource(Subdivision)`, `eli:has_part`,
   `eli:cites`, `eli:title`, …). De repository draait `rdfsplus-optimized`,
-  dus SPARQL over `eli:`-termen werkt via inferentie.
+  dus SPARQL over `eli:`-termen werkt via inferentie. Als bestand, met versie, en met per klasse wat verplicht is:
+  [`docs/ontologie/`](../../docs/ontologie/README.md) (gegenereerd; wijzig je de T-Box of de shapes, draai dan
+  `tools/graph-qa/scripts/genereer_ontologie_docs.py`).
 - **De vorm is formeel vastgelegd in SHACL** (`app/shapes/bwb-graaf.ttl`, getoetst door `app/shacl.py`). De T-Box
   zegt welke klassen en eigenschappen er zijn; de shapes zeggen wat een node van elke klasse moet en mag hebben:
   verplichte eigenschappen, hoe vaak, IRI of literal, datatype en taal, en naar welke klasse een `heeft…`-relatie
@@ -309,8 +311,7 @@ met een eigen vocabulaire (`urn:wa-kg-ns:`): per standpunt alle metadata, de tek
 ## Installatie
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+uv sync --extra dev     # de versies uit uv.lock; de extra `dev` is pytest, ruff en black
 cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 ```
 

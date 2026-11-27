@@ -439,9 +439,10 @@ PostgreSQL-servicecontainer (`RUNSTORE_TEST_DSN`, `ANNOTATIE_TEST_DSN`), zodat d
 alleen lokaal bestaan. Daarvóór staan structurele guards:
 
 - geen workflow-job die op `merged == true` wacht;
-- elk Python-image met `pip install` verwijdert de vendored pip-SBOM (`pip/_vendor/bom.cdx.json`) –
+- elk Python-image met `pip install` verwijdert de vendored pip-SBOM (`pip/_vendor/bom.cdx.json`) of pip zelf –
   Trivy leest die anders als geïnstalleerde pakketten; de toets staat op de vorm, niet op een lijst
-  Dockerfiles;
+  Dockerfiles. De Python-images bouwen hun venv met uv uit de lock (`uv sync --frozen --no-build`) en hebben in de
+  runtime geen pip meer; CI installeert met `--locked --no-build` en npm met `--ignore-scripts` (SonarQube F2);
 - alle Trivy-poorten hebben één beleid en falen minstens op HIGH;
 - `apiExtern` staat default op `false` en wordt alleen op acceptatie gezet;
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
@@ -564,6 +565,11 @@ plan mag verouderen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
   Meetbestanden zijn bewijs en worden niet achteraf gewijzigd.
 - `docs/wetsanalyse-workbench/` – de JAS-annotatie-ontologie (het RDF-model van de lagen).
+- `docs/ontologie/` – de **gegenereerde** referentie van alle ontologieën in de graaf (klassen, eigenschappen,
+  verplicht/optioneel uit de shapes, named graphs, versie per ontologie). Wijzig je de T-Box, een shape of een
+  vocabulaire, draai dan `tools/graph-qa/scripts/genereer_ontologie_docs.py` (en verhoog de versie in `versies.json`
+  met een regel in `CHANGELOG.md`); `--check` is een kruistest. `wa-vocabulaire.ttl` en `kg-vocabulaire.ttl` zijn
+  alleen documentatie en worden nooit in GraphDB geladen.
 - `docs/PLAN.md` – het **enige plan**: de sporen met hun stand (tabel *Open sporen*) en de open
   keuzes. Lees spoor E vóór je aan retrieval of grounding werkt, want het stelt eisen aan beide.
 - `docs/observability.md` en `docs/schrijfrichtlijn-lex.md` (de toon van Lex; zijn identiteit staat in

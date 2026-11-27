@@ -11,13 +11,13 @@ AZ_OPNIEUW_TIJDELIJK='Network is unreachable|ConnectionError|Connection reset|Co
 az_opnieuw() {
   local poging uit rc=1
   for poging in 1 2 3 4; do
-    uit=$(az "$@" 2>&1) && { [ -n "$uit" ] && printf '%s\n' "$uit"; return 0; }
+    uit=$(az "$@" 2>&1) && { [[ -n "$uit" ]] && printf '%s\n' "$uit"; return 0; }
     rc=$?
     if ! grep -qE "$AZ_OPNIEUW_TIJDELIJK" <<<"$uit"; then
       printf '%s\n' "$uit" >&2
       return "$rc"
     fi
-    [ "$poging" -lt 4 ] || break
+    [[ "$poging" -lt 4 ]] || break
     echo "::warning::az $1 $2: tijdelijke fout (poging $poging van 4), opnieuw over $((poging * 15)) s"
     sleep $((poging * 15))
   done

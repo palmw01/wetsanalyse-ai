@@ -18,8 +18,8 @@ fout=0
 for app in $WACHT_APPS; do
   rev=$(az containerapp show -n "$app" -g "$WACHT_RG" \
           --query "properties.latestRevisionName" -o tsv 2>/dev/null || true)
-  if [ -z "$rev" ]; then
-    if [ "$zonder_revisie" = "overslaan" ]; then
+  if [[ -z "$rev" ]]; then
+    if [[ "$zonder_revisie" = "overslaan" ]]; then
       echo "::warning::$app heeft geen revisie – overgeslagen."
     else
       echo "::error::$app: geen revisie gevonden"; fout=1
@@ -42,23 +42,23 @@ for app in $WACHT_APPS; do
     esac
     sleep "$interval"
   done
-  if [ -n "$mislukt" ]; then
+  if [[ -n "$mislukt" ]]; then
     fout=1
-  elif [ -z "$gezond" ]; then
+  elif [[ -z "$gezond" ]]; then
     echo "::error::$app: revisie $rev werd niet gezond binnen $((pogingen * interval)) s"; fout=1
   fi
 done
-[ "$fout" -eq 0 ] || exit 1
+[[ "$fout" -eq 0 ]] || exit 1
 echo "Alle revisies gezond."
 
-[ -n "${WACHT_KETEN:-}" ] || exit 0
+[[ -n "${WACHT_KETEN:-}" ]] || exit 0
 
 # De rooktest: een draaiende revisie zegt nog niet dat de keten werkt. De frontend meldt met `?keten=1`
 # of hij de api en graph-qa bereikt, en geeft anders 503. Meerdere pogingen, want de eerste aanroep kan
 # een koude start van de api of graph-qa veroorzaken.
 fqdn=$(az containerapp show -n "$WACHT_KETEN" -g "$WACHT_RG" \
          --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
-[ -n "$fqdn" ] || { echo "::error::$WACHT_KETEN: geen publieke ingress gevonden voor de rooktest"; exit 1; }
+[[ -n "$fqdn" ]] || { echo "::error::$WACHT_KETEN: geen publieke ingress gevonden voor de rooktest"; exit 1; }
 keten_pogingen="${KETEN_POGINGEN:-12}"
 keten_interval="${KETEN_INTERVAL:-15}"
 antwoord=$(mktemp)
@@ -68,18 +68,18 @@ for i in $(seq 1 "$keten_pogingen"); do
   code=$(curl -sS -o "$antwoord" -w '%{http_code}' --max-time 30 "https://$fqdn/api/health?keten=1" \
            2>/dev/null || true)
   echo "  poging $i: HTTP ${code:-000} $(head -c 300 "$antwoord" 2>/dev/null || true)"
-  if [ "$code" = "200" ] && jq -e '.keten == "ok" and .api == "ok" and .lex == "ok"' "$antwoord" >/dev/null 2>&1; then
+  if [[ "$code" = "200" ]] && jq -e '.keten == "ok" and .api == "ok" and .lex == "ok"' "$antwoord" >/dev/null 2>&1; then
     echo "De keten werkt."
     exit 0
   fi
   # Een frontend van vóór de rooktest kent `?keten` niet (N-1, zie deploy/azure/README.md): hij geeft dan
   # altijd 200 en alleen het veld `api`. Toets daarop, zodat een api- of graph-qa-uitrol niet rood wordt
   # omdat de frontend nog op de vorige versie staat.
-  if [ "$code" = "200" ] && jq -e '(has("keten") | not) and .api == "ok"' "$antwoord" >/dev/null 2>&1; then
+  if [[ "$code" = "200" ]] && jq -e '(has("keten") | not) and .api == "ok"' "$antwoord" >/dev/null 2>&1; then
     echo "::warning::de frontend kent ?keten nog niet; alleen frontend → api getoetst."
     exit 0
   fi
-  if [ "$i" -lt "$keten_pogingen" ]; then sleep "$keten_interval"; fi
+  if [[ "$i" -lt "$keten_pogingen" ]]; then sleep "$keten_interval"; fi
 done
 echo "::error::rooktest mislukt: de frontend bereikt de api of graph-qa niet (zie de laatste poging hierboven)"
 exit 1
