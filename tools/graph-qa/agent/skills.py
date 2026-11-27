@@ -48,7 +48,7 @@ def _frontmatter(tekst: str) -> tuple[str, str]:
 def beschrijving(skill: str) -> str:
     """De `description` uit de frontmatter van `SKILL.md`, op één regel."""
     kop, _ = _frontmatter(_skills()[skill].get("SKILL.md", ""))
-    m = re.search(r"^description:\s*+(.+?)(?=^\S|\Z)", kop, re.S | re.M)
+    m = re.search(r"^description:\s*+(.+?)(?=(?:^\S)|\Z)", kop, re.S | re.M)
     tekst = " ".join((m.group(1) if m else "").split()).strip("'\"")
     return tekst if len(tekst) <= MAX_BESCHRIJVING else tekst[:MAX_BESCHRIJVING].rsplit(" ", 1)[0] + " …"
 
