@@ -1,4 +1,5 @@
-"""De vorm van een named graph, getoetst tegen de SHACL-shapes in `shapes/bwb-graaf.ttl`.
+"""De vorm van een named graph, getoetst tegen SHACL-shapes: `shapes/bwb-graaf.ttl` voor een wet,
+`shapes/kennisgroepen.ttl` voor de index van de kennisgroepstandpunten (`app/kennisgroepen.py`).
 
 De T-Box (`app/ontology.py`) zegt welke klassen en eigenschappen er zijn; de shapes zeggen wat een node van elke
 klasse moet en mag hebben. De importer toetst elke graph vóór de PUT, net als de dekking: een PUT vervangt de hele
@@ -18,6 +19,7 @@ from pathlib import Path
 from rdflib import RDF, Graph, Namespace
 
 SHAPES = Path(__file__).parent / "shapes" / "bwb-graaf.ttl"
+KENNISGROEPEN_SHAPES = Path(__file__).parent / "shapes" / "kennisgroepen.ttl"
 SH = Namespace("http://www.w3.org/ns/shacl#")
 
 
@@ -41,17 +43,17 @@ class Vormtoets:
 
 
 @cache
-def shapes() -> Graph:
-    return Graph().parse(SHAPES, format="turtle")
+def shapes(pad: Path = SHAPES) -> Graph:
+    return Graph().parse(pad, format="turtle")
 
 
-def toets(graph: Graph) -> Vormtoets | None:
+def toets(graph: Graph, pad: Path = SHAPES) -> Vormtoets | None:
     try:
         from pyshacl import validate
     except ImportError:
         return None
     _conform, rapport, _tekst = validate(
-        graph, shacl_graph=shapes(), inference="none", advanced=True
+        graph, shacl_graph=shapes(pad), inference="none", advanced=True
     )
     teller: Counter[tuple[str, str]] = Counter()
     voorbeeld: dict[tuple[str, str], str] = {}
