@@ -966,13 +966,21 @@ jobs:
           uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
                         --query "sort_by([], &properties.startTime)[-1].name" -o tsv)
           echo "Execution: $uitvoering"
+          # Wacht zo lang als de job zelf mag lopen (`replicaTimeout` in de bicep) plus een minuut: daarna
+          # breekt Azure hem af en komt er een eindstatus. Een vaste teller liep bij 22 regelingen af terwijl de
+          # import nog gewoon liep, en kleurde de run rood.
+          maximaal=$(az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" \
+                       --query properties.configuration.replicaTimeout -o tsv)
+          grens=$(( SECONDS + ${maximaal:-3600} + 60 ))
           status=Unknown
-          for i in $(seq 1 60); do
+          i=0
+          while [ "$SECONDS" -lt "$grens" ]; do
+            i=$((i + 1))
             status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
                        --job-execution-name "$uitvoering" --query properties.status -o tsv)
             echo "[$i] $status"
             case "$status" in Succeeded|Failed|Cancelled|Degraded) break ;; esac
-            sleep 10
+            sleep 15
           done
           # Logs zijn hulpmiddel, geen oordeel: niet elke CLI-versie kent dit subcommando.
           az containerapp job logs show -n "$JOB" -g "$RESOURCE_GROUP" \
